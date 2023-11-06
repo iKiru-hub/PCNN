@@ -48,7 +48,8 @@ class Network:
         self.wff_const = kwargs.get('wff_const', 5)
         self.wff_max = kwargs.get('wff_max', 5)
         self.wff_min = kwargs.get('wff_min', 0.05)
-        self.wff_tau = kwargs.get('wff_tau', 100)
+        self.wff_tau_const = kwargs.get('wff_tau', 100)
+        self.wff_tau = np.ones((N, 1)) * self.wff_tau_const
 
         # state variables
         self.u = np.ones((N, 1)) * self._Erest
@@ -66,6 +67,7 @@ class Network:
         # 
         self._wff_beta = kwargs.get('wff_beta', 0.1)
         self._wff_func = lambda x: np.exp(self._wff_beta * x) / np.exp(self._wff_beta * x).sum(axis=0)
+        self._wff_tau_func = lambda x: 1 / (1 + np.exp(-23 * (x -0.7)))
 
         # rate function
         self.rate_func = lambda x: 1 / (1 + np.exp(-0.25 * (x + 58)))
@@ -96,7 +98,7 @@ class Network:
         # Oja rule
         dWff = self.s * Sj.T - self.Wff @ (Sj * Sj) 
 
-        # FF synapses
+        # FF synapses | local accumulator
         self._syn_ff += (- self._syn_ff + dWff) / self._syn_ff_tau
 
         # update weights
@@ -105,21 +107,25 @@ class Network:
         # normalize weights
         self._normalize()
 
+        # update weight decay time constant
+        dtau = self._wff_tau_func(self.Wff.max(axis=1, keepdims=True)/self.wff_max)
+        self.wff_tau += (dtau*2000 + (1-dtau)*self.wff_tau_const - self.wff_tau) / 50
+
     def _normalize(self):
 
         """
         Normalize the weights 
         """
 
-        # normalize weights across neurons
+        # normalize weights across neurons | winner-take-all
         sofWff = self._wff_func(self.Wff)
         self.Wff = sofWff / sofWff.max(axis=0) * self.Wff
 
-        # normalize weights within a node
+        # normalize weights within a neuron | constant sum
         self.Wff = self.Wff / self.Wff.sum(axis=1, 
                                 keepdims=True) * self.wff_const
 
-        # clip weights
+        # clip weights | min and max
         self.Wff = self.Wff.clip(min=self.wff_min,
                                  max=self.wff_max)
 
@@ -146,6 +152,10 @@ class Network:
         # update weights
         if self._learnable:
             self._update(Sj=Sj)
+
+        # record
+        self.record[:, 0] = self._wff_tau_func(self.Wff.max(axis=1).reshape(-1)/self.wff_max)
+        # self.record[:, 0] = self.Wff.max(axis=1).reshape(-1) / self.wff_max 
 
     def reset(self):
 
