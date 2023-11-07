@@ -1,7 +1,19 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
-#from tools.utils import logger
+try:
+    from tools.utils import logger
+except ModuleNotFoundError:
+    class Logger:
 
+        print('Logger not found, using fake logger')
+
+        def info(self, msg: str):
+            print(msg)
+
+        def debug(self, msg: str):
+            print(msg)
+
+    logger = Logger()
 
 
 #---------------------------------
@@ -59,7 +71,7 @@ class Network:
         self.g_ff = np.zeros((N, 1))
         self.g_rec = np.zeros((N, 1))
         self.tau_ff = kwargs.get('tau_ff', 20)
-        self.tau_rec = kwargs.get('tau_rec', 100)
+        self.tau_rec = kwargs.get('tau_rec', 75)
 
         # connectivity
         self.Wff = np.ones((N, Nj)) / Nj * self.wff_const 
@@ -86,7 +98,7 @@ class Network:
         # record
         self.record = np.zeros((self.N, 3))
 
-        print(self.__repr__())
+        logger.info(self.__repr__())
 
     def __repr__(self):
 
@@ -192,7 +204,7 @@ class Network:
 
         self.Wrec = Wrec.copy() * self.wr_const
 
-        print(f"Recurrent weights set {Wrec.shape}")
+        logger.info(f"Recurrent weights set {Wrec.shape}")
 
     def reset(self):
 
