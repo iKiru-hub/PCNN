@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 
-def plot_graph_colored(W: np.ndarray):
+def plot_graph_colored_1D(W: np.ndarray):
 
     """
     Plot a graph of the neurons with edges colored according to their weight.
@@ -42,8 +42,6 @@ def plot_graph_colored(W: np.ndarray):
     plt.title('Network Graph with Weight-Colored Connections')
     plt.axis('off')
     plt.show()
-
-
 
 # Define a function to plot the graph with a 2D structure
 def plot_graph_colored_2D(W: np.ndarray, grid_dimensions, threshold=0.):

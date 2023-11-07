@@ -37,7 +37,7 @@ class Network:
 
         # hyperparameters
         self._Erest = kwargs.get('Erest', -70)
-        self._lr = kwargs.get('lr', 0.01)
+        self._lr_const = kwargs.get('lr', 0.01)
         self._learnable = kwargs.get('learnable', False)
 
         # parameters
@@ -48,29 +48,40 @@ class Network:
         self.wff_const = kwargs.get('wff_const', 5)
         self.wff_max = kwargs.get('wff_max', 5)
         self.wff_min = kwargs.get('wff_min', 0.05)
-        self.wff_tau_const = kwargs.get('wff_tau', 100)
+        self.wff_tau_const = kwargs.get('wff_tau', 50)
         self.wff_tau = np.ones((N, 1)) * self.wff_tau_const
 
         # state variables
         self.u = np.ones((N, 1)) * self._Erest
         self.s = np.zeros((N, 1))
 
+        # conductances
+        self.g_ff = np.zeros((N, 1))
+        self.g_rec = np.zeros((N, 1))
+        self.tau_ff = kwargs.get('tau_ff', 20)
+        self.tau_rec = kwargs.get('tau_rec', 100)
+
         # connectivity
         self.Wff = np.ones((N, Nj)) / Nj * self.wff_const 
-        self.Wr = (np.ones((N, N)) - np.eye(N)) * self.wr_const
+        self.Wrec = (np.ones((N, N)) - np.eye(N)) * self.wr_const
 
         # input synapses
         self._syn_ff = np.zeros((N, Nj))
         self._syn_ff_tau = kwargs.get('syn_ff_tau', 10)
         self._syn_ff_min = kwargs.get('syn_ff_min', 0.05)
+        self._lr = np.ones((N, 1)) * self._lr_const
 
         # 
         self._wff_beta = kwargs.get('wff_beta', 0.1)
         self._wff_func = lambda x: np.exp(self._wff_beta * x) / np.exp(self._wff_beta * x).sum(axis=0)
-        self._wff_tau_func = lambda x: 1 / (1 + np.exp(-23 * (x -0.7)))
+        # self._wff_tau_func = lambda x: 1 / (1 + np.exp(-23 * (x -0.7)))
+        self._wff_decay_func = lambda x: 1 / (1 + np.exp(-23 * (x -0.7)))
 
         # rate function
-        self.rate_func = lambda x: 1 / (1 + np.exp(-0.25 * (x + 58)))
+        self.rate_func = lambda x: 1 / (1 + np.exp(-0.29 * (x +60)))
+
+        # colors for plotting | rainbow
+        self.colors = plt.cm.rainbow(np.linspace(0, 1, self.N))
 
         # record
         self.record = np.zeros((self.N, 3))
@@ -107,9 +118,14 @@ class Network:
         # normalize weights
         self._normalize()
 
-        # update weight decay time constant
-        dtau = self._wff_tau_func(self.Wff.max(axis=1, keepdims=True)/self.wff_max)
-        self.wff_tau += (dtau*2000 + (1-dtau)*self.wff_tau_const - self.wff_tau) / 50
+        # update weight decay components
+        decay_speed = self._wff_decay_func(self.Wff.max(axis=1, keepdims=True)/self.wff_max)
+
+        # decay time constant
+        self.wff_tau += (decay_speed*2000 + (1-decay_speed)*self.wff_tau_const - self.wff_tau) / 50
+
+        # learning rate
+        self._lr += (decay_speed * 1e-5 + (1-decay_speed) * self._lr_const - self._lr) / 100
 
     def _normalize(self):
 
@@ -140,22 +156,43 @@ class Network:
             Input from other neurons
         """
 
-        exc = self.Wff @ Sj
-        inh = self.Wr @ self.s
+        # update conductances
+        self.g_ff += (- self.g_ff + self.Wff @ Sj) / self.tau_ff
+        self.g_rec = (self.g_rec - self.g_rec / self.tau_rec + self.Wrec @ self.s).clip(-10, 10)
 
         # update state variables
-        self.u += (self._Erest - self.u + exc - inh) / self.tau 
+        self.u += (self._Erest - self.u + self.g_ff + self.g_rec) / self.tau 
 
         # spike generation
         self.s = np.random.binomial(1, self.rate_func(self.u))
+
+        # reset
+        # self.u = self.u * (1 - self.s) + self._Erest * self.s
 
         # update weights
         if self._learnable:
             self._update(Sj=Sj)
 
         # record
-        self.record[:, 0] = self._wff_tau_func(self.Wff.max(axis=1).reshape(-1)/self.wff_max)
-        # self.record[:, 0] = self.Wff.max(axis=1).reshape(-1) / self.wff_max 
+        # self.record[:, 0] = self._wff_tau_func(self.Wff.max(axis=1).reshape(-1)/self.wff_max)
+        self.record[:, 1] = self.g_rec.reshape(-1)
+
+    def set_wrec(self, Wrec: np.ndarray):
+
+        """
+        Set recurrent weights
+
+        Parameters
+        ----------
+        Wrec: np.ndarray
+            Recurrent weights
+        """
+
+        assert Wrec.shape == (self.N, self.N), 'Wrec must be of shape (N, N)'
+
+        self.Wrec = Wrec.copy() * self.wr_const
+
+        print(f"Recurrent weights set {Wrec.shape}")
 
     def reset(self):
 
@@ -165,7 +202,14 @@ class Network:
 
         self.u = np.ones((self.N, 1)) * self._Erest
         self.s = np.zeros((self.N, 1))
+        self.g_ff = np.zeros((self.N, 1))
+        self.g_rec = np.zeros((self.N, 1))
         self.Wff = np.ones((self.N, self.Nj)) / self.Nj * self.wff_const
+
+        self._lr = self._lr_const
+        self._wff_tau = self.wff_tau_const
+
+        self.u[0, 0] = -40
 
 
 
@@ -201,6 +245,8 @@ def mexican_hat_1D(N: int, A: int, B: int, sigma_exc: float,
     W = np.zeros((N, N))
     for i in range(N):
         for j in range(N):
+            if i == j:
+                continue
             d_ij = np.abs(i - j)
             W[i, j] = A * np.exp(-d_ij**2 / (2 * sigma_exc**2)
                                  ) - B * np.exp(
