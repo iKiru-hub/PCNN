@@ -1,5 +1,6 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
+from itertools import product as iterprod
 try:
     from tools.utils import logger
 except ModuleNotFoundError:
@@ -191,7 +192,6 @@ class Network:
         self.record[:, 1] = self.g_rec.reshape(-1)
         self.record[:, 2] = self.Wrec[1, :] * self.s.reshape(-1) 
 
-
     def set_wrec(self, Wrec: np.ndarray):
 
         """
@@ -204,6 +204,9 @@ class Network:
         """
 
         assert Wrec.shape == (self.N, self.N), 'Wrec must be of shape (N, N)'
+
+        # delete diagonal 
+        self.Wrec = self.Wrec * (np.ones((self.N, self.N)) - np.eye(self.N, self.N))
 
         self.Wrec = Wrec.copy() * self.wr_const
 
@@ -225,7 +228,6 @@ class Network:
         self._wff_tau = self.wff_tau_const
 
         self.u[0, 0] = -50
-
 
 
 #--------------------------------
@@ -270,7 +272,7 @@ def mexican_hat_1D(N: int, A: int, B: int, sigma_exc: float,
     return W
 
 # Re-define the mexican hat weights function for 2D
-def mexican_hat_2D(dims: tuple, A: int, B: int, sigma_exc: int, sigma_inh: int) -> np.ndarray:
+def mexican_hat_2D(N: int, A: int, B: int, sigma_exc: int, sigma_inh: int) -> np.ndarray:
 
     """
     Generate a Mexican hat connectivity pattern for a 2D grid of neurons.
@@ -294,16 +296,24 @@ def mexican_hat_2D(dims: tuple, A: int, B: int, sigma_exc: int, sigma_inh: int) 
         Connectivity matrix.
     """
 
-    rows, cols = dims
-    N = rows * cols
+    ns = int(np.sqrt(N))
     W = np.zeros((N, N))
+
+    # all neurons positions as all possible combinations of x and y
+    ids = [*iterprod(range(ns), range(ns))]
+
+    # for each neuron i
     for i in range(N):
+
+        # for each neuron j
         for j in range(N):
-            # Convert index to 2D coordinates
-            x_i, y_i = i // cols, i % cols
-            x_j, y_j = j // cols, j % cols
+
+            # skip if i == j
+            if i == j:
+                continue
+
             # Calculate Euclidean distance
-            d_ij = np.sqrt((x_i - x_j)**2 + (y_i - y_j)**2)
+            d_ij = np.sqrt((ids[i][0] - ids[j][0])**2 + (ids[i][1] - ids[j][1])**2)
             W[i, j] = A * np.exp(-d_ij**2 / (2 * sigma_exc**2)) - B * np.exp(-d_ij**2 / (2 * sigma_inh**2))
 
     return W
