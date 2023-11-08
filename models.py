@@ -90,7 +90,7 @@ class Network:
         self._wff_decay_func = lambda x: 1 / (1 + np.exp(-23 * (x -0.7)))
 
         # rate function
-        self.rate_func = lambda x: 1 / (1 + np.exp(-0.29 * (x +60)))
+        self.rate_func = lambda x: 1 / (1 + np.exp(-0.3 * (x + 60)))
 
         # colors for plotting | rainbow
         self.colors = plt.cm.rainbow(np.linspace(0, 1, self.N))
@@ -187,7 +187,10 @@ class Network:
 
         # record
         # self.record[:, 0] = self._wff_tau_func(self.Wff.max(axis=1).reshape(-1)/self.wff_max)
+        self.record[:, 0] = self.g_ff.reshape(-1)
         self.record[:, 1] = self.g_rec.reshape(-1)
+        self.record[:, 2] = self.Wrec[1, :] * self.s.reshape(-1) 
+
 
     def set_wrec(self, Wrec: np.ndarray):
 
@@ -221,7 +224,7 @@ class Network:
         self._lr = self._lr_const
         self._wff_tau = self.wff_tau_const
 
-        self.u[0, 0] = -40
+        self.u[0, 0] = -50
 
 
 
