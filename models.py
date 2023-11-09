@@ -81,7 +81,7 @@ class Network:
         # input synapses
         self._syn_ff = np.zeros((N, Nj))
         self._syn_ff_tau = kwargs.get('syn_ff_tau', 10)
-        self._syn_ff_min = kwargs.get('syn_ff_min', 0.05)
+        self._syn_ff_thr = kwargs.get('syn_ff_min', 0.05)
         self._lr = np.ones((N, 1)) * self._lr_const
 
         # 
@@ -126,7 +126,7 @@ class Network:
         self._syn_ff += (- self._syn_ff + dWff) / self._syn_ff_tau
 
         # update weights
-        self.Wff += self._lr * dWff * (np.abs(self._syn_ff) > self._syn_ff_min)
+        self.Wff += self._lr * dWff * (np.abs(self._syn_ff) > self._syn_ff_thr)
 
         # normalize weights
         self._normalize()
@@ -268,28 +268,33 @@ class NetworkSimple:
         self.N = N
         self.Nj = Nj
         self.tau = kwargs.get('tau_u', 10)
-        self._lr_const = kwargs.get('lr', 0.01)
+        self._lr_max = kwargs.get('lr_max', 0.01)
+        self._lr_min = kwargs.get('lr_min', 1e-5)
+        self._lr_tau = kwargs.get('lr_tau', 100)
 
         # Input connection parameters
         self.wff_const = kwargs.get('wff_const', 5)
         self.wff_max = kwargs.get('wff_max', 5)
         self.wff_min = kwargs.get('wff_min', 0.05)
-        self.wff_tau_min = kwargs.get('wff_min', 50)
-        self.wff_tau_max = kwargs.get('wff_max', 2000)
-        self.wff_tau = np.ones((N, 1)) * self.wff_tau_min
+        self.wff_tau_min = kwargs.get('wff_tau_min', 50)
+        self.wff_tau_max = kwargs.get('wff_tau_max', 2000)
+        self.wff_tau_tau = kwargs.get('wff_tau_tau', 50)
         self._wff_beta = kwargs.get('wff_beta', 0.1)
         self._wff_func = lambda x: np.exp(self._wff_beta * x) / np.exp(self._wff_beta * x).sum(axis=0)
         self._wff_decay_func = lambda x: 1 / (1 + np.exp(-23 * (x -0.7)))
+
+        self.wff_tau = np.ones((N, 1)) * self.wff_tau_min
         self.Wff = np.ones((N, Nj)) / Nj * self.wff_const 
 
         # recurrent connection parameters
-        self.wr_const = kwargs.get('wr_const', )
-        self.Wrec = self._make_mexican_hat(dim=kwargs.get('dim', 1),
-                                           A=kwargs.get('A', 1),
-                                           B=kwargs.get('B', 1),
-                                           sigma_exc=kwargs.get('sigma_exc', 1),
-                                           sigma_inh=kwargs.get('sigma_inh', 1)
-                                           ) * self.wr_const
+        self.wr_const = kwargs.get('wr_const', 3)
+        self.Wrec = self._make_mexican_hat(
+            dim=kwargs.get('dim', 1),
+            A=kwargs.get('A', 1),
+            B=kwargs.get('B', 1),
+            sigma_exc=kwargs.get('sigma_exc', 1),
+            sigma_inh=kwargs.get('sigma_inh', 1)
+        ) * self.wr_const
 
         # state variables
         self.u = np.ones((N, 1)) * self._Erest
@@ -304,8 +309,8 @@ class NetworkSimple:
         # input synapses
         self._syn_ff = np.zeros((N, Nj))
         self._syn_ff_tau = kwargs.get('syn_ff_tau', 10)
-        self._syn_ff_min = kwargs.get('syn_ff_min', 0.05)
-        self._lr = np.ones((N, 1)) * self._lr_const
+        self._syn_ff_thr = kwargs.get('syn_ff_thr', 0.05)
+        self._lr = np.ones((N, 1)) * self._lr_max
 
         # rate function
         rate_func_beta = kwargs.get('rate_func_beta', 0.3)
@@ -401,7 +406,7 @@ class NetworkSimple:
         self._syn_ff += (- self._syn_ff + dWff) / self._syn_ff_tau
 
         # update weights
-        self.Wff += self._lr * dWff * (np.abs(self._syn_ff) > self._syn_ff_min)
+        self.Wff += self._lr * dWff * (np.abs(self._syn_ff) > self._syn_ff_thr)
 
         # normalize weights
         self._normalize()
@@ -410,10 +415,10 @@ class NetworkSimple:
         decay_speed = self._wff_decay_func(self.Wff.max(axis=1, keepdims=True)/self.wff_max)
 
         # decay time constant
-        self.wff_tau += (decay_speed * self.wff_tau_max + (1-decay_speed)*self.wff_tau_min - self.wff_tau) / 50
+        self.wff_tau += (decay_speed * self.wff_tau_max + (1-decay_speed)*self.wff_tau_min - self.wff_tau) / self.wff_tau_tau
 
         # learning rate
-        self._lr += (decay_speed * 1e-5 + (1-decay_speed) * self._lr_const - self._lr) / 100
+        self._lr += (decay_speed * self._lr_min + (1-decay_speed) * self._lr_max - self._lr) / self._lr_tau
 
     def _normalize(self):
 
