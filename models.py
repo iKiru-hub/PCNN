@@ -230,6 +230,260 @@ class Network:
         self.u[0, 0] = -50
 
 
+
+class NetworkSimple:
+    
+    _Erest = -70
+
+    def __init__(self, N: int=1, Nj: int=1, **kwargs):
+
+        """
+        Neuron class
+
+        Parameters
+        ----------
+        N: int
+            Number of neurons
+        Nj: int
+            Number of input neurons
+        **kwargs: dict
+            Erest: float
+                Resting potential
+            lr: float
+                Learning rate
+            learnable: bool
+                Whether the network is learnable
+            tau: float
+                Time constant
+            wff_const: float
+                Constant for feedforward weights
+        """
+
+        # define instance id as a string of alphanumeric characters
+        self.id = ''.join(np.random.choice(list(
+            'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        ), 8))
+
+        # parameters
+        self.N = N
+        self.Nj = Nj
+        self.tau = kwargs.get('tau_u', 10)
+        self._lr_const = kwargs.get('lr', 0.01)
+
+        # Input connection parameters
+        self.wff_const = kwargs.get('wff_const', 5)
+        self.wff_max = kwargs.get('wff_max', 5)
+        self.wff_min = kwargs.get('wff_min', 0.05)
+        self.wff_tau_min = kwargs.get('wff_min', 50)
+        self.wff_tau_max = kwargs.get('wff_max', 2000)
+        self.wff_tau = np.ones((N, 1)) * self.wff_tau_min
+        self._wff_beta = kwargs.get('wff_beta', 0.1)
+        self._wff_func = lambda x: np.exp(self._wff_beta * x) / np.exp(self._wff_beta * x).sum(axis=0)
+        self._wff_decay_func = lambda x: 1 / (1 + np.exp(-23 * (x -0.7)))
+        self.Wff = np.ones((N, Nj)) / Nj * self.wff_const 
+
+        # recurrent connection parameters
+        self.wr_const = kwargs.get('wr_const', )
+        self.Wrec = self._make_mexican_hat(dim=kwargs.get('dim', 1),
+                                           A=kwargs.get('A', 1),
+                                           B=kwargs.get('B', 1),
+                                           sigma_exc=kwargs.get('sigma_exc', 1),
+                                           sigma_inh=kwargs.get('sigma_inh', 1)
+                                           ) * self.wr_const
+
+        # state variables
+        self.u = np.ones((N, 1)) * self._Erest
+        self.s = np.zeros((N, 1))
+
+        # conductances
+        self.g_ff = np.zeros((N, 1))
+        self.g_rec = np.zeros((N, 1))
+        self.tau_ff = kwargs.get('tau_ff', 20)
+        self.tau_rec = kwargs.get('tau_rec', 75)
+
+        # input synapses
+        self._syn_ff = np.zeros((N, Nj))
+        self._syn_ff_tau = kwargs.get('syn_ff_tau', 10)
+        self._syn_ff_min = kwargs.get('syn_ff_min', 0.05)
+        self._lr = np.ones((N, 1)) * self._lr_const
+
+        # rate function
+        rate_func_beta = kwargs.get('rate_func_beta', 0.3)
+        rate_func_alpha = kwargs.get('rate_func_alpha', 60)
+        self.rate_func = lambda x: 1 / (1 + np.exp(-rate_func_beta * (x + rate_func_alpha)))
+
+        # 
+        self.kwargs = kwargs
+
+    def __repr__(self):
+
+        return f'NetworkSimple(N={self.N}, Nj={self.Nj}) [{self.id}]'
+
+    def _make_mexican_hat(self, dim: int, A: int, B: int, sigma_exc: float,
+                          sigma_inh: float):
+
+        """
+        Make a Mexican hat connectivity pattern
+
+        Parameters
+        ----------
+        dim: int
+            dimensions of the connectivity pattern, 1 or 2
+        **kwargs: dict
+            A: int
+                Amplitude of excitatory connections
+            B: int
+                Amplitude of inhibitory connections
+            sigma_exc: float
+                Standard deviation of excitatory connections
+            sigma_inh: float
+                Standard deviation of inhibitory connections
+        """
+
+        if dim == 1:
+
+            W = np.zeros((self.N, self.N))
+            for i in range(self.N):
+                for j in range(self.N):
+                    if i == j:
+                        continue
+                    d_ij = np.abs(i - j)
+                    W[i, j] = A * np.exp(-d_ij**2 / (2 * sigma_exc**2)
+                                         ) - B * np.exp(
+                            -d_ij**2 / (2 * sigma_inh**2))
+
+        elif dim == 2:
+
+            ns = int(np.sqrt(self.N))
+            W = np.zeros((self.N, self.N))
+
+            # all neurons positions as all possible combinations of x and y
+            ids = [*iterprod(range(ns), range(ns))]
+
+            # for each neuron i
+            for i in range(self.N):
+
+                # for each neuron j
+                for j in range(self.N):
+
+                    # skip if i == j
+                    if i == j:
+                        continue
+
+                    # Calculate Euclidean distance
+                    d_ij = np.sqrt((ids[i][0] - ids[j][0])**2 + (ids[i][1] - ids[j][1])**2)
+                    W[i, j] = A * np.exp(-d_ij**2 / (2 * sigma_exc**2)) - B * np.exp(-d_ij**2 / (2 * sigma_inh**2))
+
+        else:
+
+            raise ValueError('dim must be 1 or 2')
+
+        return W
+
+    def _update(self, Sj: np.ndarray):
+
+        """
+        Update function
+
+        Parameters
+        ----------
+        Sj: np.ndarray
+            Input from other neurons
+        """
+
+        # weight decay
+        self.Wff += (self.wff_const / self.Nj - self.Wff) / self.wff_tau
+
+        # Oja rule
+        dWff = self.s * Sj.T - self.Wff @ (Sj * Sj) 
+
+        # FF synapses | local accumulator
+        self._syn_ff += (- self._syn_ff + dWff) / self._syn_ff_tau
+
+        # update weights
+        self.Wff += self._lr * dWff * (np.abs(self._syn_ff) > self._syn_ff_min)
+
+        # normalize weights
+        self._normalize()
+
+        # update weight decay components
+        decay_speed = self._wff_decay_func(self.Wff.max(axis=1, keepdims=True)/self.wff_max)
+
+        # decay time constant
+        self.wff_tau += (decay_speed * self.wff_tau_max + (1-decay_speed)*self.wff_tau_min - self.wff_tau) / 50
+
+        # learning rate
+        self._lr += (decay_speed * 1e-5 + (1-decay_speed) * self._lr_const - self._lr) / 100
+
+    def _normalize(self):
+
+        """
+        Normalize the weights 
+        """
+
+        # normalize weights across neurons | winner-take-all
+        sofWff = self._wff_func(self.Wff)
+        self.Wff = sofWff / sofWff.max(axis=0) * self.Wff
+
+        # normalize weights within a neuron | constant sum
+        self.Wff = self.Wff / self.Wff.sum(axis=1, 
+                                keepdims=True) * self.wff_const
+
+        # clip weights | min and max
+        self.Wff = self.Wff.clip(min=self.wff_min,
+                                 max=self.wff_max)
+
+    def step(self, Sj: np.ndarray):
+
+        """
+        Step function
+
+        Parameters
+        ----------
+        Sj: np.ndarray
+            Input from other neurons
+        """
+
+        # update conductances
+        self.g_ff += (- self.g_ff + self.Wff @ Sj) / self.tau_ff
+        self.g_rec = (self.g_rec - self.g_rec / self.tau_rec + self.Wrec @ self.s).clip(-10, 10)
+
+        # update state variables
+        self.u += (self._Erest - self.u + self.g_ff + self.g_rec) / self.tau 
+
+        # spike generation
+        self.s = np.random.binomial(1, self.rate_func(self.u))
+
+        # update weights
+        self._update(Sj=Sj)
+
+    def get_kwargs(self):
+
+        """
+        Get the kwargs
+        """
+
+        return self.kwargs
+
+    def reset(self):
+
+        """
+        Reset function
+        """
+
+        self.u = np.ones((self.N, 1)) * self._Erest
+        self.s = np.zeros((self.N, 1))
+        self.g_ff = np.zeros((self.N, 1))
+        self.g_rec = np.zeros((self.N, 1))
+        self.Wff = np.ones((self.N, self.Nj)) / self.Nj * self.wff_const
+
+        self._lr = self._lr_const
+        self._wff_tau = self.wff_tau_min
+
+        self.u[0, 0] = -50
+
+
+
 #--------------------------------
 # ---| Connectivity patterns |---
 #--------------------------------

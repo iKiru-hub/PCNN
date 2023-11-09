@@ -22,7 +22,7 @@ toolbox.register("individual", tools.initRepeat,
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 toolbox.register("evaluate", evaluate)
 toolbox.register("mate", tools.cxTwoPoint)
-toolbox.register("mutate", tools.mutSh2ffleIndexes, indpb=0.05)
+toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.05)
 toolbox.register("select", tools.selTournament, tournsize=4)
 
 def main():
