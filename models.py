@@ -230,7 +230,6 @@ class Network:
         self.u[0, 0] = -50
 
 
-
 class NetworkSimple:
     
     _Erest = -70
@@ -482,7 +481,7 @@ class NetworkSimple:
         self.g_rec = np.zeros((self.N, 1))
         self.Wff = np.ones((self.N, self.Nj)) / self.Nj * self.wff_const
 
-        self._lr = self._lr_const
+        self._lr = self._lr_max
         self._wff_tau = self.wff_tau_min
 
         self.u[0, 0] = -50

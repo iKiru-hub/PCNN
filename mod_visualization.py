@@ -113,3 +113,4 @@ def plot_weight_matrix(W: np.ndarray):
     plt.axis('off')
     plt.show()
 
+

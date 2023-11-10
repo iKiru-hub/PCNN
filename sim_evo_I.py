@@ -6,6 +6,58 @@ from tools.utils import logger
 import numpy as np
 
 
+
+
+# ----------------------------------------------------------
+# ---| Game |---
+# --------------
+
+class Track2D:
+
+    def __init__(self, dataset: list, Nj: int):
+
+        """
+        A 2D tracking game.
+
+        Parameters
+        ----------
+        dataset : list
+            A list of spiking trajectories.
+        Nj : int
+            Number of neurons.
+        """
+
+        self.dataset = dataset
+        self.Nj = Nj
+
+    def _train(self, model: object) -> object:
+
+        """
+        Train a model on the dataset.
+
+        Parameters
+        ----------
+        model : object
+            A model object.
+
+        Returns
+        -------
+        model : object
+            The trained model.
+        """
+
+        model.reset()
+
+        # train on the whole dataset
+        for trajectory in self.dataset:
+
+            # train on a single trajectory
+            for t in range(len(trajectory)):
+                model.step(trajectory[t])
+
+        return model
+
+
 # ----------------------------------------------------------
 # ---| Genome Setup |---
 # ----------------------
@@ -40,4 +92,5 @@ PARAMETERS = {
     'rate_func_beta': lambda: random.uniform(0.1, 1.0),
     'rate_func_alpha': lambda: random.randint(50, 80),
 }
+
 
