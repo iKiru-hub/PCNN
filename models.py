@@ -261,10 +261,11 @@ class NetworkSimple:
         # define instance id as a string of alphanumeric characters
         self.id = ''.join(np.random.choice(list(
             'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-        ), 8))
+        ), 5))
 
         # parameters
         self.N = N
+        self.n = int(np.sqrt(N))
         self.Nj = Nj
         self.tau = kwargs.get('tau_u', 10)
         self._lr_max = kwargs.get('lr_max', 0.01)
@@ -481,7 +482,7 @@ class NetworkSimple:
         self.g_rec = np.zeros((self.N, 1))
         self.Wff = np.ones((self.N, self.Nj)) / self.Nj * self.wff_const
 
-        self._lr = self._lr_max
+        self._lr = np.ones((self.N, 1)) * self._lr_max
         self._wff_tau = self.wff_tau_min
 
         self.u[0, 0] = -50

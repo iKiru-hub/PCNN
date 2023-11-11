@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from itertools import product as iterprod
 try:
-    from tools.utils import logger
+    from tools.utils import logger, tqdm_enumerate
 except ModuleNotFoundError:
     class Logger:
         def info(self, *args):
@@ -467,7 +467,7 @@ def get_network_tuning(model: object, layer: object, dx: float=1,
     activations = np.zeros((len(all_positions), model.N))
 
     # get the activations of the network in all positions
-    for i, input_activation in enumerate(all_activations):
+    for i, input_activation in tqdm_enumerate(all_activations):
         local_act = np.zeros(model.N)
         for _ in range(stm_duration):
             model.step(input_activation.reshape(-1, 1))
