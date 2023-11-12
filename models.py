@@ -470,22 +470,28 @@ class NetworkSimple:
 
         return self.kwargs
 
-    def reset(self):
+    def reset(self, bias: bool=False):
 
         """
         Reset function
+
+        Parameters
+        ----------
+        bias: bool
+            if True, set the first neuron to -50
         """
 
         self.u = np.ones((self.N, 1)) * self._Erest
         self.s = np.zeros((self.N, 1))
         self.g_ff = np.zeros((self.N, 1))
         self.g_rec = np.zeros((self.N, 1))
-        self.Wff = np.ones((self.N, self.Nj)) / self.Nj * self.wff_const
+        self.Wff = np.ones((self.N, self.Nj)) / self.Nj * self.wff_const * 0
 
         self._lr = np.ones((self.N, 1)) * self._lr_max
         self._wff_tau = self.wff_tau_min
 
-        self.u[0, 0] = -50
+        if bias:
+            self.u[0, 0] = -50
 
 
 

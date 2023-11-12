@@ -111,7 +111,8 @@ class AnimalTrajectory:
         self.direction = np.dot(rotation_matrix, self.direction)
         self.direction /= np.linalg.norm(self.direction)  # Normalize direction
 
-    def _whole_walk(self, dx: int=0.1) -> np.ndarray:
+    @staticmethod
+    def whole_walk(dx: float, bounds: tuple) -> np.ndarray:
 
         """
         Generate a whole walk in the grid.
@@ -119,7 +120,9 @@ class AnimalTrajectory:
         Parameters
         ----------
         dx : int
-            Step size. Default: 0.1
+            Step size.
+        bounds : tuple
+            (x_min, x_max, y_min, y_max) bounds of the grid.
 
         Returns
         -------
@@ -127,11 +130,21 @@ class AnimalTrajectory:
             Trajectory of the random walk.
         """
 
-        track_slice = np.arange(0, 1, dx)
+        trajectory = np.array([*iterprod(
+            np.arange(bounds[0], bounds[1]+dx, dx), 
+            np.arange(bounds[2], bounds[3]+dx, dx))])
 
-        return np.stack(np.meshgrid(track_slice, track_slice),
-                        axis=-1).reshape(-1, 2)
+        trajectory = np.flip(trajectory, axis=1)
+        # ticks = np.arange(bounds[0], bounds[1]+dx, dx)
 
+        # for k, i in enumerate(range(len(ticks), 
+        #                             len(trajectory),
+        #                             len(ticks))):
+        #     if k % 2 != -1: continue
+        #     trajectory[i:i+len(ticks)] = np.flip(
+        #         trajectory[i:i+len(ticks)], axis=0)
+        
+        return trajectory
 
     def step(self):
 
@@ -149,7 +162,8 @@ class AnimalTrajectory:
         # Update the time of day
         self.time_of_day = (self.time_of_day + 1) % 24
 
-    def make_trajectory(self, duration: int, whole: bool=False) -> np.ndarray:
+    def make_trajectory(self, duration: int, whole: bool=False,
+                        dx: float=1, **kwargs) -> np.ndarray:
 
         """
         Create a trajectory of the animal.
@@ -161,6 +175,13 @@ class AnimalTrajectory:
         whole : bool
             Whether to generate a whole walk or not.
             Default: False
+        dx : float
+            Step size.
+            Default: 1
+        **kwargs : dict
+            bounds : tuple
+                (x_min, x_max, y_min, y_max) bounds of the grid.
+                Default: (0, 1, 0, 1)
 
         Returns
         -------
@@ -168,17 +189,24 @@ class AnimalTrajectory:
             trajectory of the animal.
         """
 
+        # bounds
+        bounds = kwargs.get('bounds', (0, 1, 0, 1))
+
         if whole:
-            return self._whole_walk()
+            return self.whole_walk(dx=dx, bounds=bounds)
 
         trajectory = np.zeros((duration, 2))
         for t in range(duration):
-            trajectory[t] = self.position
+            trajectory[t] = self.position * dx
             self.step()
 
         # constrain trajectory to the track
-        trajectory[:, 0] = (trajectory[:, 0].max() - trajectory[:, 0]) / (trajectory[:, 0].max() - trajectory[:, 0].min())
-        trajectory[:, 1] = (trajectory[:, 1].max() - trajectory[:, 1]) / (trajectory[:, 1].max() - trajectory[:, 1].min())
+        trajectory[:, 0] = (trajectory[:, 0].max() - \
+            trajectory[:, 0]) / (trajectory[:, 0].max() \
+                - trajectory[:, 0].min())
+        trajectory[:, 1] = (trajectory[:, 1].max() - \
+            trajectory[:, 1]) / (trajectory[:, 1].max() - \
+                trajectory[:, 1].min())
 
         return trajectory
 
@@ -208,10 +236,6 @@ class InputLayer:
             kind of tuning function. 
             Options: 'place', 'grid'.
             Default: 'place'.
-        mode : str
-            mode of the tuning function.
-            Options: 'rate', 'spike'.
-            Default: 'rate'.
         **kwargs : dict
             sigma : float
                 Standard deviation of the tuning function.
@@ -226,7 +250,6 @@ class InputLayer:
         self.n = int(np.sqrt(N))
         self.bounds = (0, 1, 0, 1) if bounds is None else bounds
         self.kind = kind
-        self.mode = mode
         self.sigma = kwargs.get('sigma', 1)
         self.max_rate = kwargs.get('max_rate', 100)
         self.min_rate = kwargs.get('min_rate', 0)
@@ -269,10 +292,8 @@ class InputLayer:
         x_min, x_max, y_min, y_max = self.bounds
 
         # Define the centers of the tuning functions
-        x_centers = np.linspace(x_min, x_max, 
-                                self.n, endpoint=False)
-        y_centers = np.linspace(y_min, y_max,
-                                self.n, endpoint=False)
+        x_centers = np.linspace(x_min, x_max, self.n)
+        y_centers = np.linspace(y_min, y_max, self.n)
 
         # Make the tuning function
         centers = np.zeros((self.N, 2))
@@ -282,7 +303,7 @@ class InputLayer:
 
         return centers
 
-    def step(self, position: np.ndarray) -> np.ndarray:
+    def step(self, position: np.ndarray, mode: str='rate') -> np.ndarray:
 
         """
         Step function of the input layer.
@@ -291,6 +312,10 @@ class InputLayer:
         ----------
         position : numpy.ndarray
             (x, y) coordinates of the current position.
+        mode : str
+            mode of the tuning function.
+            Options: 'rate', 'spike'.
+            Default: 'rate'.
 
         Returns
         -------
@@ -301,10 +326,10 @@ class InputLayer:
         self.activation = np.exp(-np.linalg.norm(
             position - self.centers, axis=1)**2 / self.sigma)
 
-        if self.mode == 'rate':
+        if mode == 'rate':
             self.activation *= self.max_rate 
 
-        elif self.mode == 'spike':
+        elif mode == 'spike':
             self.activation = np.random.binomial(
                 1, (self.activation*self.max_rate).clip(
                     self.min_rate, self.max_rate)/1000,
@@ -313,8 +338,8 @@ class InputLayer:
 
         return self.activation
 
-    def parse_trajectory(self, trajectory: np.ndarray, 
-                         **kwargs) -> np.ndarray:
+    def parse_trajectory(self, trajectory: np.ndarray,
+                         mode: str='rate', **kwargs) -> np.ndarray:
 
         """
         Parse a trajectory into the input layer.
@@ -323,6 +348,10 @@ class InputLayer:
         ----------
         trajectory : numpy.ndarray
             Trajectory to parse into the input layer.
+        mode : str
+            mode of the tuning function.
+            Options: 'rate', 'spike'.
+            Default: 'rate'.
         **kwargs : dict
             timestep : float
                 Time step of the trajectory.
@@ -341,7 +370,7 @@ class InputLayer:
         for t in range(len(trajectory)):
             for i in range(timestep):
                 activations[t*timestep+i] = self.step(
-                    trajectory[t])
+                    position=trajectory[t], mode=mode)
 
         return activations
 
@@ -784,7 +813,76 @@ def make_whole_walk(layer: object, dx: float=1) -> tuple:
     return all_positions, all_activations
 
 
-def get_network_tuning(model: object, layer: object, dx: float=1,
+def get_network_tuning(model: object, layer: object,
+                       trajectory: np.ndarray=None, **kwargs
+                       ) -> np.ndarray:
+
+    """
+    Given a model and an input layer, get the tuning of the network.
+
+    Parameters
+    ----------
+    model : object
+        The model.
+    layer : object
+        The input layer.
+    trajectory : numpy.ndarray
+        Trajectory of the random walk.
+        If None, generate a whole walk. Default: None
+    **kwargs : dict
+        timestep : float
+            Time step of the trajectory.
+            Default: 10.
+        mode : str
+            Input layer mode.
+            Options: 'rate', 'spike'.
+            Default: 'spike'.
+        bounds : tuple
+            (x_min, x_max, y_min, y_max) bounds of the grid.
+            Default: (0, 1, 0, 1)
+        dx : float
+            Step size.
+            Default: 0.05
+
+    Returns
+    -------
+    network_tuning : numpy.ndarray
+        Network tuning.
+    """
+   
+    # settings
+    timestep = kwargs.get('timestep', 10)
+    mode = kwargs.get('mode', 'spike')
+    bounds = kwargs.get('bounds', (0, 1, 0, 1))
+    dx = kwargs.get('dx', 0.05)
+    model.reset()
+
+    # generate a whole walk
+    if trajectory is None:
+        trajectory = AnimalTrajectory.whole_walk(
+            dx=dx, bounds=bounds)
+
+    # input layer
+    input_rate = layer.parse_trajectory(trajectory=trajectory, 
+                                        timestep=timestep, 
+                                        mode=mode) 
+
+    activations = np.zeros((len(input_rate), model.N))
+
+    # get the activations of the network in all positions
+    for i, input_activation in tqdm_enumerate(input_rate):
+        model.step(input_activation.reshape(-1, 1))
+        activations[i] = model.s.reshape(-1)
+
+    # sum over each timestep
+    rate = np.zeros((len(trajectory), model.N))
+    for t in range(len(rate)):
+        rate[t] = activations[t*timestep: (t+1)*timestep].sum(axis=0)
+
+    return rate, activations
+
+
+def get_network_tuning_2(model: object, layer: object, dx: float=1,
                        stm_duration: int=1000, pause_time=100,
                        binary: bool=False, **kwargs) -> np.ndarray:
 
