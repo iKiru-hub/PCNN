@@ -15,10 +15,184 @@ except ModuleNotFoundError:
 
 
 
+####
+
+
+class AnimalTrajectory:
+
+    def __init__(self,  dt: float, **kwargs):
+
+        """
+        Initialize the Animal object with given parameters.
+
+        Parameters
+        ----------
+        dt : float
+            Time step in ms.
+        kwargs : dict
+            prob_turn : float
+                Probability of turning, default 0.0.
+            prob_speed : float
+                Probability of changing speed, default 0.0.
+            prob_rest : float
+                Probability of resting, default 0.1.
+            day_cycle : bool
+                Day/Night cycle influence, default True.
+        """
+
+        self.position = np.array([0.5, 0.5])
+        self.speed = 0
+        self.direction = np.array([1, 0])
+        self.target_position = np.array([0.5, 0.5])
+        self.distance = 0
+        self.prob_turn = kwargs.get('prob_turn', 0.0)
+        self.prob_speed = kwargs.get('prob_speed', 0.0)
+        self.dt = dt
+
+        self.prob_rest = kwargs.get('prob_rest', 0.1) / dt
+        self.day_cycle = kwargs.get('day_cycle', True)
+        self.time_of_day = 0  # Representing the time of day in arbitrary units
+
+    def _calc_speed(self):
+
+        """
+        Calculate the speed of the animal based on the distance to the target.
+        """
+
+        # gaussian distance to target
+        self.distance = np.linalg.norm(self.target_position - self.position)
+        if self.distance < 0.05:
+            self.speed = np.exp(-self.distance ** 2 / 0.02)
+
+        elif np.random.rand() < self.prob_speed:
+            self.speed = np.random.uniform(0.05, 0.15)
+
+    def _behave(self):
+
+        """
+        Define the behavior of the animal based on the time of day.
+        """
+
+
+        # Introduce rest periods
+        if np.random.rand() < self.prob_rest:
+            self.speed = 0  # Rest
+        else:
+            self._calc_speed()  # Use existing speed calculation
+
+        # Day/Night cycle influence
+        if self.day_cycle:
+            if 6 <= self.time_of_day <= 18:  # Daytime
+                self.speed *= 1.5
+            else:  # Nighttime
+                self.speed *= 0.5
+
+    def _change_target(self):
+
+        """
+        Change the target position of the animal.
+        """
+
+        # turn with probability prob_turn
+        if np.random.rand() < self.prob_turn or self.distance < 0.002:
+            self.target_position *= np.random.uniform(0.8, 1.2, size=2)
+            self.target_position = np.clip(self.target_position, 0.05, 0.95)
+
+    def _change_direction(self):
+
+        """
+        Change the direction of the animal.
+        """
+
+        # Gradual turns instead of instant turns
+        turn_angle = np.random.uniform(-np.pi/8, np.pi/8)  # Limit the turn angle
+        rotation_matrix = np.array([[np.cos(turn_angle), -np.sin(turn_angle)],
+                                    [np.sin(turn_angle), np.cos(turn_angle)]])
+        self.direction = np.dot(rotation_matrix, self.direction)
+        self.direction /= np.linalg.norm(self.direction)  # Normalize direction
+
+    def _whole_walk(self, dx: int=0.1) -> np.ndarray:
+
+        """
+        Generate a whole walk in the grid.
+
+        Parameters
+        ----------
+        dx : int
+            Step size. Default: 0.1
+
+        Returns
+        -------
+        trajectory : numpy.ndarray
+            Trajectory of the random walk.
+        """
+
+        track_slice = np.arange(0, 1, dx)
+
+        return np.stack(np.meshgrid(track_slice, track_slice),
+                        axis=-1).reshape(-1, 2)
+
+
+    def step(self):
+
+        """
+        Update the position of the animal.
+        """
+
+        self._change_target()
+        self._behave()
+        self._change_direction()
+
+        # Update position with direction and speed
+        self.position += self.direction * self.speed / self.dt
+
+        # Update the time of day
+        self.time_of_day = (self.time_of_day + 1) % 24
+
+    def make_trajectory(self, duration: int, whole: bool=False) -> np.ndarray:
+
+        """
+        Create a trajectory of the animal.
+
+        Parameters
+        ----------
+        duration : int
+            Duration of the trajectory (s).
+        whole : bool
+            Whether to generate a whole walk or not.
+            Default: False
+
+        Returns
+        -------
+        array-like : trajectory
+            trajectory of the animal.
+        """
+
+        if whole:
+            return self._whole_walk()
+
+        trajectory = np.zeros((duration, 2))
+        for t in range(duration):
+            trajectory[t] = self.position
+            self.step()
+
+        # constrain trajectory to the track
+        trajectory[:, 0] = (trajectory[:, 0].max() - trajectory[:, 0]) / (trajectory[:, 0].max() - trajectory[:, 0].min())
+        trajectory[:, 1] = (trajectory[:, 1].max() - trajectory[:, 1]) / (trajectory[:, 1].max() - trajectory[:, 1].min())
+
+        return trajectory
+
 
 class InputLayer:
 
-    def __init__(self, N: int, bounds: tuple, **kwargs):
+    """
+    Input layer of the network, made of neurons that will encode a
+    trajectory in the grid according to their tuning function.
+    """
+
+    def __init__(self, N: int, bounds: tuple=None, 
+                 kind: str='place', mode: str='rate',
+                 **kwargs):
 
         """
         Input layer, made of neurons that will encode a 
@@ -30,35 +204,45 @@ class InputLayer:
             number of neurons in the layer.
         bounds : tuple
             (x_min, x_max, y_min, y_max) bounds of the grid.
+        kind : str
+            kind of tuning function. 
+            Options: 'place', 'grid'.
+            Default: 'place'.
+        mode : str
+            mode of the tuning function.
+            Options: 'rate', 'spike'.
+            Default: 'rate'.
         **kwargs : dict
             sigma : float
                 Standard deviation of the tuning function.
                 Default: 1
+            max_rate : float
+                Maximum spike rate of the neurons in the layer.
+            min_rate : float
+                Minimum spike rate of the neurons in the layer.
         """
 
         self.N = N
         self.n = int(np.sqrt(N))
-        self.bounds = bounds
-        self.centers = self._make_centers(bounds)
+        self.bounds = (0, 1, 0, 1) if bounds is None else bounds
+        self.kind = kind
+        self.mode = mode
         self.sigma = kwargs.get('sigma', 1)
+        self.max_rate = kwargs.get('max_rate', 100)
+        self.min_rate = kwargs.get('min_rate', 0)
+
+        self.centers = self._make_centers()
         
         self.activation = np.zeros(self.N)
 
-        logger.info(self.__repr__())
-
     def __repr__(self):
 
-        return f"InputLayer(N={self.N}, sigma={self.sigma})"
-        
-    def _make_centers(self, bounds: tuple) -> np.ndarray:
+        return f"InputLayer(N={self.N}, kind={self.kind}, sigma={self.sigma})"
+
+    def _make_centers(self) -> np.ndarray:
 
         """
         Make the tuning function for the neurons in the layer.
-
-        Parameters
-        ----------
-        bounds : tuple
-            (x_min, x_max, y_min, y_max) bounds of the grid.
 
         Returns
         -------
@@ -66,18 +250,35 @@ class InputLayer:
             centers for the neurons in the layer.
         """
 
-        x_min, x_max, y_min, y_max = bounds
-        n = int(np.sqrt(self.N))
+        if self.kind == 'place':
+            return self._make_place_fields()
+        elif self.kind == 'grid':
+            pass
+        
+    def _make_place_fields(self) -> np.ndarray:
+
+        """
+        Make the tuning function for the neurons in the layer.
+
+        Returns
+        -------
+        centers : numpy.ndarray
+            centers for the neurons in the layer.
+        """
+
+        x_min, x_max, y_min, y_max = self.bounds
 
         # Define the centers of the tuning functions
-        x_centers = np.linspace(x_min+1, x_max, n, endpoint=False)
-        y_centers = np.linspace(y_min+1, y_max, n, endpoint=False)
+        x_centers = np.linspace(x_min, x_max, 
+                                self.n, endpoint=False)
+        y_centers = np.linspace(y_min, y_max,
+                                self.n, endpoint=False)
 
         # Make the tuning function
         centers = np.zeros((self.N, 2))
         for i in range(self.N):
-            centers[i] = (x_centers[i // n], 
-                         y_centers[i % n])
+            centers[i] = (x_centers[i // self.n], 
+                          y_centers[i % self.n])
 
         return centers
 
@@ -97,11 +298,177 @@ class InputLayer:
             Activation of the neurons in the layer.
         """
 
-        self.activation *= 0
+        self.activation = np.exp(-np.linalg.norm(
+            position - self.centers, axis=1)**2 / self.sigma)
 
+        if self.mode == 'rate':
+            self.activation *= self.max_rate 
+
+        elif self.mode == 'spike':
+            self.activation = np.random.binomial(
+                1, (self.activation*self.max_rate).clip(
+                    self.min_rate, self.max_rate)/1000,
+                size=self.N
+            )
+
+        return self.activation
+
+    def parse_trajectory(self, trajectory: np.ndarray, 
+                         **kwargs) -> np.ndarray:
+
+        """
+        Parse a trajectory into the input layer.
+
+        Parameters
+        ----------
+        trajectory : numpy.ndarray
+            Trajectory to parse into the input layer.
+        **kwargs : dict
+            timestep : float
+                Time step of the trajectory.
+                Default: 1.
+
+        Returns
+        -------
+        activations : numpy.ndarray
+            Activations of the neurons in the layer.
+        """
+
+        timestep = kwargs.get('timestep', 1)
+        activations = np.zeros((len(trajectory)*timestep, 
+                                self.N))
+
+        for t in range(len(trajectory)):
+            for i in range(timestep):
+                activations[t*timestep+i] = self.step(
+                    trajectory[t])
+
+        return activations
+
+
+
+
+####
+
+
+class InputLayer2:
+
+    """
+    Input layer of the network, made of neurons that will encode a
+    trajectory in the grid according to their tuning function.
+    """
+
+    def __init__(self, N: int, bounds: tuple, kind: str='place', **kwargs):
+
+        """
+        Input layer, made of neurons that will encode a 
+        trajectory in the grid.
+
+        Parameters
+        ----------
+        N : int
+            number of neurons in the layer.
+        bounds : tuple
+            (x_min, x_max, y_min, y_max) bounds of the grid.
+        kind : str
+            kind of tuning function. 
+            Options: 'place', 'grid'.
+            Default: 'place'.
+        **kwargs : dict
+            sigma : float
+                Standard deviation of the tuning function.
+                Default: 1
+        """
+
+        self.N = N
+        self.n = int(np.sqrt(N))
+        self.bounds = bounds
+        self.kind = kind
+        self.sigma = kwargs.get('sigma', 1)
+
+        self.centers = self._make_centers(bounds)
+        
+        self.activation = np.zeros(self.N)
+
+    def __repr__(self):
+
+        return f"InputLayer(N={self.N}, kind={self.kind}, sigma={self.sigma})"
+
+    def _make_centers(self, bounds: tuple) -> np.ndarray:
+
+        """
+        Make the tuning function for the neurons in the layer.
+
+        Parameters
+        ----------
+        bounds : tuple
+            (x_min, x_max, y_min, y_max) bounds of the grid.
+
+        Returns
+        -------
+        centers : numpy.ndarray
+            centers for the neurons in the layer.
+        """
+
+        if self.kind == 'place':
+            return self._make_place_fields(bounds=bounds)
+        
+    def _make_place_fields(self, bounds: tuple) -> np.ndarray:
+
+        """
+        Make the tuning function for the neurons in the layer.
+
+        Parameters
+        ----------
+        bounds : tuple
+            (x_min, x_max, y_min, y_max) bounds of the grid.
+
+        Returns
+        -------
+        centers : numpy.ndarray
+            centers for the neurons in the layer.
+        """
+
+        x_min, x_max, y_min, y_max = bounds
+
+        # Define the centers of the tuning functions
+        x_centers = np.linspace(x_min+1, x_max, 
+                                self.n, endpoint=False)
+        y_centers = np.linspace(y_min+1, y_max,
+                                self.n, endpoint=False)
+
+        # Make the tuning function
+        centers = np.zeros((self.N, 2))
         for i in range(self.N):
-            self.activation[i] = np.exp(-np.linalg.norm(
-                position - self.centers[i]) / self.sigma)
+            centers[i] = (x_centers[i // self.n], 
+                         y_centers[i % self.n])
+
+        return centers
+
+    def step(self, position: np.ndarray) -> np.ndarray:
+
+        """
+        Step function of the input layer.
+
+        Parameters
+        ----------
+        position : numpy.ndarray
+            (x, y) coordinates of the current position.
+
+        Returns
+        -------
+        activation : numpy.ndarray
+            Activation of the neurons in the layer.
+        """
+
+        # self.activation *= 0
+
+        # for i in range(self.N):
+        #     self.activation[i] = np.exp(-np.linalg.norm(
+        #         position - self.centers[i]) / self.sigma)
+
+        self.activation = np.exp(-np.linalg.norm(
+            position - self.centers, axis=1) / self.sigma)
 
         return self.activation
 
