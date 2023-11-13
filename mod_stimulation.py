@@ -135,15 +135,7 @@ class AnimalTrajectory:
             np.arange(bounds[2], bounds[3]+dx, dx))])
 
         trajectory = np.flip(trajectory, axis=1)
-        # ticks = np.arange(bounds[0], bounds[1]+dx, dx)
 
-        # for k, i in enumerate(range(len(ticks), 
-        #                             len(trajectory),
-        #                             len(ticks))):
-        #     if k % 2 != -1: continue
-        #     trajectory[i:i+len(ticks)] = np.flip(
-        #         trajectory[i:i+len(ticks)], axis=0)
-        
         return trajectory
 
     def step(self):
@@ -162,8 +154,10 @@ class AnimalTrajectory:
         # Update the time of day
         self.time_of_day = (self.time_of_day + 1) % 24
 
-    def make_trajectory(self, duration: int, whole: bool=False,
-                        dx: float=1, **kwargs) -> np.ndarray:
+    def make_trajectory(self, duration: int,
+                        whole: bool=False,
+                        dx: float=1,
+                        **kwargs) -> np.ndarray:
 
         """
         Create a trajectory of the animal.
@@ -374,6 +368,145 @@ class InputLayer:
 
         return activations
 
+
+def get_network_tuning(layer: object, model: object=None, 
+                       trajectory: np.ndarray=None, **kwargs
+                       ) -> np.ndarray:
+
+    """
+    Given a model and an input layer, get the tuning of the network.
+
+    Parameters
+    ----------
+    layer : object
+        The input layer.
+    model : object
+        The model. If None, the tuning is calculated from the
+        input layer only. Default: None
+    trajectory : numpy.ndarray
+        Trajectory of the random walk.
+        If None, generate a whole walk. Default: None
+    **kwargs : dict
+        timestep : float
+            Time step of the trajectory.
+            Default: 10.
+        mode : str
+            Input layer mode.
+            Options: 'rate', 'spike'.
+            Default: 'spike'.
+        bounds : tuple
+            (x_min, x_max, y_min, y_max) bounds of the grid.
+            Default: (0, 1, 0, 1)
+        dx : float
+            Step size.
+            Default: 0.05
+
+    Returns
+    -------
+    network_tuning : numpy.ndarray
+        Network tuning.
+    """
+   
+    # settings
+    timestep = kwargs.get('timestep', 10)
+    mode = kwargs.get('mode', 'spike')
+    bounds = kwargs.get('bounds', (0, 1, 0, 1))
+    dx = kwargs.get('dx', 0.05)
+
+    # generate a whole walk
+    if trajectory is None:
+        trajectory = AnimalTrajectory.whole_walk(
+            dx=dx, bounds=bounds)
+
+    # input layer
+    input_rate = layer.parse_trajectory(trajectory=trajectory, 
+                                        timestep=timestep, 
+                                        mode=mode) 
+
+    # model activations
+    if model is not None:
+
+        model.reset()
+
+        activations = np.zeros((len(input_rate), model.N))
+
+        # get the activations of the network in all positions
+        for i, input_activation in tqdm_enumerate(input_rate):
+            model.step(input_activation.reshape(-1, 1))
+            activations[i] = model.s.reshape(-1)
+
+        # sum over each timestep
+        rate = np.zeros((len(trajectory), model.N))
+        for t in range(len(rate)):
+            rate[t] = activations[t*timestep: (t+1)*timestep].sum(axis=0)
+
+    # input layer only
+    else:
+
+        # sum over each timestep
+        rate = np.zeros((len(trajectory), layer.N))
+        for t in range(len(rate)):
+            rate[t] = input_rate[t*timestep: (t+1)*timestep].sum(axis=0)
+
+    return rate
+
+
+def make_dataset(n_samples: int, animal: object,
+                 layer: object, duration: int,
+                 dx: float, **kwargs) -> list:
+
+    """
+    Make a dataset of spiking trajectories.
+
+    Parameters
+    ----------
+    n_samples : int
+        Number of samples to generate.
+    animal : object
+        Animal object.
+    layer : object
+        Input layer.
+    duration : int
+        Duration of the stimulation in time steps.
+    dx : float
+        Step size.
+
+    **kwargs : dict
+        bounds : tuple
+            (x_min, x_max, y_min, y_max) bounds of the grid.
+            Default: (0, 1, 0, 1)
+        timestep : float
+            Time step of the trajectory.
+            Default: 1.
+        mode : str
+            Input layer mode.
+            Options: 'rate', 'spike'.
+            Default: 'spike'.
+
+
+    Returns
+    -------
+    dataset : list of numpy.ndarray
+        Dataset of spiking trajectories.
+    """
+
+    dataset = []
+
+    for _ in range(n_samples):
+
+        # Create a trajectory
+        trajectory = animal.make_trajectory(
+            duration=duration, dx=dx)
+
+        # Parse the trajectory into the input layer
+        activations = layer.parse_trajectory(
+            trajectory=trajectory,
+            timestep=timestep, mode=mode)
+
+        # add dataset
+        dataset.append(activations)
+
+    return dataset
 
 
 
@@ -813,7 +946,7 @@ def make_whole_walk(layer: object, dx: float=1) -> tuple:
     return all_positions, all_activations
 
 
-def get_network_tuning(model: object, layer: object,
+def get_network_tuning_1(model: object, layer: object,
                        trajectory: np.ndarray=None, **kwargs
                        ) -> np.ndarray:
 
@@ -879,7 +1012,7 @@ def get_network_tuning(model: object, layer: object,
     for t in range(len(rate)):
         rate[t] = activations[t*timestep: (t+1)*timestep].sum(axis=0)
 
-    return rate, activations
+    return rate, (input_rate, trajectory)
 
 
 def get_network_tuning_2(model: object, layer: object, dx: float=1,

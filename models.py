@@ -256,12 +256,16 @@ class NetworkSimple:
                 Time constant
             wff_const: float
                 Constant for feedforward weights
+            plastic: bool
+                Whether the network is plastic.
+                Default: True
         """
 
         # define instance id as a string of alphanumeric characters
         self.id = ''.join(np.random.choice(list(
             'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
         ), 5))
+        self.plastic = kwargs.get('plastic', True)
 
         # parameters
         self.N = N
@@ -460,7 +464,21 @@ class NetworkSimple:
         self.s = np.random.binomial(1, self.rate_func(self.u))
 
         # update weights
-        self._update(Sj=Sj)
+        if self.plastic:
+            self._update(Sj=Sj)
+
+    def set_plastic(self, plastic: bool):
+
+        """
+        Set plasticity
+
+        Parameters
+        ----------
+        plastic: bool
+            Whether the network is plastic
+        """
+
+        self.plastic = plastic
 
     def get_kwargs(self):
 
