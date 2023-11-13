@@ -139,6 +139,8 @@ def make_toolbox(PARAMETERS: dict,
 
     # Register the evaluation function
     def evalModel(genome: dict, game: object):
+        logger.debug(f"<evalModel> called")
+        logger.debug(f"<genome>: {genome}")
         model = agent_class(genome)
         fitness = game.run(model)
         return fitness
@@ -280,6 +282,7 @@ if __name__ == "__main__":
     # ---| Game |---
 
     class Game(object):
+
         def __init__(self, target):
             self.target = target
 
