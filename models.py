@@ -385,7 +385,7 @@ class NetworkSimple:
 
         else:
 
-            raise ValueError('dim must be 1 or 2')
+            raise ValueError(f'dim must be 1 or 2, received {dim}')
 
         return W
 

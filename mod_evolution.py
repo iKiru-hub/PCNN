@@ -1,6 +1,8 @@
 import random
+from numpy import array, around
 from deap import base, creator, tools
 from tools.utils import logger
+import os, json, time
 
 
 # -----------------------------------------
@@ -27,12 +29,15 @@ def mate(parent_1: dict, parent_2: dict):
         The second offspring
     """
 
+    # get parameters
+    PARAMETERS = parent_1.keys()
+
     # A simple crossover: swap half of the parameters
-    for key in random.sample(list(PARAMETERS.keys()), k=len(PARAMETERS) // 2):
+    for key in random.sample(list(PARAMETERS), k=len(PARAMETERS) // 2):
         parent_1[key], parent_2[key] = parent_2[key], parent_1[key]
     return parent_1, parent_2
 
-def mutate(parent: dict):
+def mutate(parent: dict, toolbox: object):
 
     """
     Mutate an individual. This function is called by the DEAP toolbox.
@@ -50,8 +55,11 @@ def mutate(parent: dict):
         The mutated individual
     """
 
+    # get parameters
+    PARAMETERS = parent.keys()
+
     # Mutate a random parameter
-    key = random.choice(list(PARAMETERS.keys()))
+    key = random.choice(list(PARAMETERS))
     parent[key] = getattr(toolbox, key)() # call the sampling function
     return parent,
 
@@ -66,7 +74,8 @@ def make_toolbox(PARAMETERS: dict,
                  game: object,
                  agent_class: object,
                  strategy: object=None,
-                 FIXED_PARAMETERS: dict=None) -> object:
+                 FIXED_PARAMETERS: dict=None,
+                 fitness_weights: tuple=(1.0,)) -> object:
 
     """
     Create the toolbox object from the DEAP library.
@@ -95,11 +104,12 @@ def make_toolbox(PARAMETERS: dict,
     if FIXED_PARAMETERS is not None:
         # embed fixed parameters in genome
         for k, v in FIXED_PARAMETERS.items():
-            PARAMETERS[k] = lambda: v
-        logger.info(f"<fixed parameters>: {tuple(FIXED_PARAMETERS.keys())}")
+            PARAMETERS[k] = lambda v=v: v
+
+        logger.info(f"<fixed parameters>: % {tuple(FIXED_PARAMETERS.keys())}")
 
     # Create the DEAP creator
-    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+    creator.create("FitnessMax", base.Fitness, weights=fitness_weights)
     creator.create("Individual", dict, fitness=creator.FitnessMax)
 
     # Create the toolbox
@@ -109,7 +119,7 @@ def make_toolbox(PARAMETERS: dict,
     for k, v in PARAMETERS.items():
         toolbox.register(k, v)
 
-    logger.debug(f"<parameters> registered")
+    logger.info(f"<parameters> registered")
 
     # Function to create a complete individual
     def create_individual():
@@ -117,30 +127,35 @@ def make_toolbox(PARAMETERS: dict,
             k: getattr(toolbox, k)() for k in PARAMETERS
         }
 
+    toolbox.register("individual", tools.initIterate, creator.Individual,
+                     create_individual)
+
     # Register the strategy
     if strategy is not None:
         toolbox.register("generate", strategy.generate, creator.Individual,
                          create_individual)
-        toolbox.register("strategy", strategy)
-    else:
-        toolbox.register("individual", tools.initIterate, creator.Individual,
-                         create_individual)
+        toolbox.register("update", strategy.update)
+        logger.info(f"<strategy> registered")
+
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-    logger.debug(f"<individual and population> registered")
+    logger.info(f"<individual and population> registered")
 
     # Register the offspring & selections functions
     toolbox.register("mate", mate)
-    toolbox.register("mutate", mutate)
+
+    def mutateWrapper(individual):
+        return mutate(individual, toolbox)
+
+    toolbox.register("mutate", mutateWrapper)
     toolbox.register("select", tools.selTournament,
                      tournsize=3)
 
-    logger.debug(f"<mate, mutate and select> registered")
+    logger.info(f"<mate, mutate and select> registered")
 
     # Register the evaluation function
     def evalModel(genome: dict, game: object):
-        logger.debug(f"<evalModel> called")
-        logger.debug(f"<genome>: {genome}")
+
         model = agent_class(genome)
         fitness = game.run(model)
         return fitness
@@ -150,15 +165,14 @@ def make_toolbox(PARAMETERS: dict,
 
     toolbox.register("evaluate", evalWrapper)
 
-    logger.debug(f"<evaluate> registered")
-
+    logger.info(f"<evaluate> registered")
     logger.info(f"<toolbox> created")
 
     return toolbox
 
 
 # main function
-def main(toolbox: object, settings: dict, seed: int = None):
+def main(toolbox: object, settings: dict, seed: int=None, save: bool=True):
 
     """
     Main function for the genetic algorithm.
@@ -173,10 +187,19 @@ def main(toolbox: object, settings: dict, seed: int = None):
     seed : int, optional
         The seed for the random number generator. 
         The default is None.
+    save : bool, optional
+        Whether to save the best individual. 
+        The default is True.
     """
 
     if seed is not None:
         random.seed(seed)
+
+    if save:
+        filename = "best_ind_" + time.strftime("%H%M")
+        logger.info(f"Saving best individual as {filename}.json in cache folder.")
+
+    # -------------------------------- #
 
     # Parameters for the genetic algorithm
     NPOP = settings["NPOP"]
@@ -184,11 +207,14 @@ def main(toolbox: object, settings: dict, seed: int = None):
     CXPB = settings["CXPB"]
     MUTPB = settings["MUTPB"]
     NLOG = settings["NLOG"]
+    TARGET = settings["TARGET"] if "TARGET" in settings else None
+    TARGET_ERROR = settings["TARGET_ERROR"] if "TARGET_ERROR" in settings else 0.
 
     # Create the initial population
     population = toolbox.population(n=NPOP)
 
-    logger.info(f"Starting evolution with {NPOP} individuals")
+    logger.info(f"--| Evolution |--\n{NPOP=}\n{NGEN=}\n{CXPB=}\n{MUTPB=}\n{NLOG=}")
+    logger.info(f"Target: {TARGET} [+/- {TARGET_ERROR}]")
 
     # -------------------------------- #
 
@@ -203,6 +229,7 @@ def main(toolbox: object, settings: dict, seed: int = None):
     
     # Evolve the population
     for gen in range(NGEN):
+
         offspring = toolbox.select(population, len(population))
         offspring = list(map(toolbox.clone, offspring))
 
@@ -234,14 +261,134 @@ def main(toolbox: object, settings: dict, seed: int = None):
         best_ind = tools.selBest(population, 1)[0]
 
         if gen % NLOG == 0:
-            logger.info(f"Gen {gen} Best: {''.join([it[1] for it in best_ind.items()])} Score: {best_ind.fitness.values[0]}")
+            logger.info(f"Gen {gen} Score: {around(array(best_ind.fitness.values), 3)}")
+
+            # save the best individual
+            if save:
+
+                # save 
+                save_best_individual(best_ind=best_ind, 
+                                     filename=filename,
+                                     path=None)
+
+        if TARGET is not None:
+            error = (TARGET - around(array(best_ind.fitness.values), 4))**2
+            if (error < TARGET_ERROR).all():
+                logger.info(f"Target reached {error:}. Stopping evolution")
+                break
+
+    logger.info(f"Best fitness: {around(array(best_ind.fitness.values), 3)}")
+
+    return best_ind
+
+
+# save the best individual as json
+def save_best_individual(best_ind: dict, filename: str, 
+                         path: str=None, verbose: bool=False):
+
+    """
+    Save the best individual as json. 
+
+    Parameters
+    ----------
+    best_ind : dict
+        The best individual.
+    filename : str
+        The filename.
+    path : str, optional
+        The path. If None, use the current working directory.
+    verbose : bool, optional
+        Whether to print the path and filename. 
+        The default is False.
+    """
+
+    # add .json extension
+    if not filename.endswith(".json"):
+        filename += ".json"
+
+    if path is None:
+        path = os.getcwd()
+
+        # check if there is a folder named "cache"
+        # if not, create it
+        if not os.path.exists(os.path.join(path, "cache")):
+            os.mkdir(os.path.join(path, "cache"))
+            logger.info(f"Created folder {os.path.join(path, 'cache')}")
+
+        path = os.path.join(path, "cache")
+
+    with open(os.path.join(path, filename), 'w') as f:
+        json.dump(best_ind, f)
+
+    if verbose:
+        logger.info(f"Best individual saved as {filename} in {path}.")
+
+
+def load_best_individual(filename: str=None, path: str=None):
+
+    """
+    Load the best individual as json. 
+
+    Parameters
+    ----------
+    filename : str
+        The filename. If None, the list of available files is printed.
+    path : str, optional
+        The path. If None, use the current working directory.
+
+    Returns
+    -------
+    best_ind : dict
+        The best individual.
+    """
+
+    if path is None:
+        path = os.getcwd()
         
-        # Exit if we've found a matching string
-        # if ''.join(best_ind) == TARGET:
-        #     break
+        # check if there is a folder named "cache"
+        # if not, exit
+        if not os.path.exists(os.path.join(path, "cache")):
+            logger.error(f"No folder named 'cache' in {path}.")
+            return None
 
-    logger.info("Best individual is: %s\nwith fitness: %s" % (''.join([it[1] for it in best_ind.items()]), best_ind.fitness.values[0]))
+        path = os.path.join(path, "cache")
 
+    if filename is None:
+
+        # make a dict of available files .json 
+        logger.info(f"Available files in {path}:")
+        available_files = {}
+        i = 0
+        for f in os.listdir(path):
+            if f.endswith(".json"):
+                available_files[i] = f
+                logger.info(f"{i}: {f}")
+                i += 1
+
+        # ask the user to choose a file
+        while True:
+            try:
+                i = int(input("Choose a file: "))
+                filename = available_files[i]
+                break
+            except:
+                logger.info("Invalid input. Try again. [-1 to exit]]")
+
+            # if i is -1, exit
+            if i == -1:
+                logger.info("Exiting.")
+                return None
+
+    # add .json extension
+    if not filename.endswith(".json"):
+        filename += ".json"
+
+    with open(os.path.join(path, filename), 'r') as f:
+        best_ind = json.load(f)
+
+    logger.info(f"Best individual loaded from {filename} in {path}.")
+
+    return best_ind
 
 
 
@@ -265,10 +412,18 @@ if __name__ == "__main__":
             "abcdefghijklmnopqrstuvwxyz "))
     }
 
+    FIXED_PARAMETERS = {
+        'char1': 'm',
+    }
+
     class Agent(object):
 
         def __init__(self, genome: dict):
             self.genome = genome
+
+            for k, v in genome.items():
+                if callable(v):
+                    self.genome[k] = v()
 
         def __getitem__(self, key):
             return self.genome[key]
@@ -299,7 +454,7 @@ if __name__ == "__main__":
     toolbox = make_toolbox(PARAMETERS=PARAMETERS,
                            game=game,
                            agent_class=Agent,
-                           FIXED_PARAMETERS=None)
+                           FIXED_PARAMETERS=FIXED_PARAMETERS)
 
     # ---| Run |---
 
@@ -313,3 +468,4 @@ if __name__ == "__main__":
 
     main(toolbox=toolbox,
          settings=settings)
+
