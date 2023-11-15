@@ -124,7 +124,7 @@ class Track2D:
         # train on a single trajectory
         for t in range(len(trajectory)):
             agent.step(trajectory[t].reshape(-1, 1))
-            activity[t] = agent.model.s.copy().reshape(-1)
+            activity[t] = agent.model.r.copy().reshape(-1)
 
         return agent, activity
 
@@ -193,7 +193,7 @@ class Agent:
                 genome[k] = v()
 
         # self.model = mm.NetworkSimple(**genome.copy())
-        self.model = mm.RateNetwork(**genome.copy())
+        self.model = mm.RateNetworkSimple(**genome.copy())
 
         self.id = ''.join(np.random.choice(list(
             'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -320,15 +320,15 @@ PARAMETERS = {
     'wr_const': lambda: round(random.uniform(0.1, 10.0), 2),
     'dim': lambda: random.choice((1, 2)),
     'A': lambda: round(random.uniform(0.01, 8.0), 2),
-    'B': lambda: round(random.uniform(0.01, 8.0), 2),
+    'B': lambda: round(random.uniform(0.01, 8.0), 25),
     'sigma_exc': lambda: round(random.uniform(0., 8.0), 2),
     'sigma_inh': lambda: round(random.uniform(0., 8.0), 2),
     'tau_ff': lambda: random.randint(1, 100),
     'tau_rec': lambda: random.randint(1, 100),
     'syn_ff_tau': lambda: random.randint(1, 100),
     'syn_ff_thr': lambda: round(random.uniform(0., 1.0), 3),
-    'rate_func_beta': lambda: round(random.uniform(0.1, 1.0), 2),
-    'rate_func_alpha': lambda: random.randint(50, 100),
+    'rate_func_beta': lambda: round(random.uniform(0.1, 5.0), 2),
+    'rate_func_alpha': lambda: round(random.uniform(0, 10), 2),
     'is_lr_tau_decay': lambda: random.choice((True, False)),
     'is_g_decay': lambda: random.choice((True, False)),
     'is_syn': lambda: random.choice((True, False)),
