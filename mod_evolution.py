@@ -261,7 +261,7 @@ def main(toolbox: object, settings: dict, seed: int=None, save: bool=True):
         best_ind = tools.selBest(population, 1)[0]
 
         if gen % NLOG == 0:
-            logger.info(f"Gen {gen} Score: {around(array(best_ind.fitness.values), 3)}")
+            logger.info(f"Gen {gen} Score: {around(array(best_ind.fitness.values), 5)}")
 
             # save the best individual
             if save:
