@@ -124,7 +124,7 @@ class Track2D:
         # train on a single trajectory
         for t in range(len(trajectory)):
             agent.step(trajectory[t].reshape(-1, 1))
-            activity[t] = agent.model.r.copy().reshape(-1)
+            activity[t] = agent.model.output.copy().reshape(-1)
 
         return agent, activity
 

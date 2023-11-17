@@ -698,6 +698,15 @@ class RateNetwork:
 
         return self.kwargs
 
+    @property
+    def output(self):
+
+        """
+        Return the output of the network
+        """
+
+        return self.s
+
     def reset(self, bias: bool=False):
 
         """
@@ -745,7 +754,11 @@ class RateNetwork2:
                 Gain of the activation function
             bias: float
                 Bias of the activation function
-            lr: float
+            lr_beta: float
+                Learning rate decay beta
+            lr_alpha: float
+                Learning rate decay alpha
+            lr_max: float
                 Learning rate
             rule: str
                 Learning rule, either 'oja' or 'hebb'
@@ -757,8 +770,18 @@ class RateNetwork2:
                 Standard deviation of the feedforward weights
             wff_max: float
                 Maximum value of the feedforward weights
+            wff_min: float
+                Minimum value of the feedforward weights
+            wff_const: float
+                Constant for the feedforward weights
+            wff_tau: float
+                Time constant for the feedforward weights decay
+            is_modulated: bool
+                Whether the network is modulated
             m_const: float
                 Constant for the modulation
+            soft_beta: float
+                Beta for the softmax function
         """
 
         # General 
@@ -778,13 +801,21 @@ class RateNetwork2:
         self.wff_std = kwargs.get('wff_std', 1)
         self.Wff = np.abs(np.random.normal(0, self.wff_std,
                                            size=(N, Nj)))
+        self.wff_min = kwargs.get('wff_min', 0.05)
         self.wff_max = kwargs.get('wff_max', 5)
+        self.wff_const = kwargs.get('wff_const', 5)
+        self._wff_tau = kwargs.get('wff_tau', 100)
+
+        # lr decay 
+        self._lr_beta = kwargs.get('lr_beta', 8)
+        self._lr_alpha = kwargs.get('lr_alpha', 0.7)
+        self._lr_max = kwargs.get('lr_max', 0.01)
+        self._lr = np.ones((self.N, self.Nj)) * self._lr_max
 
         # plasticity
         self.rule = kwargs.get('rule', 'oja')
-        assert self.rule in ['oja', 'hebb', 'oja2'], 'rule must be oja or hebb'
+        # assert self.rule in ['oja', 'hebb', 'oja2'], 'rule must be oja or hebb'
         self.plastic = kwargs.get('plastic', True)
-        self._lr = kwargs.get('lr', 0.01)
         self.dWff = np.zeros((N, Nj))
         self._tau_dwff = kwargs.get('tau_dw', 100)
 
@@ -792,6 +823,10 @@ class RateNetwork2:
         self._is_modulated = kwargs.get('is_modulated', False)
         self.m = np.zeros((N, 1))
         self.m_const = kwargs.get('m_const', 1)
+
+        # 
+        self._soft_beta = kwargs.get('soft_beta', 1)
+        self.softmax = lambda x: np.exp(self._soft_beta * x) / np.exp(self._soft_beta * x).sum(keepdims=True)
 
     def __repr__(self):
 
@@ -805,9 +840,9 @@ class RateNetwork2:
 
         # calculate modulation as softmax of the rates 
         if self._is_modulated:
-            self.m = self.m_const * np.exp(self.u) / np.exp(self.u).sum(keepdims=True)
+            self.m = self.m_const * self.softmax(self.u)
         else:
-            self.m = 1
+            self.m = np.ones((self.N, 1))
 
     def _update(self, x: np.ndarray):
 
@@ -827,8 +862,10 @@ class RateNetwork2:
         elif self.rule == 'hebb':
             delta = self.u * x.T
         elif self.rule == 'oja2':
-            delta = self.u * x.T - self.Wff @ (x * x) * (1 - self.wff_max / self.Wff.max(
+            delta = self.u * x.T - self.Wff @ (x * x) * (self.wff_max / self.Wff.max(
                 axis=1, keepdims=True))
+        elif self.rule == 'oja3':
+            delta = self.u * x.T - self.Wff @ x 
 
         # update variable
         self.dWff += (delta - self.dWff) / self._tau_dwff
@@ -836,8 +873,24 @@ class RateNetwork2:
         # update weights
         self.Wff += self._lr * self.dWff * self.m
 
-        # nonnegativity
-        self.Wff = self.Wff.clip(min=0)
+        # clip weights
+        self.Wff = self.Wff.clip(min=self.wff_min)
+
+        # # weight decay
+        self.Wff += - self.Wff / self._wff_tau
+
+        # constant sum
+        # const = np.where(self.Wff.sum(axis=1, keepdims=True) > self.wff_const,
+        #                  self.wff_const, self.Wff.sum(axis=1, keepdims=True))
+        # const = np.where(const < (self.wff_min * self.N), self.wff_min * self.N, const)
+        self.Wff = self.Wff / self.Wff.sum(axis=1, keepdims=True) * self.wff_const
+
+        # # lr decay
+        self._lr = self._lr * np.where(self.Wff > self.wff_max, 
+                                       self._lr_beta, 1)
+        # self._lr = (1 - 1 / (1 + np.exp(- self._lr_beta * (
+        #     self.Wff.max(axis=1, keepdims=True) / self.wff_max - self._lr_alpha
+        # )))) * self._lr_max
 
     def step(self, x: np.ndarray):
 
@@ -856,6 +909,14 @@ class RateNetwork2:
             self._modulate()
             self._update(x=x)
 
+    @property
+    def output(self):
+
+        """
+        Return the output of the network
+        """
+
+        return self.u
 
     def reset(self):
 
@@ -867,6 +928,8 @@ class RateNetwork2:
         self.dWff = np.zeros((self.N, self.Nj))
         self.Wff = np.abs(np.random.normal(0, self.wff_std,
                                            size=(self.N, self.Nj)))
+        self.m = np.ones((self.N, 1))
+        self._lr = np.ones((self.N, self.Nj)) * self._lr_max
 
 
 #--------------------------------

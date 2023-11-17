@@ -1,5 +1,6 @@
 import random
-from numpy import array, around
+from numpy import array, around, ndarray
+from numpy.random import choice as npchoice
 from deap import base, creator, tools
 from tools.utils import logger
 import os, json, time
@@ -64,6 +65,77 @@ def mutate(parent: dict, toolbox: object):
     return parent,
 
 
+# -----------------------------------------
+# ---| Objects |---
+# -----------------
+
+
+class Agent:
+
+    def __init__(self, genome: dict, Model: object):
+
+        """
+        An agent.
+
+        Parameters
+        ----------
+        genome : dict
+            The genome.
+        Model : object
+            The model class.
+        """
+
+        # unpack the genome and create the model
+        self.genome = genome.copy() 
+
+        # exec callable parameters 
+        # NB: the callable parameters are not evolved
+        # NB: the callable parameters are not passed to the model
+        for k, v in self.genome.items():
+            if callable(v):
+                genome[k] = v()
+
+        # model instance
+        self.model = Model(**genome)
+
+        self.id = ''.join(npchoice(list(
+            'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        ), 5))
+
+    def __getitem__(self, key):
+        return self.genome[key]
+
+    def __setitem__(self, key, value):
+        self.genome[key] = value
+
+    def __str__(self):
+        return str(self.genome.copy())
+
+    def __repr__(self):
+        return f"NetworkSimple(id={self.id}, N={self.genome['N']})"
+
+    def step(self, x: ndarray) -> ndarray:
+
+        """
+        Step the agent.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The input.
+
+        Returns
+        -------
+        y : np.ndarray
+            The output.
+        """
+
+        self.model.step(x)
+
+    def reset(self):
+        self.model.reset()
+
+
 
 # -----------------------------------------
 # ---| Toolbox |---
@@ -72,7 +144,7 @@ def mutate(parent: dict, toolbox: object):
 
 def make_toolbox(PARAMETERS: dict,
                  game: object,
-                 agent_class: object,
+                 model: object,
                  strategy: object=None,
                  FIXED_PARAMETERS: dict=None,
                  fitness_weights: tuple=(1.0,)) -> object:
@@ -89,8 +161,8 @@ def make_toolbox(PARAMETERS: dict,
     strategy : object, optional
         The strategy to use for the evolution.
         The default is None.
-    agent_class : object
-        The agent class to use.
+    Model : object
+        The model class to use.
     FIXED_PARAMETERS : dict, optional
         The fixed parameters.
         The default is None.
@@ -100,6 +172,16 @@ def make_toolbox(PARAMETERS: dict,
     toolbox : object
         The toolbox object from the DEAP library.
     """
+
+    # --| Model |--
+
+    # check the methods
+    if not hasattr(model, "step"):
+        raise AttributeError("Model must have a 'step' method.")
+    if not hasattr(model, "reset"):
+        raise AttributeError("Model must have a 'reset' method.")
+    if not hasattr(model, "output"):
+        raise AttributeError("Model must have an 'out' method.")
 
     if FIXED_PARAMETERS is not None:
         # embed fixed parameters in genome
@@ -154,14 +236,15 @@ def make_toolbox(PARAMETERS: dict,
     logger.info(f"<mate, mutate and select> registered")
 
     # Register the evaluation function
-    def evalModel(genome: dict, game: object):
+    def evalModel(genome: dict, game: object, Model: object):
 
-        model = agent_class(genome)
+        model = Agent(genome, Model)
         fitness = game.run(model)
         return fitness
 
     evalWrapper = lambda individual: evalModel(individual, 
-                                               game)
+                                               game,
+                                               model)
 
     toolbox.register("evaluate", evalWrapper)
 
@@ -172,7 +255,7 @@ def make_toolbox(PARAMETERS: dict,
 
 
 # main function
-def main(toolbox: object, settings: dict, seed: int=None, save: bool=True):
+def main(toolbox: object, settings: dict, seed: int=None, save: bool=True, **kwargs):
 
     """
     Main function for the genetic algorithm.
@@ -190,14 +273,21 @@ def main(toolbox: object, settings: dict, seed: int=None, save: bool=True):
     save : bool, optional
         Whether to save the best individual. 
         The default is True.
+    **kwargs : dict, optional
+        filename : str
+            The filename. If None, nothing is saved.
     """
 
     if seed is not None:
         random.seed(seed)
 
     if save:
-        filename = "best_ind_" + time.strftime("%H%M")
-        logger.info(f"Saving best individual as {filename}.json in cache folder.")
+        if "filename" in kwargs:
+            filename = kwargs["filename"]
+            logger.info(f"Saving best individual as {filename}.json in cache folder.")
+        else:
+            logger.warning("No filename provided, no individual will be saved.")
+            save = False
 
     # -------------------------------- #
 
