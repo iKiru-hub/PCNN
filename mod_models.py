@@ -932,6 +932,255 @@ class RateNetwork2:
         self._lr = np.ones((self.N, self.Nj)) * self._lr_max
 
 
+
+class RateNetwork3:
+
+    def __init__(self, N: int, Nj: int, **kwargs):
+
+
+        """
+        Network class 
+
+        Parameters
+        ----------
+        N: int
+            Number of neurons
+        Nj: int
+            Number of input neurons
+        **kwargs: dict
+            gain: float
+                Gain of the activation function
+            bias: float
+                Bias of the activation function
+            lr: float
+                Learning rate
+            rule: str
+                Learning rule, either 'oja' or 'hebb'
+            plastic: bool
+                Whether the network is plastic
+            tau_dw: float
+                Time constant for weight update decay
+            wff_std: float
+                Standard deviation of the feedforward weights
+            wff_max: float
+                Maximum value of the feedforward weights
+            wff_min: float
+                Minimum value of the feedforward weights
+            wff_const: float
+                Constant for the feedforward weights
+            wff_tau: float
+                Time constant for the feedforward weights decay
+            loc_magnitude: float
+                Magnitude of the local current
+        """
+
+        # General 
+        self.N = N
+        self.Nj = Nj
+
+        # Internal dynamics
+        self.u = np.zeros((N, 1))
+        self._lr = kwargs.get('lr', 0.01)
+
+        # activation function
+        self._gain = kwargs.get('gain', 7)
+        self._bias = kwargs.get('bias', 3)
+        self.activation_func = lambda x: 1 / (
+            1 + np.exp(-self._gain * (x - \
+                self._bias)))
+
+        # Feedforward weights
+        self.wff_std = kwargs.get('wff_std', 1)
+        self.Wff = np.abs(np.random.normal(0,
+                self.wff_std, size=(N, Nj)))
+        self.wff_min = kwargs.get('wff_min',
+                                  0.05)
+        self.wff_max = kwargs.get('wff_max', 5)
+        self._wff_tau = kwargs.get('wff_tau',
+                                   500)
+
+        # recurrent weights
+        self.Wrec = -1 * (np.ones((N, N)) -\
+            np.eye(N))
+
+        # plasticity
+        self._temp = np.ones((N, Nj))*1e-3
+        self.rule = kwargs.get('rule', 'hebb')
+        self.plastic = kwargs.get('plastic', True)
+
+        # tuning 
+        self.tuning = np.linspace(0, 2*np.pi, N,\
+                endpoint=False).reshape(-1, 1)
+
+        # softmax
+        beta = kwargs.get('soft_beta', 10)
+        self.softmax = lambda x: np.exp(beta*x) /
+            np.exp(beta*x).sum(axis=1,
+                               keepdims=True)
+
+    def __repr__(self):
+
+        return f'RateNetwork3(N={self.N}, Nj={self.Nj}, rule={self.rule})'
+
+    def _update(self, x: np.ndarray):
+
+        """
+        Update function
+
+        Parameters
+        ----------
+        x: np.ndarray
+            Input from other neurons
+        """
+
+        # weight update
+        if self.rule == 'oja':
+            delta = self.u * x.T - self.Wff @ (x * x)
+        elif self.rule == 'hebb':
+            delta = self.u * x.T
+        elif self.rule == 'oja2':
+            delta = self.u * x.T - self.Wff @ (x * x) * (self.wff_max / self.Wff.max(
+                axis=1, keepdims=True))
+        elif self.rule == 'oja3':
+            delta = self.u * x.T - self.Wff @ x 
+
+        # update weights
+        self.Wff += self._lr * delta * self.softmax(self.Wff)
+
+        # clip weights
+        self.Wff = self.Wff.clip(min=self.wff_min, 
+                                 max=self.wff_max)
+
+        # # weight decay
+        self.Wff += - self.Wff / self._wff_tau
+
+        # temperture
+        self._temp = (self.Wff.max(axis=1) / self.wff_max).reshape(-1, 1)
+
+    def step(self, x: np.ndarray):
+
+        """
+        Step function
+
+        Parameters
+        ----------
+        x: np.ndarray
+            Input from other neurons
+        """
+
+        # define the local current
+        if np.random.rand() < 0.05*(1 - self._temp.mean()):
+            p = self._temp.max(axis=1) / self._temp.max(axis=1).sum()
+            self.I_loc[np.random.choice(range(self.N), p=p), 0] = self.loc_magnitude
+
+        # update state variables
+        self.u = self.activation_func(self.Wff @ x + self.I_loc - self.Wrec @ self.u)
+
+        if self.plastic:
+            self._update(x=x)
+
+    @property
+    def output(self):
+
+        """
+        Return the output of the network
+        """
+
+        return self.u.copy()
+
+    def reset(self):
+
+        """
+        Reset function
+        """
+
+        self.u = np.zeros((self.N, 1))
+        self.Wff = np.abs(np.random.normal(0, self.wff_std,
+                                           size=(self.N, self.Nj)))
+
+
+N = 6
+T = len(X)
+
+# neural settings
+thr = 3.
+u = np.ones((N, 1))*1e-8
+W = np.ones((N, Nj))*1e-3
+wmax = 3
+tau_0 = 20.
+tau = tau_0
+lr = 0.01
+
+# tuning
+tuning_0 = np.linspace(0, 2*np.pi, N, endpoint=False).reshape(-1, 1)
+tuning = tuning_0.copy()
+
+# plasticity
+rule = 'hebb'
+beta = 10
+temp = np.zeros((N, 1))
+
+# lateral inhibition
+Wr = -1 * (np.ones((N, N)) - np.eye(N))
+
+# record
+record = np.zeros((T, N))
+
+for t, x in enumerate(X):
+        
+    u += (-u)/tau + W @ x.reshape(-1, 1) + thr * (1 - temp) * np.exp(
+        - (np.cos(t*0.02 + tuning) - 1)**2/0.001) + Wr @ u #+ np.random.normal(0, 0.2, (N, 1))**2
+    
+    # activation
+    u = 1 / (1 + np.exp(-7*(u - thr)))
+
+    # time constant
+    #tau += (1*u + tau_0*(1-u) - tau) / 2
+
+    # temperature
+    temp = (W.max(axis=1) / wmax).reshape(-1, 1)
+
+    # weight decay
+    W += (- W / 500) * (1 - temp)
+
+    # plasticity
+    if rule == 'hebb':
+        dw = u * x
+    elif rule == 'oja':
+        dw = u * x - W @ (x * x)
+
+    W += lr * dw * (np.exp(beta*W)/np.exp(beta*W).sum(axis=1, keepdims=True))
+
+    W = W.clip(0., wmax)
+
+    # record
+    record[t] = u.flatten()
+
+    if t % 500 == 0:
+        clf()
+        plt.figure(figsize=(15, 4))
+        plt.subplot(221)
+        plt.axhline(thr, linestyle='--', color='red', alpha=0.3)
+        for i in range(N):
+            plt.plot(range(t), record[:t, i])
+        plt.ylim((0, thr+1))
+        plt.xlim((0, T))
+        plt.grid()
+        plt.title(f"{t=} | temperature: {np.around(temp.T, 3)}")
+        
+        plt.subplot(223)
+        #plt.imshow(W, cmap='plasma')
+        for i in range(N):
+            plt.plot(range(Nj), W[i])
+
+        plt.ylim((0, wmax+1))
+        plt.grid()
+
+        plt.subplot(122)
+        plt.imshow(W, cmap='plasma')
+        plt.pause(0.0001)
+
+
 #--------------------------------
 # ---| Connectivity patterns |---
 #--------------------------------
