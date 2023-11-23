@@ -13,7 +13,7 @@ import time
 # ---| Fitness |---
 # -----------------
 
-def FitnessFunction(W: np.ndarray) -> tuple:
+def FitnessFunction(W: np.ndarray, wmax: float) -> tuple:
 
     """
     Goal:
@@ -31,15 +31,23 @@ def FitnessFunction(W: np.ndarray) -> tuple:
         The fitness value.
     """
 
-    # local difference
-    sorted_cols = np.sort(W, axis=1)
+    # # local difference
+    # sorted_cols = np.sort(W, axis=1)
     
-    value_1 = sorted_cols[:, -3:].sum() - sorted_cols[:, :-3].sum()
+    # value_1 = sorted_cols[:, -3:].sum() - sorted_cols[:, :-3].sum()
 
-    # global difference | select the top 2 rows
-    sorted_rows = np.sort(W, axis=0)[-2:, :]
+    # # global difference | select the top 2 rows
+    # sorted_rows = np.sort(W, axis=0)[-2:, :]
 
-    value_2 = np.diff(sorted_rows, axis=0).sum() # difference between the two rows
+    # value_2 = np.diff(sorted_rows, axis=0).sum() # difference between the two rows
+
+    ### 
+    # only one top value per column
+    sorted_cols = np.sort(W, axis=0)
+    value_1 = sorted_cols[-1:, :].sum() - sorted_cols[:-1, :].sum()
+
+    # total sum close to wmax*Nj
+    value_2 = -(W.sum() - wmax*W.shape[1])**2
 
     return (value_1, value_2)
 
@@ -70,7 +78,7 @@ class Track2D:
         self.fitness_size = fitness_size
         self.dataset = self._make_data(Nj=Nj, **kwargs)
 
-    def _make_data(self, T: int=20, dx: float=0.02, 
+    def _make_data(self, T: int=20, dx: float=0.01, 
                    offset: int=4, Nj: int=9) -> np.ndarray:
 
         """
@@ -145,7 +153,8 @@ class Track2D:
                             trajectory=self.dataset)
 
         # evaluate the agent
-        fitness = FitnessFunction(agent.model.Wff.copy())
+        fitness = FitnessFunction(W=agent.model.Wff.copy(),
+                                  wmax=agent.model._wff_max)
 
         assert isinstance(fitness, tuple), "fitness must be a tuple"
         return fitness
@@ -158,29 +167,39 @@ class Track2D:
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
-    'N': 2,
+    'N': 8,
     'Nj': 6,
-    # 'gain': 10.,
-    # 'bias': 1.,
+    # 'gain': 7.,
+    # 'bias': 3.,
     # 'lr': 1e-3,
-    # 'tau_dw': 10.,
-    # 'wff_std': 2e-1,
-    # 'wff_max': 5.,
-    'is_modulated': True,
-    'rule': 'oja',
+    'tau': 50.,
+    'wff_std': 1e-3,
+    'wff_min': 0.,
+    'wff_max': 3.,
+    # 'wff_tau': 100,
+    'rule': 'hebb',
+    'std_tuning': 1e-3,
+    # 'soft_beta': 10.,
+    'dt': 0.053,
 }
 
 
 # Define the genome as a dict of parameters 
 PARAMETERS = {
-    'gain': lambda: round(random.uniform(0.1, 20.0), 2),
+    'gain': lambda: round(random.uniform(0.1, 20.0), 1),
     'bias': lambda: round(random.uniform(0, 30), 1),
     'lr': lambda: round(random.uniform(1e-0, 1e-5), 5),
-    'tau_dw': lambda: round(random.uniform(1.0, 100.0), 1),
+    'tau': lambda: random.randint(1, 100),
     'wff_std': lambda: round(random.uniform(0, 3.0), 2),
+    'wff_min': lambda: round(random.uniform(.0, 1.0), 1),
     'wff_max': lambda: round(random.uniform(1.0, 10.0), 1),
-    'is_modulated': lambda: random.choice((True, False)),
-    'rule': lambda: random.choice(('oja', 'hebb', 'oja2')),
+    'wff_tau': lambda: random.randint(10, 1000),
+    'rule': lambda: random.choice(('oja', 'hebb')),
+    'std_tuning': lambda: round(random.uniform(0, 1e-2), 4),
+    'soft_beta': lambda: round(random.uniform(0, 1e2), 1),
+    'dt': lambda: round(random.uniform(0, 1), 3),
+    'id': lambda: ''.join(np.random.choice(list('abcdefghijklmnopqrstuvwxyz0123456789'), 
+                                           replace=True, size=7))
 }
 
 
@@ -214,7 +233,7 @@ if __name__ == "__main__" :
     # Create the toolbox
     toolbox = me.make_toolbox(PARAMETERS=PARAMETERS.copy(),
                               game=track,
-                              model=mm.RateNetwork2,
+                              model=mm.RateNetwork3,
                               strategy=strategy,
                               FIXED_PARAMETERS=FIXED_PARAMETERS.copy(),
                               fitness_weights=fitness_weights)
@@ -227,10 +246,10 @@ if __name__ == "__main__" :
         "CXPB": 0.5,
         "MUTPB": 0.2,
         "NLOG": 5,
-        "TARGET": (100, 100,),
+        "TARGET": (100, 0),
         "TARGET_ERROR": 1e-4,
     }
 
-    # save 
-    filename = "best_" + time.strftime("%H%M") + "_r2"
+    # save | filename as best_DDMM_HHMM_r3 
+    filename = "best_" + time.strftime("%d%m_%H%M") + "_r3"
     best_ind = me.main(toolbox=toolbox, settings=settings, filename=filename)

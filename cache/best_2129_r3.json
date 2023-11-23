@@ -1,0 +1,1 @@
+{"gain": 1.3, "bias": 2.2, "lr": 0.94972, "tau": 4, "wff_std": 0.02, "wff_min": 0.0, "wff_max": 9.7, "wff_tau": 996, "rule": "hebb", "std_tuning": 0.001, "soft_beta": 10.0, "dt": 0.01, "N": 6, "Nj": 6}

@@ -1,1 +1,0 @@
-{"gain": 17.85, "bias": 0.2, "lr": 0.00047, "tau_dw": 81.1, "wff_std": 2.92, "wff_max": 6.3, "is_modulated": true, "rule": "oja", "N": 2, "Nj": 6}
