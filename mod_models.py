@@ -950,11 +950,11 @@ class RateNetwork3:
             gain: float
                 Gain of the activation function
             bias: float
-                Bias of the activation function
+                Bias of the activation function. Default: 0
             lr: float
-                Learning rate
+                Learning rate. Default: 0.01
             tau: float
-                Time constant
+                Time constant. Default: 30
             rule: str
                 Learning rule, either 'oja' or 'hebb'
             plastic: bool
@@ -1080,15 +1080,22 @@ class RateNetwork3:
             Input from other neurons
         """
 
+        # calculate input current
+        Ix = self.Wff @ x
+
+        # calculate synaptic current
+        Is = self._bias * (1 - self.temp) * np.exp(-(np.cos(self.t + self.tuning) - 1)**2 / self._std_tuning)
+
+        # calculate recurrent current
+        Ir = self.Wrec @ self.u
+
         # update state variables
-        self.u += - self.u / self._tau + self.Wff @ x + \
-            self._bias * (1 - self.temp) * np.exp( 
-                -(np.cos(self.t + self.tuning) - 1)**2 / self._std_tuning) + \
-            self.Wrec @ self.u
+        self.u += - self.u / self._tau + Ix + Is + Ir
 
         # activation
         self.u = self.activation_func(self.u)
 
+        # update weights
         if self._plastic:
             self._update(x=x)
 

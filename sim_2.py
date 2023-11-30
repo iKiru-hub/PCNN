@@ -241,12 +241,13 @@ if __name__ == "__main__" :
         "NPOP": 100,
         "NGEN": 800,
         "CXPB": 0.5,
-        "MUTPB": 0.2,
-        "NLOG": 5,
+        "MUTPB": 2.2,
+        "NLOG": 5
         "TARGET": (100, 0),
         "TARGET_ERROR": 1e-4,
     }
 
     # save | filename as best_DDMM_HHMM_r3 
     filename = "best_" + time.strftime("%d%m_%H%M") + "_r3"
-    best_ind = me.main(toolbox=toolbox, settings=settings, filename=filename)
+    best_ind = me.main(toolbox=toolbox, settings=settings,
+                       save=True, filename=filename)

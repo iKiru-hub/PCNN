@@ -6,6 +6,7 @@ from tools.utils import logger
 import os, json, time
 
 
+
 # -----------------------------------------
 # ---| Offspring |---
 # -------------------
@@ -255,7 +256,7 @@ def make_toolbox(PARAMETERS: dict,
 
 
 # main function
-def main(toolbox: object, settings: dict, seed: int=None, save: bool=True, **kwargs):
+def main(toolbox: object, settings: dict, seed: int=None, save: bool=False, **kwargs):
 
     """
     Main function for the genetic algorithm.
@@ -272,7 +273,7 @@ def main(toolbox: object, settings: dict, seed: int=None, save: bool=True, **kwa
         The default is None.
     save : bool, optional
         Whether to save the best individual. 
-        The default is True.
+        The default is False.
     **kwargs : dict, optional
         filename : str
             The filename. If None, nothing is saved.
@@ -340,10 +341,11 @@ def main(toolbox: object, settings: dict, seed: int=None, save: bool=True, **kwa
         fitnesses = map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
-        
+            # print(dir(ind))
+
         # Replace the old population by the offspring
         population[:] = offspring
-        
+
         # Check the progress
         fits = [ind.fitness.values[0] for ind in population]
         length = len(population)
