@@ -43,13 +43,33 @@ def FitnessFunction(W: np.ndarray, wmax: float) -> tuple:
 
     ### 
     # only one top value per column
-    sorted_cols = np.sort(W, axis=0)
-    value_1 = sorted_cols[-1:, :].sum() - sorted_cols[:-1, :].sum()
+    # sorted_cols = np.sort(W, axis=0)
+    # value_1 = sorted_cols[-1:, :].sum() - sorted_cols[:-1, :].sum()
+
+    # only one top value per row
+    # sorted_rows = np.sort(W, axis=1)
+    # value_2 = sorted_rows[:, -1:].sum() - sorted_rows[:, :-1].sum()
+
+    # value_2 = -((W.sum(axis=1) - wmax)**2).sum()
 
     # total sum close to wmax*Nj
-    value_2 = -(W.sum() - wmax*W.shape[1])**2
+    # value_2 = -(W.sum() - wmax*W.shape[1])**2
 
-    return (value_1, value_2)
+    # sort the matrix columns such that it resembles a 
+    # diagonal matrix
+    I, J = W.shape
+    sorted_matrix = np.zeros_like(W)
+    max_indices = np.argmax(W, axis=1)
+
+    for i in range(I):
+        sorted_matrix[i, min((i, J-1))] = W[i, max_indices[i]]
+
+    # calculate the difference between the sorted matrix
+    # and a diagonal matrix
+    target = wmax * np.eye(I)[:, :J]
+    value_3 = -((sorted_matrix - target)**2).sum() / (I*J)
+
+    return (value_3, )
 
 
 # ----------------------------------------------------------
@@ -77,6 +97,10 @@ class Track2D:
         self.Nj = Nj
         self.fitness_size = fitness_size
         self.dataset = self._make_data(Nj=Nj, **kwargs)
+
+    def __repr__(self):
+
+        return f"Track2D(Nj={self.Nj}, fitness_size={self.fitness_size})"
 
     def _make_data(self, T: int=20, dx: float=0.01, 
                    offset: int=4, Nj: int=9) -> np.ndarray:
@@ -166,20 +190,20 @@ class Track2D:
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
-    'N': 6,
+    'N': 15,
     'Nj': 6,
-    # 'gain': 7.,
-    # 'bias': 3.,
+    'gain': 9.,
+    'bias': 3.,
     # 'lr': 1e-3,
-    'tau': 50.,
+    # 'tau': 50.,
     'wff_std': 1e-3,
     'wff_min': 0.,
     'wff_max': 3.,
     # 'wff_tau': 100,
-    'rule': 'hebb',
-    'std_tuning': 1e-3,
+    # 'rule': 'hebb',
+    # 'std_tuning': 1e-3,
     # 'soft_beta': 10.,
-    'dt': 0.053,
+    # 'dt': 0.053,
 }
 
 
@@ -204,7 +228,8 @@ if __name__ == "__main__" :
 
     # ---| Setup |---
 
-    fitness_weights = (1., 1.)
+    fitness_weights = (1.,)
+    model = mm.RateNetwork3
 
     # ---| CMA-ES |---
 
@@ -230,7 +255,7 @@ if __name__ == "__main__" :
     # Create the toolbox
     toolbox = me.make_toolbox(PARAMETERS=PARAMETERS.copy(),
                               game=track,
-                              model=mm.RateNetwork3,
+                              model=model,
                               strategy=strategy,
                               FIXED_PARAMETERS=FIXED_PARAMETERS.copy(),
                               fitness_weights=fitness_weights)
@@ -240,14 +265,25 @@ if __name__ == "__main__" :
     settings = {
         "NPOP": 100,
         "NGEN": 800,
-        "CXPB": 0.5,
-        "MUTPB": 2.2,
-        "NLOG": 5
-        "TARGET": (100, 0),
-        "TARGET_ERROR": 1e-4,
+        "CXPB": 0.6,
+        "MUTPB": 2.3,
+        "NLOG": 5,
+        "TARGET": (0.,),
+        "TARGET_ERROR": 0.,
     }
 
-    # save | filename as best_DDMM_HHMM_r3 
-    filename = "best_" + time.strftime("%d%m_%H%M") + "_r3"
+    # ---| save |---
+
+    # filename as best_DDMM_HHMM_r3 
+    filename = "best_" + time.strftime("%d%m_%H%M")
+
+    # extra information 
+    info = {
+        "date": time.strftime("%d/%m/%Y") + " at " + time.strftime("%H:%M"),
+        "model": model.__name__,
+        "game": track.__repr__(),
+    }
+
+    # ---| Run |---
     best_ind = me.main(toolbox=toolbox, settings=settings,
-                       save=True, filename=filename)
+                       info=info, save=True, filename=filename)

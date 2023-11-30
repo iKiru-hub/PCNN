@@ -148,7 +148,7 @@ def make_toolbox(PARAMETERS: dict,
                  model: object,
                  strategy: object=None,
                  FIXED_PARAMETERS: dict=None,
-                 fitness_weights: tuple=(1.0,)) -> object:
+                 fitness_weights: tuple=(1.0, 1.0)) -> object:
 
     """
     Create the toolbox object from the DEAP library.
@@ -194,6 +194,7 @@ def make_toolbox(PARAMETERS: dict,
     # Create the DEAP creator
     creator.create("FitnessMax", base.Fitness, weights=fitness_weights)
     creator.create("Individual", dict, fitness=creator.FitnessMax)
+    logger.info(f"<fitness> created {fitness_weights}")
 
     # Create the toolbox
     toolbox = base.Toolbox()
@@ -277,6 +278,8 @@ def main(toolbox: object, settings: dict, seed: int=None, save: bool=False, **kw
     **kwargs : dict, optional
         filename : str
             The filename. If None, nothing is saved.
+        info : dict
+            Additional information to save. Default is {}.
     """
 
     if seed is not None:
@@ -341,7 +344,6 @@ def main(toolbox: object, settings: dict, seed: int=None, save: bool=False, **kw
         fitnesses = map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
-            # print(dir(ind))
 
         # Replace the old population by the offspring
         population[:] = offspring
@@ -361,6 +363,7 @@ def main(toolbox: object, settings: dict, seed: int=None, save: bool=False, **kw
                 # save 
                 save_best_individual(best_ind=best_ind, 
                                      filename=filename,
+                                     info=kwargs["info"] if "info" in kwargs else {},
                                      path=None)
 
         if TARGET is not None:
@@ -376,7 +379,8 @@ def main(toolbox: object, settings: dict, seed: int=None, save: bool=False, **kw
 
 # save the best individual as json
 def save_best_individual(best_ind: dict, filename: str, 
-                         path: str=None, verbose: bool=False):
+                         path: str=None, info: dict={},
+                         verbose: bool=False):
 
     """
     Save the best individual as json. 
@@ -389,10 +393,18 @@ def save_best_individual(best_ind: dict, filename: str,
         The filename.
     path : str, optional
         The path. If None, use the current working directory.
+    info : dict, optional
+        Additional information to save. Default is {}.
     verbose : bool, optional
         Whether to print the path and filename. 
         The default is False.
     """
+
+    # build file 
+    file = {
+        "info": info,
+        "genome": best_ind
+    }
 
     # add .json extension
     if not filename.endswith(".json"):
@@ -410,7 +422,7 @@ def save_best_individual(best_ind: dict, filename: str,
         path = os.path.join(path, "cache")
 
     with open(os.path.join(path, filename), 'w') as f:
-        json.dump(best_ind, f)
+        json.dump(file, f)
 
     if verbose:
         logger.info(f"Best individual saved as {filename} in {path}.")

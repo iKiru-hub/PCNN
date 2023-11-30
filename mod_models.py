@@ -1111,6 +1111,24 @@ class RateNetwork3:
 
         return self.u.copy()
 
+    def set_dims(self, N: int, Nj: int):
+
+        """
+        Set the dimensions of the network
+
+        Parameters
+        ----------
+        N: int
+            Number of neurons
+        Nj: int
+            Number of input neurons
+        """
+
+        self.N = N
+        self.Nj = Nj
+
+        self.reset()
+
     def reset(self):
 
         """
@@ -1121,9 +1139,12 @@ class RateNetwork3:
         self.Wff = np.abs(np.random.normal(0,
                         self._wff_std, 
                         size=(self.N, self.Nj)))
+        self.Wrec = -1 * (np.ones((N, N)) - np.eye(N))
+        self.tuning = np.linspace(0, 2*np.pi, N,\
+                endpoint=False).reshape(-1, 1)
+
         self.temp = np.ones((self.N, 1))*1e-3
         self.t = 0.
-
 
 
 

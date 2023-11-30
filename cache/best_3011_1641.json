@@ -1,0 +1,1 @@
+{"info": {"date": "30/11/2023 at 16:41", "model": "RateNetwork3", "game": "Track2D(Nj=6, fitness_size=1)"}, "genome": {"gain": 9.0, "bias": 3.0, "lr": 0.99176, "tau": 100, "wff_std": 0.001, "wff_min": 0.0, "wff_max": 3.0, "wff_tau": 11, "rule": "hebb", "std_tuning": 0.0003, "soft_beta": 37.9, "dt": 0.04, "N": 15, "Nj": 6}}
