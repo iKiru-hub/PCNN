@@ -932,7 +932,6 @@ class RateNetwork2:
         self._lr = np.ones((self.N, self.Nj)) * self._lr_max
 
 
-
 class RateNetwork3:
 
     def __init__(self, N: int, Nj: int, **kwargs):
@@ -1117,7 +1116,6 @@ class RateNetwork3:
                         size=(self.N, self.Nj)))
         self.temp = np.ones((self.N, 1))*1e-3
         self.t = 0.
-
 
 
 

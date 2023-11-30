@@ -271,6 +271,8 @@ class InputLayer:
             return self._make_place_fields()
         elif self.kind == 'grid':
             pass
+        elif self.kind == 'head':
+            return self._make_hd_fields()
         
     def _make_place_fields(self) -> np.ndarray:
 
@@ -297,6 +299,42 @@ class InputLayer:
 
         return centers
 
+    def _make_hd_fields(self) -> np.ndarray:
+
+        """
+        Make the tuning function for the neurons in the layer.
+
+        Returns
+        -------
+        centers : numpy.ndarray
+            centers for the neurons in the layer.
+        """
+
+        self.centers = np.linspace(0, 2*np.pi, self.N)
+
+    def _activation_func(self, x: np.ndarray) -> np.ndarray:
+
+        """
+        Activation function of the neurons in the layer.
+
+        Parameters
+        ----------
+        x : numpy.ndarray
+            Input to the activation function.
+
+        Returns
+        -------
+        activation : numpy.ndarray
+            Activation of the neurons in the layer.
+        """
+
+        if self.kind == 'place' or self.kind == 'grid':
+            return np.exp(-np.linalg.norm(
+                x - self.centers, axis=1)**2 / self.sigma)
+
+        elif self.kind == 'hd':
+            return np.exp(-((np.cos(x + self.centers) + 1) / 2)**2 / self.sigma)
+
     def step(self, position: np.ndarray, mode: str='rate') -> np.ndarray:
 
         """
@@ -317,8 +355,7 @@ class InputLayer:
             Activation of the neurons in the layer.
         """
 
-        self.activation = np.exp(-np.linalg.norm(
-            position - self.centers, axis=1)**2 / self.sigma)
+        self.activation = self._activation_func(x=position)
 
         if mode == 'rate':
             self.activation *= self.max_rate 

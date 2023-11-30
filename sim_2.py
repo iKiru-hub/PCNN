@@ -160,14 +160,13 @@ class Track2D:
         return fitness
 
 
-
 # ----------------------------------------------------------
 # ---| Genome Setup |---
 # ----------------------
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
-    'N': 8,
+    'N': 6,
     'Nj': 6,
     # 'gain': 7.,
     # 'bias': 3.,
@@ -198,8 +197,6 @@ PARAMETERS = {
     'std_tuning': lambda: round(random.uniform(0, 1e-2), 4),
     'soft_beta': lambda: round(random.uniform(0, 1e2), 1),
     'dt': lambda: round(random.uniform(0, 1), 3),
-    'id': lambda: ''.join(np.random.choice(list('abcdefghijklmnopqrstuvwxyz0123456789'), 
-                                           replace=True, size=7))
 }
 
 
