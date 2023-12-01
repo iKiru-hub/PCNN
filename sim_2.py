@@ -6,7 +6,7 @@ import mod_stimulation as ms
 from tools.utils import logger
 import inputools.Trajectory as it
 import numpy as np
-import time 
+import time, os
 
 
 # ----------------------------------------------------------
@@ -66,10 +66,13 @@ def FitnessFunction(W: np.ndarray, wmax: float) -> tuple:
 
     # calculate the difference between the sorted matrix
     # and a diagonal matrix
-    target = wmax * np.eye(I)[:, :J]
+    target = wmax * np.eye(I, J)
     value_3 = -((sorted_matrix - target)**2).sum() / (I*J)
 
-    return (value_3, )
+    #
+    # value_1 = W.max(axis=1).mean()
+
+    return (value_3,)
 
 
 # ----------------------------------------------------------
@@ -78,7 +81,7 @@ def FitnessFunction(W: np.ndarray, wmax: float) -> tuple:
 
 class Track2D:
 
-    def __init__(self, Nj: int, fitness_size: int=1, 
+    def __init__(self, Nj: int, fitness_size: int=1, n_samples: int=1,
                  **kwargs):
 
         """
@@ -94,30 +97,33 @@ class Track2D:
             dataset parameters.
         """
 
-        self.Nj = Nj
+        # self.Nj = Nj
         self.fitness_size = fitness_size
+        self.kwargs = kwargs
         self.dataset = self._make_data(Nj=Nj, **kwargs)
+
+        self._n_samples = n_samples
 
     def __repr__(self):
 
-        return f"Track2D(Nj={self.Nj}, fitness_size={self.fitness_size})"
+        return f"Track2D(fitness_size={self.fitness_size})"
 
-    def _make_data(self, T: int=20, dx: float=0.01, 
-                   offset: int=4, Nj: int=9) -> np.ndarray:
+    def _make_data(self, Nj: int=9, **kwargs) -> np.ndarray:
 
         """
         Make the dataset.
 
         Parameters
         ----------
-        T : int
-            The duration of the trajectory.
-        dx : float
-            The stepsize.
-        offset : int
-            The offset.
         Nj : int
             Number of neurons.
+        **kwargs : dict
+            T : int
+                The duration of the trajectory.
+            dx : float
+                The stepsize.
+            offset : int
+                The offset.
 
         Returns
         -------
@@ -125,6 +131,12 @@ class Track2D:
             The dataset.
         """
 
+        # parameters
+        T = kwargs.get('T', 100)
+        dx = kwargs.get('dx', 0.1)
+        offset = kwargs.get('offset', 0)
+
+        # layer
         layer = lambda x: (np.cos(x + np.linspace(1e-1, offset, Nj)) + 1) / 2
 
         Z = np.arange(0, T, dx).reshape(-1, 1)
@@ -172,6 +184,52 @@ class Track2D:
             The fitness value.
         """
 
+        fitness_tot = np.zeros(self.fitness_size)
+        for i in range(self._n_samples):
+
+            # sample new dimensions
+            N, Nj = random.randint(4, 30), random.randint(4, 30)
+
+            # update the dataset
+            self.dataset = self._make_data(Nj=Nj, **self.kwargs)
+
+            # update the agent
+            agent.model.set_dims(N=N, Nj=Nj)
+
+            # test the agent on the dataset
+            agent = self._train(agent=agent, 
+                                trajectory=self.dataset)
+
+            # evaluate the agent
+            fitness = FitnessFunction(W=agent.model.Wff.copy(),
+                                      wmax=agent.model._wff_max)
+
+            fitness_tot += np.array(fitness)
+
+        # check nan
+        if np.isnan(fitness_tot).any():
+            fitness_tot = np.ones(self.fitness_size) * -1e3
+
+        fitness = tuple(fitness_tot / self._n_samples)
+        assert isinstance(fitness, tuple), "fitness must be a tuple"
+        return fitness
+
+    def run_old(self, agent: object) -> float:
+
+        """
+        Evaluate a agent on the dataset.
+
+        Parameters
+        ----------
+        agent : object
+            A agent object.
+
+        Returns
+        -------
+        fitness : float
+            The fitness value.
+        """
+
         # test the agent on the dataset
         agent = self._train(agent=agent, 
                             trajectory=self.dataset)
@@ -190,20 +248,23 @@ class Track2D:
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
-    'N': 15,
+    'N': 6,
     'Nj': 6,
-    'gain': 9.,
+    # 'gain': 9.,
     'bias': 3.,
     # 'lr': 1e-3,
     # 'tau': 50.,
     'wff_std': 1e-3,
     'wff_min': 0.,
     'wff_max': 3.,
-    # 'wff_tau': 100,
-    # 'rule': 'hebb',
-    # 'std_tuning': 1e-3,
+    'wff_tau': 300,
+    'rule': 'hebb',
+    'std_tuning': 1e-4,
     # 'soft_beta': 10.,
-    # 'dt': 0.053,
+    'dt': 0.005,
+    # 'DA_tau': 100,
+    # 'bias_decay': 100,
+    'bias_scale': 1.1,
 }
 
 
@@ -221,6 +282,9 @@ PARAMETERS = {
     'std_tuning': lambda: round(random.uniform(0, 1e-2), 4),
     'soft_beta': lambda: round(random.uniform(0, 1e2), 1),
     'dt': lambda: round(random.uniform(0, 1), 3),
+    'DA_tau': lambda: random.randint(1, 200),
+    'bias_decay': lambda: random.randint(1, 400),
+    'bias_scale': lambda: round(random.uniform(0.5, 1.5), 2),
 }
 
 
@@ -229,7 +293,7 @@ if __name__ == "__main__" :
     # ---| Setup |---
 
     fitness_weights = (1.,)
-    model = mm.RateNetwork3
+    model = mm.RateNetwork4
 
     # ---| CMA-ES |---
 
@@ -248,7 +312,8 @@ if __name__ == "__main__" :
     # ---| Game |---
 
     track = Track2D(Nj=FIXED_PARAMETERS['Nj'], 
-                    fitness_size=len(fitness_weights))
+                    fitness_size=len(fitness_weights),
+                    n_samples=12)
 
     # ---| Evolution |---
 
@@ -263,8 +328,8 @@ if __name__ == "__main__" :
     # ---| Run |---
 
     settings = {
-        "NPOP": 100,
-        "NGEN": 800,
+        "NPOP": 40,
+        "NGEN": 1000,
         "CXPB": 0.6,
         "MUTPB": 2.3,
         "NLOG": 5,
@@ -275,7 +340,12 @@ if __name__ == "__main__" :
     # ---| save |---
 
     # filename as best_DDMM_HHMM_r3 
-    filename = "best_" + time.strftime("%d%m_%H%M")
+    path = "cache/"
+
+    # get number of files in the cache
+    n_files = len([f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))])
+
+    filename = "best_" + str(n_files)
 
     # extra information 
     info = {
