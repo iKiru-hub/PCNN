@@ -1250,6 +1250,8 @@ class RateNetwork4:
         self.DA = 1.
         self._DA_tau = kwargs.get('DA_tau', 100)
 
+        self.Ix = np.zeros((N, 1))
+
     def __repr__(self):
 
         return f"RateNetwork4(N={self.N}, Nj={self.Nj}, rule={self._rule}) [{self.id}]"
@@ -1280,7 +1282,7 @@ class RateNetwork4:
             delta = self.u * x.T - self.Wff @ x 
 
         # update weights
-        self.Wff += self._lr * delta * self.softmax(self.Wff) * self.DA
+        self.Wff += self._lr * delta * self.softmax(self.Wff) * self.DA * (1 - 1*(self.temp == 1.))
 
         # clip weights
         self.Wff = self.Wff.clip(min=self._wff_min, 
@@ -1304,7 +1306,8 @@ class RateNetwork4:
         """
 
         # calculate input current
-        Ix = self.Wff @ x
+        # Ix = self._wff_max / (1 + np.exp(- 3 * (self.Wff @ x - 2)))
+        self.Ix = self.Wff @ x
 
         # calculate synaptic current
         Is =  3*self._bias * (1 - self.temp) * np.exp(-(np.cos(self.t + self.tuning) -\
@@ -1314,17 +1317,17 @@ class RateNetwork4:
         Ir = self.Wrec @ self.u
 
         # update state variables
-        self.u += - self.u / self._tau + Ix + Is + Ir
+        self.u += - self.u / self._tau + self.Ix + Is #+ Ir
 
         # activation
         self.u = self.activation_func(self.u)
 
         # update DA
-        self.DA += (1 - self.DA - (self.u * self.temp).max()) / self._DA_tau
+        da_dump = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
+        self.DA += (1 - self.DA) / self._DA_tau - 0.99*da_dump
 
         # adaptive threshold
-        self._bias += (self._bias_scale * self._bias_max * self.u + \
-            self._bias_max * (1 - self.u) - self._bias) / self._bias_decay
+        self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
 
         # update weights
         if self._plastic:

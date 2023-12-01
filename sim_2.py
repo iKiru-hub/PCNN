@@ -250,21 +250,21 @@ class Track2D:
 FIXED_PARAMETERS = {
     'N': 6,
     'Nj': 6,
-    # 'gain': 9.,
-    'bias': 3.,
-    # 'lr': 1e-3,
-    # 'tau': 50.,
-    'wff_std': 1e-3,
+    'gain': 30.,
+    'bias': 2.5,
+    # 'lr': 5e-2,
+    'tau': 4.,
+    'wff_std': 1e-2,
     'wff_min': 0.,
-    'wff_max': 3.,
-    'wff_tau': 300,
+    'wff_max': 3.5,
+    # 'wff_tau': 300,
     'rule': 'hebb',
-    'std_tuning': 1e-4,
-    # 'soft_beta': 10.,
-    'dt': 0.005,
-    # 'DA_tau': 100,
-    # 'bias_decay': 100,
-    'bias_scale': 1.1,
+    'std_tuning': 5e-3,
+    'soft_beta': 50.,
+    # 'dt': 0.00035,
+    'DA_tau': 3,
+    'bias_decay': 75,
+    'bias_scale': 0.065,
 }
 
 
@@ -352,6 +352,7 @@ if __name__ == "__main__" :
         "date": time.strftime("%d/%m/%Y") + " at " + time.strftime("%H:%M"),
         "model": model.__name__,
         "game": track.__repr__(),
+        "evolved": tuple(PARAMETERS.keys()),
     }
 
     # ---| Run |---
