@@ -1,8 +1,8 @@
 import random
 from deap import base, creator, tools, cma
-import mod_models as mm
-import mod_evolution as me
-import mod_stimulation as ms
+import src.mod_models as mm
+import src.mod_evolution as me
+import src.mod_stimulation as ms
 from tools.utils import logger
 import inputools.Trajectory as it
 import numpy as np
