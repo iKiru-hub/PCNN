@@ -1382,6 +1382,474 @@ class RateNetwork4:
         self.t = 0.
 
 
+class RateNetwork5:
+
+    def __init__(self, N: int, Nj: int, **kwargs):
+
+
+        """
+        Network class 
+
+        Parameters
+        ----------
+        N: int
+            Number of neurons
+        Nj: int
+            Number of input neurons
+        **kwargs: dict
+            gain: float
+                Gain of the activation function
+            bias: float
+                Bias of the activation function. Default: 0
+            lr: float
+                Learning rate. Default: 0.01
+            tau: float
+                Time constant. Default: 30
+            rule: str
+                Learning rule, either 'oja' or 'hebb'
+            plastic: bool
+                Whether the network is plastic
+            std_tuning: float
+                Standard deviation of the tuning curve
+            soft_beta: float
+                Beta for the softmax function
+            wff_std: float
+                Standard deviation of the feedforward weights
+            wff_max: float
+                Maximum value of the feedforward weights
+            wff_min: float
+                Minimum value of the feedforward weights
+            wff_const: float
+                Constant for the feedforward weights
+            wff_tau: float
+                Time constant for the feedforward weights decay
+        """
+
+        # General 
+        self.N = N
+        self.Nj = Nj
+
+        # define instance id as a string of alphanumeric characters
+        id_func = kwargs.get('id', lambda: ''.join(np.random.choice(list(
+            'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        ), 5)))
+        self.id = id_func()
+
+        # Internal dynamics
+        self.u = np.zeros((N, 1))
+        self._lr = kwargs.get('lr', 0.01)
+        self._tau = kwargs.get('tau', 30)
+
+        # activation function
+        self._gain = kwargs.get('gain', 7)
+        self._bias = kwargs.get('bias', 3) * np.ones((N, 1))
+        self._bias_max = kwargs.get('bias', 3)
+        self._bias_decay = kwargs.get('bias_decay', 100)
+        self._bias_scale = kwargs.get('bias_scale', 1.0)
+        self.activation_func = lambda x: 1 / (
+            1 + np.exp(-self._gain * (x - \
+                self._bias)))
+
+        # Feedforward weights
+        self._wff_std = kwargs.get('wff_std', 1)
+        self.Wff = np.abs(np.random.normal(0,
+                self._wff_std, size=(N, Nj)))
+        self._wff_min = kwargs.get('wff_min',
+                                  0.05)
+        self._wff_max = kwargs.get('wff_max', 3)
+        self._wff_tau = kwargs.get('wff_tau', 500)
+
+        # recurrent weights
+        # self.Wrec = -1 * (np.ones((N, N)) - np.eye(N))
+        self.Wrec = np.zeros((N, N))
+
+        # plasticity
+        self.temp = np.ones((N, 1))*1e-3
+        self._rule = kwargs.get('rule', 'hebb')
+        self._plastic = kwargs.get('plastic', True)
+
+        # tuning 
+        self.tuning = np.linspace(0, 2*np.pi, N,\
+                endpoint=False).reshape(-1, 1)
+        self._std_tuning = kwargs.get('std_tuning', 1e-3)
+
+        # softmax
+        beta = kwargs.get('soft_beta', 10)
+        self.softmax = lambda x: np.exp(beta*x) / np.exp(beta*x).sum(axis=1, keepdims=True)
+
+        # internal clock
+        self._dt = kwargs.get('dt', 0.01)
+        self.t = 0.
+
+        # modulation
+        self.DA = 1.
+        self._DA_tau = kwargs.get('DA_tau', 100)
+
+        self.Ix = np.zeros((N, 1))
+
+    def __repr__(self):
+
+        return f"RateNetwork5(N={self.N}, Nj={self.Nj}, rule={self._rule}) [{self.id}]"
+
+    def _update(self, x: np.ndarray):
+
+        """
+        Update function
+
+        Parameters
+        ----------
+        x: np.ndarray
+            Input from other neurons
+        """
+
+        # weight update
+        if self._rule == 'oja':
+            delta = self.u * x.T - 0.01*self.Wff @ (x * x)
+
+        elif self._rule == 'hebb':
+            delta = self.u * x.T
+
+        elif self._rule == 'oja2':
+            delta = self.u * x.T - self.Wff @ (x * x) * (self._wff_max / self.Wff.max(
+                axis=1, keepdims=True))
+
+        elif self._rule == 'oja3':
+            delta = self.u * x.T - self.Wff @ x 
+
+        # update weights
+        self.Wff += self._lr * delta * self.softmax(self.Wff) #* self.DA 
+
+        # clip weights
+        self.Wff = self.Wff.clip(min=self._wff_min, 
+                                 max=self._wff_max)
+
+        # # weight decay
+        # self.Wff += (- self.Wff / self._wff_tau) * (1 - self.temp)
+
+        # temperture
+        self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
+
+    def step(self, x: np.ndarray):
+
+        """
+        Step function
+
+        Parameters
+        ----------
+        x: np.ndarray
+            Input from other neurons
+        """
+
+        # calculate input current
+        self.Ix = self.Wff @ x
+
+        # calculate recurrent current
+        Ir = self.Wrec @ self.u
+
+        Ib = np.zeros((self.N, 1))
+        Ib[0, 0] = 10
+
+        # update state variables
+        self.u += - self.u / self._tau + self.Ix + Ir + 1*(self.t < 30)*Ib
+
+        # activation
+        self.u = self.activation_func(self.u)
+
+        # update weights
+        if self._plastic:
+            self._update(x=x)
+
+        # update internal clock
+        self.t += 1
+
+    @property
+    def output(self):
+
+        """
+        Return the output of the network
+        """
+
+        return self.u.copy()
+
+    def set_dims(self, N: int, Nj: int):
+
+        """
+        Set the dimensions of the network
+
+        Parameters
+        ----------
+        N: int
+            Number of neurons
+        Nj: int
+            Number of input neurons
+        """
+
+        self.N = N
+        self.Nj = Nj
+
+        self.reset()
+
+    def reset(self):
+
+        """
+        Reset function
+        """
+
+        self.u = np.zeros((self.N, 1))
+        self.u[0, 0] = 10
+        self.Wff = np.abs(np.random.normal(0,
+                        self._wff_std, 
+                        size=(self.N, self.Nj)))
+        self.Wrec = np.zeros((self.N, self.N))
+
+        for i in range(self.N):
+            for j in range(self.N):
+                if i == j:
+                    continue
+                d_ij = np.abs(i - j)
+                self.Wrec[i, j] = 0.925*np.exp(-d_ij**2 / (2 * 2**2))
+
+        self.tuning = np.linspace(0, 2*np.pi, self.N,\
+                endpoint=False).reshape(-1, 1)
+
+        self.temp = np.ones((self.N, 1))*1e-3
+        self._bias = self._bias_max * np.ones((self.N, 1))
+        self.t = 0.
+
+
+class RateNetwork6:
+
+    def __init__(self, N: int, Nj: int, **kwargs):
+
+
+        """
+        Network class 
+
+        Parameters
+        ----------
+        N: int
+            Number of neurons
+        Nj: int
+            Number of input neurons
+        **kwargs: dict
+            gain: float
+                Gain of the activation function
+            bias: float
+                Bias of the activation function. Default: 0
+            lr: float
+                Learning rate. Default: 0.01
+            tau: float
+                Time constant. Default: 30
+            rule: str
+                Learning rule, either 'oja' or 'hebb'
+            plastic: bool
+                Whether the network is plastic
+            std_tuning: float
+                Standard deviation of the tuning curve
+            soft_beta: float
+                Beta for the softmax function
+            wff_std: float
+                Standard deviation of the feedforward weights
+            wff_max: float
+                Maximum value of the feedforward weights
+            wff_min: float
+                Minimum value of the feedforward weights
+            wff_const: float
+                Constant for the feedforward weights
+            wff_tau: float
+                Time constant for the feedforward weights decay
+        """
+
+        # General 
+        self.N = N
+        self.Nj = Nj
+
+        # define instance id as a string of alphanumeric characters
+        id_func = kwargs.get('id', lambda: ''.join(np.random.choice(list(
+            'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        ), 5)))
+        self.id = id_func()
+
+        # Internal dynamics
+        self.u = np.zeros((N, 1))
+        self._lr = kwargs.get('lr', 0.01)
+        self._tau = kwargs.get('tau', 30)
+
+        # activation function
+        self._gain = kwargs.get('gain', 7)
+        self._bias = kwargs.get('bias', 3) * np.ones((N, 1))
+        self._bias_max = kwargs.get('bias', 3)
+        self._bias_decay = kwargs.get('bias_decay', 100)
+        self._bias_scale = kwargs.get('bias_scale', 1.0)
+        self.activation_func = lambda x: 1 / (
+            1 + np.exp(-self._gain * (x - \
+                self._bias)))
+
+        # Feedforward weights
+        self._wff_std = kwargs.get('wff_std', 1)
+        self.Wff = np.abs(np.random.normal(0,
+                self._wff_std, size=(N, Nj)))
+        self._wff_min = kwargs.get('wff_min',
+                                  0.05)
+        self._wff_max = kwargs.get('wff_max', 3)
+        self._wff_tau = kwargs.get('wff_tau', 500)
+
+        # recurrent weights
+        self.Wrec = -1 * (np.ones((N, N)) - np.eye(N))
+
+        # plasticity
+        self.temp = np.ones((N, 1))*1e-3
+        self._rule = kwargs.get('rule', 'hebb')
+        self._plastic = kwargs.get('plastic', True)
+
+        # tuning 
+        self.tuning = np.linspace(0, 2*np.pi, N,\
+                endpoint=False).reshape(-1, 1)
+        self._std_tuning = kwargs.get('std_tuning', 1e-3)
+
+        # softmax
+        beta = kwargs.get('soft_beta', 10)
+        self.softmax = lambda x: np.exp(beta*x) / np.exp(beta*x).sum(axis=1, keepdims=True)
+
+        # internal clock
+        self._dt = kwargs.get('dt', 0.01)
+        self.t = 0.
+
+        # modulation
+        self.DA = 1.
+        self._DA_tau = kwargs.get('DA_tau', 100)
+
+        self.Ix = np.zeros((N, 1))
+
+    def __repr__(self):
+
+        return f"RateNetwork4(N={self.N}, Nj={self.Nj}, rule={self._rule}) [{self.id}]"
+
+    def _update(self, x: np.ndarray):
+
+        """
+        Update function
+
+        Parameters
+        ----------
+        x: np.ndarray
+            Input from other neurons
+        """
+
+        # weight update
+        if self._rule == 'oja':
+            delta = self.u * x.T - self.Wff @ (x * x)
+
+        elif self._rule == 'hebb':
+            delta = self.u * x.T
+
+        elif self._rule == 'oja2':
+            delta = self.u * x.T - self.Wff @ (x * x) * (self._wff_max / self.Wff.max(
+                axis=1, keepdims=True))
+
+        elif self._rule == 'oja3':
+            delta = self.u * x.T - self.Wff @ x 
+
+        # update weights
+        self.Wff += self._lr * delta * self.softmax(self.Wff) * self.DA * (1 - 1*(self.temp == 1.))
+
+        # clip weights
+        self.Wff = self.Wff.clip(min=self._wff_min, 
+                                 max=self._wff_max)
+
+        # # weight decay
+        self.Wff += (- self.Wff / self._wff_tau) * (1 - self.temp)
+
+        # temperture
+        self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
+
+    def step(self, x: np.ndarray):
+
+        """
+        Step function
+
+        Parameters
+        ----------
+        x: np.ndarray
+            Input from other neurons
+        """
+
+        # calculate input current
+        # Ix = self._wff_max / (1 + np.exp(- 3 * (self.Wff @ x - 2)))
+        self.Ix = self.Wff @ x
+
+        # calculate synaptic current
+        Is =  3*self._bias * (1 - self.temp) * np.exp(-(np.cos(self.t + self.tuning) -\
+            1)**2 / self._std_tuning)
+
+        # calculate recurrent current
+        Ir = self.Wrec @ self.u
+
+        # update state variables
+        self.u += - self.u / self._tau + self.Ix + Is #+ Ir
+
+        # activation
+        self.u = self.activation_func(self.u)
+
+        # update DA
+        da_dump = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
+        self.DA += (1 - self.DA) / self._DA_tau - 0.99*da_dump
+
+        # adaptive threshold
+        self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
+
+        # update weights
+        if self._plastic:
+            self._update(x=x)
+
+        # update internal clock
+        self.t += self._dt * (1 - da_dump)
+
+    @property
+    def output(self):
+
+        """
+        Return the output of the network
+        """
+
+        return self.u.copy()
+
+    def set_dims(self, N: int, Nj: int):
+
+        """
+        Set the dimensions of the network
+
+        Parameters
+        ----------
+        N: int
+            Number of neurons
+        Nj: int
+            Number of input neurons
+        """
+
+        self.N = N
+        self.Nj = Nj
+
+        self.reset()
+
+    def reset(self):
+
+        """
+        Reset function
+        """
+
+        self.u = np.zeros((self.N, 1))
+        self.Wff = np.abs(np.random.normal(0,
+                        self._wff_std, 
+                        size=(self.N, self.Nj)))
+        self.Wrec = -1 * (np.ones((self.N, self.N)) - np.eye(self.N))
+        self.tuning = np.linspace(0, 2*np.pi, self.N,\
+                endpoint=False).reshape(-1, 1)
+
+        self.temp = np.ones((self.N, 1))*1e-3
+        self._bias = self._bias_max * np.ones((self.N, 1))
+        self.t = 0.
+
 
 #--------------------------------
 # ---| Connectivity patterns |---
