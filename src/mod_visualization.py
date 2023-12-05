@@ -2,6 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 
+from IPython.display import clear_output 
+
+def clf():
+    clear_output(wait=True)
+
 
 def plot_graph_colored_1D(W: np.ndarray):
 
@@ -114,3 +119,75 @@ def plot_weight_matrix(W: np.ndarray):
     plt.show()
 
 
+def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray, 
+             Ix: np.ndarray, colors: list):
+
+    """
+    Plot the input, weights, weight matrix, and u - DA.
+
+    Parameters
+    ----------
+    model : object
+        The model object.
+    X : np.ndarray
+        The input data.
+    t : int
+        The current time step.
+    record : np.ndarray
+        The record of the network activity.
+    Ix : np.ndarray
+        The input current.
+    colors : list
+        The colors for the neurons.
+    """
+
+    Nj = model.Nj
+    N = model.N
+    
+    clf()
+    plt.figure(figsize=(20, 6))
+    plt.tight_layout()
+
+    ### input
+    plt.subplot(221)
+    plt.imshow(X.T[:, t-20:t], cmap="Greys")
+    plt.xticks(())
+    plt.title(f"{t=}")
+    plt.xlabel("ms")
+    plt.grid()
+
+    ### weights
+    plt.subplot(232)
+    plt.axvline(0, color='black', alpha=0.3)
+    plt.axvline(model._wff_max, color='red', alpha=0.9)
+    for i in range(N):
+        plt.plot(np.flip(model.Wff[i], axis=0), range(Nj), '-', color=colors[i], alpha=0.3)
+        plt.plot(np.flip(model.Wff[i], axis=0), range(Nj), 'o', color=colors[i], alpha=0.5)        
+        plt.title(f"Weights")
+    plt.yticks(())
+    plt.xlim((-0.1, 5))
+    plt.grid()
+
+    ### weight matrix
+    plt.subplot(233)
+    plt.imshow(model.Wff.T, cmap="plasma")
+    plt.title(f"Temperatures: {np.around(model.temp.flatten(), 2)}")
+    plt.xlabel("i")
+    plt.ylabel("j")
+    plt.grid()
+
+    ### u - DA
+    plt.subplot(212)
+    tm = min((t, 300))
+    for i in range(N):
+        plt.plot(range(t-tm, t), record[i+1, t-tm:t], color=colors[i], alpha=0.75)
+        plt.plot(range(t-tm, t), Ix[i, t-tm:t], '--', color=colors[i], alpha=0.85)
+
+    plt.fill_between(range(t-tm, t), record[0, t-tm:t], color='green', alpha=0.1, label='DA')
+
+    plt.ylabel(f"$u$={np.around(model.u.T[0], 1)}")
+    plt.ylim((0, 4.3))
+    plt.xlabel('ms')
+    plt.legend()
+    plt.grid()
+    plt.pause(0.001)

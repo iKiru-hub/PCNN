@@ -1779,7 +1779,7 @@ class RateNetwork6:
         self.Ix = self.Wff @ x
 
         # calculate synaptic current
-        Is =  3*self._bias * (1 - self.temp) * np.exp(-(np.cos(self.t + self.tuning) -\
+        Is =  (3 + 0.5*self.temp.sum())*self._bias * (1 - self.temp) * np.exp(-(np.cos(self.t + self.tuning) -\
             1)**2 / self._std_tuning)
 
         # calculate recurrent current
