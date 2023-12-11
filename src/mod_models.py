@@ -2085,10 +2085,345 @@ class RateNetwork6:
         self.t = 0.
 
 
+class RateNetwork7:
+
+    def __init__(self, N: int, Nj: int, **kwargs):
+
+
+        """
+        Network class 
+
+        Parameters
+        ----------
+        N: int
+            Number of neurons
+        Nj: int
+            Number of input neurons
+        **kwargs: dict
+            gain: float
+                Gain of the activation function
+            bias: float
+                Bias of the activation function. Default: 0
+            lr: float
+                Learning rate. Default: 0.01
+            tau: float
+                Time constant. Default: 30
+            rule: str
+                Learning rule, either 'oja' or 'hebb'
+            plastic: bool
+                Whether the network is plastic
+            std_tuning: float
+                Standard deviation of the tuning curve
+            soft_beta: float
+                Beta for the softmax function
+            wff_std: float
+                Standard deviation of the feedforward weights
+            wff_max: float
+                Maximum value of the feedforward weights
+            wff_min: float
+                Minimum value of the feedforward weights
+            wff_const: float
+                Constant for the feedforward weights
+            wff_tau: float
+                Time constant for the feedforward weights decay
+        """
+
+        # General 
+        self.N = N
+        self.Nj = Nj
+
+        # define instance id as a string of alphanumeric characters
+        id_func = kwargs.get('id', lambda: ''.join(np.random.choice(list(
+            'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        ), 5)))
+        self.id = id_func()
+
+        # Internal dynamics
+        self.u = np.zeros((N, 1))
+        self.Ix = np.zeros((N, 1))
+        self.Is = np.zeros((N, 1))
+        self._lr = kwargs.get('lr', 0.01)
+        self._tau = kwargs.get('tau', 30)
+
+        # activation function
+        self._gain = kwargs.get('gain', 7)
+        self._bias = kwargs.get('bias', 3) * np.ones((N, 1))
+        self._bias_max = kwargs.get('bias', 3)
+        self._bias_decay = kwargs.get('bias_decay', 100)
+        self._bias_scale = kwargs.get('bias_scale', 1.0)
+        self.activation_func = lambda x: 1 / (
+            1 + np.exp(-self._gain * (x - \
+                self._bias)))
+
+        # Feedforward weights
+        self._wff_std = kwargs.get('wff_std', 1)
+        self.Wff = np.abs(np.random.normal(0,
+                self._wff_std, size=(N, Nj)))
+        self._wff_min = kwargs.get('wff_min',
+                                  0.05)
+        self._wff_max = kwargs.get('wff_max', 3)
+        self._wff_tau = kwargs.get('wff_tau', 500)
+
+        # plasticity
+        self.temp = np.ones((N, 1))*1e-4
+        self._plastic = kwargs.get('plastic', True)
+
+        # tuning 
+        self._nb_per_cycle = kwargs.get('nb_per_cycle', 6)
+        self._nb_skip = kwargs.get('nb_skip', 1)
+        self._theta_freq = kwargs.get('theta_freq', 1)
+        self.tuning = calc_tuning(N=N, K=self._nb_per_cycle, b=self._theta_freq)
+        self._IS_magnitude = kwargs.get('IS_magnitude', 3)
+
+        # softmax
+        beta = kwargs.get('soft_beta', 10)
+        self.softmax = lambda x: np.exp(beta*x) / np.exp(beta*x).sum(axis=1, keepdims=True)
+
+        # internal clock
+        self._dt = kwargs.get('dt', 0.01)
+        self.t = 0.
+
+        # modulation
+        self.DA = 1.
+        self._DA_tau = kwargs.get('DA_tau', 100)
+
+    def __repr__(self):
+
+        return f"RateNetwork4(N={self.N}, Nj={self.Nj}) [{self.id}]"
+
+    def _update(self, x: np.ndarray):
+
+        """
+        Update function
+
+        Parameters
+        ----------
+        x: np.ndarray
+            Input from other neurons
+        """
+
+        # weight update
+        delta = self.u * x.T
+
+        # update weights
+        self.Wff += self._lr * delta * self.softmax(self.Wff) * self.DA * (1 - 1*(self.temp == 1.))
+
+        # clip weights
+        self.Wff = self.Wff.clip(min=self._wff_min, 
+                                 max=self._wff_max)
+
+        # # weight decay
+        self.Wff += (- self.Wff / self._wff_tau) * (1 - self.temp)
+
+        # temperture
+        self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
+
+    def step(self, x: np.ndarray=None):
+
+        """
+        Step function
+
+        Parameters
+        ----------
+        x: np.ndarray
+            Input from other neurons
+        """
+
+        # calculate input current
+        if x is not None:
+            self.Ix = self.Wff @ x
+
+        # calculate synaptic current
+        self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(N=self.N, t=self.t,
+                I=0, O=self.tuning, K=self._nb_per_cycle, b=self._theta_freq, nb_skip=self._nb_skip)
+
+        # update state variables
+        self.u += - self.u / self._tau + self.Ix + self.Is 
+
+        # activation
+        self.u = self.activation_func(self.u)
+
+        # update DA
+        da_dump = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
+        self.DA += (1 - self.DA) / self._DA_tau - 0.99*da_dump
+
+        # adaptive threshold
+        self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
+
+        # update weights
+        if self._plastic:
+            self._update(x=x)
+
+        # update internal clock
+        self.t += self._dt * (1 - da_dump)
+
+    @property
+    def output(self):
+
+        """
+        Return the output of the network
+        """
+
+        return self.u.copy()
+
+    def set_dims(self, N: int, Nj: int):
+
+        """
+        Set the dimensions of the network
+
+        Parameters
+        ----------
+        N: int
+            Number of neurons
+        Nj: int
+            Number of input neurons
+        """
+
+        self.N = N
+        self.Nj = Nj
+
+        self.reset()
+
+    def reset(self):
+
+        """
+        Reset function
+        """
+
+        self.u = np.zeros((self.N, 1))
+        self.Wff = np.abs(np.random.normal(0,
+                        self._wff_std, 
+                        size=(self.N, self.Nj)))
+        self.tuning = np.linspace(0, 2*np.pi, self.N,\
+                endpoint=False).reshape(-1, 1)
+
+        self.temp = np.ones((self.N, 1))*1e-3
+        self._bias = self._bias_max * np.ones((self.N, 1))
+        self.t = 0.
+
+
 
 #--------------------------------
 # ---| Connectivity patterns |---
 #--------------------------------
+
+
+def calc_turn(N: int, t: int, i: int=0, K: int=6, b: int=1, nb_skip: int=1) -> np.ndarray:
+
+    """
+    function tat calculates when a certain cycle of neurons should be active 
+
+    Parameters
+    ----------
+    N : int
+        Number of neurons.
+    t : int
+        Current time step.
+    i : int
+        Index of the cycle.
+    K : int
+        Number of neurons per cycle. Default: 6
+    b : int
+        Frequency scale. Default: 1
+    nb_skip : int
+        Number of cycles to skip. Default: 1
+
+    Returns
+    -------
+    turn : np.ndarray
+        Array of 1s and 0s indicating whether the cycle should be active or not.
+    """
+
+    cycle_size = np.pi / b  # size of a cycle in rad
+    nb_cycles = np.ceil(N / K) * nb_skip  # number of cycles
+    tot_cycle_len = cycle_size * nb_cycles  # total length of the grand cycle
+    t = t % tot_cycle_len  # map t onto the grand cycle 
+    i = i // K * nb_skip  # map i onto the grand cycle
+
+    # calculate the current cycle idx and return
+    # 1 if it matches the input cycle idx
+    return 1*((t // cycle_size) == i)
+
+def calc_tuning(N: int, K: int, b: int) -> np.ndarray:
+    
+    """
+    calculate the tuning of the neurons 
+
+    Parameters
+    ----------
+    N : int
+        Number of neurons.
+    K : int
+        Number of neurons per cycle.
+    b : int
+        Frequency of the cycles.
+
+    Returns
+    -------
+    tuning : np.ndarray
+        Tuning of the neurons.
+    """
+
+    # calculate the partition over a cycle
+    partitions = np.linspace(-np.pi/2/b+1*np.pi/2/b/K, np.pi/2/b+1*np.pi/2/b/K, K, endpoint=0)
+    return np.array([partitions[i%K] for i in range(0, N)]).reshape(-1, 1)
+
+def calc_gamma(t: int, O: int, b: int) -> np.ndarray:
+
+    """
+    calculate the activity as gamma cycles 
+
+    Parameters
+    ----------
+    t : int
+        Current time step.
+    O : int
+        Phase offset.
+    b : int
+        Frequency of the cycles.
+
+    Returns
+    -------
+    gamma : np.ndarray
+        Activity as gamma cycles.
+    """
+
+    t = t % (np.pi / b) 
+    return np.exp(-(np.sin(b*(t - O))-1)**2 / 1e-5)
+    
+def calc_osc(N: int, t: int, I: int, O: int, K: int, 
+             b: int, nb_skip: int=1) -> np.ndarray:
+
+    """
+    calculate the oscillatory stimulation 
+
+    Parameters
+    ----------
+    N : int
+        Number of neurons.
+    t : int
+        Current time step.
+    I : int
+        Index of the cycle.
+    O : int
+        Phase offset.
+    K : int
+        Number of neurons per cycle.
+    b : int
+        Frequency of the cycles.
+    nb_skip : int
+        Number of cycles to skip. Default: 1
+
+    Returns
+    -------
+    osc : np.ndarray
+        Oscillatory stimulation.
+    """
+
+    return calc_turn(N=N, t=t, i=I, K=K, b=b, 
+                     nb_skip=nb_skip) * calc_gamma(t=t, O=O, b=b)
+
+
 
 def mexican_hat_1D(N: int, A: int, B: int, sigma_exc: float, 
                 sigma_inh: float) -> np.ndarray:
