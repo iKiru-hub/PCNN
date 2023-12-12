@@ -2214,7 +2214,7 @@ class RateNetwork7:
 
         # increase the theta frequency
         self._theta_freq *= (1 + self._theta_freq_increase)
-        self._dt *= (1 - self._theta_freq_increase)
+        self._dt *= (1 - self._theta_freq_increase*1.1)
 
         # calculate the new tuning
         new_tuning = calc_tuning(N=self.N - len(idx_selective),
@@ -2427,7 +2427,7 @@ def calc_gamma(t: int, O: int, b: int) -> np.ndarray:
     """
 
     t = t % (np.pi / b) 
-    return np.exp(-(np.sin(b*(t - O))-1)**2 / 1e-5)
+    return np.exp(-(np.sin(b*(t - O))-1)**2 / 1e-6)
     
 def calc_osc(N: int, t: int, I: int, O: int, K: int, 
              b: int, nb_skip: int=1) -> np.ndarray:
@@ -2588,6 +2588,8 @@ def train_model(genome: dict, N: int, Nj: int, data: np.ndarray=None,
             Whether to display the progress bar. Default: False
         func : function
             Function to calculate the metric. Default: None
+        ignore_zero : bool
+            Whether to ignore the zero weights entries. Default: False
 
     Returns
     -------
@@ -2629,8 +2631,8 @@ def train_model(genome: dict, N: int, Nj: int, data: np.ndarray=None,
             model.step(x=x.reshape(-1, 1))
 
         # calc metric
-        record1 += [func(model, axis=0)]
-        record2 += [func(model, axis=1)]
+        record1 += [func(model, axis=0, ignore_zero=kwargs.get('ignore_zero', False))]
+        record2 += [func(model, axis=1, ignore_zero=kwargs.get('ignore_zero', False))]
 
     # average over trials
     record1 = np.array(record1).mean()
@@ -2638,7 +2640,7 @@ def train_model(genome: dict, N: int, Nj: int, data: np.ndarray=None,
     
     return model, (record1, record2)
 
-def eval_func(model: object, axis: int=1) -> float:
+def eval_func(model: object, axis: int=1, ignore_zero: bool=False) -> float:
 
     """
     evaluate the model by its weight matrix 
@@ -2649,6 +2651,9 @@ def eval_func(model: object, axis: int=1) -> float:
         Model to evaluate.
     axis : int
         Axis to evaluate the model on. Default: 1
+    ignore_zero : bool
+        Whether to ignore the zero weights entries.
+        Default: False
 
     Returns
     -------
@@ -2660,11 +2665,24 @@ def eval_func(model: object, axis: int=1) -> float:
     ni, nj = model.Wff.shape
     wmax = model._wff_max
 
+    # places that are legitimitely empty
     nb_empty = 1*((axis==0)*(nj>ni)*(nj - ni) + (axis==1)*(nj<ni)*(ni - nj))
+
+    # sum of weights (along axis) that are above 85% of the max weight
     W_sum = np.where(model.Wff > wmax * 0.85, 1, 0).sum(axis=axis) 
 
+    # error: where there is more than one connection per neuron
     e_over = W_sum[W_sum > 1] -1
-    nb_under = (W_sum < 1).sum() - nb_empty
+
+    # error: where there is less than one connection per neuron
+    nb_under = (W_sum < 1).sum() - nb_empty if not ignore_zero else 0
+
+    # total error: sum of the two errors, kind of
     err = nb_under + ((e_over.sum() - nb_under) > 0)*(e_over.sum() - nb_under) 
 
+    # fraction of neurons that are doing ok
     return 1 - abs((err.sum())/ni)
+
+
+
+
