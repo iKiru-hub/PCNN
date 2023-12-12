@@ -10,106 +10,56 @@ import tools.evolutions as me
 import inputools.Trajectory as it
 
 
-# ----------------------------------------------------------
-# ---| Fitness |---
-# -----------------
+"""
+- model: RateNetwork7
+- fitness: eval_func 
+"""
 
-def FitnessFunction(W: np.ndarray, wmax: float) -> tuple:
-
-    """
-    Goal:
-    - few high valued entries (tuning to a pattern)
-    - all the rest low
-
-    Parameters
-    ----------
-    W : np.ndarray
-        The weight matrix.
-
-    Returns
-    -------
-    fitness : tuple
-        The fitness value.
-    """
-
-    # # local difference
-    # sorted_cols = np.sort(W, axis=1)
-    
-    # value_1 = sorted_cols[:, -3:].sum() - sorted_cols[:, :-3].sum()
-
-    # # global difference | select the top 2 rows
-    # sorted_rows = np.sort(W, axis=0)[-2:, :]
-
-    # value_2 = np.diff(sorted_rows, axis=0).sum() # difference between the two rows
-
-    ### 
-    # only one top value per column
-    # sorted_cols = np.sort(W, axis=0)
-    # value_1 = sorted_cols[-1:, :].sum() - sorted_cols[:-1, :].sum()
-
-    # only one top value per row
-    # sorted_rows = np.sort(W, axis=1)
-    # value_2 = sorted_rows[:, -1:].sum() - sorted_rows[:, :-1].sum()
-
-    # value_2 = -((W.sum(axis=1) - wmax)**2).sum()
-
-    # total sum close to wmax*Nj
-    # value_2 = -(W.sum() - wmax*W.shape[1])**2
-
-    # sort the matrix columns such that it resembles a 
-    # diagonal matrix
-    I, J = W.shape
-    sorted_matrix = np.zeros_like(W)
-    max_indices = np.argmax(W, axis=1)
-
-    for i in range(I):
-        sorted_matrix[i, min((i, J-1))] = W[i, max_indices[i]]
-
-    # calculate the difference between the sorted matrix
-    # and a diagonal matrix
-    target = wmax * np.eye(I, J)
-    value_3 = -((sorted_matrix - target)**2).sum() / (I*J)
-
-    #
-    # value_1 = W.max(axis=1).mean()
-
-    return (value_3,)
 
 
 # ----------------------------------------------------------
 # ---| Game |---
 # --------------
 
-class Track2D:
+class Env:
 
-    def __init__(self, Nj: int, fitness_size: int=1, n_samples: int=1,
-                 **kwargs):
+    def __init__(self, speed: float, T: int, duration: int, sigma: float=0.05,
+                 n_samples: int=1):
 
         """
         The game class.
 
         Parameters
         ----------
-        Nj : int
-            Number of neurons.
-        fitness_size : int
-            The size of the fitness function.
+        speed : float
+            The speed of the trajectory.
+        T : int
+            The duration of the trajectory.
+        duration : int
+            The duration of the game.
+        sigma : float
+            The noise level.
+        n_samples : int
+            number of samples to average over.
         **kwargs : dict
-            dataset parameters.
+            
         """
 
-        # self.Nj = Nj
-        self.fitness_size = fitness_size
-        self.kwargs = kwargs
-        self.dataset = self._make_data(Nj=Nj, **kwargs)
+        # parameters
+        self.speed = speed
+        self.T = T
+        self.duration = duration
+        self.sigma = sigma
 
+        # 
+        self.fitness_size = 2
         self._n_samples = n_samples
 
     def __repr__(self):
 
-        return f"Track2D(fitness_size={self.fitness_size})"
+        return f"Track2D(fitness_size={self.fitness_size}, n_samples={self._n_samples})"
 
-    def _make_data(self, Nj: int=9, **kwargs) -> np.ndarray:
+    def _make_data(self, Nj: int=9) -> np.ndarray:
 
         """
         Make the dataset.
@@ -132,16 +82,11 @@ class Track2D:
             The dataset.
         """
 
-        # parameters
-        T = kwargs.get('T', 100)
-        dx = kwargs.get('dx', 0.1)
-        offset = kwargs.get('offset', 0)
+        # Head Direction Layer
+        layer = it.HDLayer(N=Nj, sigma=self.sigma)
 
-        # layer
-        layer = lambda x: (np.cos(x + np.linspace(1e-1, offset, Nj)) + 1) / 2
-
-        Z = np.arange(0, T, dx).reshape(-1, 1)
-        return layer(Z)
+        return layer.parse_trajectory(trajectory=np.linspace(
+            0, self.T*self.speed, self.duration))
 
     def _train(self, agent: object, trajectory: np.ndarray) -> tuple:
 
@@ -192,7 +137,7 @@ class Track2D:
             N, Nj = random.randint(4, 30), random.randint(4, 30)
 
             # update the dataset
-            self.dataset = self._make_data(Nj=Nj, **self.kwargs)
+            self.dataset = self._make_data(Nj=Nj)
 
             # update the agent
             agent.model.set_dims(N=N, Nj=Nj)
@@ -202,10 +147,8 @@ class Track2D:
                                 trajectory=self.dataset)
 
             # evaluate the agent
-            fitness = FitnessFunction(W=agent.model.Wff.copy(),
-                                      wmax=agent.model._wff_max)
-
-            fitness_tot += np.array(fitness)
+            fitness_tot += np.array([mm.eval_func(agent.model, axis=0),
+                                     mm.eval_func(agent.model, axis=1)])
 
         # check nan
         if np.isnan(fitness_tot).any():
@@ -215,32 +158,6 @@ class Track2D:
         assert isinstance(fitness, tuple), "fitness must be a tuple"
         return fitness
 
-    def run_old(self, agent: object) -> float:
-
-        """
-        Evaluate a agent on the dataset.
-
-        Parameters
-        ----------
-        agent : object
-            A agent object.
-
-        Returns
-        -------
-        fitness : float
-            The fitness value.
-        """
-
-        # test the agent on the dataset
-        agent = self._train(agent=agent, 
-                            trajectory=self.dataset)
-
-        # evaluate the agent
-        fitness = FitnessFunction(W=agent.model.Wff.copy(),
-                                  wmax=agent.model._wff_max)
-
-        assert isinstance(fitness, tuple), "fitness must be a tuple"
-        return fitness
 
 
 # ----------------------------------------------------------
@@ -254,18 +171,21 @@ FIXED_PARAMETERS = {
     'gain': 30.,
     'bias': 2.5,
     # 'lr': 5e-2,
-    'tau': 4.,
+    # 'tau': 4.,
     'wff_std': 1e-2,
     'wff_min': 0.,
     'wff_max': 3.5,
-    # 'wff_tau': 300,
-    'rule': 'hebb',
+    'wff_tau': 1500,
     'std_tuning': 5e-3,
     'soft_beta': 50.,
-    # 'dt': 0.00035,
+    'dt': 1.,
     'DA_tau': 3,
     'bias_decay': 75,
     'bias_scale': 0.065,
+    'IS_magnitude': 6.,
+    'theta_freq': 0.002,
+    # 'theta_freq_increase': 0.3,
+    'nb_per_cycle': 6,
 }
 
 
@@ -274,18 +194,21 @@ PARAMETERS = {
     'gain': lambda: round(random.uniform(0.1, 20.0), 1),
     'bias': lambda: round(random.uniform(0, 30), 1),
     'lr': lambda: round(random.uniform(1e-0, 1e-5), 5),
-    'tau': lambda: random.randint(1, 100),
+    'tau': lambda: random.randint(1, 10),
     'wff_std': lambda: round(random.uniform(0, 3.0), 2),
     'wff_min': lambda: round(random.uniform(.0, 1.0), 1),
     'wff_max': lambda: round(random.uniform(1.0, 10.0), 1),
-    'wff_tau': lambda: random.randint(10, 1000),
-    'rule': lambda: random.choice(('oja', 'hebb')),
-    'std_tuning': lambda: round(random.uniform(0, 1e-2), 4),
+    'wff_tau': lambda: random.choice(range(300, 1500, 50)),
+    'std_tuning': lambda: round(random.uniform(0, 1e-3), 4),
     'soft_beta': lambda: round(random.uniform(0, 1e2), 1),
-    'dt': lambda: round(random.uniform(0, 1), 3),
+    'dt': lambda: round(random.uniform(0, 1.2), 3),
     'DA_tau': lambda: random.randint(1, 200),
     'bias_decay': lambda: random.randint(1, 400),
     'bias_scale': lambda: round(random.uniform(0.5, 1.5), 2),
+    'IS_magnitude': lambda: round(random.uniform(0.1, 8.0), 1),
+    'theta_freq': lambda: random.choice(np.arange(0, 0.1, 0.001)),
+    'theta_freq_increase': lambda: random.uniform(0.01, 0.5),
+    'nb_per_cycle': lambda: random.randint(3, 10),
 }
 
 
@@ -293,7 +216,7 @@ if __name__ == "__main__" :
 
     # ---| Setup |---
 
-    fitness_weights = (1.,)
+    fitness_weights = (1., 1.)
     model = mm.RateNetwork4
 
     # ---| CMA-ES |---
@@ -312,15 +235,16 @@ if __name__ == "__main__" :
 
     # ---| Game |---
 
-    track = Track2D(Nj=FIXED_PARAMETERS['Nj'], 
-                    fitness_size=len(fitness_weights),
-                    n_samples=12)
+    T = 10  # s
+    dt = 0.1  # ms
+    env = Env(speed=0.02, T=T*1000, duration=int(T*1000/dt), 
+              sigma=0.01, n_samples=5)
 
     # ---| Evolution |---
 
     # Create the toolbox
     toolbox = me.make_toolbox(PARAMETERS=PARAMETERS.copy(),
-                              game=track,
+                              game=env,
                               model=model,
                               strategy=strategy,
                               FIXED_PARAMETERS=FIXED_PARAMETERS.copy(),
@@ -329,7 +253,7 @@ if __name__ == "__main__" :
     # ---| Run |---
 
     settings = {
-        "NPOP": 40,
+        "NPOP": 20,
         "NGEN": 1000,
         "CXPB": 0.6,
         "MUTPB": 2.3,
@@ -352,8 +276,8 @@ if __name__ == "__main__" :
     info = {
         "date": time.strftime("%d/%m/%Y") + " at " + time.strftime("%H:%M"),
         "model": model.__name__,
-        "game": track.__repr__(),
-        "evolved": tuple(PARAMETERS.keys()),
+        "game": env.__repr__(),
+        "evolved": [key for key in PARAMETERS.keys() if key not in FIXED_PARAMETERS.keys()],
     }
 
     # ---| Run |---

@@ -1,9 +1,11 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
 from itertools import product as iterprod
+import warnings
 try:
-    from tools.utils import logger
+    from tools.utils import logger, tqdm_enumerate
 except ModuleNotFoundError:
+    warnings.warn('`tools.utils` not found, using fake logger. Some functions may not work')
     class Logger:
 
         print('Logger not found, using fake logger')
@@ -15,12 +17,16 @@ except ModuleNotFoundError:
             print(msg)
 
     logger = Logger()
+try:
+    import inputools.Trajectory as it
+except ModuleNotFoundError:
+    warnings.warn('`inputools.Trajectory` not found, some functions may not work')
+
 
 
 #---------------------------------
 # ---| Network implementation |---
 #---------------------------------
-
 
 
 class Network:
@@ -1323,8 +1329,8 @@ class RateNetwork4:
         self.u = self.activation_func(self.u)
 
         # update DA
-        da_dump = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
-        self.DA += (1 - self.DA) / self._DA_tau - 0.99*da_dump
+        DA_block = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
+        self.DA += (1 - self.DA) / self._DA_tau - 0.99*DA_block
 
         # adaptive threshold
         self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
@@ -1792,8 +1798,8 @@ class RateNetwork6:
         self.u = self.activation_func(self.u)
 
         # update DA
-        da_dump = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
-        self.DA += (1 - self.DA) / self._DA_tau - 0.99*da_dump
+        DA_block = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
+        self.DA += (1 - self.DA) / self._DA_tau - 0.99*DA_block
 
         # adaptive threshold
         self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
@@ -1803,7 +1809,7 @@ class RateNetwork6:
             self._update(x=x)
 
         # update internal clock
-        self.t += self._dt * (1 - da_dump)
+        self.t += self._dt * (1 - DA_block)
 
     @property
     def output(self):
@@ -2026,8 +2032,8 @@ class RateNetwork6:
         self.u = self.activation_func(self.u)
 
         # update DA
-        da_dump = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
-        self.DA += (1 - self.DA) / self._DA_tau - 0.99*da_dump
+        DA_block = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
+        self.DA += (1 - self.DA) / self._DA_tau - 0.99*DA_block
 
         # adaptive threshold
         self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
@@ -2037,7 +2043,7 @@ class RateNetwork6:
             self._update(x=x)
 
         # update internal clock
-        self.t += self._dt * (1 - da_dump)
+        self.t += self._dt * (1 - DA_block)
 
     @property
     def output(self):
@@ -2166,14 +2172,18 @@ class RateNetwork7:
 
         # plasticity
         self.temp = np.ones((N, 1))*1e-4
+        self.temp_past = np.ones((N, 1))*1e-4
         self._plastic = kwargs.get('plastic', True)
 
         # tuning 
         self._nb_per_cycle = kwargs.get('nb_per_cycle', 6)
         self._nb_skip = kwargs.get('nb_skip', 1)
         self._theta_freq = kwargs.get('theta_freq', 1)
+        self._theta_freq_increase = kwargs.get('theta_freq_increase', 0.)
         self.tuning = calc_tuning(N=N, K=self._nb_per_cycle, b=self._theta_freq)
         self._IS_magnitude = kwargs.get('IS_magnitude', 3)
+        self._range = np.arange(self.N).reshape(-1, 1)
+        self._is_retuning = kwargs.get('is_retuning', False)
 
         # softmax
         beta = kwargs.get('soft_beta', 10)
@@ -2190,6 +2200,29 @@ class RateNetwork7:
     def __repr__(self):
 
         return f"RateNetwork4(N={self.N}, Nj={self.Nj}) [{self.id}]"
+
+    def _re_tuning(self):
+
+        """
+        Calculate the tuning of the neurons, given that some neurons 
+        reached a certain temperature
+        """
+
+        # get idx of the neurons that reached the temperature
+        idx_selective = np.where(self.temp == 1.)[0]
+        idx_non_selective = np.where(self.temp != 1.)[0]
+
+        # increase the theta frequency
+        self._theta_freq *= (1 + self._theta_freq_increase)
+        self._dt *= (1 - self._theta_freq_increase)
+
+        # calculate the new tuning
+        new_tuning = calc_tuning(N=self.N - len(idx_selective),
+                                 K=self._nb_per_cycle, b=self._theta_freq)
+
+        # update the tuning
+        self.tuning[idx_non_selective] = new_tuning
+        self.tuning[idx_selective] = 0.
 
     def _update(self, x: np.ndarray):
 
@@ -2218,6 +2251,12 @@ class RateNetwork7:
         # temperture
         self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
 
+        # re-tuning if new neurons reached temperature of 1
+        if self._is_retuning:
+            if (self.temp == 1.).sum()  > (self.temp_past == 1.).sum():
+                self._re_tuning()
+                self.temp_past = self.temp.copy()
+
     def step(self, x: np.ndarray=None):
 
         """
@@ -2235,7 +2274,7 @@ class RateNetwork7:
 
         # calculate synaptic current
         self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(N=self.N, t=self.t,
-                I=0, O=self.tuning, K=self._nb_per_cycle, b=self._theta_freq, nb_skip=self._nb_skip)
+                I=self._range, O=self.tuning, K=self._nb_per_cycle, b=self._theta_freq, nb_skip=self._nb_skip)
 
         # update state variables
         self.u += - self.u / self._tau + self.Ix + self.Is 
@@ -2244,8 +2283,8 @@ class RateNetwork7:
         self.u = self.activation_func(self.u)
 
         # update DA
-        da_dump = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
-        self.DA += (1 - self.DA) / self._DA_tau - 0.99*da_dump
+        DA_block = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
+        self.DA += (1 - self.DA) / self._DA_tau - 0.99*DA_block
 
         # adaptive threshold
         self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
@@ -2255,7 +2294,7 @@ class RateNetwork7:
             self._update(x=x)
 
         # update internal clock
-        self.t += self._dt * (1 - da_dump)
+        self.t += self._dt * (1 - DA_block)
 
     @property
     def output(self):
@@ -2300,7 +2339,6 @@ class RateNetwork7:
         self.temp = np.ones((self.N, 1))*1e-3
         self._bias = self._bias_max * np.ones((self.N, 1))
         self.t = 0.
-
 
 
 #--------------------------------
@@ -2424,6 +2462,10 @@ def calc_osc(N: int, t: int, I: int, O: int, K: int,
                      nb_skip=nb_skip) * calc_gamma(t=t, O=O, b=b)
 
 
+#--------------------------------
+# ---| Connectivity patterns |---
+#--------------------------------
+
 
 def mexican_hat_1D(N: int, A: int, B: int, sigma_exc: float, 
                 sigma_inh: float) -> np.ndarray:
@@ -2508,3 +2550,121 @@ def mexican_hat_2D(N: int, A: int, B: int, sigma_exc: int, sigma_inh: int) -> np
             W[i, j] = A * np.exp(-d_ij**2 / (2 * sigma_exc**2)) - B * np.exp(-d_ij**2 / (2 * sigma_inh**2))
 
     return W
+
+
+#----------------------------
+# ---| Model stimulation |---
+#----------------------------
+
+
+def train_model(genome: dict, N: int, Nj: int, data: np.ndarray=None,
+                Model=RateNetwork6, **kwargs):
+
+    """
+    Train the model with a specific value of N and Nj
+
+    Parameters
+    ----------
+    genome : dict
+        Genome of the model.
+    N : int
+        Number of neurons.
+    Nj : int
+        Number of input neurons.
+    data : np.ndarray
+        Input data. Default: None
+    Model : class
+        Model class. Default: mm.RateNetwork6
+    **kwargs : dict
+        Tmax : int
+            Maximum time. Default: 10
+        dt : float
+            Time step. Default: 0.0007
+        sigma : float
+            Standard deviation of the input. Default: 0.015
+        nb : int
+            Number of trials. Default: 1
+        display : bool
+            Whether to display the progress bar. Default: False
+        func : function
+            Function to calculate the metric. Default: None
+
+    Returns
+    -------
+    model : Model
+        Trained model.
+    record : np.ndarray
+        Record of the metric.
+    """
+
+    # Settings
+    genome['N'] = N
+    genome['Nj'] = Nj
+    nb = kwargs.get('nb', 1)
+    display = kwargs.get('display', False)
+    logger(f"Training {Model=} with {N=} and {Nj=}, [{nb} trials]")
+
+    if kwargs.get('func', None) is None:
+        func = eval_func
+        logger(f"Using {func=}")
+
+    # input
+    if data is None:
+        layer = it.HDLayer(N=Nj, sigma=kwargs.get('sigma', 0.015))
+        trajectory = np.arange(0, kwargs.get('Tmax', 10), kwargs.get('dt', 0.0007))
+        data = layer.parse_trajectory(trajectory=trajectory)
+        logger(f"Using {layer=}")
+    else:
+        assert data.shape[1] == Nj, f"Input data [{data.shape[1]}] should have the same number of neurons as Nj [{Nj}]"
+    
+    record1 = []
+    record2 = []
+
+    for _ in range(nb):
+
+        # initialization
+        model = Model(**genome)
+
+        for t, x in tqdm_enumerate(data, disable=not display):
+            model.step(x=x.reshape(-1, 1))
+
+        # calc metric
+        record1 += [func(model, axis=0)]
+        record2 += [func(model, axis=1)]
+
+    # average over trials
+    record1 = np.array(record1).mean()
+    record2 = np.array(record2).mean()
+    
+    return model, (record1, record2)
+
+def eval_func(model: object, axis: int=1) -> float:
+
+    """
+    evaluate the model by its weight matrix 
+
+    Parameters
+    ----------
+    model : object
+        Model to evaluate.
+    axis : int
+        Axis to evaluate the model on. Default: 1
+
+    Returns
+    -------
+    score : float
+        Score of the model.
+    """
+
+    # settings
+    ni, nj = model.Wff.shape
+    wmax = model._wff_max
+
+    nb_empty = 1*((axis==0)*(nj>ni)*(nj - ni) + (axis==1)*(nj<ni)*(ni - nj))
+    W_sum = np.where(model.Wff > wmax * 0.85, 1, 0).sum(axis=axis) 
+
+    e_over = W_sum[W_sum > 1] -1
+    nb_under = (W_sum < 1).sum() - nb_empty
+    err = nb_under + ((e_over.sum() - nb_under) > 0)*(e_over.sum() - nb_under) 
+
+    return 1 - abs((err.sum())/ni)
