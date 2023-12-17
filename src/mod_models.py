@@ -2274,7 +2274,8 @@ class RateNetwork7:
 
         # calculate synaptic current
         self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(N=self.N, t=self.t,
-                I=self._range, O=self.tuning, K=self._nb_per_cycle, b=self._theta_freq, nb_skip=self._nb_skip)
+                I=self._range, O=self.tuning, K=self._nb_per_cycle,
+                b=self._theta_freq, nb_skip=self._nb_skip)
 
         # update state variables
         self.u += - self.u / self._tau + self.Ix + self.Is 
@@ -2294,7 +2295,7 @@ class RateNetwork7:
             self._update(x=x)
 
         # update internal clock
-        self.t += self._dt * (1 - DA_block)
+        self.t += self._dt #* (1 - DA_block)
 
     @property
     def output(self):

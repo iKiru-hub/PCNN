@@ -120,7 +120,7 @@ def plot_weight_matrix(W: np.ndarray):
 
 
 def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray, 
-             Ix: np.ndarray, colors: list):
+             Ix: np.ndarray, colors: list, animaker: object=None):
 
     """
     Plot the input, weights, weight matrix, and u - DA.
@@ -139,13 +139,17 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
         The input current.
     colors : list
         The colors for the neurons.
+    animaker : object
+        The animation object.
+        Default: None
     """
 
     Nj = model.Nj
     N = model.N
+    is_anim = bool(animaker)
     
     clf()
-    plt.figure(figsize=(20, 6))
+    fig = plt.figure(figsize=(20, 6))
     plt.tight_layout()
 
     ### input
@@ -191,3 +195,7 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
     plt.legend()
     plt.grid()
     plt.pause(0.001)
+
+    # save animation
+    if is_anim:
+        animaker.add_frame(fig)
