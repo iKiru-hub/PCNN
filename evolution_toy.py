@@ -29,7 +29,7 @@ def main():
     # random.seed(42)
 
     # Create the initial population
-    population = toolbox.population(n=200)
+    population = toolbox.population(n=150)
 
     # Parameters for the genetic algorithm
     NGEN = 10_000

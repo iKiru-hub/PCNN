@@ -101,8 +101,9 @@ class RateNetwork7:
 
         # Feedforward weights
         self._wff_std = kwargs.get('wff_std', 1)
-        self.Wff = np.abs(np.random.normal(0,
-                self._wff_std, size=(N, Nj)))
+        # self.Wff = np.abs(np.random.normal(0,
+        #         self._wff_std, size=(N, Nj)))
+        self.Wff = np.zeros((N, Nj))
         self._wff_min = kwargs.get('wff_min',
                                   0.05)
         self._wff_max = kwargs.get('wff_max', 3)
@@ -128,7 +129,7 @@ class RateNetwork7:
         self.softmax = lambda x: np.exp(beta*x) / np.exp(beta*x).sum(axis=1, keepdims=True)
 
         # internal clock
-        self._dt = kwargs.get('dt', 0.01)
+        self._dt = kwargs.get('dt', 1)
         self.t = 0.
 
         # modulation
@@ -137,7 +138,7 @@ class RateNetwork7:
 
     def __repr__(self):
 
-        return f"RateNetwork4(N={self.N}, Nj={self.Nj}) [{self.id}]"
+        return f"RateNetwork7(N={self.N}, Nj={self.Nj}) [{self.id}]"
 
     def _re_tuning(self):
 
@@ -226,7 +227,7 @@ class RateNetwork7:
         self.DA += (1 - self.DA) / self._DA_tau - 0.99*DA_block
 
         # adaptive threshold
-        self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
+        # self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
 
         # update weights
         if self._plastic:

@@ -217,7 +217,7 @@ if __name__ == "__main__" :
     # ---| Setup |---
 
     fitness_weights = (1., 1.)
-    model = mm.RateNetwork4
+    model = mm.RateNetwork7
 
     # ---| CMA-ES |---
 
