@@ -23,8 +23,8 @@ import inputools.Trajectory as it
 
 class Env:
 
-    def __init__(self, speed: float, T: int, duration: int, sigma: float=0.05,
-                 n_samples: int=1):
+    def __init__(self, speed: float, dt: float, duration: int,
+                 sigma: float=0.05, n_samples: int=1):
 
         """
         The game class.
@@ -33,8 +33,8 @@ class Env:
         ----------
         speed : float
             The speed of the trajectory.
-        T : int
-            The duration of the trajectory.
+        dt : float
+            The timestep.
         duration : int
             The duration of the game.
         sigma : float
@@ -47,7 +47,7 @@ class Env:
 
         # parameters
         self.speed = speed
-        self.T = T
+        self.dt = dt
         self.duration = duration
         self.sigma = sigma
 
@@ -59,7 +59,7 @@ class Env:
 
         return f"Track2D(fitness_size={self.fitness_size}, n_samples={self._n_samples})"
 
-    def _make_data(self, Nj: int=9) -> np.ndarray:
+    def _make_data(self, Nj: int) -> np.ndarray:
 
         """
         Make the dataset.
@@ -85,8 +85,10 @@ class Env:
         # Head Direction Layer
         layer = it.HDLayer(N=Nj, sigma=self.sigma)
 
-        return layer.parse_trajectory(trajectory=np.linspace(
-            0, self.T*self.speed, self.duration))
+        return it.make_layer_trajectory(layer=layer, 
+                                        duration=self.duration,
+                                        dt=self.dt,
+                                        speed=self.speed)
 
     def _train(self, agent: object, trajectory: np.ndarray) -> tuple:
 
@@ -166,26 +168,27 @@ class Env:
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
-    'N': 6,
-    'Nj': 6,
-    'gain': 30.,
-    'bias': 2.5,
-    # 'lr': 5e-2,
-    # 'tau': 4.,
-    'wff_std': 1e-2,
-    'wff_min': 0.,
-    'wff_max': 3.5,
-    'wff_tau': 1500,
-    'std_tuning': 5e-3,
-    'soft_beta': 50.,
-    'dt': 1.,
-    'DA_tau': 3,
-    'bias_decay': 75,
-    'bias_scale': 0.065,
-    'IS_magnitude': 6.,
-    'theta_freq': 0.002,
-    # 'theta_freq_increase': 0.3,
-    'nb_per_cycle': 6,
+  'gain': 10.0,
+  'bias': 1.,
+  # 'lr': 0.2,
+  'tau': 200,
+  'wff_std': 0.0,
+  'wff_min': 0.0,
+  # 'wff_max': 1.,
+  'wff_tau': 6_000,
+  'std_tuning': 0.0,
+  'soft_beta': 10,
+  'dt': 1,
+  'N': 5,
+  'Nj': 5,
+  'DA_tau': 3,
+  'bias_scale': 0.0,
+  'bias_decay': 100,
+  # 'IS_magnitude': 6,
+  # 'theta_freq': 0.004,
+  'nb_per_cycle': 5,
+  'plastic': True,
+  'nb_skip': 2
 }
 
 
@@ -205,11 +208,12 @@ PARAMETERS = {
     'DA_tau': lambda: random.randint(1, 200),
     'bias_decay': lambda: random.randint(1, 400),
     'bias_scale': lambda: round(random.uniform(0.5, 1.5), 2),
-    'IS_magnitude': lambda: round(random.uniform(0.1, 8.0), 1),
+    'IS_magnitude': lambda: round(random.uniform(0.1, 15.0), 1),
     'theta_freq': lambda: random.choice(np.arange(0, 0.1, 0.001)),
     'theta_freq_increase': lambda: random.uniform(0.01, 0.5),
     'nb_per_cycle': lambda: random.randint(3, 10),
 }
+
 
 
 if __name__ == "__main__" :
@@ -222,10 +226,10 @@ if __name__ == "__main__" :
     # ---| CMA-ES |---
 
     # parameters
-    N = len(PARAMETERS) - len(FIXED_PARAMETERS)  # number of parameters   
-    MEAN = np.random.rand(N)  # Initial mean, could be randomized
+    N_param = len(PARAMETERS) - len(FIXED_PARAMETERS)  # number of parameters   
+    MEAN = np.random.rand(N_param)  # Initial mean, could be randomized
     SIGMA = 0.5  # Initial standard deviation
-    lambda_ = 4 + np.floor(3 * np.log(N))
+    lambda_ = 4 + np.floor(3 * np.log(N_param))
 
     # strategy
     strategy = cma.Strategy(centroid=MEAN,
@@ -235,10 +239,10 @@ if __name__ == "__main__" :
 
     # ---| Game |---
 
-    T = 10  # s
-    dt = 0.1  # ms
-    env = Env(speed=0.02, T=T*1000, duration=int(T*1000/dt), 
-              sigma=0.01, n_samples=5)
+    T = 8  # s
+    dt = 0.0001  # ms
+    env = Env(speed=0.1, dt=dt, duration=T, 
+              sigma=0.01, n_samples=3)
 
     # ---| Evolution |---
 
@@ -254,22 +258,22 @@ if __name__ == "__main__" :
 
     settings = {
         "NPOP": 20,
-        "NGEN": 1000,
+        "NGEN": 200,
         "CXPB": 0.6,
         "MUTPB": 2.3,
         "NLOG": 5,
-        "TARGET": (0.,),
+        "TARGET": (1., 1.),
         "TARGET_ERROR": 0.,
     }
 
     # ---| save |---
+    save = False
 
     # filename as best_DDMM_HHMM_r3 
     path = "cache/"
 
     # get number of files in the cache
     n_files = len([f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))])
-
     filename = "best_" + str(n_files)
 
     # extra information 
@@ -282,4 +286,5 @@ if __name__ == "__main__" :
 
     # ---| Run |---
     best_ind = me.main(toolbox=toolbox, settings=settings,
-                       info=info, save=True, filename=filename)
+                       info=info, save=save, filename=filename,
+                       verbose=True)

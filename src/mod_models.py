@@ -115,7 +115,8 @@ class RateNetwork7:
         self._plastic = kwargs.get('plastic', True)
 
         # tuning 
-        self._nb_per_cycle = kwargs.get('nb_per_cycle', 6)
+        self._nb_per_cycle = self._adjust_num_per_cycle(
+            k=kwargs.get('nb_per_cycle', 6), N=self.N)
         self._nb_skip = kwargs.get('nb_skip', 1)
         self._theta_freq = kwargs.get('theta_freq', 1)
         self._theta_freq_increase = kwargs.get('theta_freq_increase', 0.)
@@ -126,7 +127,8 @@ class RateNetwork7:
 
         # softmax
         beta = kwargs.get('soft_beta', 10)
-        self.softmax = lambda x: np.exp(beta*x) / np.exp(beta*x).sum(axis=1, keepdims=True)
+        self.softmax = lambda x: np.exp(beta*x) / np.exp(beta*x).sum(axis=1,
+                                                                     keepdims=True)
 
         # internal clock
         self._dt = kwargs.get('dt', 1)
@@ -139,6 +141,36 @@ class RateNetwork7:
     def __repr__(self):
 
         return f"RateNetwork7(N={self.N}, Nj={self.Nj}) [{self.id}]"
+
+    def _adjust_num_per_cycle(self, k: int, N: int) -> int:
+
+        """
+        optimize the number of neurons per cycles given an initial preferred number 
+
+        Parameters
+        ----------
+        k: int
+            Preferred number of neurons per cycle
+        N: int
+            Number of neurons
+
+        Returns
+        -------
+        j: int
+            Number of neurons per cycle
+        """
+
+        # case: N smaller than k
+        if N < k:
+            return N
+
+        j = 0
+        distance = N
+        for pair in [[N%i, i] for i in range(1, N)]:
+            if pair[0] == 0 and abs(k - pair[1]) < distance:
+                j = pair[1]
+                distance = abs(k - pair[1])
+        return j  
 
     def _re_tuning(self):
 
@@ -212,7 +244,8 @@ class RateNetwork7:
             self.Ix = self.Wff @ x
 
         # calculate synaptic current
-        self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(N=self.N, t=self.t,
+        self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(
+                N=self.N, t=self.t,
                 I=self._range, O=self.tuning, K=self._nb_per_cycle,
                 b=self._theta_freq, nb_skip=self._nb_skip)
 
@@ -269,16 +302,22 @@ class RateNetwork7:
         Reset function
         """
 
+        # Internal dynamics
         self.u = np.zeros((self.N, 1))
         self.Wff = np.abs(np.random.normal(0,
                         self._wff_std, 
                         size=(self.N, self.Nj)))
-        self.tuning = np.linspace(0, 2*np.pi, self.N,\
-                endpoint=False).reshape(-1, 1)
-
         self.temp = np.ones((self.N, 1))*1e-3
         self._bias = self._bias_max * np.ones((self.N, 1))
         self.t = 0.
+
+        # re-update the tuning
+        self._range = np.arange(self.N).reshape(-1, 1)
+        self._nb_per_cycle = self._adjust_num_per_cycle(
+            k=self._nb_per_cycle, N=self.N)
+        self.tuning = calc_tuning(N=self.N, K=self._nb_per_cycle,
+                                  b=self._theta_freq)
+
 
 
 #--------------------------------
@@ -286,7 +325,8 @@ class RateNetwork7:
 #--------------------------------
 
 
-def calc_turn(N: int, t: int, i: int=0, K: int=6, b: int=1, nb_skip: int=1) -> np.ndarray:
+def calc_turn(N: int, t: int, i: int=0, K: int=6, b: int=1, 
+              nb_skip: int=1) -> np.ndarray:
 
     """
     function tat calculates when a certain cycle of neurons should be active 
@@ -312,11 +352,20 @@ def calc_turn(N: int, t: int, i: int=0, K: int=6, b: int=1, nb_skip: int=1) -> n
         Array of 1s and 0s indicating whether the cycle should be active or not.
     """
 
-    cycle_size = np.pi / b  # size of a cycle in rad
-    nb_cycles = np.ceil(N / K) * nb_skip  # number of cycles
-    tot_cycle_len = cycle_size * nb_cycles  # total length of the grand cycle
-    t = t % tot_cycle_len  # map t onto the grand cycle 
-    i = i // K * nb_skip  # map i onto the grand cycle
+    # size of a cycle in rad
+    cycle_size = np.pi / b  
+    
+    # number of cycles
+    nb_cycles = np.ceil(N / K) * nb_skip  
+
+    # total length of the grand cycle
+    tot_cycle_len = cycle_size * nb_cycles  
+
+    # map t onto the grand cycle 
+    t = t % tot_cycle_len  
+
+    # map i onto the grand cycle
+    i = i // K * nb_skip  
 
     # calculate the current cycle idx and return
     # 1 if it matches the input cycle idx
@@ -344,7 +393,8 @@ def calc_tuning(N: int, K: int, b: int) -> np.ndarray:
     """
 
     # calculate the partition over a cycle
-    partitions = np.linspace(-np.pi/2/b+1*np.pi/2/b/K, np.pi/2/b+1*np.pi/2/b/K, K, endpoint=0)
+    partitions = np.linspace(-np.pi/2/b+1*np.pi/2/b/K,
+                             np.pi/2/b+1*np.pi/2/b/K, K, endpoint=0)
     return np.array([partitions[i%K] for i in range(0, N)]).reshape(-1, 1)
 
 
