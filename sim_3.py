@@ -21,10 +21,63 @@ import inputools.Trajectory as it
 # ---| Game |---
 # --------------
 
+
+def make_1D_data(Nj: int) -> np.ndarray:
+
+    """
+    Make the dataset.
+
+    Parameters
+    ----------
+    Nj : int
+        Number of neurons.
+
+    Returns
+    -------
+    Z : np.ndarray
+        The dataset.
+    """
+
+    layer = it.HDLayer(N=Nj, sigma=0.0075)
+    return it.make_layer_trajectory(layer=layer, duration=8,
+                                      dt=0.0001, speed=1., verbose=False)
+
+
+def make_2D_data(Nj: int) -> np.ndarray:
+
+    """
+    Make the dataset.
+
+    Parameters
+    ----------
+    Nj : int
+        Number of neurons.
+
+    Returns
+    -------
+    Z : np.ndarray
+        The dataset.
+    """
+
+    animal = it.AnimalTrajectory(dt=0.0001, 
+                                 speed=10,
+                                 prob_turn=0.1)
+
+    layer = it.PlaceLayer(N=Nj, sigma=0.01)
+
+    # Create a trajectory
+    trajectory = animal.make_trajectory(duration=20, whole=False,
+                                        dx=1, normalize=1, turning_scale=0.01)
+
+    return layer.parse_trajectory(trajectory=trajectory)
+
+
+
 class Env:
 
     def __init__(self, speed: float, dt: float, duration: int,
-                 sigma: float=0.05, n_samples: int=1):
+                 sigma: float=0.05, n_samples: int=1, 
+                 make_data: callable=make_1D_data):
 
         """
         The game class.
@@ -41,6 +94,9 @@ class Env:
             The noise level.
         n_samples : int
             number of samples to average over.
+        make_data : callable
+            The function to make the dataset.
+            Default: make_1D_data
         **kwargs : dict
             
         """
@@ -55,40 +111,15 @@ class Env:
         self.fitness_size = 2
         self._n_samples = n_samples
 
+        # make dataset
+        self._Nj_set = None 
+        self._dataset = None
+        self._make_data = make_data
+        self._make_new_data()
+
     def __repr__(self):
 
-        return f"Track2D(fitness_size={self.fitness_size}, n_samples={self._n_samples})"
-
-    def _make_data(self, Nj: int) -> np.ndarray:
-
-        """
-        Make the dataset.
-
-        Parameters
-        ----------
-        Nj : int
-            Number of neurons.
-        **kwargs : dict
-            T : int
-                The duration of the trajectory.
-            dx : float
-                The stepsize.
-            offset : int
-                The offset.
-
-        Returns
-        -------
-        Z : np.ndarray
-            The dataset.
-        """
-
-        # Head Direction Layer
-        layer = it.HDLayer(N=Nj, sigma=self.sigma)
-
-        return it.make_layer_trajectory(layer=layer, 
-                                        duration=self.duration,
-                                        dt=self.dt,
-                                        speed=self.speed)
+        return f"Env(fitness_size={self.fitness_size}, n_samples={self._n_samples})"
 
     def _train(self, agent: object, trajectory: np.ndarray) -> tuple:
 
@@ -116,6 +147,17 @@ class Env:
 
         return agent
 
+    def _make_new_data(self):
+
+        """
+        Make a new dataset.
+        """
+
+        self._Nj_set = [i**2 for i in np.random.randint(
+            2, 7, size=self._n_samples)]
+        )
+        self._dataset = [self._make_data(Nj=Nj) for Nj in self._Nj_set]
+
     def run(self, agent: object) -> float:
 
         """
@@ -132,21 +174,20 @@ class Env:
             The fitness value.
         """
 
+
         fitness_tot = np.zeros(self.fitness_size)
         for i in range(self._n_samples):
 
-            # sample new dimensions
-            N, Nj = random.randint(4, 30), random.randint(4, 30)
-
             # update the dataset
-            self.dataset = self._make_data(Nj=Nj)
+            dataset = self._dataset[i]
 
             # update the agent
-            agent.model.set_dims(N=N, Nj=Nj)
+            N = random.randint(4, 30)
+            agent.model.set_dims(N=N, Nj=self._Nj_set[i])
 
             # test the agent on the dataset
             agent = self._train(agent=agent, 
-                                trajectory=self.dataset)
+                                trajectory=dataset)
 
             # evaluate the agent
             fitness_tot += np.array([mm.eval_func(agent.model, axis=0),
@@ -169,22 +210,22 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
   'gain': 10.0,
-  'bias': 1.,
+  'bias': 1.5,
   # 'lr': 0.2,
-  'tau': 200,
+  # 'tau': 200,
   'wff_std': 0.0,
   'wff_min': 0.0,
   # 'wff_max': 1.,
-  'wff_tau': 6_000,
+  # 'wff_tau': 6_000,
   'std_tuning': 0.0,
-  'soft_beta': 10,
+  'soft_beta': 20,
   'dt': 1,
   'N': 5,
   'Nj': 5,
   'DA_tau': 3,
   'bias_scale': 0.0,
   'bias_decay': 100,
-  # 'IS_magnitude': 6,
+  'IS_magnitude': 6,
   # 'theta_freq': 0.004,
   'nb_per_cycle': 5,
   'plastic': True,
@@ -221,7 +262,7 @@ if __name__ == "__main__" :
     # ---| Setup |---
 
     fitness_weights = (1., 1.)
-    model = mm.RateNetwork7
+    model = mm.PCNNetwork
 
     # ---| CMA-ES |---
 
@@ -241,8 +282,8 @@ if __name__ == "__main__" :
 
     T = 8  # s
     dt = 0.0001  # ms
-    env = Env(speed=0.1, dt=dt, duration=T, 
-              sigma=0.01, n_samples=3)
+    env = Env(speed=1, dt=dt, duration=T, 
+              sigma=0.01, n_samples=3, make_data=make_2D_data)
 
     # ---| Evolution |---
 
@@ -258,23 +299,24 @@ if __name__ == "__main__" :
 
     settings = {
         "NPOP": 20,
-        "NGEN": 200,
+        "NGEN": 20,
         "CXPB": 0.6,
-        "MUTPB": 2.3,
-        "NLOG": 5,
+        "MUTPB": 0.6,
+        "NLOG": 1,
         "TARGET": (1., 1.),
         "TARGET_ERROR": 0.,
     }
 
     # ---| save |---
-    save = False
+    save = bool(1)
 
     # filename as best_DDMM_HHMM_r3 
     path = "cache/"
 
     # get number of files in the cache
-    n_files = len([f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))])
-    filename = "best_" + str(n_files)
+    n_files = len([f for f in os.listdir(path) \
+        if os.path.isfile(os.path.join(path, f))])
+    filename = "best_" + str(n_files) + "_pcnn"
 
     # extra information 
     info = {

@@ -24,12 +24,11 @@ except ModuleNotFoundError:
 
 
 
-#---------------------------------
-# ---| Network implementation |---
-#---------------------------------
+
+""" Network classes """
 
 
-class RateNetwork7:
+class PCNNetwork:
 
     def __init__(self, N: int, Nj: int, **kwargs):
 
@@ -140,7 +139,7 @@ class RateNetwork7:
 
     def __repr__(self):
 
-        return f"RateNetwork7(N={self.N}, Nj={self.Nj}) [{self.id}]"
+        return f"PCNNetwork(N={self.N}, Nj={self.Nj}) [{self.id}]"
 
     def _adjust_num_per_cycle(self, k: int, N: int) -> int:
 
@@ -320,9 +319,7 @@ class RateNetwork7:
 
 
 
-#--------------------------------
-# ---| Connectivity patterns |---
-#--------------------------------
+""" Model functions """
 
 
 def calc_turn(N: int, t: int, i: int=0, K: int=6, b: int=1, 
@@ -455,9 +452,8 @@ def calc_osc(N: int, t: int, I: int, O: int, K: int,
                      nb_skip=nb_skip) * calc_gamma(t=t, O=O, b=b)
 
 
-#--------------------------------
-# ---| Connectivity patterns |---
-#--------------------------------
+
+""" Connectivity functions """
 
 
 def mexican_hat_1D(N: int, A: int, B: int, sigma_exc: float, 
@@ -545,13 +541,12 @@ def mexican_hat_2D(N: int, A: int, B: int, sigma_exc: int, sigma_inh: int) -> np
     return W
 
 
-#----------------------------
-# ---| Model stimulation |---
-#----------------------------
+
+""" Training functions """""
 
 
 def train_model(genome: dict, N: int, Nj: int, data: np.ndarray=None,
-                Model=RateNetwork7, **kwargs):
+                Model=PCNNetwork, **kwargs):
 
     """
     Train the model with a specific value of N and Nj
