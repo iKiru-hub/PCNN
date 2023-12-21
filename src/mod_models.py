@@ -23,9 +23,50 @@ except ModuleNotFoundError:
     warnings.warn('`inputools.Trajectory` not found, some functions may not work')
 
 
+def random_id(length: int=5) -> str:
+
+    """
+    Generate a random id of a given length.
+
+    Parameters
+    ----------
+    length : int
+        Length of the id. Default: 5
+
+    Returns
+    -------
+    id : str
+        Random id.
+    """
+
+    return ''.join(np.random.choice(list(
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    ), length))
 
 
-""" Network classes """
+
+"""
+Network classes
+----------------
+
+## Deleted features:
+
+> adaptive threshold
+```
+self._bias_max = kwargs.get('bias', 3)
+self._bias_decay = kwargs.get('bias_decay', 100)
+self._bias_scale = kwargs.get('bias_scale', 1.0)
+
+self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
+```
+
+> dt 
+```
+self.t += self._dt #* (1 - DA_block)
+```
+
+
+"""
 
 
 class PCNNetwork:
@@ -76,10 +117,7 @@ class PCNNetwork:
         self.Nj = Nj
 
         # define instance id as a string of alphanumeric characters
-        id_func = kwargs.get('id', lambda: ''.join(np.random.choice(list(
-            'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-        ), 5)))
-        self.id = id_func()
+        self.id = random_id()
 
         # Internal dynamics
         self.u = np.zeros((N, 1))
@@ -91,17 +129,12 @@ class PCNNetwork:
         # activation function
         self._gain = kwargs.get('gain', 7)
         self._bias = kwargs.get('bias', 3) * np.ones((N, 1))
-        self._bias_max = kwargs.get('bias', 3)
-        self._bias_decay = kwargs.get('bias_decay', 100)
-        self._bias_scale = kwargs.get('bias_scale', 1.0)
         self.activation_func = lambda x: 1 / (
             1 + np.exp(-self._gain * (x - \
                 self._bias)))
 
         # Feedforward weights
         self._wff_std = kwargs.get('wff_std', 1)
-        # self.Wff = np.abs(np.random.normal(0,
-        #         self._wff_std, size=(N, Nj)))
         self.Wff = np.zeros((N, Nj))
         self._wff_min = kwargs.get('wff_min',
                                   0.05)
@@ -130,7 +163,6 @@ class PCNNetwork:
                                                                      keepdims=True)
 
         # internal clock
-        self._dt = kwargs.get('dt', 1)
         self.t = 0.
 
         # modulation
@@ -248,25 +280,21 @@ class PCNNetwork:
                 I=self._range, O=self.tuning, K=self._nb_per_cycle,
                 b=self._theta_freq, nb_skip=self._nb_skip)
 
-        # update state variables
-        self.u += - self.u / self._tau + self.Ix + self.Is 
-
         # activation
-        self.u = self.activation_func(self.u)
+        self.u = self.activation_func(
+            self.u - self.u / self._tau + self.Ix + self.Is
+        )
 
         # update DA
         DA_block = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
         self.DA += (1 - self.DA) / self._DA_tau - 0.99*DA_block
-
-        # adaptive threshold
-        # self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
 
         # update weights
         if self._plastic:
             self._update(x=x)
 
         # update internal clock
-        self.t += self._dt #* (1 - DA_block)
+        self.t += 1
 
     @property
     def output(self):
