@@ -128,7 +128,8 @@ class PCNNetwork:
 
         # activation function
         self._gain = kwargs.get('gain', 7)
-        self._bias = kwargs.get('bias', 3) * np.ones((N, 1))
+        self._bias_max = kwargs.get('bias', 3)
+        self._bias = self._bias_max * np.ones((N, 1))
         self.activation_func = lambda x: 1 / (
             1 + np.exp(-self._gain * (x - \
                 self._bias)))
@@ -164,6 +165,7 @@ class PCNNetwork:
 
         # internal clock
         self.t = 0.
+        self._dt = 1.
 
         # modulation
         self.DA = 1.
@@ -336,6 +338,7 @@ class PCNNetwork:
                         size=(self.N, self.Nj)))
         self.temp = np.ones((self.N, 1))*1e-3
         self._bias = self._bias_max * np.ones((self.N, 1))
+        # self._bias = self._bias_max * np.ones((self.N, 1))
         self.t = 0.
 
         # re-update the tuning

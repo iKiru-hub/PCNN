@@ -77,7 +77,7 @@ class Env:
 
     def __init__(self, speed: float, dt: float, duration: int,
                  sigma: float=0.05, n_samples: int=1, 
-                 make_data: callable=make_1D_data):
+                 make_data: callable=make_1D_data, **kwargs):
 
         """
         The game class.
@@ -98,7 +98,11 @@ class Env:
             The function to make the dataset.
             Default: make_1D_data
         **kwargs : dict
-            
+            n_pop : int
+                The population size.
+            new_dataset_period : int
+                The period to make a new dataset.
+
         """
 
         # parameters
@@ -110,12 +114,17 @@ class Env:
         # 
         self.fitness_size = 2
         self._n_samples = n_samples
+        self.new_dataset_period = kwargs.get(
+            "new_dataset_period", 3) * kwargs.get("n_pop", 30)
 
         # make dataset
         self._Nj_set = None 
         self._dataset = None
         self._make_data = make_data
         self._make_new_data()
+
+        # variables
+        self.counter = 0
 
     def __repr__(self):
 
@@ -155,7 +164,6 @@ class Env:
 
         self._Nj_set = [i**2 for i in np.random.randint(
             2, 7, size=self._n_samples)]
-        )
         self._dataset = [self._make_data(Nj=Nj) for Nj in self._Nj_set]
 
     def run(self, agent: object) -> float:
@@ -199,6 +207,16 @@ class Env:
 
         fitness = tuple(fitness_tot / self._n_samples)
         assert isinstance(fitness, tuple), "fitness must be a tuple"
+
+        # counter, if counter is equal to the population size then
+        # make a new dataset
+        self.counter += 1
+
+        if self.counter == self.new_dataset_period:
+            self._make_new_data()
+            self.counter = 0
+            logger.info("New dataset")
+
         return fitness
 
 
@@ -226,7 +244,9 @@ FIXED_PARAMETERS = {
   'bias_scale': 0.0,
   'bias_decay': 100,
   'IS_magnitude': 6,
+  # 'is_retuning': True,
   # 'theta_freq': 0.004,
+  'theta_freq_increase': 0.1,
   'nb_per_cycle': 5,
   'plastic': True,
   'nb_skip': 2
@@ -250,6 +270,7 @@ PARAMETERS = {
     'bias_decay': lambda: random.randint(1, 400),
     'bias_scale': lambda: round(random.uniform(0.5, 1.5), 2),
     'IS_magnitude': lambda: round(random.uniform(0.1, 15.0), 1),
+    'is_retuning': lambda: random.choice((True, False)),
     'theta_freq': lambda: random.choice(np.arange(0, 0.1, 0.001)),
     'theta_freq_increase': lambda: random.uniform(0.01, 0.5),
     'nb_per_cycle': lambda: random.randint(3, 10),
@@ -263,11 +284,14 @@ if __name__ == "__main__" :
 
     fitness_weights = (1., 1.)
     model = mm.PCNNetwork
+    NPOP = 20
+    NGEN = 100
+    NUM_CORES = 6
 
     # ---| CMA-ES |---
 
     # parameters
-    N_param = len(PARAMETERS) - len(FIXED_PARAMETERS)  # number of parameters   
+    N_param = len(PARAMETERS) - len(FIXED_PARAMETERS)  # number of parameters
     MEAN = np.random.rand(N_param)  # Initial mean, could be randomized
     SIGMA = 0.5  # Initial standard deviation
     lambda_ = 4 + np.floor(3 * np.log(N_param))
@@ -280,10 +304,11 @@ if __name__ == "__main__" :
 
     # ---| Game |---
 
-    T = 8  # s
+    T = 9  # s
     dt = 0.0001  # ms
     env = Env(speed=1, dt=dt, duration=T, 
-              sigma=0.01, n_samples=3, make_data=make_2D_data)
+              sigma=0.005, n_samples=3, make_data=make_2D_data,
+              n_pop=NPOP, new_dataset_period=20)
 
     # ---| Evolution |---
 
@@ -298,13 +323,14 @@ if __name__ == "__main__" :
     # ---| Run |---
 
     settings = {
-        "NPOP": 20,
-        "NGEN": 20,
+        "NPOP": NPOP,
+        "NGEN": NGEN,
         "CXPB": 0.6,
         "MUTPB": 0.6,
         "NLOG": 1,
         "TARGET": (1., 1.),
         "TARGET_ERROR": 0.,
+        "NUM_CORES": NUM_CORES,
     }
 
     # ---| save |---
@@ -328,5 +354,6 @@ if __name__ == "__main__" :
 
     # ---| Run |---
     best_ind = me.main(toolbox=toolbox, settings=settings,
-                       info=info, save=save, filename=filename,
+                       info=info, save=save, 
+                       filename=filename,
                        verbose=True)
