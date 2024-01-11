@@ -199,3 +199,5 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
     # save animation
     if is_anim:
         animaker.add_frame(fig)
+
+

@@ -660,15 +660,17 @@ def train_model(genome: dict, N: int, Nj: int, data: np.ndarray=None,
     return model, (record1, record2)
 
 
-def eval_func(model: object, axis: int=1, ignore_zero: bool=False) -> float:
+def eval_func(weights: np.ndarray, wmax: float, axis: int=1, ignore_zero: bool=False) -> float:
 
     """
     evaluate the model by its weight matrix 
 
     Parameters
     ----------
-    model : object
-        Model to evaluate.
+    weights : np.ndarray
+        Weight matrix of the model.
+    wmax : float
+        Maximum weight.
     axis : int
         Axis to evaluate the model on. Default: 1
     ignore_zero : bool
@@ -678,18 +680,17 @@ def eval_func(model: object, axis: int=1, ignore_zero: bool=False) -> float:
     Returns
     -------
     score : float
-        Score of the model.
+        Score associated to the weights.
     """
 
     # settings
-    ni, nj = model.Wff.shape
-    wmax = model._wff_max
+    ni, nj = weights.shape
 
     # places that are legitimitely empty
     nb_empty = 1*((axis==0)*(nj>ni)*(nj - ni) + (axis==1)*(nj<ni)*(ni - nj))
 
     # sum of weights (along axis) that are above 85% of the max weight
-    W_sum = np.where(model.Wff > wmax * 0.85, 1, 0).sum(axis=axis) 
+    W_sum = np.where(weights > wmax * 0.85, 1, 0).sum(axis=axis) 
 
     # error: where there is more than one connection per neuron
     e_over = W_sum[W_sum > 1] -1

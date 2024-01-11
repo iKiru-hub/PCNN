@@ -21,6 +21,15 @@ import inputools.Trajectory as it
 # ---| Game |---
 # --------------
 
+data_settings = {
+    'duration': 10,
+    'dt': 0.1,
+    'speed': [0.1, 0.1],
+    'prob_turn': 0.005,
+    'k_average': 200,
+    'sigma': 0.005
+}
+
 
 def make_1D_data(Nj: int) -> np.ndarray:
 
@@ -59,24 +68,27 @@ def make_2D_data(Nj: int) -> np.ndarray:
         The dataset.
     """
 
-    animal = it.AnimalTrajectory(dt=0.0001, 
-                                 speed=10,
-                                 prob_turn=0.1)
+    # animal = it.AnimalTrajectory(dt=0.0001, 
+    #                              speed=10,
+    #                              prob_turn=0.1)
 
-    layer = it.PlaceLayer(N=Nj, sigma=0.01)
+    layer = it.PlaceLayer(N=Nj, sigma=data_settings['sigma'])
 
     # Create a trajectory
-    trajectory = animal.make_trajectory(duration=20, whole=False,
-                                        dx=1, normalize=1, turning_scale=0.01)
+    # trajectory = animal.make_trajectory(duration=20, whole=False,
+    #                                     dx=1, normalize=1, turning_scale=0.01)
+    trajectory = it.create_trajectory(duration=data_settings['duration'],
+                                      dt=data_settings['dt'],
+                                      speed=data_settings['speed'], 
+                                      prob_turn=data_settings['prob_turn'],
+                                      k_average=data_settings['k_average'])
 
     return layer.parse_trajectory(trajectory=trajectory)
 
 
-
 class Env:
 
-    def __init__(self, speed: float, dt: float, duration: int,
-                 sigma: float=0.05, n_samples: int=1, 
+    def __init__(self,n_samples: int=1, 
                  make_data: callable=make_1D_data, **kwargs):
 
         """
@@ -84,14 +96,6 @@ class Env:
 
         Parameters
         ----------
-        speed : float
-            The speed of the trajectory.
-        dt : float
-            The timestep.
-        duration : int
-            The duration of the game.
-        sigma : float
-            The noise level.
         n_samples : int
             number of samples to average over.
         make_data : callable
@@ -104,12 +108,6 @@ class Env:
                 The period to make a new dataset.
 
         """
-
-        # parameters
-        self.speed = speed
-        self.dt = dt
-        self.duration = duration
-        self.sigma = sigma
 
         # 
         self.fitness_size = 2
@@ -198,8 +196,12 @@ class Env:
                                 trajectory=dataset)
 
             # evaluate the agent
-            fitness_tot += np.array([mm.eval_func(agent.model, axis=0),
-                                     mm.eval_func(agent.model, axis=1)])
+            fitness_tot += np.array([mm.eval_func(weights=agent.model.Wff.copy(), 
+                                                  wmax=agent.model._wff_max,
+                                                  axis=0),
+                                     mm.eval_func(weights=agent.model.Wff.copy(),
+                                                  wmax=agent.model._wff_max,
+                                                  axis=1)])
 
         # check nan
         if np.isnan(fitness_tot).any():
@@ -228,25 +230,25 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
   'gain': 10.0,
-  'bias': 1.5,
+  # 'bias': 1.5,
   # 'lr': 0.2,
   # 'tau': 200,
   'wff_std': 0.0,
   'wff_min': 0.0,
-  # 'wff_max': 1.,
+  'wff_max': 1.,
   # 'wff_tau': 6_000,
   'std_tuning': 0.0,
-  'soft_beta': 20,
+  # 'soft_beta': 20,
   'dt': 1,
   'N': 5,
   'Nj': 5,
-  'DA_tau': 3,
+  # 'DA_tau': 3,
   'bias_scale': 0.0,
   'bias_decay': 100,
   'IS_magnitude': 6,
-  # 'is_retuning': True,
+  'is_retuning': False,
   # 'theta_freq': 0.004,
-  'theta_freq_increase': 0.1,
+  # 'theta_freq_increase': 0.1,
   'nb_per_cycle': 5,
   'plastic': True,
   'nb_skip': 2
@@ -284,9 +286,9 @@ if __name__ == "__main__" :
 
     fitness_weights = (1., 1.)
     model = mm.PCNNetwork
-    NPOP = 20
-    NGEN = 100
-    NUM_CORES = 6
+    NPOP = 120
+    NGEN = 1000
+    NUM_CORES = 6  # out of 8
 
     # ---| CMA-ES |---
 
@@ -303,11 +305,8 @@ if __name__ == "__main__" :
 
 
     # ---| Game |---
-
-    T = 9  # s
-    dt = 0.0001  # ms
-    env = Env(speed=1, dt=dt, duration=T, 
-              sigma=0.005, n_samples=3, make_data=make_2D_data,
+    # -> see above for the specification of the data settings
+    env = Env(n_samples=5, make_data=make_2D_data,
               n_pop=NPOP, new_dataset_period=20)
 
     # ---| Evolution |---
@@ -342,7 +341,7 @@ if __name__ == "__main__" :
     # get number of files in the cache
     n_files = len([f for f in os.listdir(path) \
         if os.path.isfile(os.path.join(path, f))])
-    filename = "best_" + str(n_files) + "_pcnn"
+    filename = "best_" + str(n_files) + "_pcnn_d"
 
     # extra information 
     info = {
@@ -350,6 +349,7 @@ if __name__ == "__main__" :
         "model": model.__name__,
         "game": env.__repr__(),
         "evolved": [key for key in PARAMETERS.keys() if key not in FIXED_PARAMETERS.keys()],
+        "data": data_settings
     }
 
     # ---| Run |---
