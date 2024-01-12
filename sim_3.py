@@ -22,10 +22,10 @@ import inputools.Trajectory as it
 # --------------
 
 data_settings = {
-    'duration': 10,
+    'duration': 5,
     'dt': 0.1,
     'speed': [0.1, 0.1],
-    'prob_turn': 0.005,
+    'prob_turn': 0.004,
     'k_average': 200,
     'sigma': 0.005
 }
@@ -89,7 +89,7 @@ def make_2D_data(Nj: int) -> np.ndarray:
 class Env:
 
     def __init__(self,n_samples: int=1, 
-                 make_data: callable=make_1D_data, **kwargs):
+                 make_data: callable=make_2D_data, **kwargs):
 
         """
         The game class.
@@ -161,7 +161,7 @@ class Env:
         """
 
         self._Nj_set = [i**2 for i in np.random.randint(
-            2, 7, size=self._n_samples)]
+            5, 8, size=self._n_samples)]
         self._dataset = [self._make_data(Nj=Nj) for Nj in self._Nj_set]
 
     def run(self, agent: object) -> float:
@@ -307,7 +307,7 @@ if __name__ == "__main__" :
     # ---| Game |---
     # -> see above for the specification of the data settings
     env = Env(n_samples=5, make_data=make_2D_data,
-              n_pop=NPOP, new_dataset_period=20)
+              n_pop=NPOP, new_dataset_period=10)
 
     # ---| Evolution |---
 
