@@ -10,6 +10,6 @@ Place Cells Neural Network
 - [ ] make animal trajectories better
 
 *Latest changes*
-- [ ] `animal trajectory`, update every declaration 
+- [x] `animal trajectory`, update every declaration 
 - [ ] `eval_func`, update every declaration 
 
