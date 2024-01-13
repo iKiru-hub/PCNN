@@ -24,7 +24,7 @@ import inputools.Trajectory as it
 data_settings = {
     'duration': 5,
     'dt': 0.1,
-    'speed': [0.1, 0.1],
+    'speed': [0.01, 0.01],
     'prob_turn': 0.004,
     'k_average': 200,
     'sigma': 0.005
@@ -116,7 +116,10 @@ class Env:
             "new_dataset_period", 3) * kwargs.get("n_pop", 30)
 
         # make dataset
-        self._Nj_set = None 
+        if kwargs.get("Nj_set", None) is None:
+            self._Nj_set = [i**2 for i in range(4, 4 + n_samples)]
+        else:
+            self._Nj_set = kwargs.get("Nj_set")
         self._dataset = None
         self._make_data = make_data
         self._make_new_data()
@@ -160,8 +163,6 @@ class Env:
         Make a new dataset.
         """
 
-        self._Nj_set = [i**2 for i in np.random.randint(
-            5, 8, size=self._n_samples)]
         self._dataset = [self._make_data(Nj=Nj) for Nj in self._Nj_set]
 
     def run(self, agent: object) -> float:
@@ -188,7 +189,7 @@ class Env:
             dataset = self._dataset[i]
 
             # update the agent
-            N = random.randint(4, 30)
+            N = random.randint(10, 30)
             agent.model.set_dims(N=N, Nj=self._Nj_set[i])
 
             # test the agent on the dataset
@@ -229,27 +230,27 @@ class Env:
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
-  'gain': 10.0,
+  'gain': 7.0,
   # 'bias': 1.5,
   # 'lr': 0.2,
   # 'tau': 200,
   'wff_std': 0.0,
   'wff_min': 0.0,
-  'wff_max': 1.,
+  # 'wff_max': 1.,
   # 'wff_tau': 6_000,
   'std_tuning': 0.0,
-  # 'soft_beta': 20,
+  # 'soft_beta': 30,
   'dt': 1,
   'N': 5,
   'Nj': 5,
-  # 'DA_tau': 3,
+  'DA_tau': 3,
   'bias_scale': 0.0,
   'bias_decay': 100,
-  'IS_magnitude': 6,
+  # 'IS_magnitude': 6,
   'is_retuning': False,
   # 'theta_freq': 0.004,
-  # 'theta_freq_increase': 0.1,
-  'nb_per_cycle': 5,
+  # 'theta_freq_increase': 0.16,
+  # 'nb_per_cycle': 5,
   'plastic': True,
   'nb_skip': 2
 }
@@ -276,6 +277,7 @@ PARAMETERS = {
     'theta_freq': lambda: random.choice(np.arange(0, 0.1, 0.001)),
     'theta_freq_increase': lambda: random.uniform(0.01, 0.5),
     'nb_per_cycle': lambda: random.randint(3, 10),
+    'nb_skip': lambda: random.randint(1, 5),
 }
 
 
@@ -286,7 +288,7 @@ if __name__ == "__main__" :
 
     fitness_weights = (1., 1.)
     model = mm.PCNNetwork
-    NPOP = 120
+    NPOP = 20
     NGEN = 1000
     NUM_CORES = 6  # out of 8
 
@@ -295,7 +297,7 @@ if __name__ == "__main__" :
     # parameters
     N_param = len(PARAMETERS) - len(FIXED_PARAMETERS)  # number of parameters
     MEAN = np.random.rand(N_param)  # Initial mean, could be randomized
-    SIGMA = 0.5  # Initial standard deviation
+    SIGMA = 0.8  # Initial standard deviation
     lambda_ = 4 + np.floor(3 * np.log(N_param))
 
     # strategy
@@ -306,8 +308,10 @@ if __name__ == "__main__" :
 
     # ---| Game |---
     # -> see above for the specification of the data settings
-    env = Env(n_samples=5, make_data=make_2D_data,
-              n_pop=NPOP, new_dataset_period=10)
+    n_samples = 4
+    nj_set = [int(i**2) for i in np.linspace(16, 60, n_samples, endpoint=True)]
+    env = Env(n_samples=n_samples, make_data=make_2D_data,
+              n_pop=NPOP, new_dataset_period=2)
 
     # ---| Evolution |---
 
@@ -325,12 +329,17 @@ if __name__ == "__main__" :
         "NPOP": NPOP,
         "NGEN": NGEN,
         "CXPB": 0.6,
-        "MUTPB": 0.6,
+        "MUTPB": 0.7,
         "NLOG": 1,
         "TARGET": (1., 1.),
         "TARGET_ERROR": 0.,
         "NUM_CORES": NUM_CORES,
     }
+
+    # ---| Visualisation |---
+
+    visualizer = me.Visualizer(settings=settings, online=True, k_average=3,
+                              fitness_size=len(fitness_weights))
 
     # ---| save |---
     save = bool(1)
@@ -354,6 +363,6 @@ if __name__ == "__main__" :
 
     # ---| Run |---
     best_ind = me.main(toolbox=toolbox, settings=settings,
-                       info=info, save=save, 
+                       info=info, save=save, visualizer=visualizer,
                        filename=filename,
                        verbose=True)
