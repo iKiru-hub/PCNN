@@ -23,7 +23,7 @@ import inputools.Trajectory as it
 
 data_settings = {
     'duration': 5,
-    'dt': 0.1,
+    'dt': 0.05,
     'speed': [0.01, 0.01],
     'prob_turn': 0.004,
     'k_average': 200,
@@ -77,7 +77,7 @@ def make_2D_data(Nj: int) -> np.ndarray:
     # Create a trajectory
     # trajectory = animal.make_trajectory(duration=20, whole=False,
     #                                     dx=1, normalize=1, turning_scale=0.01)
-    trajectory = it.create_trajectory(duration=data_settings['duration'],
+    trajectory = it.make_trajectory(duration=data_settings['duration'],
                                       dt=data_settings['dt'],
                                       speed=data_settings['speed'], 
                                       prob_turn=data_settings['prob_turn'],
@@ -288,7 +288,7 @@ if __name__ == "__main__" :
 
     fitness_weights = (1., 1.)
     model = mm.PCNNetwork
-    NPOP = 20
+    NPOP = 100
     NGEN = 1000
     NUM_CORES = 6  # out of 8
 
@@ -308,7 +308,7 @@ if __name__ == "__main__" :
 
     # ---| Game |---
     # -> see above for the specification of the data settings
-    n_samples = 4
+    n_samples = 6
     nj_set = [int(i**2) for i in np.linspace(16, 60, n_samples, endpoint=True)]
     env = Env(n_samples=n_samples, make_data=make_2D_data,
               n_pop=NPOP, new_dataset_period=2)
@@ -338,8 +338,9 @@ if __name__ == "__main__" :
 
     # ---| Visualisation |---
 
-    visualizer = me.Visualizer(settings=settings, online=True, k_average=3,
-                              fitness_size=len(fitness_weights))
+    visualizer = me.Visualizer(settings=settings, online=True,
+                               k_average=20,
+                               fitness_size=len(fitness_weights))
 
     # ---| save |---
     save = bool(1)

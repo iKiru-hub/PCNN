@@ -660,7 +660,8 @@ def train_model(genome: dict, N: int, Nj: int, data: np.ndarray=None,
     return model, (record1, record2)
 
 
-def eval_func(weights: np.ndarray, wmax: float, axis: int=1, ignore_zero: bool=False) -> float:
+def eval_func(weights: np.ndarray, wmax: float, axis: int=1,
+              ignore_zero: bool=False, Nj_trg: int=None) -> float:
 
     """
     evaluate the model by its weight matrix 
@@ -676,6 +677,8 @@ def eval_func(weights: np.ndarray, wmax: float, axis: int=1, ignore_zero: bool=F
     ignore_zero : bool
         Whether to ignore the zero weights entries.
         Default: False
+    Nj_trg : int
+        Number of input neurons. Default: None
 
     Returns
     -------
@@ -685,6 +688,9 @@ def eval_func(weights: np.ndarray, wmax: float, axis: int=1, ignore_zero: bool=F
 
     # settings
     ni, nj = weights.shape
+
+    # overridde ni if Nj_trg is given
+    nj = Nj_trg if Nj_trg is not None else nj
 
     # places that are legitimitely empty
     nb_empty = 1*((axis==0)*(nj>ni)*(nj - ni) + (axis==1)*(nj<ni)*(ni - nj))
