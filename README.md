@@ -13,9 +13,9 @@ Acronym for Place Cells Neural Network.
 
 
 ---
-*Branches*
-- **main** 
-- **cold** study of how to implement learning of non-hot encoded representations
+*Branches* 
+- <u>main</u> 
+- <u>cold</u> study of how to implement learning of non-hot encoded representations. **NB: only visible in the original repository for now**
 
 
 ---
