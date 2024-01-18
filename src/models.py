@@ -288,14 +288,10 @@ class PCNNetwork:
         self.W_clone = np.where(self.W_clone < 0.1, 0., self.W_clone)
         # normalize such that each row sums to 1
         self.W_clone = 1.*self.W_clone / self.W_clone.sum(axis=1, keepdims=True)
+        # set nan to 0
+        self.W_clone = np.nan_to_num(self.W_clone, nan=0, posinf=0, neginf=0)
         # self.W_clone = (self.W_clone - self.W_clone.min(axis=1, keepdims=True)) / (
         #     self.W_clone.max(axis=1, keepdims=True) - self.W_clone.min(axis=1, keepdims=True))
-
-        # re-tuning if new neurons reached temperature of 1
-        if self._is_retuning:
-            if (self.temp == 1.).sum()  > (self.temp_past == 1.).sum():
-                self._re_tuning()
-                self.temp_past = self.temp.copy()
 
     def step(self, x: np.ndarray=None):
 
@@ -313,12 +309,11 @@ class PCNNetwork:
 
             # define weights
             W = self.Wff * (1 - self.W_cold_mask) + self.W_clone * self.W_cold_mask
+            self.var1 = W.copy()
 
             # step
             self.Ix = W @ x * (1 - self.W_cold_mask) + cosine_similarity(W, x) * self.W_cold_mask
             # self.Ix = cosine_similarity(W, x) * self.W
-
-            self.var1 = W.sum(axis=1).flatten()
 
         # calculate synaptic current
         self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(

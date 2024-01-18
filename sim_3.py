@@ -231,26 +231,26 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
   'gain': 7.0,
-  # 'bias': 1.5,
+  'bias': 1.1,
   # 'lr': 0.2,
   # 'tau': 200,
   'wff_std': 0.0,
   'wff_min': 0.0,
-  # 'wff_max': 1.,
+  'wff_max': 2.,
   # 'wff_tau': 6_000,
   'std_tuning': 0.0,
-  # 'soft_beta': 30,
+  'soft_beta': 1,
   'dt': 1,
   'N': 5,
   'Nj': 5,
   'DA_tau': 3,
   'bias_scale': 0.0,
   'bias_decay': 100,
-  # 'IS_magnitude': 6,
+  # 'IS_magnitude': 20,
   'is_retuning': False,
   # 'theta_freq': 0.004,
   # 'theta_freq_increase': 0.16,
-  # 'nb_per_cycle': 5,
+  'nb_per_cycle': 5,
   'plastic': True,
   'nb_skip': 2
 }
@@ -266,9 +266,7 @@ PARAMETERS = {
     'wff_min': lambda: round(random.uniform(.0, 1.0), 1),
     'wff_max': lambda: round(random.uniform(1.0, 10.0), 1),
     'wff_tau': lambda: random.choice(range(300, 1500, 50)),
-    'std_tuning': lambda: round(random.uniform(0, 1e-3), 4),
     'soft_beta': lambda: round(random.uniform(0, 1e2), 1),
-    'dt': lambda: round(random.uniform(0, 1.2), 3),
     'DA_tau': lambda: random.randint(1, 200),
     'bias_decay': lambda: random.randint(1, 400),
     'bias_scale': lambda: round(random.uniform(0.5, 1.5), 2),
@@ -351,7 +349,7 @@ if __name__ == "__main__" :
     # get number of files in the cache
     n_files = len([f for f in os.listdir(path) \
         if os.path.isfile(os.path.join(path, f))])
-    filename = "best_" + str(n_files) + "_pcnn_d"
+    filename = "best_" + str(n_files) + "_pcnn_e"
 
     # extra information 
     info = {
