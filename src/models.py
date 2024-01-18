@@ -44,34 +44,31 @@ def random_id(length: int=5) -> str:
     ), length))
 
 
-"""
-Network classes
-----------------
 
-## Deleted features:
+# Network classes
+# ----------------
 
-> adaptive threshold
-```
-self._bias_max = kwargs.get('bias', 3)
-self._bias_decay = kwargs.get('bias_decay', 100)
-self._bias_scale = kwargs.get('bias_scale', 1.0)
+# ## Deleted features:
 
-self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
-```
+# > adaptive threshold
+# ```
+# self._bias_max = kwargs.get('bias', 3)
+# self._bias_decay = kwargs.get('bias_decay', 100)
+# self._bias_scale = kwargs.get('bias_scale', 1.0)
 
-> dt 
-```
-self.t += self._dt #* (1 - DA_block)
-```
+# self._bias += (self._bias_max - self._bias) / self._bias_decay + self._bias_scale * self.u 
+# ```
 
+# > dt 
+# ```
+# self.t += self._dt #* (1 - DA_block)
+# ```
 
-"""
 
 
 class PCNNetwork:
 
     def __init__(self, N: int, Nj: int, **kwargs):
-
 
         """
         Network class 
@@ -84,31 +81,42 @@ class PCNNetwork:
             Number of input neurons
         **kwargs: dict
             gain: float
-                Gain of the activation function
+                Gain of the activation function. Default: 7
             bias: float
                 Bias of the activation function. Default: 0
             lr: float
                 Learning rate. Default: 0.01
             tau: float
                 Time constant. Default: 30
-            rule: str
-                Learning rule, either 'oja' or 'hebb'
             plastic: bool
-                Whether the network is plastic
+                Whether the network is plastic. Default: True
             std_tuning: float
                 Standard deviation of the tuning curve
             soft_beta: float
-                Beta for the softmax function
-            wff_std: float
-                Standard deviation of the feedforward weights
+                Beta for the softmax function. Default: 10
             wff_max: float
-                Maximum value of the feedforward weights
+                Maximum value of the feedforward weights. Default: 3
             wff_min: float
-                Minimum value of the feedforward weights
-            wff_const: float
-                Constant for the feedforward weights
+                Minimum value of the feedforward weights. Default: 0.0
             wff_tau: float
-                Time constant for the feedforward weights decay
+                Time constant for the feedforward weights decay.
+                Default: 500
+            plastic: bool
+                Whether the network is plastic. Default: True
+            nb_per_cycle: int
+                Number of neurons per cycle. Default: 6
+            nb_skip: int
+                Number of cycles to skip. Default: 1
+            theta_freq: int
+                Frequency of the cycles. Default: 1
+            theta_freq_increase: float
+                Increase of the frequency of the cycles. Default: 0
+            IS_magnitude: float
+                Magnitude of the oscillatory stimulation. Default: 3
+            DA_tau: float
+                Time constant of the dopamine. Default: 100
+            is_retuning: bool
+                Whether to re-tune the neurons. Default: False
             seed: int
                 Seed for the random number generator. Default: None 
         """
@@ -140,10 +148,8 @@ class PCNNetwork:
                 self._bias)))
 
         # Feedforward weights
-        self._wff_std = kwargs.get('wff_std', 1)
         self.Wff = np.zeros((N, Nj))
-        self._wff_min = kwargs.get('wff_min',
-                                  0.05)
+        self._wff_min = kwargs.get('wff_min', 0.0)
         self._wff_max = kwargs.get('wff_max', 3)
         self._wff_tau = kwargs.get('wff_tau', 500)
 
@@ -180,9 +186,11 @@ class PCNNetwork:
         self.W_old = self.Wff.copy()
         self.W_deriv = np.zeros((self.N, self.Nj))
         self.W_clone = self.Wff.copy()
+        self.W_cold_mask = np.zeros((self.N, 1))
 
         #
         self.var1 = None
+        self.var2 = None
 
     def __repr__(self):
 
@@ -268,12 +276,20 @@ class PCNNetwork:
         # temperture
         self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
 
+        # calculate the weight cold mask
+        self.W_cold_mask = 1 == (self.temp * (1 - np.around(self.W_deriv.sum(axis=1), 3).reshape(-1, 1)))            
+
         # weight derivative 
         self.W_deriv += - self.W_deriv / 10 + np.abs(self.Wff - self.W_old)
         self.W_old = self.Wff.copy()
 
         # weight clone
-        self.W_clone = 1. * self.softmax(self.Wff)
+        self.W_clone = self.softmax(self.Wff) 
+        self.W_clone = np.where(self.W_clone < 0.1, 0., self.W_clone)
+        # normalize such that each row sums to 1
+        self.W_clone = 1.*self.W_clone / self.W_clone.sum(axis=1, keepdims=True)
+        # self.W_clone = (self.W_clone - self.W_clone.min(axis=1, keepdims=True)) / (
+        #     self.W_clone.max(axis=1, keepdims=True) - self.W_clone.min(axis=1, keepdims=True))
 
         # re-tuning if new neurons reached temperature of 1
         if self._is_retuning:
@@ -296,11 +312,11 @@ class PCNNetwork:
         if x is not None:
 
             # define weights
-            W = self.Wff * (1 - 1 == (self.temp * (1 - np.around(self.W_deriv.sum(axis=1), 3)))) + \
-                self.W_clone * (1 == (self.temp * (1 - np.around(self.W_deriv.sum(axis=1), 3))))
+            W = self.Wff * (1 - self.W_cold_mask) + self.W_clone * self.W_cold_mask
 
             # step
-            self.Ix = self.Wff @ x
+            self.Ix = W @ x * (1 - self.W_cold_mask) + cosine_similarity(W, x) * self.W_cold_mask
+            # self.Ix = cosine_similarity(W, x) * self.W
 
             self.var1 = W.sum(axis=1).flatten()
 
@@ -317,8 +333,9 @@ class PCNNetwork:
 
         # update DA
         ut_block = (self.u * self.temp).max()
-        DA_block = ut_block * 1*(ut_block >= 1.)
+        DA_block = ut_block * 1*(ut_block >= 0.99)
         self.DA += (1 - DA_block - self.DA) / self._DA_tau
+        self.var2 = DA_block
 
         # update weights
         if self._plastic:
@@ -362,12 +379,18 @@ class PCNNetwork:
 
         # Internal dynamics
         self.u = np.zeros((self.N, 1))
-        self.Wff = np.abs(np.random.normal(0,
-                        self._wff_std, 
-                        size=(self.N, self.Nj)))
+        self.Ix = np.zeros((self.N, 1))
+        self.Is = np.zeros((self.N, 1))
+
+        # weight reset 
+        self.Wff = np.zeros((self.N, self.Nj))
+        self.W_old = self.Wff.copy()
+        self.W_deriv = np.zeros((self.N, self.Nj))
+        self.W_clone = self.Wff.copy()
+
+        # tuning
         self.temp = np.ones((self.N, 1))*1e-3
         self._bias = self._bias_max * np.ones((self.N, 1))
-        # self._bias = self._bias_max * np.ones((self.N, 1))
         self.t = 0.
 
         # re-update the tuning
@@ -741,4 +764,31 @@ def eval_func(weights: np.ndarray, wmax: float, axis: int=1,
 
 
 
+def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
+
+    """
+    Calculate the cosine similarity between two vectors.
+
+    Parameters
+    ----------
+    v : np.ndarray
+        First vector.
+    w : np.ndarray
+        Second vector.
+
+    Returns
+    -------
+    similarity : float
+        Cosine similarity between the two vectors.
+    """
+
+    # if v is a matrix, calculate the cosine similarity between each row of v and w
+    if len(v.shape) > 1:
+        result = v @ w / (np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w))
+
+    else:
+        result = v @ w / (np.linalg.norm(v) * np.linalg.norm(w))
+
+    # if inf or nan, return 0
+    return np.nan_to_num(result, nan=0, posinf=0, neginf=0)
 

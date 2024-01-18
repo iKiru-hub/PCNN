@@ -154,7 +154,7 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
     is_anim = bool(animaker)
 
     if kwargs.get('subtitle_2', None) is None:
-        subtitle_2 = np.around(model.temp.flatten(), 2)
+        subtitle_2 = f"Temperature {np.around(model.temp.flatten(), 2)}"
     else:
         subtitle_2 = kwargs.get('subtitle_2', None)
     
@@ -185,7 +185,7 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
     ### weight matrix
     plt.subplot(233)
     plt.imshow(model.Wff.T, cmap="plasma")
-    plt.title(f"Temperatures: {subtitle_2}")
+    plt.title(subtitle_2)
     plt.xlabel("i")
     plt.ylabel("j")
     plt.grid()
@@ -197,7 +197,7 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
         plt.plot(range(t-tm, t), record[i+1, t-tm:t], color=colors[i], alpha=0.75)
         plt.plot(range(t-tm, t), Ix[i, t-tm:t], '--', color=colors[i], alpha=0.85)
 
-    plt.fill_between(range(t-tm, t), record[0, t-tm:t], color='green', alpha=0.1, label='DA')
+    plt.fill_between(range(t-tm, t), record[0, t-tm:t], color='green', alpha=0.1, label=f"DA={np.around(model.DA, 2)} [{model.var2:.2f}]")
 
     plt.ylabel(f"$u$={np.around(model.u.T[0], 1)}")
     plt.ylim((0, 4.3))
