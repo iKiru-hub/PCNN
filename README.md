@@ -17,6 +17,9 @@ Acronym for Place Cells Neural Network.
 - **main** 
 - **cold** study of how to implement learning of non-hot encoded representations. _NB: only visible in the original repository for now_
 
+##### Forks 
+[BioAI_Oslo]
+synched every time there is a push to the original repository.
 
 ---
 ### TODO
