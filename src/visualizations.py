@@ -120,7 +120,7 @@ def plot_weight_matrix(W: np.ndarray):
 
 
 def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray, 
-             Ix: np.ndarray, colors: list, animaker: object=None):
+             Ix: np.ndarray, colors: list, **kwargs):
 
     """
     Plot the input, weights, weight matrix, and u - DA.
@@ -139,14 +139,24 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
         The input current.
     colors : list
         The colors for the neurons.
-    animaker : object
-        The animation object.
-        Default: None
+    **kwargs : dict
+        animaker : object
+            The animation object.
+            Default: None
+        subtitle_2 : str
+            The subtitle for the second subplot.
+            Default: None
     """
 
     Nj = model.Nj
     N = model.N
+    animaker = kwargs.get('animaker', None)
     is_anim = bool(animaker)
+
+    if kwargs.get('subtitle_2', None) is None:
+        subtitle_2 = np.around(model.temp.flatten(), 2)
+    else:
+        subtitle_2 = kwargs.get('subtitle_2', None)
     
     clf()
     fig = plt.figure(figsize=(20, 6))
@@ -175,7 +185,7 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
     ### weight matrix
     plt.subplot(233)
     plt.imshow(model.Wff.T, cmap="plasma")
-    plt.title(f"Temperatures: {np.around(model.temp.flatten(), 2)}")
+    plt.title(f"Temperatures: {subtitle_2}")
     plt.xlabel("i")
     plt.ylabel("j")
     plt.grid()

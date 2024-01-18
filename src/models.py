@@ -44,7 +44,6 @@ def random_id(length: int=5) -> str:
     ), length))
 
 
-
 """
 Network classes
 ----------------
@@ -110,7 +109,13 @@ class PCNNetwork:
                 Constant for the feedforward weights
             wff_tau: float
                 Time constant for the feedforward weights decay
+            seed: int
+                Seed for the random number generator. Default: None 
         """
+
+        seed = kwargs.get('seed', None)
+        if seed is not None:
+            np.random.seed(seed)
 
         # General 
         self.N = N
@@ -170,6 +175,14 @@ class PCNNetwork:
         # modulation
         self.DA = 1.
         self._DA_tau = kwargs.get('DA_tau', 100)
+
+        # weight update control 
+        self.W_old = self.Wff.copy()
+        self.W_deriv = np.zeros((self.N, self.Nj))
+        self.W_clone = self.Wff.copy()
+
+        #
+        self.var1 = None
 
     def __repr__(self):
 
@@ -249,11 +262,18 @@ class PCNNetwork:
         self.Wff = self.Wff.clip(min=self._wff_min, 
                                  max=self._wff_max)
 
-        # # weight decay
+        # weight decay
         self.Wff += (- self.Wff / self._wff_tau) * (1 - self.temp)
 
         # temperture
         self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
+
+        # weight derivative 
+        self.W_deriv += - self.W_deriv / 10 + np.abs(self.Wff - self.W_old)
+        self.W_old = self.Wff.copy()
+
+        # weight clone
+        self.W_clone = 1. * self.softmax(self.Wff)
 
         # re-tuning if new neurons reached temperature of 1
         if self._is_retuning:
@@ -274,7 +294,15 @@ class PCNNetwork:
 
         # calculate input current
         if x is not None:
+
+            # define weights
+            W = self.Wff * (1 - 1 == (self.temp * (1 - np.around(self.W_deriv.sum(axis=1), 3)))) + \
+                self.W_clone * (1 == (self.temp * (1 - np.around(self.W_deriv.sum(axis=1), 3))))
+
+            # step
             self.Ix = self.Wff @ x
+
+            self.var1 = W.sum(axis=1).flatten()
 
         # calculate synaptic current
         self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(
@@ -288,8 +316,9 @@ class PCNNetwork:
         )
 
         # update DA
-        DA_block = 1 / (1 + np.exp(- 50 * ((self.u * self.temp).max() - 0.99)))
-        self.DA += (1 - self.DA) / self._DA_tau - 0.99*DA_block
+        ut_block = (self.u * self.temp).max()
+        DA_block = ut_block * 1*(ut_block >= 1.)
+        self.DA += (1 - DA_block - self.DA) / self._DA_tau
 
         # update weights
         if self._plastic:
