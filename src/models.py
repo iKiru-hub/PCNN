@@ -90,8 +90,6 @@ class PCNNetwork:
                 Time constant. Default: 30
             plastic: bool
                 Whether the network is plastic. Default: True
-            std_tuning: float
-                Standard deviation of the tuning curve
             soft_beta: float
                 Beta for the softmax function. Default: 10
             wff_max: float
@@ -382,6 +380,7 @@ class PCNNetwork:
         self.W_old = self.Wff.copy()
         self.W_deriv = np.zeros((self.N, self.Nj))
         self.W_clone = self.Wff.copy()
+        self.W_cold_mask = np.zeros((self.N, 1))
 
         # tuning
         self.temp = np.ones((self.N, 1))*1e-3

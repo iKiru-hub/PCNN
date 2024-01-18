@@ -2,8 +2,7 @@ import numpy as np
 import time, os
 import random
 from deap import base, creator, tools, cma
-import src.mod_models as mm
-import src.mod_stimulation as ms
+import src.models as mm
 
 from tools.utils import logger
 import tools.evolutions as me
@@ -23,11 +22,11 @@ import inputools.Trajectory as it
 
 data_settings = {
     'duration': 5,
-    'dt': 0.05,
+    'dt': 0.1,
     'speed': [0.01, 0.01],
-    'prob_turn': 0.004,
+    'prob_turn': 0.001,
     'k_average': 200,
-    'sigma': 0.005
+    'sigma': 0.01
 }
 
 
@@ -230,27 +229,24 @@ class Env:
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
-  'gain': 7.0,
+  'gain': 10.0,
   'bias': 1.1,
   # 'lr': 0.2,
   # 'tau': 200,
-  'wff_std': 0.0,
   'wff_min': 0.0,
-  'wff_max': 2.,
+  # 'wff_max': 2.,
   # 'wff_tau': 6_000,
-  'std_tuning': 0.0,
   'soft_beta': 1,
-  'dt': 1,
   'N': 5,
   'Nj': 5,
   'DA_tau': 3,
   'bias_scale': 0.0,
   'bias_decay': 100,
-  # 'IS_magnitude': 20,
+  'IS_magnitude': 20,
   'is_retuning': False,
   # 'theta_freq': 0.004,
   # 'theta_freq_increase': 0.16,
-  'nb_per_cycle': 5,
+  # 'nb_per_cycle': 5,
   'plastic': True,
   'nb_skip': 2
 }
@@ -262,7 +258,6 @@ PARAMETERS = {
     'bias': lambda: round(random.uniform(0, 30), 1),
     'lr': lambda: round(random.uniform(1e-0, 1e-5), 5),
     'tau': lambda: random.randint(1, 10),
-    'wff_std': lambda: round(random.uniform(0, 3.0), 2),
     'wff_min': lambda: round(random.uniform(.0, 1.0), 1),
     'wff_max': lambda: round(random.uniform(1.0, 10.0), 1),
     'wff_tau': lambda: random.choice(range(300, 1500, 50)),
@@ -286,7 +281,7 @@ if __name__ == "__main__" :
 
     fitness_weights = (1., 1.)
     model = mm.PCNNetwork
-    NPOP = 100
+    NPOP = 40
     NGEN = 1000
     NUM_CORES = 6  # out of 8
 
@@ -307,7 +302,7 @@ if __name__ == "__main__" :
     # ---| Game |---
     # -> see above for the specification of the data settings
     n_samples = 6
-    nj_set = [int(i**2) for i in np.linspace(16, 60, n_samples, endpoint=True)]
+    nj_set = [int(i**2) for i in np.linspace(40, 100, n_samples, endpoint=True)]
     env = Env(n_samples=n_samples, make_data=make_2D_data,
               n_pop=NPOP, new_dataset_period=2)
 
