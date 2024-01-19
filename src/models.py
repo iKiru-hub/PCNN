@@ -258,11 +258,13 @@ class PCNNetwork:
             Input from other neurons
         """
 
-        # weight update
-        delta = self.u * x.T
+        # tweak the input current in order to elicit plasticity even 
+        # for weak inputs
+        x = x if x.max() < 0.1 else x / x.sum()
 
         # update weights
-        self.Wff += self._lr * delta * self.softmax(self.Wff) * self.DA * (1 - 1*(self.temp == 1.))
+        self.Wff += self._lr * self.u * x.T * self.softmax(self.Wff) * self.DA * \
+            (1 - 1*(self.temp == 1.))
 
         # clip weights
         self.Wff = self.Wff.clip(min=self._wff_min, 
@@ -275,7 +277,8 @@ class PCNNetwork:
         self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
 
         # calculate the weight cold mask
-        self.W_cold_mask = 1 == (self.temp * (1 - np.around(self.W_deriv.sum(axis=1), 3).reshape(-1, 1)))            
+        self.W_cold_mask = 1 == (self.temp * (1 - np.around(self.W_deriv.sum(axis=1),
+                                                            3).reshape(-1, 1)))            
 
         # weight derivative 
         self.W_deriv += - self.W_deriv / 10 + np.abs(self.Wff - self.W_old)
@@ -284,8 +287,10 @@ class PCNNetwork:
         # weight clone
         self.W_clone = self.softmax(self.Wff) 
         self.W_clone = np.where(self.W_clone < 0.1, 0., self.W_clone)
+
         # normalize such that each row sums to 1
         self.W_clone = 1.*self.W_clone / self.W_clone.sum(axis=1, keepdims=True)
+
         # set nan to 0
         self.W_clone = np.nan_to_num(self.W_clone, nan=0, posinf=0, neginf=0)
         # self.W_clone = (self.W_clone - self.W_clone.min(axis=1, keepdims=True)) / (

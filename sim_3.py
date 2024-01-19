@@ -21,12 +21,12 @@ import inputools.Trajectory as it
 # --------------
 
 data_settings = {
-    'duration': 5,
-    'dt': 0.1,
+    'duration': 10,
+    'dt': 0.01,
     'speed': [0.01, 0.01],
     'prob_turn': 0.001,
     'k_average': 200,
-    'sigma': 0.01
+    'sigma': 0.001
 }
 
 
@@ -162,7 +162,7 @@ class Env:
         Make a new dataset.
         """
 
-        self._dataset = [self._make_data(Nj=Nj) for Nj in self._Nj_set]
+        self._dataset = [self._make_data(Nj=81) for Nj in self._Nj_set]
 
     def run(self, agent: object) -> float:
 
@@ -188,7 +188,7 @@ class Env:
             dataset = self._dataset[i]
 
             # update the agent
-            N = random.randint(10, 30)
+            N = random.randint(30, 40)
             agent.model.set_dims(N=N, Nj=self._Nj_set[i])
 
             # test the agent on the dataset
@@ -198,9 +198,11 @@ class Env:
             # evaluate the agent
             fitness_tot += np.array([mm.eval_func(weights=agent.model.Wff.copy(), 
                                                   wmax=agent.model._wff_max,
+                                                  ignore_zero=False,
                                                   axis=0),
                                      mm.eval_func(weights=agent.model.Wff.copy(),
                                                   wmax=agent.model._wff_max,
+                                                  ignore_zero=False,
                                                   axis=1)])
 
         # check nan
@@ -229,23 +231,23 @@ class Env:
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
-  'gain': 10.0,
+  # 'gain': 10.0,
   'bias': 1.1,
   # 'lr': 0.2,
   # 'tau': 200,
   'wff_min': 0.0,
-  # 'wff_max': 2.,
+  'wff_max': 2.,
   # 'wff_tau': 6_000,
   'soft_beta': 1,
   'N': 5,
   'Nj': 5,
-  'DA_tau': 3,
+  # 'DA_tau': 3,
   'bias_scale': 0.0,
   'bias_decay': 100,
-  'IS_magnitude': 20,
+  # 'IS_magnitude': 20,
   'is_retuning': False,
   # 'theta_freq': 0.004,
-  # 'theta_freq_increase': 0.16,
+  'theta_freq_increase': 0.16,
   # 'nb_per_cycle': 5,
   'plastic': True,
   'nb_skip': 2
@@ -281,7 +283,7 @@ if __name__ == "__main__" :
 
     fitness_weights = (1., 1.)
     model = mm.PCNNetwork
-    NPOP = 40
+    NPOP = 200
     NGEN = 1000
     NUM_CORES = 6  # out of 8
 
@@ -301,10 +303,10 @@ if __name__ == "__main__" :
 
     # ---| Game |---
     # -> see above for the specification of the data settings
-    n_samples = 6
-    nj_set = [int(i**2) for i in np.linspace(40, 100, n_samples, endpoint=True)]
+    n_samples = 1
+    nj_set = [int(i**2) for i in np.linspace(6, 10, n_samples, endpoint=True)]
     env = Env(n_samples=n_samples, make_data=make_2D_data,
-              n_pop=NPOP, new_dataset_period=2)
+              n_pop=NPOP, new_dataset_period=2, Nj_set=[81]*n_samples)
 
     # ---| Evolution |---
 
