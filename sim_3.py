@@ -231,24 +231,25 @@ class Env:
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
-  # 'gain': 10.0,
+  'gain': 10.0,
   'bias': 1.1,
   # 'lr': 0.2,
   # 'tau': 200,
   'wff_min': 0.0,
   'wff_max': 2.,
-  # 'wff_tau': 6_000,
-  'soft_beta': 1,
+  'wff_tau': 1_000,
+  # 'soft_beta': 1,
   'N': 5,
   'Nj': 5,
-  # 'DA_tau': 3,
+  'DA_tau': 3,
   'bias_scale': 0.0,
   'bias_decay': 100,
-  # 'IS_magnitude': 20,
+  'IS_magnitude': 20,
   'is_retuning': False,
   # 'theta_freq': 0.004,
   'theta_freq_increase': 0.16,
-  # 'nb_per_cycle': 5,
+  # 'sigma_gamma': 5e-6,
+  'nb_per_cycle': 5,
   'plastic': True,
   'nb_skip': 2
 }
@@ -263,7 +264,7 @@ PARAMETERS = {
     'wff_min': lambda: round(random.uniform(.0, 1.0), 1),
     'wff_max': lambda: round(random.uniform(1.0, 10.0), 1),
     'wff_tau': lambda: random.choice(range(300, 1500, 50)),
-    'soft_beta': lambda: round(random.uniform(0, 1e2), 1),
+    'soft_beta': lambda: random.randint(0, 50),
     'DA_tau': lambda: random.randint(1, 200),
     'bias_decay': lambda: random.randint(1, 400),
     'bias_scale': lambda: round(random.uniform(0.5, 1.5), 2),
@@ -271,6 +272,7 @@ PARAMETERS = {
     'is_retuning': lambda: random.choice((True, False)),
     'theta_freq': lambda: random.choice(np.arange(0, 0.1, 0.001)),
     'theta_freq_increase': lambda: random.uniform(0.01, 0.5),
+    'sigma_gamma': lambda: random.choice(np.arange(1e-6, 1e-4, 5e-6)),
     'nb_per_cycle': lambda: random.randint(3, 10),
     'nb_skip': lambda: random.randint(1, 5),
 }
@@ -303,7 +305,7 @@ if __name__ == "__main__" :
 
     # ---| Game |---
     # -> see above for the specification of the data settings
-    n_samples = 1
+    n_samples = 2
     nj_set = [int(i**2) for i in np.linspace(6, 10, n_samples, endpoint=True)]
     env = Env(n_samples=n_samples, make_data=make_2D_data,
               n_pop=NPOP, new_dataset_period=2, Nj_set=[81]*n_samples)
@@ -346,7 +348,7 @@ if __name__ == "__main__" :
     # get number of files in the cache
     n_files = len([f for f in os.listdir(path) \
         if os.path.isfile(os.path.join(path, f))])
-    filename = "best_" + str(n_files) + "_pcnn_e"
+    filename = "best_" + str(n_files) + "_pcnn_f"
 
     # extra information 
     info = {

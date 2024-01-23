@@ -113,6 +113,8 @@ class PCNNetwork:
                 Magnitude of the oscillatory stimulation. Default: 3
             DA_tau: float
                 Time constant of the dopamine. Default: 100
+            sigma_gamma: float
+                Standard deviation of the gamma cycles. Default: 5e-6
             is_retuning: bool
                 Whether to re-tune the neurons. Default: False
             seed: int
@@ -162,14 +164,16 @@ class PCNNetwork:
         self._nb_skip = kwargs.get('nb_skip', 1)
         self._theta_freq = kwargs.get('theta_freq', 1)
         self._theta_freq_increase = kwargs.get('theta_freq_increase', 0.)
-        self.tuning = calc_tuning(N=N, K=self._nb_per_cycle, b=self._theta_freq)
+        self._sigma_gamma = kwargs.get('sigma_gamma', 5e-6)
+        self.tuning = calc_tuning(N=N, K=self._nb_per_cycle, 
+                                  b=self._theta_freq)
         self._IS_magnitude = kwargs.get('IS_magnitude', 3)
         self._range = np.arange(self.N).reshape(-1, 1)
         self._is_retuning = kwargs.get('is_retuning', False)
 
         # softmax
-        beta = kwargs.get('soft_beta', 10)
-        self.softmax = lambda x: np.exp(beta*x) / np.exp(beta*x).sum(axis=1,
+        self._beta = kwargs.get('soft_beta', 15)
+        self.softmax = lambda x: np.exp(self._beta*x) / np.exp(self._beta*x).sum(axis=1,
                                                                      keepdims=True)
 
         # internal clock
@@ -241,11 +245,49 @@ class PCNNetwork:
 
         # calculate the new tuning
         new_tuning = calc_tuning(N=self.N - len(idx_selective),
-                                 K=self._nb_per_cycle, b=self._theta_freq)
+                                 K=self._nb_per_cycle, b=self._theta_freq, 
+                                 sigma=self._sigma_gamma)
 
         # update the tuning
         self.tuning[idx_non_selective] = new_tuning
         self.tuning[idx_selective] = 0.
+
+    def _softmax_plus(self, x: np.ndarray, threshold: float=0.035) -> np.ndarray:
+
+        """
+        A wrapper around the softmax function that set to zero the values
+        that are below a certain threshold. Its purpose is to avoid that output 
+        is not influenced by the array size.
+
+        Parameters
+        ----------
+        x: np.ndarray
+            Input array
+        threshold: float
+            Threshold. Default: 1e-1
+
+        Returns
+        -------
+        x: np.ndarray
+            Output array
+        """
+
+        # calculate beta for each row
+        beta = 1 + self._beta * self.temp
+
+        # apply softmax
+        x = np.exp(beta*x) / np.exp(beta*x).sum(axis=1, keepdims=True)
+
+        # set to 0 the values below the threshold
+        # x = np.where(x < threshold, 1e-5, x)
+
+        # normalize such that each row sums to 1
+        # x = x / x.sum(axis=1, keepdims=True)
+
+        # set nan to 0
+        # x = np.nan_to_num(x, nan=0, posinf=0, neginf=0)
+
+        return x
 
     def _update(self, x: np.ndarray):
 
@@ -262,9 +304,15 @@ class PCNNetwork:
         # for weak inputs
         x = x if x.max() < 0.1 else x / x.sum()
 
+        # calculate the softmax of the weights
+        # w_soft = self.softmax(self.Wff)
+        w_soft = self._softmax_plus(self.Wff)
+
         # update weights
-        self.Wff += self._lr * self.u * x.T * self.softmax(self.Wff) * self.DA * \
+        self.Wff += self._lr * self.u * x.T * w_soft * self.DA * \
             (1 - 1*(self.temp == 1.))
+
+        self.var1 = w_soft.copy()
 
         # clip weights
         self.Wff = self.Wff.clip(min=self._wff_min, 
@@ -273,7 +321,7 @@ class PCNNetwork:
         # weight decay
         self.Wff += (- self.Wff / self._wff_tau) * (1 - self.temp)
 
-        # temperture
+        # temperature
         self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
 
         # calculate the weight cold mask
@@ -296,6 +344,10 @@ class PCNNetwork:
         # self.W_clone = (self.W_clone - self.W_clone.min(axis=1, keepdims=True)) / (
         #     self.W_clone.max(axis=1, keepdims=True) - self.W_clone.min(axis=1, keepdims=True))
 
+        # re-tuning
+        if self._is_retuning:
+            self._re_tuning()
+
     def step(self, x: np.ndarray=None):
 
         """
@@ -312,7 +364,6 @@ class PCNNetwork:
 
             # define weights
             W = self.Wff * (1 - self.W_cold_mask) + self.W_clone * self.W_cold_mask
-            self.var1 = W.copy()
 
             # step
             self.Ix = W @ x * (1 - self.W_cold_mask) + cosine_similarity(W, x) * self.W_cold_mask
@@ -322,7 +373,9 @@ class PCNNetwork:
         self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(
                 N=self.N, t=self.t,
                 I=self._range, O=self.tuning, K=self._nb_per_cycle,
-                b=self._theta_freq, nb_skip=self._nb_skip)
+                b=self._theta_freq, nb_skip=self._nb_skip,
+                sigma=self._sigma_gamma
+        )
 
         # activation
         self.u = self.activation_func(
@@ -477,7 +530,7 @@ def calc_tuning(N: int, K: int, b: int) -> np.ndarray:
     return np.array([partitions[i%K] for i in range(0, N)]).reshape(-1, 1)
 
 
-def calc_gamma(t: int, O: int, b: int) -> np.ndarray:
+def calc_gamma(t: int, O: int, b: int, sigma: float=5e-6) -> np.ndarray:
 
     """
     calculate the activity as gamma cycles 
@@ -490,6 +543,9 @@ def calc_gamma(t: int, O: int, b: int) -> np.ndarray:
         Phase offset.
     b : int
         Frequency of the cycles.
+    sigma : float
+        Standard deviation of the activity. 
+        Default: 1e-6
 
     Returns
     -------
@@ -498,11 +554,11 @@ def calc_gamma(t: int, O: int, b: int) -> np.ndarray:
     """
 
     t = t % (np.pi / b) 
-    return np.exp(-(np.sin(b*(t - O))-1)**2 / 1e-6)
+    return np.exp(-(np.sin(b*(t - O))-1)**2 / sigma)
 
 
 def calc_osc(N: int, t: int, I: int, O: int, K: int, 
-             b: int, nb_skip: int=1) -> np.ndarray:
+             b: int, nb_skip: int=1, sigma: float=5e-6) -> np.ndarray:
 
     """
     calculate the oscillatory stimulation 
@@ -523,6 +579,9 @@ def calc_osc(N: int, t: int, I: int, O: int, K: int,
         Frequency of the cycles.
     nb_skip : int
         Number of cycles to skip. Default: 1
+    sigma : float
+        Standard deviation of the gamma cycles. 
+        Default: 1e-6
 
     Returns
     -------
@@ -531,7 +590,8 @@ def calc_osc(N: int, t: int, I: int, O: int, K: int,
     """
 
     return calc_turn(N=N, t=t, i=I, K=K, b=b, 
-                     nb_skip=nb_skip) * calc_gamma(t=t, O=O, b=b)
+                     nb_skip=nb_skip) * calc_gamma(t=t, O=O, b=b, 
+                                                   sigma=sigma)
 
 
 

@@ -146,25 +146,36 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
         subtitle_2 : str
             The subtitle for the second subplot.
             Default: None
+        subtitle_3 : str
+            The subtitle for the third subplot.
+        winsize_1 : int
+            The window size for the first subplot.
+            Default: 20
     """
 
     Nj = model.Nj
     N = model.N
+
+    winsize_1 = kwargs.get('winsize_1', 20)
     animaker = kwargs.get('animaker', None)
     is_anim = bool(animaker)
 
     if kwargs.get('subtitle_2', None) is None:
-        subtitle_2 = f"Temperature {np.around(model.temp.flatten(), 2)}"
+        subtitle_2 = f"Weight matrix"
     else:
         subtitle_2 = kwargs.get('subtitle_2', None)
-    
+    if kwargs.get('subtitle_3', None) is None:
+        subtitle_3 = f"u - DA"
+    else:
+        subtitle_3 = kwargs.get('subtitle_3', None)
+
     clf()
     fig = plt.figure(figsize=(20, 6))
     plt.tight_layout()
 
     ### input
     plt.subplot(221)
-    plt.imshow(X.T[:, t-20:t], cmap="Greys")
+    plt.imshow(X.T[:, t-winsize_1:t], cmap="Greys")
     plt.xticks(())
     plt.title(f"{t=}")
     plt.xlabel("ms")
@@ -176,10 +187,10 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
     plt.axvline(model._wff_max, color='red', alpha=0.9)
     for i in range(N):
         plt.plot(np.flip(model.Wff[i], axis=0), range(Nj), '-', color=colors[i], alpha=0.3)
-        plt.plot(np.flip(model.Wff[i], axis=0), range(Nj), 'o', color=colors[i], alpha=0.5)        
+        plt.plot(np.flip(model.Wff[i], axis=0), range(Nj), 'o', color=colors[i], alpha=0.5)
         plt.title(f"Weights")
     plt.yticks(())
-    plt.xlim((-0.1, 5))
+    plt.xlim((-0.1, 3))
     plt.grid()
 
     ### weight matrix
@@ -197,11 +208,13 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
         plt.plot(range(t-tm, t), record[i+1, t-tm:t], color=colors[i], alpha=0.75)
         plt.plot(range(t-tm, t), Ix[i, t-tm:t], '--', color=colors[i], alpha=0.85)
 
-    plt.fill_between(range(t-tm, t), record[0, t-tm:t], color='green', alpha=0.1, label=f"DA={np.around(model.DA, 2)} [{model.var2:.2f}]")
+    plt.fill_between(range(t-tm, t), record[0, t-tm:t], color='green', alpha=0.1, 
+                     label=f"DA={np.around(model.DA, 2)} [{model.var2:.2f}]")
 
     plt.ylabel(f"$u$={np.around(model.u.T[0], 1)}")
     plt.ylim((0, 4.3))
     plt.xlabel('ms')
+    plt.title(subtitle_3)
     plt.legend()
     plt.grid()
     plt.pause(0.001)
