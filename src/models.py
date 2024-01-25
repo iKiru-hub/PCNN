@@ -822,7 +822,6 @@ def eval_func(weights: np.ndarray, wmax: float, axis: int=1,
     return 1 - abs((err.sum())/ni)
 
 
-
 def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
 
     """
@@ -843,9 +842,24 @@ def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
 
     # if v is a matrix, calculate the cosine similarity between each row of v and w
     if len(v.shape) > 1:
-        result = v @ w / (np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w))
 
+        # calculate norms 
+        norm_vw = np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w)
+
+        # if norm is 0, return 0
+        if np.any(norm_vw == 0):
+            return np.zeros_like(v)
+
+        result = v @ w / norm_vw
     else:
+
+        # calculate norm
+        norm_vw = np.linalg.norm(v) * np.linalg.norm(w)
+
+        # if norm is 0, return 0
+        if norm_vw == 0:
+            return np.zeros_like(v)
+
         result = v @ w / (np.linalg.norm(v) * np.linalg.norm(w))
 
     # if inf or nan, return 0

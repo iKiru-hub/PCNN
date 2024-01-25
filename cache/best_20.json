@@ -1,1 +1,0 @@
-{"info": {"date": "01/12/2023 at 01:16", "model": "RateNetwork4", "game": "Track2D(fitness_size=1)"}, "genome": {"gain": 0.3, "bias": 5.6, "lr": 0.44188, "tau": 17, "wff_std": 0.001, "wff_min": 0.0, "wff_max": 3.0, "wff_tau": 125, "rule": "hebb", "std_tuning": 0.0031, "soft_beta": 89.9, "dt": 0.155, "DA_tau": 46, "bias_decay": 277, "bias_scale": 1.1, "N": 6, "Nj": 6}}
