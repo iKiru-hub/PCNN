@@ -173,8 +173,8 @@ class PCNNetwork:
 
         # softmax
         self._beta = kwargs.get('soft_beta', 15)
-        self.softmax = lambda x: np.exp(self._beta*x) / np.exp(self._beta*x).sum(axis=1,
-                                                                     keepdims=True)
+        # self.softmax = lambda x: np.exp(self._beta*x) / np.exp(self._beta*x).sum(axis=1,
+        #                                                              keepdims=True)
 
         # internal clock
         self.t = 0.
@@ -252,6 +252,24 @@ class PCNNetwork:
         self.tuning[idx_non_selective] = new_tuning
         self.tuning[idx_selective] = 0.
 
+    def _softmax(self, x: np.ndarray, beta: float=1) -> np.ndarray:
+
+        """
+        Parameters
+        ----------
+        x: np.ndarray
+            Input array
+        beta: float
+            Beta for the softmax function. Default: 1
+
+        Returns
+        -------
+        x: np.ndarray
+            Output array
+        """
+
+        return np.exp(beta*x) / np.exp(beta*x).sum(axis=1, keepdims=True)
+
     def _softmax_plus(self, x: np.ndarray, threshold: float=0.035) -> np.ndarray:
 
         """
@@ -289,6 +307,54 @@ class PCNNetwork:
 
         return x
 
+    def calc_clone(self, low_bounds_nb: int=6, beta: float=1.,
+                   threshold: float=0.04) -> np.ndarray:
+
+        """
+        Calculate the clone of the weights
+
+        Parameters
+        ----------
+        low_bounds_nb: int
+            Number of neurons to consider for the lower bound.
+            Default: 6
+        beta: float
+            Beta for the softmax function. Default: 1
+        threshold: float
+            Threshold. Default: 1e-1
+
+        Returns
+        -------
+        W_clone: np.ndarray
+            Clone of the weights
+
+        Notes
+        -----
+        Two options:
+        - calculate a lower bound as the highest nth value of 
+          the softmax 
+        - use a threshold
+        """
+
+        # calculate the softmax of the weights
+        w_soft = self._softmax(x=self.Wff, beta=beta)
+
+        # calculate the lower bound of the weights
+        low_bounds = np.sort(self._softmax(x=self.Wff),
+                             axis=1)[:, -low_bounds_nb].reshape(-1, 1)
+
+        # trim the weights
+        w_trim = np.where(w_soft < low_bounds, 0, w_soft)
+
+        # clip the weights
+        # w_trim = np.where(w_soft < threshold, 0., w_soft)
+
+        # normalize such that each row sums to 1
+        w_trim = w_trim / w_trim.sum(axis=1, keepdims=True)
+
+        # set nan to 0
+        return np.nan_to_num(w_trim, nan=0, posinf=0, neginf=0)
+
     def _update(self, x: np.ndarray):
 
         """
@@ -306,13 +372,14 @@ class PCNNetwork:
 
         # calculate the softmax of the weights
         # w_soft = self.softmax(self.Wff)
-        w_soft = self._softmax_plus(self.Wff)
+        # w_soft = self._softmax_plus(self.Wff)
+        w_soft = self._softmax(x=self.Wff, beta=1 + self._beta * self.temp)
 
         # update weights
         self.Wff += self._lr * self.u * x.T * w_soft * self.DA * \
             (1 - 1*(self.temp == 1.))
 
-        self.var1 = w_soft.copy()
+        # self.var1 = w_soft.copy()
 
         # clip weights
         self.Wff = self.Wff.clip(min=self._wff_min, 
@@ -333,14 +400,17 @@ class PCNNetwork:
         self.W_old = self.Wff.copy()
 
         # weight clone
-        self.W_clone = self.softmax(self.Wff) 
-        self.W_clone = np.where(self.W_clone < 0.1, 0., self.W_clone)
+        self.W_clone = self.calc_clone(low_bounds_nb=6, beta=0.5)
+        # self.W_clone = self.softmax(self.Wff)
+        # self.W_clone = np.exp(self.Wff) / np.exp(self.Wff).sum(axis=1, keepdims=True)
+        # self.W_clone = self._softmax(x=self.Wff, beta=0.3)
+        # self.W_clone = np.where(self.W_clone < 0.04, 0., self.W_clone)
 
         # normalize such that each row sums to 1
-        self.W_clone = 1.*self.W_clone / self.W_clone.sum(axis=1, keepdims=True)
+        # self.W_clone = 1.*self.W_clone / self.W_clone.sum(axis=1, keepdims=True)
 
         # set nan to 0
-        self.W_clone = np.nan_to_num(self.W_clone, nan=0, posinf=0, neginf=0)
+        # self.W_clone = np.nan_to_num(self.W_clone, nan=0, posinf=0, neginf=0)
         # self.W_clone = (self.W_clone - self.W_clone.min(axis=1, keepdims=True)) / (
         #     self.W_clone.max(axis=1, keepdims=True) - self.W_clone.min(axis=1, keepdims=True))
 
@@ -366,8 +436,10 @@ class PCNNetwork:
             W = self.Wff * (1 - self.W_cold_mask) + self.W_clone * self.W_cold_mask
 
             # step
-            self.Ix = W @ x * (1 - self.W_cold_mask) + cosine_similarity(W, x) * self.W_cold_mask
+            self.Ix = W @ x * (1 - self.W_cold_mask) + cosine_similarity(W.T, x) * self.W_cold_mask
             # self.Ix = cosine_similarity(W, x) * self.W
+
+            self.var1 = W.copy()
 
         # calculate synaptic current
         self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(
@@ -843,7 +915,9 @@ def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
 
     # if v is a matrix, calculate the cosine similarity between each row of v and w
     if len(v.shape) > 1:
-        result = v @ w / (np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w))
+        # result = v @ w / (np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w))
+        result = (v.T @ w) / (np.linalg.norm(v.T, axis=1, keepdims=False).reshape(-1, 1) * \
+            np.linalg.norm(w.T, axis=1, keepdims=False).reshape(-1, 1))
 
     else:
         result = v @ w / (np.linalg.norm(v) * np.linalg.norm(w))

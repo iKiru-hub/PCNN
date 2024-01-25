@@ -186,8 +186,10 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
     plt.axvline(0, color='black', alpha=0.3)
     plt.axvline(model._wff_max, color='red', alpha=0.9)
     for i in range(N):
-        plt.plot(np.flip(model.Wff[i], axis=0), range(Nj), '-', color=colors[i], alpha=0.3)
-        plt.plot(np.flip(model.Wff[i], axis=0), range(Nj), 'o', color=colors[i], alpha=0.5)
+        # plt.plot(np.flip(model.Wff[i], axis=0), range(Nj), '-', color=colors[i], alpha=0.3)
+        # plt.plot(np.flip(model.Wff[i], axis=0), range(Nj), 'o', color=colors[i], alpha=0.5)
+        plt.plot(np.flip(model.W_clone[i], axis=0), range(Nj), '-', color=colors[i], alpha=0.3)
+        plt.plot(np.flip(model.W_clone[i], axis=0), range(Nj), 'o', color=colors[i], alpha=0.5)
         plt.title(f"Weights")
     plt.yticks(())
     plt.xlim((-0.1, 3))
