@@ -875,7 +875,7 @@ def eval_func(weights: np.ndarray, wmax: float, axis: int=1,
     # overridde ni if Nj_trg is given
     nj = Nj_trg if Nj_trg is not None else nj
 
-    # places that are legitimitely empty
+    # places that are legitimately empty
     nb_empty = 1*((axis==0)*(nj>ni)*(nj - ni) + (axis==1)*(nj<ni)*(ni - nj))
 
     # sum of weights (along axis) that are above 85% of the max weight
@@ -892,6 +892,56 @@ def eval_func(weights: np.ndarray, wmax: float, axis: int=1,
 
     # fraction of neurons that are doing ok
     return 1 - abs((err.sum())/ni)
+
+
+def eval_func_2(model: object, trajectory: np.ndarray, target: float=None) -> float:
+
+    """
+    Evaluate the model by its activity.
+    Two options:
+    - if target is given, calculate the error between the target and the activity
+    - if target is not given, calculate the sum of the activity
+
+    Parameters
+    ----------
+    model : object
+        The model object.
+    trajectory : np.ndarray
+        The input trajectory.
+    target : float
+        The target value. Default: None
+
+    Returns
+    -------
+    score : float
+        Score associated to the activity.
+    """
+
+
+    # set model
+    model._plastic = False
+    model._bias = 0.8
+    model._gain = 5
+
+    # 
+    score = 0.
+
+    # evaluate
+    for t, x in enumerate(trajectory):
+
+        # step
+        model.step(x=x.reshape(-1, 1))   
+
+        # calculate the norm of the population activity
+        u_norm = np.linalg.norm(model.u)
+
+        if target is not None:
+            error += (target - u_norm)*2
+        else:
+            score += u_norm
+
+    # return the score normalized by the number of time steps
+    return score / len(trajectory)
 
 
 
