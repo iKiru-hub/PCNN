@@ -22,11 +22,11 @@ import inputools.Trajectory as it
 
 data_settings = {
     'duration': 10,
-    'dt': 0.01,
+    'dt': 1e-1,
     'speed': [0.01, 0.01],
     'prob_turn': 0.001,
     'k_average': 200,
-    'sigma': 0.001
+    'sigma': 0.005
 }
 
 
@@ -62,7 +62,6 @@ def make_2D_data(Nj: int) -> tuple:
 
     return layer.parse_trajectory(trajectory=trajectory), \
         layer.parse_trajectory(trajectory=whole_track)
-
 
 
 class Env:
@@ -218,12 +217,14 @@ class Env:
 FIXED_PARAMETERS = {
   'gain': 8.0,
   'bias': 0.8,
-  # 'lr': 0.2,
+  'lr': 0.8,
   # 'tau': 200,
   'wff_min': 0.0,
   'wff_max': 2.,
-  'wff_tau': 1_000,
+  # 'wff_tau': 1_000,
   # 'soft_beta': 1,
+  # 'beta_clone': 0.5,
+  # 'low_bounds_nb': 3,
   'N': 5,
   'Nj': 5,
   'DA_tau': 3,
@@ -250,6 +251,8 @@ PARAMETERS = {
     'wff_max': lambda: round(random.uniform(1.0, 10.0), 1),
     'wff_tau': lambda: random.choice(range(300, 1500, 50)),
     'soft_beta': lambda: random.randint(1, 20)/10,
+    'beta_clone': lambda: random.randint(1, 20)/10,
+    'low_bounds_nb': lambda: random.randint(1, 10),
     'DA_tau': lambda: random.randint(1, 200),
     'bias_decay': lambda: random.randint(1, 400),
     'bias_scale': lambda: round(random.uniform(0.5, 1.5), 2),

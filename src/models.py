@@ -92,6 +92,11 @@ class PCNNetwork:
                 Whether the network is plastic. Default: True
             soft_beta: float
                 Beta for the softmax function. Default: 10
+            beta_clone: float
+                Beta for the clone of the weights. Default: 0.5
+            low_bounds_nb: int
+                Number of neurons to consider for the lower bound.
+                Default: 6
             wff_max: float
                 Maximum value of the feedforward weights. Default: 3
             wff_min: float
@@ -173,6 +178,8 @@ class PCNNetwork:
 
         # softmax
         self._beta = kwargs.get('soft_beta', 15)
+        self._beta_clone = kwargs.get('beta_clone', 0.5)
+        self._low_bounds_nb = kwargs.get('low_bounds_nb', 6)
         # self.softmax = lambda x: np.exp(self._beta*x) / np.exp(self._beta*x).sum(axis=1,
         #                                                              keepdims=True)
 
@@ -307,7 +314,7 @@ class PCNNetwork:
 
         return x
 
-    def calc_clone(self, low_bounds_nb: int=6, beta: float=1.,
+    def _calc_clone(self, low_bounds_nb: int=6, beta: float=1.,
                    threshold: float=0.04) -> np.ndarray:
 
         """
@@ -400,7 +407,8 @@ class PCNNetwork:
         self.W_old = self.Wff.copy()
 
         # weight clone
-        self.W_clone = self.calc_clone(low_bounds_nb=6, beta=0.5)
+        self.W_clone = self._calc_clone(low_bounds_nb=self._low_bounds_nb, 
+                                        beta=self._beta_clone)
         # self.W_clone = self.softmax(self.Wff)
         # self.W_clone = np.exp(self.Wff) / np.exp(self.Wff).sum(axis=1, keepdims=True)
         # self.W_clone = self._softmax(x=self.Wff, beta=0.3)
