@@ -380,10 +380,10 @@ class PCNNetwork:
         # calculate the softmax of the weights
         # w_soft = self.softmax(self.Wff)
         # w_soft = self._softmax_plus(self.Wff)
-        w_soft = self._softmax(x=self.Wff, beta=1 + self._beta * self.temp)
+        # w_soft = self._softmax(x=self.Wff, beta=1 + self._beta * self.temp)
 
-        # update weights
-        self.Wff += self._lr * self.u * x.T * w_soft * self.DA * \
+        # update weights | NB: `w_soft` is omitted
+        self.Wff += self._lr * self.u * x.T * self.DA * \
             (1 - 1*(self.temp == 1.))
 
         # self.var1 = w_soft.copy()
@@ -393,7 +393,8 @@ class PCNNetwork:
                                  max=self._wff_max)
 
         # weight decay
-        self.Wff += (- self.Wff / self._wff_tau) * (1 - self.temp)
+        self.Wff += (- self.Wff / self._wff_tau) * (1 - self.temp) 
+        # self.Wff = self.Wff - 0.5*self.Wff * (1 - (self.Wff.sum(axis=1, keepdims=True) > 0.2))
 
         # temperature
         self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
@@ -483,6 +484,31 @@ class PCNNetwork:
         """
 
         return self.u.copy()
+
+    def set_off(self, bias: float=None, gain: float=None):
+
+        """
+        Turn off plasticity
+
+        Parameters
+        ----------
+        bias: float
+            Bias of the activation function.
+            Default: None
+        gain: float
+            Gain of the activation function.
+            Default: None
+        """
+
+        self._plastic = False
+        self._IS_magnitude = 0
+        self.Wff = np.where(self.Wff < 0.001, 0., self.Wff)
+
+        if bias is not None:
+            self._bias = bias * np.ones((self.N, 1))
+        if gain is not None:
+            self._gain = gain
+
 
     def set_dims(self, N: int, Nj: int):
 
@@ -951,6 +977,65 @@ def eval_func_2(model: object, trajectory: np.ndarray, target: float=None) -> fl
     # return the score normalized by the number of time steps
     return score / len(trajectory)
 
+
+def eval_information(model: object, trajectory: np.ndarray, 
+                     **kwargs) -> tuple:
+
+    """
+    Evaluate the model by its information content.
+
+    Parameters
+    ----------
+    model : object
+        The model object.
+    trajectory : np.ndarray
+        The input trajectory.
+
+    Returns
+    -------
+    max_value : float
+        Maximum information content.
+    diff : float
+        Difference between the maximum information content and the mean.
+        NB: the lower the better.
+    max_wi : float
+        Maximum weight sum over i.
+    """
+
+    # record the population activity for the whole track
+    AT = []
+    A = np.empty(len(trajectory))
+    model._plastic = False
+
+    for t, x in enumerate(trajectory):
+        model.step(x=x.reshape(-1, 1))   
+        AT += [tuple(np.around(model.u.flatten(), 1))]
+        A[t] = model.u.sum()
+
+    # assign a probability (frequency) for each unique pattern
+    AP = {}
+    for a in AT:
+        if a in AP.keys():
+            AP[a] += 1
+            continue
+        AP[a] = 1
+
+    for k, v in AP.items():
+        AP[k] = v / AT.__len__()
+
+    # compute the information content at each point in the track 
+    IT = np.empty(len(trajectory))
+    for t, a in enumerate(AT):
+        IT[t] = - np.log2(AP[a])
+
+    # calculate and return the information content-related metrics
+    mean = IT.mean()
+    # max_mean_diff = -(IT.max() - mean)
+
+    # another metric, regarding the weights 
+    max_wi = -model.Wff.sum(axis=0).max()
+
+    return mean, 0, max_wi
 
 
 def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:

@@ -21,12 +21,12 @@ import inputools.Trajectory as it
 # --------------
 
 data_settings = {
-    'duration': 10,
+    'duration': 5,
     'dt': 1e-1,
     'speed': [0.01, 0.01],
-    'prob_turn': 0.001,
-    'k_average': 200,
-    'sigma': 0.005
+    'prob_turn': 0.002,
+    'k_average': 300,
+    'sigma': 0.01
 }
 
 
@@ -67,7 +67,9 @@ def make_2D_data(Nj: int) -> tuple:
 class Env:
 
     def __init__(self,n_samples: int=1, 
-                 make_data: callable=make_2D_data, **kwargs):
+                 make_data: callable=make_2D_data, 
+                 eval_func: callable=mm.eval_func_2, 
+                 **kwargs):
 
         """
         The game class.
@@ -79,6 +81,9 @@ class Env:
         make_data : callable
             The function to make the dataset.
             Default: make_1D_data
+        eval_func : callable
+            The evaluation function.
+            Default: eval_func_2
         **kwargs : dict
             n_pop : int
                 The population size.
@@ -105,6 +110,7 @@ class Env:
             self._Nj_set = kwargs.get("Nj_set")
         self._dataset = None
         self._dataset_whole = None
+        self._eval_func = eval_func
         self._make_data = make_data
         self._make_new_data()
 
@@ -184,10 +190,12 @@ class Env:
                                 trajectory=self._dataset[i])
 
             # evaluate the agent
-            fitness_tot += np.array([mm.eval_func_2(
+            fitness_trial = self._eval_func(
                                         model=agent.model,
                                         trajectory=self._dataset_whole[i],
-                                        target=self._target)])
+                                        target=self._target)
+
+            fitness_tot += np.array(fitness_trial)
 
         # check nan
         if np.isnan(fitness_tot).any():
@@ -215,19 +223,19 @@ class Env:
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
-  'gain': 8.0,
+  'gain': 5.0,
   'bias': 0.8,
   'lr': 0.8,
   # 'tau': 200,
   'wff_min': 0.0,
   'wff_max': 2.,
-  # 'wff_tau': 1_000,
+  # 'wff_tau': 400,
   # 'soft_beta': 1,
   # 'beta_clone': 0.5,
   # 'low_bounds_nb': 3,
   'N': 5,
   'Nj': 5,
-  'DA_tau': 3,
+  # 'DA_tau': 3,
   'bias_scale': 0.0,
   'bias_decay': 100,
   'IS_magnitude': 20,
@@ -271,11 +279,15 @@ if __name__ == "__main__" :
 
     # ---| Setup |---
 
-    fitness_weights = (1.,)
+    fitness_weights = (1., 1., 1.)
     model = mm.PCNNetwork
-    NPOP = 150
+    NPOP = 50
     NGEN = 1000
     NUM_CORES = 6  # out of 8
+
+    # Ignore runtime warnings
+    import warnings
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     # ---| CMA-ES |---
 
@@ -294,9 +306,13 @@ if __name__ == "__main__" :
     # ---| Game |---
     # -> see above for the specification of the data settings
     n_samples = 2
-    nj_set = [int(i**2) for i in np.linspace(6, 8, n_samples, endpoint=True)]
-    env = Env(n_samples=n_samples, make_data=make_2D_data,
-              n_pop=NPOP, new_dataset_period=2, Nj_set=nj_set,
+    nj_set = [int(i**2) for i in np.linspace(6, 9, n_samples, endpoint=True)]
+    env = Env(n_samples=n_samples,
+              make_data=make_2D_data,
+              eval_func=mm.eval_information,
+              n_pop=NPOP,
+              new_dataset_period=2,
+              Nj_set=[36, 49, 64],
               fitness_size=len(fitness_weights))
 
     # ---| Evolution |---
@@ -325,8 +341,10 @@ if __name__ == "__main__" :
     # ---| Visualisation |---
 
     visualizer = me.Visualizer(settings=settings, online=True,
+                               target=None,
                                k_average=20,
-                               fitness_size=len(fitness_weights))
+                               fitness_size=len(fitness_weights),
+                               ylims=None)
 
     # ---| save |---
     save = bool(1)
@@ -337,7 +355,7 @@ if __name__ == "__main__" :
     # get number of files in the cache
     n_files = len([f for f in os.listdir(path) \
         if os.path.isfile(os.path.join(path, f))])
-    filename = "best_" + str(n_files) + "_pcnn_g"
+    filename = str(n_files+1) + "_best_pcnn_g"
 
     # extra information 
     info = {
