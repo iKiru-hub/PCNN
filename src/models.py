@@ -380,10 +380,10 @@ class PCNNetwork:
         # calculate the softmax of the weights
         # w_soft = self.softmax(self.Wff)
         # w_soft = self._softmax_plus(self.Wff)
-        # w_soft = self._softmax(x=self.Wff, beta=1 + self._beta * self.temp)
+        w_soft = self._softmax(x=self.Wff, beta=1 + self._beta * self.temp)
 
         # update weights | NB: `w_soft` is omitted
-        self.Wff += self._lr * self.u * x.T * self.DA * \
+        self.Wff += self._lr * self.u * x.T * self.DA * w_soft * \
             (1 - 1*(self.temp == 1.))
 
         # self.var1 = w_soft.copy()
@@ -400,8 +400,8 @@ class PCNNetwork:
         self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
 
         # calculate the weight cold mask
-        self.W_cold_mask = 1 == (self.temp * (1 - np.around(self.W_deriv.sum(axis=1),
-                                                            3).reshape(-1, 1)))            
+        self.W_cold_mask = 1 == (self.temp * (1 - \
+            np.around(self.W_deriv.sum(axis=1), 3).reshape(-1, 1)))            
 
         # weight derivative 
         self.W_deriv += - self.W_deriv / 10 + np.abs(self.Wff - self.W_old)
@@ -1029,13 +1029,15 @@ def eval_information(model: object, trajectory: np.ndarray,
         IT[t] = - np.log2(AP[a])
 
     # calculate and return the information content-related metrics
-    mean = IT.mean()
-    # max_mean_diff = -(IT.max() - mean)
+    mean = np.clip(IT, -5, 5).mean()
+    std = IT.std()
 
     # another metric, regarding the weights 
-    max_wi = -model.Wff.sum(axis=0).max()
+    # square of the difference between the maximum weight sum over i 
+    # and the maximum weight
+    max_wi = model.Wff.sum(axis=0).max()
 
-    return mean, 0, max_wi
+    return mean, -std, 0#-max_wi
 
 
 def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:

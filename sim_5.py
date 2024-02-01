@@ -11,7 +11,7 @@ import inputools.Trajectory as it
 
 """
 - model: RateNetwork7
-- fitness: eval_func_2
+- fitness: eval_information
 """
 
 
@@ -26,11 +26,15 @@ data_settings = {
     'speed': [0.01, 0.01],
     'prob_turn': 0.002,
     'k_average': 300,
-    'sigma': 0.01
+    'sigma_pc': 0.01,
+    'sigma_bc': 0.075,
+    'Npc': 5**2,
+    'Nbc': 4*3,
+    'layer': None,
 }
 
 
-def make_2D_data(Nj: int) -> tuple:
+def make_2D_data() -> tuple:
 
     """
     Make the dataset.
@@ -48,7 +52,24 @@ def make_2D_data(Nj: int) -> tuple:
         The trajectory of the whole track.
     """
 
-    layer = it.PlaceLayer(N=Nj, sigma=data_settings['sigma'])
+    global data_settings
+
+    # layer = it.InputNetwork(layers=[
+    #     it.PlaceLayer(N=data_settings['Npc'], 
+    #                   sigma=data_settings['sigma_pc']),
+    #     it.BorderLayer(N=data_settings['Nbc'], 
+    #                    sigma=data_settings['sigma_bc'])
+    # ])
+
+    layer = it.InputNetwork(layers=[
+        it.GridLayer(N=data_settings['Npc'], 
+                      sigma=data_settings['sigma_pc'],
+                     scale=np.array([1.3, 1.3])),
+        it.BorderLayer(N=data_settings['Nbc'], 
+                       sigma=data_settings['sigma_bc'])
+    ])
+
+    data_settings['layer'] = layer.__repr__()
 
     # Create a trajectory
     trajectory = it.make_trajectory(duration=data_settings['duration'],
@@ -65,6 +86,10 @@ def make_2D_data(Nj: int) -> tuple:
 
 
 class Env:
+
+    """
+    `Nj_set` is not present in this variant
+    """
 
     def __init__(self,n_samples: int=1, 
                  make_data: callable=make_2D_data, 
@@ -102,12 +127,9 @@ class Env:
         self.new_dataset_period = kwargs.get(
             "new_dataset_period", 3) * kwargs.get("n_pop", 30)
         self._target = kwargs.get("target", None)
+        self.Nj = data_settings['Npc'] + data_settings['Nbc']
 
         # make dataset
-        if kwargs.get("Nj_set", None) is None:
-            self._Nj_set = [i**2 for i in range(4, 4 + n_samples)]
-        else:
-            self._Nj_set = kwargs.get("Nj_set")
         self._dataset = None
         self._dataset_whole = None
         self._eval_func = eval_func
@@ -156,8 +178,8 @@ class Env:
         self._dataset = []
         self._dataset_whole = []
 
-        for Nj in self._Nj_set:
-            dataset, dataset_whole = self._make_data(Nj=Nj)
+        for _ in range(self._n_samples):
+            dataset, dataset_whole = self._make_data()
             self._dataset.append(dataset)
             self._dataset_whole.append(dataset_whole)
 
@@ -183,7 +205,7 @@ class Env:
 
             # update the agent
             N = random.randint(20, 40)
-            agent.model.set_dims(N=N, Nj=self._Nj_set[i])
+            agent.model.set_dims(N=N, Nj=self.Nj)
 
             # test the agent on the dataset
             agent = self._train(agent=agent, 
@@ -228,14 +250,14 @@ FIXED_PARAMETERS = {
   'lr': 0.8,
   # 'tau': 200,
   'wff_min': 0.0,
-  'wff_max': 2.,
+  # 'wff_max': 2.,
   # 'wff_tau': 400,
   # 'soft_beta': 1,
   # 'beta_clone': 0.5,
   # 'low_bounds_nb': 3,
   'N': 5,
   'Nj': 5,
-  # 'DA_tau': 3,
+  'DA_tau': 3,
   'bias_scale': 0.0,
   'bias_decay': 100,
   'IS_magnitude': 20,
@@ -266,7 +288,7 @@ PARAMETERS = {
     'bias_scale': lambda: round(random.uniform(0.5, 1.5), 2),
     'IS_magnitude': lambda: round(random.uniform(0.1, 15.0), 1),
     'is_retuning': lambda: random.choice((True, False)),
-    'theta_freq': lambda: random.choice(np.arange(0, 0.1, 0.001)),
+    'theta_freq': lambda: random.choice(np.arange(0.001, 0.01, 0.001)),
     'theta_freq_increase': lambda: random.uniform(0.01, 0.5),
     'sigma_gamma': lambda: random.choice(np.arange(1e-6, 1e-4, 5e-6)),
     'nb_per_cycle': lambda: random.randint(3, 10),
@@ -281,7 +303,7 @@ if __name__ == "__main__" :
 
     fitness_weights = (1., 1., 1.)
     model = mm.PCNNetwork
-    NPOP = 50
+    NPOP = 150
     NGEN = 1000
     NUM_CORES = 6  # out of 8
 
@@ -306,13 +328,12 @@ if __name__ == "__main__" :
     # ---| Game |---
     # -> see above for the specification of the data settings
     n_samples = 2
-    nj_set = [int(i**2) for i in np.linspace(6, 9, n_samples, endpoint=True)]
+    # nj_set = [int(i**2) for i in np.linspace(6, 9, n_samples, endpoint=True)]
     env = Env(n_samples=n_samples,
               make_data=make_2D_data,
               eval_func=mm.eval_information,
               n_pop=NPOP,
               new_dataset_period=2,
-              Nj_set=[36, 49, 64],
               fitness_size=len(fitness_weights))
 
     # ---| Evolution |---
@@ -355,7 +376,7 @@ if __name__ == "__main__" :
     # get number of files in the cache
     n_files = len([f for f in os.listdir(path) \
         if os.path.isfile(os.path.join(path, f))])
-    filename = str(n_files+1) + "_best_pcnn_g"
+    filename = str(n_files+1) + "_best_pcnn_h"
 
     # extra information 
     info = {
@@ -363,7 +384,8 @@ if __name__ == "__main__" :
         "model": model.__name__,
         "game": env.__repr__(),
         "evolved": [key for key in PARAMETERS.keys() if key not in FIXED_PARAMETERS.keys()],
-        "data": data_settings
+        "data": data_settings,
+        "other": "trained with mixed layers"
     }
 
     # ---| Run |---

@@ -2,8 +2,7 @@ import numpy as np
 import time, os
 import random
 from deap import base, creator, tools, cma
-import src.mod_models as mm
-import src.mod_stimulation as ms
+import src.models as mm
 
 from tools.utils import logger
 import tools.evolutions as me
@@ -12,7 +11,7 @@ import inputools.Trajectory as it
 
 """
 - model: RateNetwork7
-- fitness: eval_func 
+- fitness: eval_information
 """
 
 
@@ -22,16 +21,56 @@ import inputools.Trajectory as it
 # --------------
 
 data_settings = {
-    'duration': 40,
-    'dt': 0.001,
-    'Np': 0.6,  # note that Np is the proportion of Nj for defining the number of patterns
-    'cycles': 2,
+    'duration': 5,
+    'dt': 1e-1,
+    'speed': [0.01, 0.01],
+    'prob_turn': 0.002,
+    'k_average': 300,
+    'sigma': 0.1
 }
+
+
+def make_2D_data(Nj: int) -> tuple:
+
+    """
+    Make the dataset.
+
+    Parameters
+    ----------
+    Nj : int
+        Number of neurons.
+
+    Returns
+    -------
+    trajectory_pc : np.ndarray
+        The trajectory of the place cells.
+    trajectory_pc : np.ndarray
+        The trajectory of the whole track.
+    """
+
+    # layer = it.PlaceLayer(N=Nj, sigma=data_settings['sigma'])
+    layer = it.BorderLayer(N=Nj, sigma=data_settings['sigma'])
+
+    # Create a trajectory
+    trajectory = it.make_trajectory(duration=data_settings['duration'],
+                                      dt=data_settings['dt'],
+                                      speed=data_settings['speed'], 
+                                      prob_turn=data_settings['prob_turn'],
+                                      k_average=data_settings['k_average'])
+
+    # make whole track trajectory
+    whole_track = it.make_whole_walk(dx=0.01)
+
+    return layer.parse_trajectory(trajectory=trajectory), \
+        layer.parse_trajectory(trajectory=whole_track)
 
 
 class Env:
 
-    def __init__(self,n_samples: int=1, **kwargs):
+    def __init__(self,n_samples: int=1, 
+                 make_data: callable=make_2D_data, 
+                 eval_func: callable=mm.eval_func_2, 
+                 **kwargs):
 
         """
         The game class.
@@ -40,22 +79,30 @@ class Env:
         ----------
         n_samples : int
             number of samples to average over.
+        make_data : callable
+            The function to make the dataset.
+            Default: make_1D_data
+        eval_func : callable
+            The evaluation function.
+            Default: eval_func_2
         **kwargs : dict
             n_pop : int
                 The population size.
             new_dataset_period : int
                 The period to make a new dataset.
-
+            target : float 
+                target population activity.
+            fitness_size : int
+                The size of the fitness.
+                Default: 1
         """
 
         # 
-        self.fitness_size = 2
-        self._Np = data_settings['Np']
-        self._cycles = data_settings['cycles']
-        self._T = data_settings['duration'] / data_settings['dt']
+        self.fitness_size = kwargs.get("fitness_size", 1)
         self._n_samples = n_samples
         self.new_dataset_period = kwargs.get(
             "new_dataset_period", 3) * kwargs.get("n_pop", 30)
+        self._target = kwargs.get("target", None)
 
         # make dataset
         if kwargs.get("Nj_set", None) is None:
@@ -63,7 +110,9 @@ class Env:
         else:
             self._Nj_set = kwargs.get("Nj_set")
         self._dataset = None
-        self._local_np = None
+        self._dataset_whole = None
+        self._eval_func = eval_func
+        self._make_data = make_data
         self._make_new_data()
 
         # variables
@@ -106,21 +155,12 @@ class Env:
         """
 
         self._dataset = []
-        self._local_np = []
+        self._dataset_whole = []
 
         for Nj in self._Nj_set:
-
-            # pick a number of patterns proportional to Nj
-            Np = int(Nj * self._Np)
-
-            # adjust T such that it is divided by Nj without remainder
-            T = int(self._T - (self._T % Np))
-
-            # make dataset
-            self._dataset += [it.make_patterned_input(N=Nj, T=T, Np=Np, 
-                                                      binary=True,
-                                              cycles=self._cycles)]
-            self._local_np += [Np]
+            dataset, dataset_whole = self._make_data(Nj=Nj)
+            self._dataset.append(dataset)
+            self._dataset_whole.append(dataset_whole)
 
     def run(self, agent: object) -> float:
 
@@ -138,27 +178,25 @@ class Env:
             The fitness value.
         """
 
+
         fitness_tot = np.zeros(self.fitness_size)
         for i in range(self._n_samples):
 
-            # update the dataset
-            dataset = self._dataset[i]
-
             # update the agent
-            N = random.randint(10, 30)
+            N = random.randint(20, 40)
             agent.model.set_dims(N=N, Nj=self._Nj_set[i])
 
             # test the agent on the dataset
             agent = self._train(agent=agent, 
-                                trajectory=dataset)
+                                trajectory=self._dataset[i])
 
             # evaluate the agent
-            fitness_tot += np.array([mm.eval_func(weights=agent.model.Wff.copy(), 
-                                                  wmax=agent.model._wff_max,
-                                                  axis=0),
-                                     mm.eval_func(weights=agent.model.Wff.copy(),
-                                                  wmax=agent.model._wff_max,
-                                                  axis=1, Nj_trg=self._local_np[i])])
+            fitness_trial = self._eval_func(
+                                        model=agent.model,
+                                        trajectory=self._dataset_whole[i],
+                                        target=self._target)
+
+            fitness_tot += np.array(fitness_trial)
 
         # check nan
         if np.isnan(fitness_tot).any():
@@ -186,27 +224,27 @@ class Env:
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
-  'gain': 7.0,
-  # 'bias': 1.5,
-  # 'lr': 0.2,
+  'gain': 5.0,
+  'bias': 0.8,
+  'lr': 0.8,
   # 'tau': 200,
-  'wff_std': 0.0,
   'wff_min': 0.0,
-  # 'wff_max': 1.,
-  # 'wff_tau': 6_000,
-  'std_tuning': 0.0,
-  # 'soft_beta': 30,
-  'dt': 1,
+  # 'wff_max': 2.,
+  # 'wff_tau': 400,
+  # 'soft_beta': 1,
+  # 'beta_clone': 0.5,
+  # 'low_bounds_nb': 3,
   'N': 5,
   'Nj': 5,
   'DA_tau': 3,
   'bias_scale': 0.0,
   'bias_decay': 100,
-  # 'IS_magnitude': 6,
+  'IS_magnitude': 20,
   'is_retuning': False,
   # 'theta_freq': 0.004,
-  # 'theta_freq_increase': 0.16,
-  # 'nb_per_cycle': 5,
+  'theta_freq_increase': 0.16,
+  # 'sigma_gamma': 5e-6,
+  'nb_per_cycle': 5,
   'plastic': True,
   'nb_skip': 2
 }
@@ -218,20 +256,20 @@ PARAMETERS = {
     'bias': lambda: round(random.uniform(0, 30), 1),
     'lr': lambda: round(random.uniform(1e-0, 1e-5), 5),
     'tau': lambda: random.randint(1, 10),
-    'wff_std': lambda: round(random.uniform(0, 3.0), 2),
     'wff_min': lambda: round(random.uniform(.0, 1.0), 1),
     'wff_max': lambda: round(random.uniform(1.0, 10.0), 1),
     'wff_tau': lambda: random.choice(range(300, 1500, 50)),
-    'std_tuning': lambda: round(random.uniform(0, 1e-3), 4),
-    'soft_beta': lambda: round(random.uniform(0, 1e2), 1),
-    'dt': lambda: round(random.uniform(0, 1.2), 3),
+    'soft_beta': lambda: random.randint(1, 20)/10,
+    'beta_clone': lambda: random.randint(1, 20)/10,
+    'low_bounds_nb': lambda: random.randint(1, 10),
     'DA_tau': lambda: random.randint(1, 200),
     'bias_decay': lambda: random.randint(1, 400),
     'bias_scale': lambda: round(random.uniform(0.5, 1.5), 2),
     'IS_magnitude': lambda: round(random.uniform(0.1, 15.0), 1),
     'is_retuning': lambda: random.choice((True, False)),
-    'theta_freq': lambda: random.choice(np.arange(0, 0.1, 0.001)),
+    'theta_freq': lambda: random.choice(np.arange(0.001, 0.01, 0.001)),
     'theta_freq_increase': lambda: random.uniform(0.01, 0.5),
+    'sigma_gamma': lambda: random.choice(np.arange(1e-6, 1e-4, 5e-6)),
     'nb_per_cycle': lambda: random.randint(3, 10),
     'nb_skip': lambda: random.randint(1, 5),
 }
@@ -242,11 +280,15 @@ if __name__ == "__main__" :
 
     # ---| Setup |---
 
-    fitness_weights = (1., 1.)
+    fitness_weights = (1., 1., 1.)
     model = mm.PCNNetwork
-    NPOP = 30
+    NPOP = 175
     NGEN = 1000
     NUM_CORES = 6  # out of 8
+
+    # Ignore runtime warnings
+    import warnings
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     # ---| CMA-ES |---
 
@@ -264,9 +306,16 @@ if __name__ == "__main__" :
 
     # ---| Game |---
     # -> see above for the specification of the data settings
-    n_samples = 6
-    nj_set = np.linspace(10, 60, n_samples, endpoint=True).astype(int)
-    env = Env(n_samples=n_samples, n_pop=NPOP, new_dataset_period=10)
+    n_samples = 2
+    # nj_set = [int(i**2) for i in np.linspace(6, 9, n_samples, endpoint=True)]
+    nj_set = [16, 24, 28]
+    env = Env(n_samples=n_samples,
+              make_data=make_2D_data,
+              eval_func=mm.eval_information,
+              n_pop=NPOP,
+              new_dataset_period=2,
+              Nj_set=nj_set,
+              fitness_size=len(fitness_weights))
 
     # ---| Evolution |---
 
@@ -286,7 +335,7 @@ if __name__ == "__main__" :
         "CXPB": 0.6,
         "MUTPB": 0.7,
         "NLOG": 1,
-        "TARGET": (1., 1.),
+        "TARGET": (1.,),
         "TARGET_ERROR": 0.,
         "NUM_CORES": NUM_CORES,
     }
@@ -294,8 +343,10 @@ if __name__ == "__main__" :
     # ---| Visualisation |---
 
     visualizer = me.Visualizer(settings=settings, online=True,
+                               target=None,
                                k_average=20,
-                               fitness_size=len(fitness_weights))
+                               fitness_size=len(fitness_weights),
+                               ylims=None)
 
     # ---| save |---
     save = bool(1)
@@ -306,7 +357,7 @@ if __name__ == "__main__" :
     # get number of files in the cache
     n_files = len([f for f in os.listdir(path) \
         if os.path.isfile(os.path.join(path, f))])
-    filename = "best_" + str(n_files) + "_pcnn_ptt"
+    filename = str(n_files+1) + "_best_pcnn_g"
 
     # extra information 
     info = {
