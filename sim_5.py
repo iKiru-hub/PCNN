@@ -27,8 +27,8 @@ data_settings = {
     'prob_turn': 0.002,
     'k_average': 300,
     'sigma_pc': 0.01,
-    'sigma_bc': 0.075,
-    'Npc': 5**2,
+    'sigma_bc': 0.05,
+    'Npc': 6**2,
     'Nbc': 4*3,
     'layer': None,
 }
@@ -54,20 +54,20 @@ def make_2D_data() -> tuple:
 
     global data_settings
 
-    # layer = it.InputNetwork(layers=[
-    #     it.PlaceLayer(N=data_settings['Npc'], 
-    #                   sigma=data_settings['sigma_pc']),
-    #     it.BorderLayer(N=data_settings['Nbc'], 
-    #                    sigma=data_settings['sigma_bc'])
-    # ])
-
     layer = it.InputNetwork(layers=[
-        it.GridLayer(N=data_settings['Npc'], 
-                      sigma=data_settings['sigma_pc'],
-                     scale=np.array([1.3, 1.3])),
+        it.PlaceLayer(N=data_settings['Npc'], 
+                      sigma=data_settings['sigma_pc']),
         it.BorderLayer(N=data_settings['Nbc'], 
                        sigma=data_settings['sigma_bc'])
     ])
+
+    # layer = it.InputNetwork(layers=[
+    #     it.GridLayer(N=data_settings['Npc'], 
+    #                  sigma=data_settings['sigma_pc'],
+    #                  scale=np.array([1., 1.])),
+    #     it.BorderLayer(N=data_settings['Nbc'], 
+    #                    sigma=data_settings['sigma_bc'])
+    # ])
 
     data_settings['layer'] = layer.__repr__()
 
