@@ -1,6 +1,7 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
 from itertools import product as iterprod
+from scipy.signal import correlate2d, find_peaks
 import warnings
 try:
     from tools.utils import logger, tqdm_enumerate
@@ -978,6 +979,36 @@ def eval_func_2(model: object, trajectory: np.ndarray, target: float=None) -> fl
     return score / len(trajectory)
 
 
+def eval_field_modality(activation: np.ndarray) -> int:
+
+    """
+    calculate how many peaks are in the activation map
+
+    Parameters
+    ----------
+    activation : np.ndarray
+        Activation map.
+
+    Returns
+    -------
+    nb_peaks : int
+        Number of peaks.
+    """
+
+    # reshape the activation map
+    n = int(np.sqrt(activation.shape[0]))
+    activation = activation.reshape(n, n)
+
+    # Correlate the distribution with itself
+    autocorrelation = correlate2d(activation, activation, mode='full')
+
+    # Find peaks in the autocorrelation map
+    peaks_indices = find_peaks(autocorrelation[autocorrelation.shape[0]//2], 
+                               height=autocorrelation.max()/3)[0]
+
+    return len(peaks_indices)
+
+
 def eval_information(model: object, trajectory: np.ndarray, 
                      **kwargs) -> tuple:
 
@@ -1035,9 +1066,90 @@ def eval_information(model: object, trajectory: np.ndarray,
     # another metric, regarding the weights 
     # square of the difference between the maximum weight sum over i 
     # and the maximum weight
-    max_wi = model.Wff.sum(axis=0).max()
+    # max_wi = model.Wff.sum(axis=0).max()
 
-    return mean, -std, 0#-max_wi
+    # number of peaks in the activation map
+    nb_peaks = eval_field_modality(activation=A)
+
+    return mean, -std, -nb_peaks
+
+
+def eval_information_II(model: object, trajectory: np.ndarray, 
+                        whole_trajectory: np.ndarray, **kwargs) -> tuple:
+
+    """
+    Evaluate the model by its information content on the trajectory
+    and its place field on the whole trajectory.:
+    - mean information content
+    - standard deviation of the information content
+    - number of peaks in the activation map
+
+    Parameters
+    ----------
+    model : object
+        The model object.
+    trajectory : np.ndarray
+        The input trajectory.
+    whole_trajectory : np.ndarray
+        The whole input trajectory.
+
+    Returns
+    -------
+    mean_IT : float
+        Mean information content.
+    std_IT : float
+        Standard deviation of the information content.
+    nb_peaks : int
+        Number of peaks in the activation map.
+    """
+
+    # ------------------------------------------------------------ #
+    # evaluate the shape of the place field
+
+    # record the population activity for the whole track
+    A = np.empty(len(whole_trajectory))
+    model.set_off()
+
+    for t, x in enumerate(whole_trajectory):
+        model.step(x=x.reshape(-1, 1))   
+        A[t] = model.u.sum()
+
+    # number of peaks in the activation map
+    nb_peaks = eval_field_modality(activation=A)
+
+    # ------------------------------------------------------------ #
+    # evaluate the information content
+
+    # record the population activity for the trajectory
+    AT = []
+    A = np.empty(len(trajectory))
+
+    for t, x in enumerate(trajectory):
+        model.step(x=x.reshape(-1, 1))   
+        AT += [tuple(np.around(model.u.flatten(), 1))]
+        A[t] = model.u.sum()
+
+    # assign a probability (frequency) for each unique pattern
+    AP = {}
+    for a in AT:
+        if a in AP.keys():
+            AP[a] += 1
+            continue
+        AP[a] = 1
+
+    for k, v in AP.items():
+        AP[k] = v / AT.__len__()
+
+    # compute the information content at each point in the track 
+    IT = np.empty(len(trajectory))
+    for t, a in enumerate(AT):
+        IT[t] = - np.log2(AP[a])
+
+    # calculate and return the information content-related metrics
+    mean = np.clip(IT, -5, 5).mean()
+    std = IT.std()
+
+    return mean, -std, -nb_peaks
 
 
 def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:

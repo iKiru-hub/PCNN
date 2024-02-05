@@ -28,8 +28,8 @@ data_settings = {
     'k_average': 300,
     'sigma_pc': 0.01,
     'sigma_bc': 0.05,
-    'Npc': 6**2,
-    'Nbc': 4*3,
+    'Npc': 5**2,
+    'Nbc': 4*4,
     'layer': None,
 }
 
@@ -64,7 +64,7 @@ def make_2D_data() -> tuple:
     # layer = it.InputNetwork(layers=[
     #     it.GridLayer(N=data_settings['Npc'], 
     #                  sigma=data_settings['sigma_pc'],
-    #                  scale=np.array([1., 1.])),
+    #                  scale=np.array([1.1, 1.])),
     #     it.BorderLayer(N=data_settings['Nbc'], 
     #                    sigma=data_settings['sigma_bc'])
     # ])
@@ -246,8 +246,8 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
   'gain': 5.0,
-  'bias': 0.8,
-  'lr': 0.8,
+  # 'bias': 0.8,
+  # 'lr': 0.8,
   # 'tau': 200,
   'wff_min': 0.0,
   # 'wff_max': 2.,
@@ -262,7 +262,7 @@ FIXED_PARAMETERS = {
   'bias_decay': 100,
   'IS_magnitude': 20,
   'is_retuning': False,
-  # 'theta_freq': 0.004,
+  # 'theta_freq': 0.007,
   'theta_freq_increase': 0.16,
   # 'sigma_gamma': 5e-6,
   'nb_per_cycle': 5,
@@ -376,7 +376,7 @@ if __name__ == "__main__" :
     # get number of files in the cache
     n_files = len([f for f in os.listdir(path) \
         if os.path.isfile(os.path.join(path, f))])
-    filename = str(n_files+1) + "_best_pcnn_h"
+    filename = str(n_files+1) + "_best_pcnn_bpc"
 
     # extra information 
     info = {
@@ -385,7 +385,7 @@ if __name__ == "__main__" :
         "game": env.__repr__(),
         "evolved": [key for key in PARAMETERS.keys() if key not in FIXED_PARAMETERS.keys()],
         "data": data_settings,
-        "other": "trained with mixed layers"
+        "other": "trained with Border+PlaceLayer; fitness: mean I, -std I, -nb_peaks",
     }
 
     # ---| Run |---
