@@ -10,7 +10,7 @@ import inputools.Trajectory as it
 # Add the src directory to the PYTHONPATH
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src import mod_models as mm
+from src import models as mm
 
 
 N = 5
@@ -64,6 +64,19 @@ def test_training_hd():
         model.step(x=x.reshape(-1, 1))
 
 
+def test_trajectory():
+
+    # trajectory
+    trajectory = it.make_trajectory(duration=2,
+                                    dt=0.01,
+                                    speed=[0.1, 0.1], 
+                                    prob_turn=0.001,
+                                    k_average=100)
+
+    # whole track
+    whole_track = it.make_whole_walk(dx=0.01)
+
+
 def test_training_pc():
 
     # initialize the model
@@ -71,7 +84,7 @@ def test_training_pc():
     model = mm.PCNNetwork(**GENOME)
 
     # make data
-    whole_track = it.AnimalTrajectory.whole_walk(dx=0.05)
+    whole_track = it.make_whole_walk(dx=0.01)
     whole_track_pc = layer_pc.parse_trajectory(trajectory=whole_track)
 
     # train the model

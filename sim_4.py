@@ -246,11 +246,11 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
   # 'gain': 5.0,
-  'bias': 1.,
+  # 'bias': 1.,
   # 'lr': 0.8,
   # 'tau': 200,
   'wff_min': 0.0,
-  'wff_max': 3.,
+  'wff_max': 2.,
   # 'wff_tau': 400,
   # 'soft_beta': 1,
   'beta_clone': 0.3,
@@ -301,7 +301,7 @@ if __name__ == "__main__" :
 
     # ---| Setup |---
 
-    fitness_weights = (1., 1., 1.)
+    fitness_weights = (1., 1., 1., 1.)
     model = mm.PCNNetwork
     NPOP = 150
     NGEN = 1000
@@ -385,7 +385,8 @@ if __name__ == "__main__" :
         "game": env.__repr__(),
         "evolved": [key for key in PARAMETERS.keys() if key not in FIXED_PARAMETERS.keys()],
         "data": data_settings,
-        "other": "trained with Border+PlaceLayer; fitness: mean I (traj), -std I (traj), -nb_peaks",
+        "other": "trained with Border+PlaceLayer; fitness: " + \
+            "+mean I (traj), -std I (traj), -nb_peaks, +ratio",
     }
 
     # ---| Run |---

@@ -979,7 +979,7 @@ def eval_func_2(model: object, trajectory: np.ndarray, target: float=None) -> fl
     return score / len(trajectory)
 
 
-def eval_field_modality(activation: np.ndarray) -> int:
+def eval_field_modality(activation: np.ndarray, indices: bool=False) -> int:
 
     """
     calculate how many peaks are in the activation map
@@ -988,11 +988,16 @@ def eval_field_modality(activation: np.ndarray) -> int:
     ----------
     activation : np.ndarray
         Activation map.
+    indices : bool
+        Whether to return the indices of the peaks. 
+        Default: False
 
     Returns
     -------
     nb_peaks : int
         Number of peaks.
+    peaks_indices : np.ndarray
+        Indices of the peaks.
     """
 
     # reshape the activation map
@@ -1006,6 +1011,8 @@ def eval_field_modality(activation: np.ndarray) -> int:
     peaks_indices = find_peaks(autocorrelation[autocorrelation.shape[0]//2], 
                                height=autocorrelation.max()/3)[0]
 
+    if indices:
+        return len(peaks_indices), peaks_indices
     return len(peaks_indices)
 
 
@@ -1115,7 +1122,22 @@ def eval_information_II(model: object, trajectory: np.ndarray,
         A[t] = model.u.sum()
 
     # number of peaks in the activation map
-    nb_peaks = eval_field_modality(activation=A)
+    nb_peaks, peaks = eval_field_modality(activation=A, indices=True)
+
+    if len(peaks) > 0:
+        
+        lim_dx = max((peaks[0] - 10, 0))
+        lim_sx = min((peaks[0] + 10, len(A)))
+
+        # get the area (+- 20 units) around the main peak
+        on_area = A[lim_dx:lim_sx]
+        off_area = np.concatenate((A[:lim_dx], A[lim_sx:]))
+
+        # calculate the ratio of the area around the main peak
+        a_ratio = on_area.sum() / off_area.sum()
+
+    else:
+        a_ratio = 0
 
     # ------------------------------------------------------------ #
     # evaluate the information content
@@ -1149,7 +1171,7 @@ def eval_information_II(model: object, trajectory: np.ndarray,
     mean = np.clip(IT, -5, 5).mean()
     std = IT.std()
 
-    return mean, -std, -nb_peaks
+    return mean, -std, -nb_peaks, a_ratio
 
 
 def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
