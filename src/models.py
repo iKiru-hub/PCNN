@@ -346,17 +346,28 @@ class PCNNetwork:
         - use a threshold
         """
 
+
+
         # calculate the softmax of the weights
-        w_soft = self._softmax(x=self.Wff, beta=beta)
+        # w_soft = self._softmax(x=self.Wff, beta=beta)
 
         # calculate the lower bound of the weights
-        low_bounds = np.sort(self._softmax(x=self.Wff),
-                             axis=1)[:, -low_bounds_nb].reshape(-1, 1)
+        # low_bounds = np.sort(self._softmax(x=self.Wff),
+        #                      axis=1)[:, -low_bounds_nb].reshape(-1, 1)
+
+
+
+        threshold = self.Wff.max(axis=1, keepdims=True) * 0.3
+        w_trim = np.where(self.Wff < threshold, 0., self.Wff)
+        # w_trim = self._softmax(x=W, beta=beta)
+        # low_bounds = np.sort(self._softmax(x=W),
+        #                      axis=1)[:, -low_bounds_nb].reshape(-1, 1)
 
         # trim the weights
-        w_trim = np.where(w_soft < low_bounds, 0, w_soft)
+        # w_trim = np.where(w_soft < low_bounds, 0, w_soft)
 
         # clip the weights
+        # threshold = self.Wff.max(axis=1, keepdims=True) * 0.3
         # w_trim = np.where(w_soft < threshold, 0., w_soft)
 
         # normalize such that each row sums to 1
