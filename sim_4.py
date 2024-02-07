@@ -250,17 +250,15 @@ FIXED_PARAMETERS = {
   # 'lr': 0.8,
   # 'tau': 200,
   'wff_min': 0.0,
-  'wff_max': 2.,
+  # 'wff_max': 2.,
   # 'wff_tau': 400,
   # 'soft_beta': 1,
-  'beta_clone': 0.3,
+  # 'beta_clone': 0.3,
   'low_bounds_nb': 5,
   'N': 5,
   'Nj': 5,
   # 'DA_tau': 3,
-  'bias_scale': 0.0,
-  'bias_decay': 100,
-  'IS_magnitude': 20,
+  # 'IS_magnitude': 20,
   'is_retuning': False,
   # 'theta_freq': 0.007,
   'theta_freq_increase': 0.16,
@@ -303,7 +301,7 @@ if __name__ == "__main__" :
 
     fitness_weights = (1., 1., 1., 1.)
     model = mm.PCNNetwork
-    NPOP = 150
+    NPOP = 40
     NGEN = 1000
     NUM_CORES = 6  # out of 8
 

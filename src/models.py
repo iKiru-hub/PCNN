@@ -23,6 +23,8 @@ try:
 except ModuleNotFoundError:
     warnings.warn('`inputools.Trajectory` not found, some functions may not work')
 
+# suppress RuntimeWarning
+np.seterr(divide='ignore', invalid='ignore')
 
 def random_id(length: int=5) -> str:
 
@@ -509,7 +511,6 @@ class PCNNetwork:
             self._bias = bias * np.ones((self.N, 1))
         if gain is not None:
             self._gain = gain
-
 
     def set_dims(self, N: int, Nj: int):
 
