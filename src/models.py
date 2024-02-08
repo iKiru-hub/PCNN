@@ -1,6 +1,7 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
 from itertools import product as iterprod
+from scipy.signal import correlate2d, find_peaks
 import warnings
 try:
     from tools.utils import logger, tqdm_enumerate
@@ -22,6 +23,8 @@ try:
 except ModuleNotFoundError:
     warnings.warn('`inputools.Trajectory` not found, some functions may not work')
 
+# suppress RuntimeWarning
+np.seterr(divide='ignore', invalid='ignore')
 
 def random_id(length: int=5) -> str:
 
@@ -92,6 +95,11 @@ class PCNNetwork:
                 Whether the network is plastic. Default: True
             soft_beta: float
                 Beta for the softmax function. Default: 10
+            beta_clone: float
+                Beta for the clone of the weights. Default: 0.5
+            low_bounds_nb: int
+                Number of neurons to consider for the lower bound.
+                Default: 6
             wff_max: float
                 Maximum value of the feedforward weights. Default: 3
             wff_min: float
@@ -173,8 +181,10 @@ class PCNNetwork:
 
         # softmax
         self._beta = kwargs.get('soft_beta', 15)
-        self.softmax = lambda x: np.exp(self._beta*x) / np.exp(self._beta*x).sum(axis=1,
-                                                                     keepdims=True)
+        self._beta_clone = kwargs.get('beta_clone', 0.5)
+        self._low_bounds_nb = kwargs.get('low_bounds_nb', 6)
+        # self.softmax = lambda x: np.exp(self._beta*x) / np.exp(self._beta*x).sum(axis=1,
+        #                                                              keepdims=True)
 
         # internal clock
         self.t = 0.
@@ -191,6 +201,7 @@ class PCNNetwork:
         self.W_cold_mask = np.zeros((self.N, 1))
 
         #
+        self.kwargs = kwargs
         self.var1 = None
         self.var2 = None
 
@@ -252,6 +263,24 @@ class PCNNetwork:
         self.tuning[idx_non_selective] = new_tuning
         self.tuning[idx_selective] = 0.
 
+    def _softmax(self, x: np.ndarray, beta: float=1) -> np.ndarray:
+
+        """
+        Parameters
+        ----------
+        x: np.ndarray
+            Input array
+        beta: float
+            Beta for the softmax function. Default: 1
+
+        Returns
+        -------
+        x: np.ndarray
+            Output array
+        """
+
+        return np.exp(beta*x) / np.exp(beta*x).sum(axis=1, keepdims=True)
+
     def _softmax_plus(self, x: np.ndarray, threshold: float=0.035) -> np.ndarray:
 
         """
@@ -289,6 +318,65 @@ class PCNNetwork:
 
         return x
 
+    def _calc_clone(self, low_bounds_nb: int=6, beta: float=1.,
+                   threshold: float=0.04) -> np.ndarray:
+
+        """
+        Calculate the clone of the weights
+
+        Parameters
+        ----------
+        low_bounds_nb: int
+            Number of neurons to consider for the lower bound.
+            Default: 6
+        beta: float
+            Beta for the softmax function. Default: 1
+        threshold: float
+            Threshold. Default: 1e-1
+
+        Returns
+        -------
+        W_clone: np.ndarray
+            Clone of the weights
+
+        Notes
+        -----
+        Two options:
+        - calculate a lower bound as the highest nth value of 
+          the softmax 
+        - use a threshold
+        """
+
+
+
+        # calculate the softmax of the weights
+        # w_soft = self._softmax(x=self.Wff, beta=beta)
+
+        # calculate the lower bound of the weights
+        # low_bounds = np.sort(self._softmax(x=self.Wff),
+        #                      axis=1)[:, -low_bounds_nb].reshape(-1, 1)
+
+
+
+        threshold = self.Wff.max(axis=1, keepdims=True) * 0.3
+        w_trim = np.where(self.Wff < threshold, 0., self.Wff)
+        # w_trim = self._softmax(x=W, beta=beta)
+        # low_bounds = np.sort(self._softmax(x=W),
+        #                      axis=1)[:, -low_bounds_nb].reshape(-1, 1)
+
+        # trim the weights
+        # w_trim = np.where(w_soft < low_bounds, 0, w_soft)
+
+        # clip the weights
+        # threshold = self.Wff.max(axis=1, keepdims=True) * 0.3
+        # w_trim = np.where(w_soft < threshold, 0., w_soft)
+
+        # normalize such that each row sums to 1
+        w_trim = w_trim / w_trim.sum(axis=1, keepdims=True)
+
+        # set nan to 0
+        return np.nan_to_num(w_trim, nan=0, posinf=0, neginf=0)
+
     def _update(self, x: np.ndarray):
 
         """
@@ -306,41 +394,47 @@ class PCNNetwork:
 
         # calculate the softmax of the weights
         # w_soft = self.softmax(self.Wff)
-        w_soft = self._softmax_plus(self.Wff)
+        # w_soft = self._softmax_plus(self.Wff)
+        w_soft = self._softmax(x=self.Wff, beta=1 + self._beta * self.temp)
 
-        # update weights
-        self.Wff += self._lr * self.u * x.T * w_soft * self.DA * \
+        # update weights | NB: `w_soft` is omitted
+        self.Wff += self._lr * self.u * x.T * self.DA * w_soft * \
             (1 - 1*(self.temp == 1.))
 
-        self.var1 = w_soft.copy()
+        # self.var1 = w_soft.copy()
 
         # clip weights
         self.Wff = self.Wff.clip(min=self._wff_min, 
                                  max=self._wff_max)
 
         # weight decay
-        self.Wff += (- self.Wff / self._wff_tau) * (1 - self.temp)
+        self.Wff += (- self.Wff / self._wff_tau) * (1 - self.temp) 
+        # self.Wff = self.Wff - 0.5*self.Wff * (1 - (self.Wff.sum(axis=1, keepdims=True) > 0.2))
 
         # temperature
         self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
 
         # calculate the weight cold mask
-        self.W_cold_mask = 1 == (self.temp * (1 - np.around(self.W_deriv.sum(axis=1),
-                                                            3).reshape(-1, 1)))            
+        self.W_cold_mask = 1 == (self.temp * (1 - \
+            np.around(self.W_deriv.sum(axis=1), 3).reshape(-1, 1)))            
 
         # weight derivative 
         self.W_deriv += - self.W_deriv / 10 + np.abs(self.Wff - self.W_old)
         self.W_old = self.Wff.copy()
 
         # weight clone
-        self.W_clone = self.softmax(self.Wff) 
-        self.W_clone = np.where(self.W_clone < 0.1, 0., self.W_clone)
+        self.W_clone = self._calc_clone(low_bounds_nb=self._low_bounds_nb, 
+                                        beta=self._beta_clone)
+        # self.W_clone = self.softmax(self.Wff)
+        # self.W_clone = np.exp(self.Wff) / np.exp(self.Wff).sum(axis=1, keepdims=True)
+        # self.W_clone = self._softmax(x=self.Wff, beta=0.3)
+        # self.W_clone = np.where(self.W_clone < 0.04, 0., self.W_clone)
 
         # normalize such that each row sums to 1
-        self.W_clone = 1.*self.W_clone / self.W_clone.sum(axis=1, keepdims=True)
+        # self.W_clone = 1.*self.W_clone / self.W_clone.sum(axis=1, keepdims=True)
 
         # set nan to 0
-        self.W_clone = np.nan_to_num(self.W_clone, nan=0, posinf=0, neginf=0)
+        # self.W_clone = np.nan_to_num(self.W_clone, nan=0, posinf=0, neginf=0)
         # self.W_clone = (self.W_clone - self.W_clone.min(axis=1, keepdims=True)) / (
         #     self.W_clone.max(axis=1, keepdims=True) - self.W_clone.min(axis=1, keepdims=True))
 
@@ -366,8 +460,10 @@ class PCNNetwork:
             W = self.Wff * (1 - self.W_cold_mask) + self.W_clone * self.W_cold_mask
 
             # step
-            self.Ix = W @ x * (1 - self.W_cold_mask) + cosine_similarity(W, x) * self.W_cold_mask
+            self.Ix = W @ x * (1 - self.W_cold_mask) + cosine_similarity(W.T, x) * self.W_cold_mask
             # self.Ix = cosine_similarity(W, x) * self.W
+
+            self.var1 = W.copy()
 
         # calculate synaptic current
         self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(
@@ -403,6 +499,30 @@ class PCNNetwork:
         """
 
         return self.u.copy()
+
+    def set_off(self, bias: float=None, gain: float=None):
+
+        """
+        Turn off plasticity
+
+        Parameters
+        ----------
+        bias: float
+            Bias of the activation function.
+            Default: None
+        gain: float
+            Gain of the activation function.
+            Default: None
+        """
+
+        self._plastic = False
+        self._IS_magnitude = 0
+        self.Wff = np.where(self.Wff < 0.001, 0., self.Wff)
+
+        if bias is not None:
+            self._bias = bias * np.ones((self.N, 1))
+        if gain is not None:
+            self._gain = gain
 
     def set_dims(self, N: int, Nj: int):
 
@@ -803,7 +923,7 @@ def eval_func(weights: np.ndarray, wmax: float, axis: int=1,
     # overridde ni if Nj_trg is given
     nj = Nj_trg if Nj_trg is not None else nj
 
-    # places that are legitimitely empty
+    # places that are legitimately empty
     nb_empty = 1*((axis==0)*(nj>ni)*(nj - ni) + (axis==1)*(nj<ni)*(ni - nj))
 
     # sum of weights (along axis) that are above 85% of the max weight
@@ -822,6 +942,262 @@ def eval_func(weights: np.ndarray, wmax: float, axis: int=1,
     return 1 - abs((err.sum())/ni)
 
 
+<<<<<<< HEAD
+=======
+def eval_func_2(model: object, trajectory: np.ndarray, target: float=None) -> float:
+
+    """
+    Evaluate the model by its activity.
+    Two options:
+    - if target is given, calculate the error between the target and the activity
+    - if target is not given, calculate the sum of the activity
+
+    Parameters
+    ----------
+    model : object
+        The model object.
+    trajectory : np.ndarray
+        The input trajectory.
+    target : float
+        The target value. Default: None
+
+    Returns
+    -------
+    score : float
+        Score associated to the activity.
+    """
+
+
+    # set model
+    model._plastic = False
+    model._bias = 0.8
+    model._gain = 5
+
+    # 
+    score = 0.
+
+    # evaluate
+    for t, x in enumerate(trajectory):
+
+        # step
+        model.step(x=x.reshape(-1, 1))   
+
+        # calculate the norm of the population activity
+        u_norm = np.linalg.norm(model.u)
+
+        if target is not None:
+            error += (target - u_norm)*2
+        else:
+            score += u_norm
+
+    # return the score normalized by the number of time steps
+    return score / len(trajectory)
+
+
+def eval_field_modality(activation: np.ndarray, indices: bool=False) -> int:
+
+    """
+    calculate how many peaks are in the activation map
+
+    Parameters
+    ----------
+    activation : np.ndarray
+        Activation map.
+    indices : bool
+        Whether to return the indices of the peaks. 
+        Default: False
+
+    Returns
+    -------
+    nb_peaks : int
+        Number of peaks.
+    peaks_indices : np.ndarray
+        Indices of the peaks.
+    """
+
+    # reshape the activation map
+    n = int(np.sqrt(activation.shape[0]))
+    activation = activation.reshape(n, n)
+
+    # Correlate the distribution with itself
+    autocorrelation = correlate2d(activation, activation, mode='full')
+
+    # Find peaks in the autocorrelation map
+    peaks_indices = find_peaks(autocorrelation[autocorrelation.shape[0]//2], 
+                               height=autocorrelation.max()/3)[0]
+
+    if indices:
+        return len(peaks_indices), peaks_indices
+    return len(peaks_indices)
+
+
+def eval_information(model: object, trajectory: np.ndarray, 
+                     **kwargs) -> tuple:
+
+    """
+    Evaluate the model by its information content.
+
+    Parameters
+    ----------
+    model : object
+        The model object.
+    trajectory : np.ndarray
+        The input trajectory.
+
+    Returns
+    -------
+    max_value : float
+        Maximum information content.
+    diff : float
+        Difference between the maximum information content and the mean.
+        NB: the lower the better.
+    max_wi : float
+        Maximum weight sum over i.
+    """
+
+    # record the population activity for the whole track
+    AT = []
+    A = np.empty(len(trajectory))
+    model._plastic = False
+
+    for t, x in enumerate(trajectory):
+        model.step(x=x.reshape(-1, 1))   
+        AT += [tuple(np.around(model.u.flatten(), 1))]
+        A[t] = model.u.sum()
+
+    # assign a probability (frequency) for each unique pattern
+    AP = {}
+    for a in AT:
+        if a in AP.keys():
+            AP[a] += 1
+            continue
+        AP[a] = 1
+
+    for k, v in AP.items():
+        AP[k] = v / AT.__len__()
+
+    # compute the information content at each point in the track 
+    IT = np.empty(len(trajectory))
+    for t, a in enumerate(AT):
+        IT[t] = - np.log2(AP[a])
+
+    # calculate and return the information content-related metrics
+    mean = np.clip(IT, -5, 5).mean()
+    std = IT.std()
+
+    # another metric, regarding the weights 
+    # square of the difference between the maximum weight sum over i 
+    # and the maximum weight
+    # max_wi = model.Wff.sum(axis=0).max()
+
+    # number of peaks in the activation map
+    nb_peaks = eval_field_modality(activation=A)
+
+    return mean, -std, -nb_peaks
+
+
+def eval_information_II(model: object, trajectory: np.ndarray, 
+                        whole_trajectory: np.ndarray, **kwargs) -> tuple:
+
+    """
+    Evaluate the model by its information content on the trajectory
+    and its place field on the whole trajectory.:
+    - mean information content
+    - standard deviation of the information content
+    - number of peaks in the activation map
+
+    Parameters
+    ----------
+    model : object
+        The model object.
+    trajectory : np.ndarray
+        The input trajectory.
+    whole_trajectory : np.ndarray
+        The whole input trajectory.
+
+    Returns
+    -------
+    mean_IT : float
+        Mean information content.
+    std_IT : float
+        Standard deviation of the information content.
+    nb_peaks : int
+        Number of peaks in the activation map.
+    """
+
+    # ------------------------------------------------------------ #
+    # evaluate the shape of the place field
+
+    # record the population activity for the whole track
+    A = np.empty(len(whole_trajectory))
+    model.set_off()
+
+    for t, x in enumerate(whole_trajectory):
+        model.step(x=x.reshape(-1, 1))   
+        A[t] = model.u.sum()
+
+    # number of peaks in the activation map
+    nb_peaks, peaks = eval_field_modality(activation=A, indices=True)
+
+    if len(peaks) > 0:
+        
+        lim_dx = max((peaks[0] - 10, 0))
+        lim_sx = min((peaks[0] + 10, len(A)))
+
+        # get the area (+- 20 units) around the main peak
+        on_area = A[lim_dx:lim_sx]
+        off_area = np.concatenate((A[:lim_dx], A[lim_sx:]))
+
+        # calculate the ratio of the area around the main peak
+        a_ratio = on_area.sum() / off_area.sum()
+
+    else:
+        a_ratio = 0
+
+    # peaks of different neurons should be as far as possible
+    # across the network
+    mean_peak_position = np.array([np.argmax(A[i::model.N]) for i in range(model.N)]).mean()
+
+    # mean distance between peaks
+    var_peaks = mean_peak_position.var()
+
+
+    # ------------------------------------------------------------ #
+    # evaluate the information content
+
+    # record the population activity for the trajectory
+    AT = []
+    A = np.empty(len(trajectory))
+
+    for t, x in enumerate(trajectory):
+        model.step(x=x.reshape(-1, 1))   
+        AT += [tuple(np.around(model.u.flatten(), 1))]
+        A[t] = model.u.sum()
+
+    # assign a probability (frequency) for each unique pattern
+    AP = {}
+    for a in AT:
+        if a in AP.keys():
+            AP[a] += 1
+            continue
+        AP[a] = 1
+
+    for k, v in AP.items():
+        AP[k] = v / AT.__len__()
+
+    # compute the information content at each point in the track 
+    IT = np.empty(len(trajectory))
+    for t, a in enumerate(AT):
+        IT[t] = - np.log2(AP[a])
+
+    # calculate and return the information content-related metrics
+    mean = np.clip(IT, -5, 5).mean()
+    std = IT.std()
+
+    return mean, -std, -nb_peaks, -var_peak#a_ratio
+
+
+>>>>>>> cold
 def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
 
     """
@@ -842,6 +1218,12 @@ def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
 
     # if v is a matrix, calculate the cosine similarity between each row of v and w
     if len(v.shape) > 1:
+<<<<<<< HEAD
+=======
+        # result = v @ w / (np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w))
+        result = (v.T @ w) / (np.linalg.norm(v.T, axis=1, keepdims=False).reshape(-1, 1) * \
+            np.linalg.norm(w.T, axis=1, keepdims=False).reshape(-1, 1))
+>>>>>>> cold
 
         # calculate norms 
         norm_vw = np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w)

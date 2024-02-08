@@ -65,6 +65,19 @@ def test_training_hd():
         model.step(x=x.reshape(-1, 1))
 
 
+def test_trajectory():
+
+    # trajectory
+    trajectory = it.make_trajectory(duration=2,
+                                    dt=0.01,
+                                    speed=[0.1, 0.1], 
+                                    prob_turn=0.001,
+                                    k_average=100)
+
+    # whole track
+    whole_track = it.make_whole_walk(dx=0.01)
+
+
 def test_training_pc():
 
     # initialize the model
@@ -72,11 +85,16 @@ def test_training_pc():
     model = mm.PCNNetwork(**GENOME)
 
     # make data
+<<<<<<< HEAD
     whole_trajectory = it.make_whole_walk(dx=0.1)
     trajectory = it.make_trajectory(duration=5, dt=DT, 
                                      speed=1, prob_turn=1e-2,
                                      dim=2, noise=0.0, k_average=5)
     whole_track_pc = layer_pc.parse_trajectory(trajectory=whole_trajectory)
+=======
+    whole_track = it.make_whole_walk(dx=0.01)
+    whole_track_pc = layer_pc.parse_trajectory(trajectory=whole_track)
+>>>>>>> cold
 
     # train the model
     for x in whole_track_pc:
