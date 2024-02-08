@@ -23,7 +23,7 @@ import inputools.Trajectory as it
 data_settings = {
     'duration': 5,
     'dt': 1e-1,
-    'speed': [0.01, 0.01],
+    'speed': [0.01, 0.05],
     'prob_turn': 0.002,
     'k_average': 300,
     'sigma_pc': 0.01,
@@ -34,7 +34,7 @@ data_settings = {
 }
 
 
-def make_2D_data() -> tuple:
+def make_2D_data(**kwargs) -> tuple:
 
     """
     Make the dataset.
@@ -71,18 +71,25 @@ def make_2D_data() -> tuple:
 
     data_settings['layer'] = layer.__repr__()
 
+    # trajectory settings
+    duration = kwargs.get("duration", data_settings['duration'])
+    dt = kwargs.get("dt", data_settings['dt'])
+    speed = kwargs.get("speed", data_settings['speed'])
+    prob_turn = kwargs.get("prob_turn", data_settings['prob_turn'])
+    k_average = kwargs.get("k_average", data_settings['k_average'])
+
     # Create a trajectory
-    trajectory = it.make_trajectory(duration=data_settings['duration'],
-                                      dt=data_settings['dt'],
-                                      speed=data_settings['speed'], 
-                                      prob_turn=data_settings['prob_turn'],
-                                      k_average=data_settings['k_average'])
+    trajectory = it.make_trajectory(duration=duration,
+                                    dt=dt,
+                                    speed=speed, 
+                                    prob_turn=prob_turn,
+                                    k_average=k_average,)
 
     # make whole track trajectory
     whole_track = it.make_whole_walk(dx=0.01)
 
-    return layer.parse_trajectory(trajectory=trajectory), \
-        layer.parse_trajectory(trajectory=whole_track)
+    return layer.parse_trajectory(trajectory=trajectory, disable_tqdm=True), \
+        layer.parse_trajectory(trajectory=whole_track, disable_tqdm=True)
 
 
 class Env:
@@ -169,7 +176,7 @@ class Env:
 
         return agent
 
-    def _make_new_data(self):
+    def _make_new_data(self, **kwargs):
 
         """
         Make a new dataset.
@@ -179,7 +186,7 @@ class Env:
         self._dataset_whole = []
 
         for _ in range(self._n_samples):
-            dataset, dataset_whole = self._make_data()
+            dataset, dataset_whole = self._make_data(**kwargs)
             self._dataset.append(dataset)
             self._dataset_whole.append(dataset_whole)
 
@@ -199,6 +206,10 @@ class Env:
             The fitness value.
         """
 
+        # make dataset
+        self._make_new_data(dt=agent.model.kwargs['dt'],
+                            speed=[agent.model.kwargs['speed'],
+                                   agent.model.kwargs['speed']])
 
         fitness_tot = np.zeros(self.fitness_size)
         for i in range(self._n_samples):
@@ -291,6 +302,8 @@ PARAMETERS = {
     'sigma_gamma': lambda: random.choice(np.arange(1e-6, 1e-4, 5e-6)),
     'nb_per_cycle': lambda: random.randint(3, 10),
     'nb_skip': lambda: random.randint(1, 5),
+    'dt': lambda: random.choice(np.arange(1e-3, 1, 2.5e-3)),
+    'speed': lambda: random.choice(np.arange(1e-3, 1e-1, 2.5e-3)),
 }
 
 

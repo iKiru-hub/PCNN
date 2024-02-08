@@ -201,6 +201,7 @@ class PCNNetwork:
         self.W_cold_mask = np.zeros((self.N, 1))
 
         #
+        self.kwargs = kwargs
         self.var1 = None
         self.var2 = None
 
