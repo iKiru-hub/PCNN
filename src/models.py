@@ -1151,6 +1151,14 @@ def eval_information_II(model: object, trajectory: np.ndarray,
     else:
         a_ratio = 0
 
+    # peaks of different neurons should be as far as possible
+    # across the network
+    mean_peak_position = np.array([np.argmax(A[i::model.N]) for i in range(model.N)]).mean()
+
+    # mean distance between peaks
+    var_peaks = mean_peak_position.var()
+
+
     # ------------------------------------------------------------ #
     # evaluate the information content
 
@@ -1183,7 +1191,7 @@ def eval_information_II(model: object, trajectory: np.ndarray,
     mean = np.clip(IT, -5, 5).mean()
     std = IT.std()
 
-    return mean, -std, -nb_peaks, a_ratio
+    return mean, -std, -nb_peaks, -var_peak#a_ratio
 
 
 def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
