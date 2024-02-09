@@ -942,8 +942,6 @@ def eval_func(weights: np.ndarray, wmax: float, axis: int=1,
     return 1 - abs((err.sum())/ni)
 
 
-<<<<<<< HEAD
-=======
 def eval_func_2(model: object, trajectory: np.ndarray, target: float=None) -> float:
 
     """
@@ -1197,7 +1195,6 @@ def eval_information_II(model: object, trajectory: np.ndarray,
     return mean, -std, -nb_peaks, -var_peak#a_ratio
 
 
->>>>>>> cold
 def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
 
     """
@@ -1218,21 +1215,10 @@ def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
 
     # if v is a matrix, calculate the cosine similarity between each row of v and w
     if len(v.shape) > 1:
-<<<<<<< HEAD
-=======
-        # result = v @ w / (np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w))
+
+ # result = v @ w / (np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w))
         result = (v.T @ w) / (np.linalg.norm(v.T, axis=1, keepdims=False).reshape(-1, 1) * \
             np.linalg.norm(w.T, axis=1, keepdims=False).reshape(-1, 1))
->>>>>>> cold
-
-        # calculate norms 
-        norm_vw = np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w)
-
-        # if norm is 0, return 0
-        if np.any(norm_vw == 0):
-            return np.zeros_like(v)
-
-        result = v @ w / norm_vw
     else:
 
         # calculate norm
