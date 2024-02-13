@@ -13,7 +13,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from src import models as mm
 
 
-DT = 5e-2
 N = 5
 Nj = 9
 
@@ -25,8 +24,8 @@ GENOME = {
           'tau': 200,
           'wff_std': 0.0,
           'wff_min': 0.0,
-          'wff_max': 2.,
-          'wff_tau': 2_000,
+          'wff_max': 1.,
+          'wff_tau': 6_000,
           'std_tuning': 0.0,
           'soft_beta': 10,
           'dt': 1,
@@ -35,7 +34,7 @@ GENOME = {
           'DA_tau': 3,
           'bias_scale': 0.0,
           'bias_decay': 100,
-          'IS_magnitude': 20,
+          'IS_magnitude': 6,
           'theta_freq': 0.004,
           'nb_per_cycle': 5,
           'plastic': True,
@@ -85,16 +84,8 @@ def test_training_pc():
     model = mm.PCNNetwork(**GENOME)
 
     # make data
-<<<<<<< HEAD
-    whole_trajectory = it.make_whole_walk(dx=0.1)
-    trajectory = it.make_trajectory(duration=5, dt=DT, 
-                                     speed=1, prob_turn=1e-2,
-                                     dim=2, noise=0.0, k_average=5)
-    whole_track_pc = layer_pc.parse_trajectory(trajectory=whole_trajectory)
-=======
     whole_track = it.make_whole_walk(dx=0.01)
     whole_track_pc = layer_pc.parse_trajectory(trajectory=whole_track)
->>>>>>> cold
 
     # train the model
     for x in whole_track_pc:

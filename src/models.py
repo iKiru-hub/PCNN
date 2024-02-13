@@ -1215,19 +1215,11 @@ def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
 
     # if v is a matrix, calculate the cosine similarity between each row of v and w
     if len(v.shape) > 1:
-
- # result = v @ w / (np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w))
+        # result = v @ w / (np.linalg.norm(v, axis=1, keepdims=True) * np.linalg.norm(w))
         result = (v.T @ w) / (np.linalg.norm(v.T, axis=1, keepdims=False).reshape(-1, 1) * \
             np.linalg.norm(w.T, axis=1, keepdims=False).reshape(-1, 1))
+
     else:
-
-        # calculate norm
-        norm_vw = np.linalg.norm(v) * np.linalg.norm(w)
-
-        # if norm is 0, return 0
-        if norm_vw == 0:
-            return np.zeros_like(v)
-
         result = v @ w / (np.linalg.norm(v) * np.linalg.norm(w))
 
     # if inf or nan, return 0
