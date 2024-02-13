@@ -11,9 +11,7 @@ Acronym for Place Cells Neural Network.
 - background stimulation from internal theta oscillations 
 - neuromodulation-dependant learning (dopamine)
 
-*Branches*
-- **main** 
-- **cold** study of how to implement learning of non-hot encoded representations
+![media/pcnn_plot_a.png]
 
 
 ---
@@ -29,4 +27,5 @@ synched every time there is a push to the original repository.
 ### TODO
 - [ ] update unittests (it is a legit word fr) (*ie* about the new trajectory function) 
 - [ ] more tailored unittests
+
 
