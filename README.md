@@ -11,7 +11,7 @@ Acronym for Place Cells Neural Network.
 - background stimulation from internal theta oscillations 
 - neuromodulation-dependant learning (dopamine)
 
-![media/pcnn_plot_a.png]
+![Formed place fields on the path](media/pcnn_plot_a.png)
 
 
 ---
