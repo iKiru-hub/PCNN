@@ -13,6 +13,8 @@ Acronym for Place Cells Neural Network.
 
 ![Formed place fields on the path](media/pcnn_plot_a.png)
 
+![Trajectory](media/pcnn_plot_b.png)
+
 
 ---
 ### Branches 
