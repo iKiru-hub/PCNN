@@ -213,7 +213,7 @@ def plotting(model: object, X: np.ndarray, t: int, record: np.ndarray,
     plt.fill_between(range(t-tm, t), record[0, t-tm:t], color='green', alpha=0.1, 
                      label=f"DA={np.around(model.DA, 2)} [{model.var2:.2f}]")
 
-    plt.ylabel(f"$u$={np.around(model.u.T[0], 1)}")
+    # plt.ylabel(f"$u$={np.around(model.u.T[0], 1)}")
     plt.ylim((0, 4.3))
     plt.xlabel('ms')
     plt.title(subtitle_3)

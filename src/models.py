@@ -193,6 +193,7 @@ class PCNNetwork:
         # modulation
         self.DA = 1.
         self._DA_tau = kwargs.get('DA_tau', 100)
+        self.DA_block = 0
 
         # weight update control 
         self.W_old = self.Wff.copy()
@@ -204,6 +205,7 @@ class PCNNetwork:
         self.kwargs = kwargs
         self.var1 = None
         self.var2 = None
+        self.idx_selective = 0
 
     def __repr__(self):
 
@@ -248,20 +250,31 @@ class PCNNetwork:
 
         # get idx of the neurons that reached the temperature
         idx_selective = np.where(self.temp == 1.)[0]
-        idx_non_selective = np.where(self.temp != 1.)[0]
+        idx_non_selective = np.where(self.temp < 1.)[0]
+
+        if idx_selective.size > self.idx_selective:
+            self.idx_selective = idx_selective.size
+        else:
+            return
 
         # increase the theta frequency
-        self._theta_freq *= (1 + self._theta_freq_increase)
-        self._dt *= (1 - self._theta_freq_increase*1.1)
+        if idx_selective.size > 0:
+            self._theta_freq = min((self._theta_freq * (1 + self._theta_freq_increase),
+                                   0.05))
+            self._theta_freq_increase *= 0.95
+        # self._dt *= (1 - self._theta_freq_increase*1.1)
 
         # calculate the new tuning
-        new_tuning = calc_tuning(N=self.N - len(idx_selective),
-                                 K=self._nb_per_cycle, b=self._theta_freq, 
-                                 sigma=self._sigma_gamma)
+        # new_tuning = calc_tuning(N=self.N - len(idx_selective),
+        #                          K=self._nb_per_cycle, b=self._theta_freq, 
+        #                          sigma=self._sigma_gamma)
+        new_tuning = calc_tuning(N=self.N - len(idx_selective), 
+                                 K=self._nb_per_cycle, 
+                                 b=self._theta_freq)
 
         # update the tuning
         self.tuning[idx_non_selective] = new_tuning
-        self.tuning[idx_selective] = 0.
+        self.tuning[idx_selective] = -1
 
     def _softmax(self, x: np.ndarray, beta: float=1) -> np.ndarray:
 
@@ -399,7 +412,7 @@ class PCNNetwork:
 
         # update weights | NB: `w_soft` is omitted
         self.Wff += self._lr * self.u * x.T * self.DA * w_soft * \
-            (1 - 1*(self.temp == 1.))
+            (1 - 1*(self.temp == 1.)) * (1 - self.DA_block)
 
         # self.var1 = w_soft.copy()
 
@@ -412,7 +425,9 @@ class PCNNetwork:
         # self.Wff = self.Wff - 0.5*self.Wff * (1 - (self.Wff.sum(axis=1, keepdims=True) > 0.2))
 
         # temperature
-        self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1)
+        # self.temp = (self.Wff.max(axis=1) / self._wff_max).reshape(-1, 1) 
+        self.temp =  self.Wff.sum(axis=1) / self._wff_max
+        self.temp = np.where(self.temp > 0.95, 1, self.temp).reshape(-1, 1)
 
         # calculate the weight cold mask
         self.W_cold_mask = 1 == (self.temp * (1 - \
@@ -479,8 +494,9 @@ class PCNNetwork:
         )
 
         # update DA
-        ut_block = (self.u * self.temp).max()
-        DA_block = ut_block * 1*(ut_block >= 0.99)
+        ut_block = (self.u * self.temp).max()  # float [0, 1]
+        DA_block = ut_block * 1*(ut_block >= 0.99)  # bool
+        self.DA_block = DA_block
         self.DA += (1 - DA_block - self.DA) / self._DA_tau
         self.var2 = DA_block
 
@@ -517,7 +533,14 @@ class PCNNetwork:
 
         self._plastic = False
         self._IS_magnitude = 0
-        self.Wff = np.where(self.Wff < 0.001, 0., self.Wff)
+
+        self.Wff = np.where(self.Wff < 0.005, 0, self.Wff)
+        # loop over all neurons
+        for i in range(self.N):
+            if self.temp[i] < 1:
+                self.Wff[i] *= 0
+                continue
+
 
         if bias is not None:
             self._bias = bias * np.ones((self.N, 1))
@@ -673,7 +696,11 @@ def calc_gamma(t: int, O: int, b: int, sigma: float=5e-6) -> np.ndarray:
         Activity as gamma cycles.
     """
 
-    t = t % (np.pi / b) 
+    try:
+        t = t % (np.pi / b) 
+    except ZeroDivisionError:
+        logger.debug(f"ZeroDivisionError: {b=}, {t=}")
+        raise ZeroDivisionError
     return np.exp(-(np.sin(b*(t - O))-1)**2 / sigma)
 
 
