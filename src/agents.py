@@ -25,7 +25,7 @@ except ModuleNotFoundError:
 
 
 
-
+DEBUG = False
 
 
 class AgentPC:
@@ -61,21 +61,26 @@ class AgentPC:
             activation : str
                 activation function of the hidden layer.
                 Default is None
+            activation_out : str
+                activation function of the output layer.
+                Default is None
         """
 
         # parameters
         self.Npc = Npc
         self.Nh = Nh
         self._step_size = kwargs.get('step_size', 0.01)
+        self._sigma_pc = kwargs.get('sigma_pc', 0.1)
         self._lr = kwargs.get('lr', 0.01)
 
         # components 
         self.layer_pc = it.PlaceLayer(N=Npc,
-                                          sigma=kwargs.get('sigma_pc', 0.1))
-        self.Wh = np.random.normal(0, 1/np.sqrt(Npc), size=(Nh, Npc))
-        self.bh = np.random.normal(0, 1/np.sqrt(Npc), size=(Nh, 1))
-        self.Wout = np.random.normal(0, 1/np.sqrt(Nh), size=(Npc, Nh))
-        self.bout = np.random.normal(0, 1/np.sqrt(Nh), size=(Npc, 1))
+                                      sigma=self._sigma_pc)
+        self.Wh = np.random.normal(0, 0.005, size=(Nh, Npc))
+        self.bh = np.random.normal(0, 0.005, size=(Nh, 1))
+        self.Wr = np.random.normal(0, 0.005, size=(Nh, Npc))
+        self.Wout = np.random.normal(0, 0.005, size=(Npc, Nh))
+        self.bout = np.random.normal(0, 0.005, size=(Npc, 1))
 
         # activation function
         if kwargs.get('activation', None) is None:
@@ -95,6 +100,22 @@ class AgentPC:
             raise NotImplementedError(
                 f"Activation {kwargs.get('activation')} not implemented.")
 
+        if kwargs.get('activation_out', None) is None:
+            self._activation_out = lambda x: x
+            self._activation_prime_out = lambda x: 1
+        elif kwargs.get('activation_out') == 'relu':
+            self._activation_out = lambda x: np.maximum(0, x)
+            self._activation_prime_out = lambda x: np.where(x > 0, 1, 0)
+        elif kwargs.get('activation_out') == 'sigmoid':
+            self._activation_out = lambda x: 1 / (1 + np.exp(-x))
+            self._activation_prime_out = lambda x: self._activation(x) * \
+                (1 - self._activation(x))
+        elif kwargs.get('activation_out') == 'tanh':
+            self._activation_out = lambda x: np.tanh(x)
+            self._activation_prime_out = lambda x: 1 - np.tanh(x)**2
+        else:
+            raise NotImplementedError(
+                f"Activation {kwargs.get('activation')} not implemented.")
 
         # variables
         self.current_position = kwargs.get('start_position', np.zeros((2, 1))).reshape(2, 1)
@@ -129,19 +150,31 @@ class AgentPC:
         """
 
         # determine the PC encoding of the current position
-        self.current_pc = self.layer_pc.step(position=self.current_position)
+        self.current_pc = self.layer_pc.step(position=self.current_position) / 100
 
         # determine the PC encoding of the goal position
-        self.goal_pc = self.layer_pc.step(position=goal_position)
+        self.goal_pc = self.layer_pc.step(position=goal_position) / 100
+
+        if DEBUG:
+            logger.debug(f'current_pc: {np.around(self.current_pc.flatten(), 2)}')
+            logger.debug(f'goal_pc: {np.around(self.goal_pc.flatten(), 2)}')
 
         # determine the hidden layer activation
-        self.input_pc = self.current_pc + self.goal_pc
-        self.zh = self.Wh @ self.input_pc + self.bh
+        self.zh = self.Wh @ self.goal_pc + self.Wr @ self.current_pc + self.bh
         self.ah = self._activation(self.zh)
+
+        if DEBUG:
+            logger.debug(f'input_pc: {np.around(self.input_pc.flatten(), 2)}')
+            logger.debug(f'zh: {np.around(self.zh.flatten(), 2)}')
+            logger.debug(f'ah: {np.around(self.ah.flatten(), 2)}')
 
         # determine the second hidden layer activation
         self.pc_post_z = self.Wout @ self.ah + self.bout
-        self.pc_post_a = self._activation(self.pc_post_z)
+        self.pc_post_a = self._activation_out(self.pc_post_z)
+
+        if DEBUG:
+            logger.debug(f'pc_post_a: {np.around(self.pc_post_a.flatten(), 2)}')
+
 
         # # determine the action/angle to take
         # action = self._calc_angle(p1=self.layer_pc.centers[np.argmax(self.current_pc)],
@@ -153,10 +186,17 @@ class AgentPC:
         #                                                      [np.sin(action)]])
 
         # calculate the current position in xy
-        x, y = self.layer_pc.centers[np.argmax(self.pc_post_a)]
-        self.current_position = np.array([[x], [y]])
+        # x, y = self.layer_pc.centers[np.argmax(self.pc_post_a)]
+        # self.current_position = np.array([[x], [y]])
 
-        return x, y
+        # calculate the position in xy from the place cell activation
+        # as the weighted sum of the place cell activations
+        self.current_position = (self.layer_pc.centers.T @ self.pc_post_a / self.pc_post_a.sum()).reshape(2, 1)
+
+        if DEBUG:
+            logger.debug(f'current_position: {self.current_position}')
+
+        return self.current_position.flatten()
 
     @staticmethod
     def _calc_angle(p1: np.ndarray, p2: np.ndarray) -> float:
@@ -203,26 +243,33 @@ class AgentPC:
         # ----| Error
         # calculate the target activation of the place cell layer
         # by selecting the place cell closest to the target position
-        target_pc = self.layer_pc.step(position=target_position)
+        target_pc = self.layer_pc.step(position=target_position) / 100
         position_error = target_pc - self.pc_post_a
         # logger.debug(f'position_error: {position_error}')
+        if DEBUG:
+            logger.debug(f"target position: {np.around(target_position.flatten(), 2)}")
+        #     logger.debug(f"target_pc: {np.around(target_pc.flatten(), 2)}")
+        #     logger.debug(f'position_error: {np.around(position_error.flatten(), 2)}')
 
         # ----| Gradient
 
         # calculate the gradient in the output weights
-        delta_out = self._activation_prime(self.pc_post_z) * position_error
+        delta_out = self._activation_prime_out(self.pc_post_z) * position_error
         self.grad_out = delta_out @ self.ah.T
         # logger.debug(f'grad_out: {grad_out}')
 
         # calculate the gradient in the hidden layer weights
         delta_h = (self.Wout.T @ delta_out) * self._activation_prime(self.zh)
-        self.grad_h = delta_h @ self.input_pc.T
+        self.grad_h = delta_h @ self.goal_pc.T
+        self.grad_r = delta_h @ self.current_pc.T
         # logger.debug(f'grad_h: {grad_h}')
+
 
         # ----| Update
         self.Wout -= self._lr * self.grad_out
         self.bout -= self._lr * delta_out
         self.Wh -= self._lr * self.grad_h
+        self.Wr -= self._lr * self.grad_r
         self.bh -= self._lr * delta_h
 
         return (position_error**2).sum()
@@ -234,4 +281,5 @@ class AgentPC:
         """
 
         self.current_position = position
+        self.pc_post_a = self.layer_pc.step(position=position) / 100
 
