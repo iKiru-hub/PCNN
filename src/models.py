@@ -201,6 +201,11 @@ class PCNNetwork:
         self.W_clone = self.Wff.copy()
         self.W_cold_mask = np.zeros((self.N, 1))
 
+        # reccurent connections
+        self.W_rec = np.zeros((N, N))
+        self.u_trace = np.zeros((N, 1))
+        self._u_trace_decay = kwargs.get('u_trace_decay', 10)
+
         #
         self.kwargs = kwargs
         self.var1 = None
@@ -452,6 +457,13 @@ class PCNNetwork:
         # self.W_clone = np.nan_to_num(self.W_clone, nan=0, posinf=0, neginf=0)
         # self.W_clone = (self.W_clone - self.W_clone.min(axis=1, keepdims=True)) / (
         #     self.W_clone.max(axis=1, keepdims=True) - self.W_clone.min(axis=1, keepdims=True))
+
+        # ---| recurrent connections 
+        # update trace
+        self.u_trace += (self.u - self.u_trace) / self._u_trace_decay
+
+        # update recurrent weights
+        self.W_rec += self.u_trace @ self.u_trace.T * (1 - np.eye(self.N))
 
         # re-tuning
         if self._is_retuning:
