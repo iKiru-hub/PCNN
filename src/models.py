@@ -202,6 +202,7 @@ class PCNNetwork:
         self.W_cold_mask = np.zeros((self.N, 1))
 
         self.W_final = self.Wff.copy()
+        self.idx_selective = []
 
         # reccurent connections
         self.W_rec = np.zeros((N, N))
@@ -214,6 +215,7 @@ class PCNNetwork:
         self.var2 = None
         self.var3 = []
         self.idx_selective = 0
+        self.selective_neurons = []
 
     def __repr__(self):
 
@@ -284,7 +286,7 @@ class PCNNetwork:
         self.tuning[idx_non_selective] = new_tuning
         self.tuning[idx_selective] = -1
 
-    def _softmax(self, x: np.ndarray, beta: float=1) -> np.ndarray:
+    def _softmax(self, x: np.ndarray, beta: float=1, axis: int=1) -> np.ndarray:
 
         """
         Parameters
@@ -293,6 +295,8 @@ class PCNNetwork:
             Input array
         beta: float
             Beta for the softmax function. Default: 1
+        axis: int
+            Axis along which to calculate the softmax. Default: 1
 
         Returns
         -------
@@ -300,7 +304,7 @@ class PCNNetwork:
             Output array
         """
 
-        return np.exp(beta*x) / np.exp(beta*x).sum(axis=1, keepdims=True)
+        return np.exp(beta*x) / np.exp(beta*x).sum(axis=axis, keepdims=True)
 
     def _softmax_plus(self, x: np.ndarray, threshold: float=0.035) -> np.ndarray:
 
@@ -379,7 +383,8 @@ class PCNNetwork:
 
 
 
-        threshold = self.Wff.max(axis=1, keepdims=True) * 0.3
+        # threshold = self.Wff.max(axis=1, keepdims=True) * 0.3
+        threshold = self.Wff.max(axis=1, keepdims=True) * 0.4 # <---------------------
         w_trim = np.where(self.Wff < threshold, 0., self.Wff)
         # w_trim = self._softmax(x=W, beta=beta)
         # low_bounds = np.sort(self._softmax(x=W),
@@ -439,7 +444,7 @@ class PCNNetwork:
 
         # calculate the weight cold mask
         self.W_cold_mask = 1 == (self.temp * (1 - \
-            np.around(self.W_deriv.sum(axis=1), 3).reshape(-1, 1)))            
+            np.around(self.W_deriv.sum(axis=1), 3).reshape(-1, 1)))
 
         # weight derivative 
         self.W_deriv += - self.W_deriv / 10 + np.abs(self.Wff - self.W_old)
@@ -463,13 +468,14 @@ class PCNNetwork:
 
         # ---| recurrent connections 
         # update trace
-        # self.u_trace += (self._softmax(x=dW.mean(axis=1).reshape(-1, 1), beta=2) * self.temp - self.u_trace) / self._u_trace_decay
+        # self.u_trace += (self.u * (self.temp>0.9) - self.u_trace) / self._u_trace_decay
         # self.u_trace = np.where(self.u_trace < 0.001, 0, 0.1)
 
         # update recurrent weights
-        self.W_rec += self._lr * (self.u_trace @ self.u_trace.T) * (1 - np.eye(self.N)) 
+        # self.W_rec += self._lr * (self.u_trace @ self.u_trace.T) * (1 - np.eye(self.N)) 
 
         # self.W_rec *= self.temp
+        self._update_recurrent()
 
         # re-tuning
         if self._is_retuning:
@@ -501,24 +507,41 @@ class PCNNetwork:
         Update function
         """
 
-        # if np.sort(self.u.flatten())[-2] > 0.1 and self.u.max() > 0.1 and \
-        #     self.temp[self.u.argmax()] > 0.9:
+        max_distance = 0.3
 
-        #     src, trg = np.argsort(self.u.flatten())[-2:]
-        #     c = cosine_similarity(self.W_final[src], self.W_final[trg])
-        #     self.W_rec[src, trg] = c
-        #     # self.var3 += [[src, trg, np.around(z[src], 3), np.around(z[trg], 3), c, self.W_rec[src, trg]]]
-        #     if src in self.var3:
-        #         self.var3[src] += [(trg, np.around(self.u[src], 3),
-        #                             np.around(self.u[trg], 3), c, self.W_rec[src, trg])]
-        #     else:
-        #         self.var3[src] = [(trg, np.around(self.u[src], 3),
-        #                            np.around(self.u[trg], 3), c, self.W_rec[src, trg])]
+        # update list of selective neurons
+        all_selective = np.where(self.temp == 1.)[0]
 
-        #     return
+        # get the indices of the newly selective neurons
+        new_selective = [i for i in all_selective if i not in self.selective_neurons]
 
-        # decay
-        # self.W_rec += - (self.W_rec * (1 - self.temp)) / 10
+        # if len(new_selective) > -1:
+        if self.t % 100 == 0:
+
+            # W = np.where(self._softmax(self.W_final > 0.3), self.W_final, 0)
+
+            # for all newly selective neurons, update the recurrent weights
+            for i in range(self.N):
+
+                # calculate the euclidean distance wrt all other neurons in input space 
+                for j in range(self.N):
+                    if i == j or j not in all_selective: continue
+
+                    Wi = np.where(self._softmax(self.W_final[i] > 0.4, axis=0), 
+                                  self.W_final[i], 0)
+                    Wj = np.where(self._softmax(self.W_final[j] > 0.4, axis=0), 
+                                  self.W_final[j], 0)
+                    # dist = cosine_similarity(Wi, Wj)
+                    dist = cosine_similarity(Wi*self.u_trace[i], 
+                                             Wj*self.u_trace[j])
+
+                    # dist = np.linalg.norm(self.Wff[i] - self.Wff[j])
+
+                    if dist > max_distance:
+                        self.W_rec[i, j] = dist
+
+        # update the list 
+        self.selective_neurons = all_selective
 
     def step(self, x: np.ndarray=None):
 
@@ -536,9 +559,6 @@ class PCNNetwork:
 
             # define weights
             self.W_final = self.Wff * (1 - self.W_cold_mask) + self.W_clone * self.W_cold_mask
-
-            # trace
-            self.u_trace += (self.W_final @ x * self.u - self.u_trace) / self._u_trace_decay  
 
             # step
             self.Ix = self.W_final @ x * (1 - self.W_cold_mask) + \
@@ -560,9 +580,12 @@ class PCNNetwork:
             self.u - self.u / self._tau + self.Ix + self.Is
         )
 
+        # trace 
+        self.u_trace += (self.Ix * (self.temp>0.9) - self.u_trace) / self._u_trace_decay
+
         # update DA
         ut_block = (self.u * self.temp).max()  # float [0, 1]
-        DA_block = ut_block * 1*(ut_block > 0.8)  # bool <----------------- !!
+        DA_block = ut_block * 1*(ut_block > 0.99)  # bool <----------------- !!
         self.DA_block = DA_block
         self.DA += (1 - DA_block - self.DA) / self._DA_tau
         self.var2 = DA_block
