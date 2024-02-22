@@ -201,6 +201,8 @@ class PCNNetwork:
         self.W_clone = self.Wff.copy()
         self.W_cold_mask = np.zeros((self.N, 1))
 
+        self.W_final = self.Wff.copy()
+
         # reccurent connections
         self.W_rec = np.zeros((N, N))
         self.u_trace = np.zeros((N, 1))
@@ -210,6 +212,7 @@ class PCNNetwork:
         self.kwargs = kwargs
         self.var1 = None
         self.var2 = None
+        self.var3 = []
         self.idx_selective = 0
 
     def __repr__(self):
@@ -460,14 +463,62 @@ class PCNNetwork:
 
         # ---| recurrent connections 
         # update trace
-        self.u_trace += (self.u - self.u_trace) / self._u_trace_decay
+        # self.u_trace += (self._softmax(x=dW.mean(axis=1).reshape(-1, 1), beta=2) * self.temp - self.u_trace) / self._u_trace_decay
+        # self.u_trace = np.where(self.u_trace < 0.001, 0, 0.1)
 
         # update recurrent weights
-        self.W_rec += self.u_trace @ self.u_trace.T * (1 - np.eye(self.N))
+        self.W_rec += self._lr * (self.u_trace @ self.u_trace.T) * (1 - np.eye(self.N)) 
+
+        # self.W_rec *= self.temp
 
         # re-tuning
         if self._is_retuning:
             self._re_tuning()
+
+    def _cosine_similarity_mv(self, v: np.ndarray, w: np.ndarray) -> np.ndarray:
+
+        """
+        Calculate the cosine similarity between one vector and a matrix
+
+        Parameters
+        ----------
+        v: np.ndarray
+            Vector
+        w: np.ndarray
+            Matrix
+
+        Returns
+        -------
+        sim: np.ndarray
+            Cosine similarity
+        """
+
+        return (v @ w.T) / (np.linalg.norm(v) * np.linalg.norm(w, axis=1))
+
+    def _update_recurrent(self):
+
+        """
+        Update function
+        """
+
+        # if np.sort(self.u.flatten())[-2] > 0.1 and self.u.max() > 0.1 and \
+        #     self.temp[self.u.argmax()] > 0.9:
+
+        #     src, trg = np.argsort(self.u.flatten())[-2:]
+        #     c = cosine_similarity(self.W_final[src], self.W_final[trg])
+        #     self.W_rec[src, trg] = c
+        #     # self.var3 += [[src, trg, np.around(z[src], 3), np.around(z[trg], 3), c, self.W_rec[src, trg]]]
+        #     if src in self.var3:
+        #         self.var3[src] += [(trg, np.around(self.u[src], 3),
+        #                             np.around(self.u[trg], 3), c, self.W_rec[src, trg])]
+        #     else:
+        #         self.var3[src] = [(trg, np.around(self.u[src], 3),
+        #                            np.around(self.u[trg], 3), c, self.W_rec[src, trg])]
+
+        #     return
+
+        # decay
+        # self.W_rec += - (self.W_rec * (1 - self.temp)) / 10
 
     def step(self, x: np.ndarray=None):
 
@@ -484,13 +535,17 @@ class PCNNetwork:
         if x is not None:
 
             # define weights
-            W = self.Wff * (1 - self.W_cold_mask) + self.W_clone * self.W_cold_mask
+            self.W_final = self.Wff * (1 - self.W_cold_mask) + self.W_clone * self.W_cold_mask
+
+            # trace
+            self.u_trace += (self.W_final @ x * self.u - self.u_trace) / self._u_trace_decay  
 
             # step
-            self.Ix = W @ x * (1 - self.W_cold_mask) + cosine_similarity(W.T, x) * self.W_cold_mask
+            self.Ix = self.W_final @ x * (1 - self.W_cold_mask) + \
+                cosine_similarity(self.W_final.T, x) * self.W_cold_mask
             # self.Ix = cosine_similarity(W, x) * self.W
 
-            self.var1 = W.copy()
+            self.var1 = self.W_final.copy()
 
         # calculate synaptic current
         self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(
@@ -507,7 +562,7 @@ class PCNNetwork:
 
         # update DA
         ut_block = (self.u * self.temp).max()  # float [0, 1]
-        DA_block = ut_block * 1*(ut_block >= 0.99)  # bool
+        DA_block = ut_block * 1*(ut_block > 0.8)  # bool <----------------- !!
         self.DA_block = DA_block
         self.DA += (1 - DA_block - self.DA) / self._DA_tau
         self.var2 = DA_block

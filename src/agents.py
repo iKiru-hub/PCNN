@@ -1,7 +1,5 @@
 import numpy as np 
-import jax.numpy as jnp
-from jax import grad, jit, vmap
-from jax import randomimport warnings
+import warnings
 try:
     from tools.utils import logger, tqdm_enumerate
 except ModuleNotFoundError:
@@ -26,7 +24,6 @@ except ModuleNotFoundError:
 
 # --| setup
 DEBUG = False
-seed_key = random.PRNGKey(0)
 
 
 
