@@ -1,6 +1,7 @@
 import sys
 import os
 import numpy as np
+from scipy.signal import correlate2d, find_peaks
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -76,34 +77,28 @@ class ModelHL:
         self.dim_output = W.shape[0]
 
         # PCNN layer parameters
-        # pcnn_params['Nj'] = self.dim_output
-        # self.pcnn = mm.PCNNetwork(**pcnn_params)
+        pcnn_params['Nj'] = self.dim_output
+        self.pcnn = mm.PCNNetwork(**pcnn_params)
 
     def __repr__(self):
 
-        return f'ModelHL(dim_input={self.dim_input}, dim_output={self.dim_output})'
+        return f"ModelHL(dim 1={self.dim_input}, dim 2={self.dim_output}," + \
+               f" PCNN={self.pcnn})"
 
-    def step(self, x: np.ndarray) -> np.ndarray:
+    def step(self, x: np.ndarray):
 
         """
         Parameters
         ----------
         x : np.ndarray
             the input position
-
-        Returns
-        -------
-        np.ndarray
-            the output activity
         """
 
         # input layer
         y = self.activation(self.W @ x)
 
         # PCNN layer
-        # y = self.pcnn.step(x=y)
-
-        return y
+        self.pcnn.step(x=y)
 
     def _make_activation_function(self, kind: str):
 
@@ -137,6 +132,14 @@ class ModelHL:
 
         return self.pcnn.out
 
+    def set_off(self):
+
+        """
+        set the PCNN layer off
+        """
+
+        self.pcnn.set_off()
+
     def reset(self):
 
         """
@@ -144,3 +147,150 @@ class ModelHL:
         """
 
         self.pcnn.reset()
+
+
+
+""" Evaluation """
+
+
+
+def eval_field_modality_hl(activation: np.ndarray, indices: bool=False) -> int:
+
+    """
+    calculate how many peaks are in the activation map
+
+    Parameters
+    ----------
+    activation : np.ndarray
+        Activation map.
+    indices : bool
+        Whether to return the indices of the peaks. 
+        Default: False
+
+    Returns
+    -------
+    nb_peaks : int
+        Number of peaks.
+    peaks_indices : np.ndarray
+        Indices of the peaks.
+    """
+
+    # reshape the activation map
+    n = int(np.sqrt(activation.shape[0]))
+    activation = activation.reshape(n, n)
+
+    # Correlate the distribution with itself
+    autocorrelation = correlate2d(activation, activation, mode='full')
+
+    # Find peaks in the autocorrelation map
+    peaks_indices = find_peaks(autocorrelation[autocorrelation.shape[0]//2], 
+                               height=autocorrelation.max()/3)[0]
+
+    if indices:
+        return len(peaks_indices), peaks_indices
+    return len(peaks_indices)
+
+
+
+def eval_information_II_hl(model: object, trajectory: np.ndarray, 
+                           whole_trajectory: np.ndarray, **kwargs) -> tuple:
+
+    """
+    Evaluate the model by its information content on the trajectory
+    and its place field on the whole trajectory.:
+    - mean information content
+    - standard deviation of the information content
+    - number of peaks in the activation map
+
+    Parameters
+    ----------
+    model : object
+        The model object.
+    trajectory : np.ndarray
+        The input trajectory.
+    whole_trajectory : np.ndarray
+        The whole input trajectory.
+
+    Returns
+    -------
+    mean_IT : float
+        Mean information content.
+    std_IT : float
+        Standard deviation of the information content.
+    nb_peaks : int
+        Number of peaks in the activation map.
+    """
+
+    # ------------------------------------------------------------ #
+    # evaluate the shape of the place field
+
+    # record the population activity for the whole track
+    A = np.empty(len(whole_trajectory))
+    model.set_off()
+
+    for t, x in enumerate(whole_trajectory):
+        model.step(x=x.reshape(-1, 1))   
+        A[t] = model.pcnn.u.sum()
+
+    # number of peaks in the activation map
+    nb_peaks, peaks = eval_field_modality_hl(activation=A, indices=True)
+
+    if len(peaks) > 0:
+        
+        lim_dx = max((peaks[0] - 10, 0))
+        lim_sx = min((peaks[0] + 10, len(A)))
+
+        # get the area (+- 20 units) around the main peak
+        on_area = A[lim_dx:lim_sx]
+        off_area = np.concatenate((A[:lim_dx], A[lim_sx:]))
+
+        # calculate the ratio of the area around the main peak
+        a_ratio = on_area.sum() / off_area.sum()
+
+    else:
+        a_ratio = 0
+
+    # peaks of different neurons should be as far as possible
+    # across the network
+    mean_peak_position = np.array([np.argmax(A[i::model.pcnn.N]) \
+        for i in range(model.pcnn.N)]).mean()
+
+    # mean distance between peaks
+    var_peaks = mean_peak_position.var()
+
+
+    # ------------------------------------------------------------ #
+    # evaluate the information content
+
+    # record the population activity for the trajectory
+    AT = []
+    A = np.empty(len(trajectory))
+
+    for t, x in enumerate(trajectory):
+        model.step(x=x.reshape(-1, 1))   
+        AT += [tuple(np.around(model.pcnn.u.flatten(), 1))]
+        A[t] = model.pcnn.u.sum()
+
+    # assign a probability (frequency) for each unique pattern
+    AP = {}
+    for a in AT:
+        if a in AP.keys():
+            AP[a] += 1
+            continue
+        AP[a] = 1
+
+    for k, v in AP.items():
+        AP[k] = v / AT.__len__()
+
+    # compute the information content at each point in the track 
+    IT = np.empty(len(trajectory))
+    for t, a in enumerate(AT):
+        IT[t] = - np.log2(AP[a])
+
+    # calculate and return the information content-related metrics
+    mean = np.clip(IT, -5, 5).mean()
+    std = IT.std()
+
+    return mean, -std, -nb_peaks, -var_peaks#a_ratio
+
+

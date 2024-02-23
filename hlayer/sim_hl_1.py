@@ -191,7 +191,7 @@ class Env:
 
             # evaluate the agent
             fitness_trial = self._eval_func(
-                                        model=agent.model.pcnn,
+                                        model=agent.model,
                                         trajectory=self._dataset[i],
                                         whole_trajectory=self._dataset_whole[i])
 
@@ -269,7 +269,7 @@ if __name__ == "__main__" :
     # nj_set = [int(i**2) for i in np.linspace(6, 9, n_samples, endpoint=True)]
     env = Env(n_samples=n_samples,
               make_data=make_2D_data,
-              eval_func=mm.eval_information_II,
+              eval_func=hl.eval_information_II_hl,
               n_pop=NPOP,
               new_dataset_period=2,
               fitness_size=len(fitness_weights))
