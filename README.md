@@ -11,12 +11,13 @@ Acronym for Place Cells Neural Network.
 - background stimulation from internal theta oscillations 
 - neuromodulation-dependant learning (dopamine)
 
-![Formed place fields on the path](media/pcnn_plot_a.png)
+The results below are obtained from a simulation where the agent walked a trajectory spanning most of the environment.
+![Formed place fields on the path](media/pcnn_plot_b.png)
 
-![Trajectory](media/pcnn_plot_b.png)
+![Trajectory](media/pcnn_plot_d.png)
 
+![roaming](media/goods/roaming_222509.gif)
 
----
 ### Branches 
 - **main** 
 - **cold** study of how to implement learning of non-hot encoded representations. _NB: only visible in the original repository for now_
@@ -25,9 +26,10 @@ Acronym for Place Cells Neural Network.
 [BioAI_Oslo]
 synched every time there is a push to the original repository.
 
----
 ### TODO
-- [ ] update unittests (it is a legit word fr) (*ie* about the new trajectory function) 
 - [ ] more tailored unittests
+- [ ] make explicit the PC fields online skewing
+- [ ] design and implement a RL grid-world + task, see https://minigrid.farama.org/index.html & https://github.com/Farama-Foundation/Miniworld
+- [ ] code up the RL agent
 
 

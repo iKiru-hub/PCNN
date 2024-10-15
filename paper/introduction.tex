@@ -1,0 +1,41 @@
+\section{Introduction}
+\hfill \break
+\vspace {0.5cm}
+
+% --- COGNITIVE MAP ---
+% - intution
+% - history
+% - behaviour
+% - previous models
+During navigation, animals dynamically create rich representations of the environment, forming personalized cognitive maps.
+The hippocampal area CA1 features spatial cells that adapt based on behavior and internal states. Computational models have usually obtained spatial tuning by training a deep
+recurrent network for solving navigation tasks such as path integration \cite{sorscherUnifiedTheoryOrigin2019, cuevaEmergenceGridlikeRepresentations2018, baninoVectorbasedNavigationUsing2018}, lasting multiple numerous epochs and using backpropagation.
+However, these training methods do not closely
+align with real-time local learning paradigms used by animals. \\ In this study, it is introduced a rate model that generates place cells in one-shot as the agent navigates the environment by simply assigning the current spatial observation to a selected neuron while ensuring a sparse representation
+(\textit{i.e.} spaced place fields).
+
+% --- NEUROMODULATION ---
+% - what it is
+% - why it is relevant for cognitive maps
+An important ingredient for the learning dynamics of our model is neuromodulation.
+Neuromodulation is an important ingredient for biological neuronal dynamics, with different molecules covering a wide range of functions.
+Previous models \cite{brzoskoRetroactiveModulationSpike2015, brzoskoSequentialNeuromodulationHebbian2017} inspired by experimental results crafted a simple spiking plasticity rule for reward-directed navigation where acetilcholine mediates explorative behaviour and dopamine reinforces memory of reward locations.
+Other approached using deep artificial networks have applied neuromodulation in conjuction with other training practices, such as dropout probability \cite{meiEffectsNeuromodulationinspiredMechanisms2023}.
+In this work, modulators are described as synaptic resources that are consumed by plasticity events, and their dynamics are modelled as leaky integrators.
+Further, acetilcholine is used to mediate the generation of new place fields, while dopamine mediates the slow remapping of the place centers in
+conjunction with a reward signal.
+The concentration of acetilcholine is affected by the presence of active neurons or by the occurrence of a weight update.
+Dopamine, on the other hand, is influenced by the presence of a reward.
+
+This model successfully creates a representation of visited areas and recurrent connections are defined among similarly tuned cells.
+Importantly, plasticity hyper-parameters such as the equilibrium concentration
+and decay time-constant of modulators influence the density of place cells, impacting the encoding of behaviorally relevant information \cite{bittnerBehavioralTimeScale2017}.
+
+This network is then used to solve a goal-directed navigation task, where the agent is trained to reach a target location.
+The agent is equipped with a policy that modulates the exploration behaviour and the decision-making process.
+
+% --- GOAL ---
+% - goals statement
+% - what's wrong with previous models
+% - the proposed direction
+

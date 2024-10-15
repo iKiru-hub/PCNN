@@ -1,0 +1,35 @@
+\section{Results}
+
+\subsection{Cognitive map formation}
+
+The model was validated through the generation and remapping of place cells within a square environment featuring a fixed reward area. The agent's trajectory was simulated as a bio-inspired random walk with constant speed, as illustrated in Figure \ref{fig:pcgen}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.99\textwidth]{figures/pc_generation.png}
+    \caption{\textsc{Generation of a Cognitive Map} - Left: \textit{place cells (blue dots) are formed online as the agent traverses the environment (red trajectory), supported by cholinergic activity}. Right: \textit{a subsequent run with a reward region in the lower right corner, potentially triggering dopamine spikes.}}
+    \label{fig:pcgen}
+\end{figure}
+
+The spatial representation developed by the agent reflects its experiences during exploration. In the absence of reward (left plot), the distance between adjacent place fields remains relatively constant, with variations dependent on recent acetylcholine (ACh) consumption rates and trajectory changes. When a reward is present and the agent approaches the reward area (right plot), elevated dopamine levels induce plasticity, causing place fields to cluster closer to the current position.
+
+\subsection{Navigation and Reinforcement Learning}
+[\textbf{NB} \textit{this is a draft, the target location here is not a reward area as in the experiment above and dopamine is not activated. That is work in progress not ready to be written down here, for now it is reported only the agent navigation ability with a uniform spatial representation}]
+\\ To evaluate the practical utility of the cognitive map, we tested the agent's navigation capabilities in a square environment with walls and a goal placed within the explored area. 
+Figure \ref{fig:rl1} illustrates the results.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/rl_1.png}
+    \caption{\textsc{Goal-Directed Behavior} - Left: \textit{agent trajectory in a square environment with the target in the upper right corner. Black dots represent the centers of active place cells in proximal positions, connected by blue lines}. Center: \textit{time evolution of the current position representation, with rows corresponding to neurons and columns to time steps}. Right: \textit{representation of the target location.}}
+    \label{fig:rl1}
+\end{figure}
+
+Employing the policy outlined in the methods \ref{sec:policy}, the agent successfully reached the target via a relatively short path. When a wall is encountered between its starting position and the target, the agent initially collided but managed to change its strategy to avoid it. This adaptation was achieved through temporary adjustments to the parameters $\epsilon$ and $\lambda$, prioritizing movement towards proximal positions with higher place cell activity over direct target approach.
+
+This demonstrates the effectiveness of the cognitive map in supporting flexible navigation strategies, even with a relatively simple decision-making algorithm. \\ Importantly, the results presented in Figure \ref{fig:rl1} were obtained using our hard-coded heuristic policy.
+
+Finally, the agent's ability to dynamically adjust its behavior based on environmental constraints and its internal representation showcases the robustness and adaptability of the developed model.
+
+\hfill \break
+See also \url{https://ikiru-hub.github.io/showcase/} for a video demonstration of the place cell generation and navigation tasks.

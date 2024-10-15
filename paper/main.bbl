@@ -1,0 +1,37 @@
+\begin{thebibliography}{1}
+
+\bibitem{sorscherUnifiedTheoryOrigin2019}
+Ben Sorscher, Gabriel Mel, Surya Ganguli, and Samuel Ocko.
+\newblock A unified theory for the origin of grid cells through the lens of pattern formation.
+\newblock In {\em Advances in {{Neural Information Processing Systems}}}, volume~32. Curran Associates, Inc., 2019.
+
+\bibitem{cuevaEmergenceGridlikeRepresentations2018}
+Christopher~J. Cueva and Xue-Xin Wei.
+\newblock Emergence of grid-like representations by training recurrent neural networks to perform spatial localization, March 2018.
+
+\bibitem{baninoVectorbasedNavigationUsing2018}
+Andrea Banino, Caswell Barry, Benigno Uria, Charles Blundell, Timothy Lillicrap, Piotr Mirowski, Alexander Pritzel, Martin~J. Chadwick, Thomas Degris, Joseph Modayil, Greg Wayne, Hubert Soyer, Fabio Viola, Brian Zhang, Ross Goroshin, Neil Rabinowitz, Razvan Pascanu, Charlie Beattie, Stig Petersen, Amir Sadik, Stephen Gaffney, Helen King, Koray Kavukcuoglu, Demis Hassabis, Raia Hadsell, and Dharshan Kumaran.
+\newblock Vector-based navigation using grid-like representations in artificial agents.
+\newblock {\em Nature}, 557(7705):429--433, May 2018.
+
+\bibitem{brzoskoRetroactiveModulationSpike2015}
+Zuzanna Brzosko, Wolfram Schultz, and Ole Paulsen.
+\newblock Retroactive modulation of spike timing-dependent plasticity by dopamine.
+\newblock {\em eLife}, 4:e09685, October 2015.
+
+\bibitem{brzoskoSequentialNeuromodulationHebbian2017}
+Zuzanna Brzosko, Sara Zannone, Wolfram Schultz, Claudia Clopath, and Ole Paulsen.
+\newblock Sequential neuromodulation of {{Hebbian}} plasticity offers mechanism for effective reward-based navigation.
+\newblock {\em eLife}, 6:e27756, 2017.
+
+\bibitem{meiEffectsNeuromodulationinspiredMechanisms2023}
+Jie Mei, Rouzbeh Meshkinnejad, and Yalda Mohsenzadeh.
+\newblock Effects of neuromodulation-inspired mechanisms on the performance of deep neural networks in a spatial learning task.
+\newblock {\em iScience}, 26(2):106026, February 2023.
+
+\bibitem{bittnerBehavioralTimeScale2017}
+Katie~C. Bittner, Aaron~D. Milstein, Christine Grienberger, Sandro Romani, and Jeffrey~C. Magee.
+\newblock Behavioral time scale synaptic plasticity underlies {{CA1}} place fields.
+\newblock {\em Science}, 357(6355):1033--1036, September 2017.
+
+\end{thebibliography}

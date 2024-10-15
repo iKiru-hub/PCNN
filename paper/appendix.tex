@@ -1,0 +1,140 @@
+\section{Appendix}
+\label{sec:appendix}
+
+\subsection{Neural dynamics}
+
+\textbf{Activation function} $\sigma$ \\ It is a generalized sigmoid function:
+\begin{equation}
+    \sigma(z)=[1+\exp(-\beta(z-\alpha))]^{-1}
+\end{equation}
+
+\noindent Additionally, the activity is clipped:
+\begin{equation}
+    \text{clip}(z)=
+    \begin{cases}
+        0 & \text{if } z<10^{-3}\\
+        z & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+% \subsection{Lateral inhibition and attraction functions}
+
+\subsubsection{Lateral inhibition function}
+
+The lateral inhibition function $\phi_{-}$ is implemented using the feedforward connectivity matrix $W_{\text{ff}}$, hereafter referred to as $W$. It is calculated based on the cosine similarity among tuned neurons. The process involves several steps:
+
+1. Normalize each row of matrix $W$ by its Euclidean norm:
+
+   \begin{equation}
+       W_{\text{norm};i} = \frac{W_{i}}{\|W_{i}\|_2} = \frac{W_{i}}{\sqrt{\sum_{j=1}^{n} W_{ij}^2}},
+   \end{equation}
+
+\noindent where $W_{ij}$ represents the element at the $i$-th row and $j$-th column of $W$, and the division is performed element-wise across rows. For numerical stability, any resulting \texttt{NaN} values are set to zero.
+
+2. Compute the repulsion matrix by taking the dot product and setting diagonal elements to zero:
+
+   \begin{equation}
+       R = \left(W_{\text{norm}} \cdot W_{\text{norm}}^T \right) \odot (1 - I),
+   \end{equation}
+
+\noindent where $I$ is the identity matrix, and $\odot$ denotes element-wise multiplication.
+
+3. Calculate the maximum repulsion value for each row:
+
+   \begin{equation}
+       R_{\text{max}} = \max(R)_{i}
+   \end{equation}
+
+4. Finally, determine the repulsion vector by thresholding the maximum repulsion values:
+
+   \begin{equation}
+       \phi_{-} =
+       \begin{cases}
+           1 & \text{if } R_{\text{max}} < \theta_{\text{rep}}, \\
+           0 & \text{if } R_{\text{max}} \geq \theta_{\text{rep}}.
+       \end{cases}
+   \end{equation}
+
+\noindent The threshold $\theta_{\text{rep}}$ is set to 0.7.
+
+\subsubsection{Attraction function}
+
+The attraction function $\phi_{+}$ modulates the remapping of place cells with respect to a new position. This weight update depends on dopamine levels and the distance between the current place field and the location where the reward was experienced.
+The function is computed as follows a cosine similarity between the weight vector $W_{\text{ff}; i;}$ and the input vector $\textbf{x}$, and then passed through a generalized sigmoid function.
+
+This formulation ensures that the attraction effect is strongest for place cells whose fields are closest to the current location, gradually decreasing with distance.
+
+
+\subsection{Decision-making and RL}
+
+\subsubsection{Velocity calculation}
+Below, it is described the algorithm the agent uses to reach a goal location given the parameters $\epsilon$ and $\lambda$. These two parameters, together with the place cell network hyperparameters $\Theta$ are defined by an external policy: proximal policy optimization (PPO), deep-Q network (DQN,
+for which the actions have been discretized into bins), or a hard-coded heuristic. 
+
+% algorithm
+\begin{algorithm}
+\caption{Position and Velocity Calculation in Neural Space}
+\label{alg:pos_vel_calc}
+\begin{algorithmic}[1]
+\Require
+    \State $\mathbf{x}_t \in \mathbb{R}^2$: current 2D position
+    \State $\mathbf{x}_{\text{target}} \in \mathbb{R}^2$: target position
+    \State $\epsilon \in [0, 1]$: interpolation parameter
+    \State $\lambda \in \mathbb{R}$: modulation parameter
+    \State $W_{\text{rec}} \in \mathbb{R}^{n \times n}$: recurrent weight matrix
+    \State $\sigma(\cdot)$: generalized sigmoid activation function
+    \State $\varphi(\cdot, \lambda)$: modulation function
+    \State $\phi(\cdot, \cdot)$: velocity extraction function
+\Ensure
+    \State $\mathbf{v}_t \in \mathbb{R}^2$: velocity vector
+\Function{CalculateVelocity}{$\mathbf{x}_t, \mathbf{x}_{\text{target}}, \epsilon, \lambda$}
+    \State Calculate neural representation of the current position: $\mathbf{u}_t \gets f(\mathbf{x}_t)$
+    \State Calculate representation of proximal positions: $\mathbf{u}_{\text{prox}} \gets \sigma(W_{\text{rec}}\mathbf{u}_t)$
+    \State Calculate neural representation of target position: $\mathbf{u}_{\text{target}} \gets f(\mathbf{x}_{\text{target}})$
+    \State Modulate proximal representations: $\mathbf{u}_{\text{prox}}' \gets \varphi(\mathbf{u}_{\text{prox}}, \lambda)$
+    \State Interpolate between proximal and target: $\mathbf{u}_{\text{next}} \gets (1 - \epsilon)\mathbf{u}_{\text{prox}}' + \epsilon\mathbf{u}_{\text{target}}$
+    \State Extract velocity from neural representations: $\mathbf{v}_t \gets \phi(\mathbf{u}_t, \mathbf{u}_{\text{next}})$
+    \State \Return $\mathbf{v}_t$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\noindent Where $f$ is simply a forward pass to the model (see figure \ref{fig:architecture}). The calculation of velocity through the function $\phi$ relies on the extraction of a 2D position $(\bar{x},\bar{y})$ from a spatial representation (\textit{i.e.} a population vector $\mathbf{u}$). This is carried out by taking an average of the place cells center weighted by their activations:
+
+\begin{equation}
+\begin{aligned}
+    \bar{x}&=\frac{1}{\sum_{i} u_{i}} \sum_{i} x_{i} u_{i}\\
+    \bar{y}&=\frac{1}{\sum_{i} u_{i}} \sum_{i} y_{i} u_{i}\\
+\end{aligned}
+\end{equation}
+
+\noindent Then, velocity is defined with $\phi$ by calculating the angle $\omega$ between the two computed positions and a given speed $s$ as:
+$\mathbf{v}=$$\begin{bmatrix}s\cdot\cos(\omega) & s\cdot\sin(\omega)\end{bmatrix}$.
+
+\subsubsection{Proximal modulation}
+The modulation of the proximal positions representation is done by a function $\varphi$, which is described by the following algorithm:
+
+\begin{algorithm}
+\caption{Proximal modulation algorithm}
+\label{alg:proxalg}
+\begin{algorithmic}[1]
+\Require
+    \State $\mathbf{a} \in \mathbb{R}^n$: population vector for $n$ neurons
+    \State $\theta \in \mathbb{R} \in [0, 1]$: activation threshold
+    \State $\lambda \in [-5, 5]$: modulation parameter
+\Ensure
+    \State $\mathbf{y}'$: modulated output array
+\Function{ProximalModulation}{$\mathbf{u}, \theta, \lambda$}
+    \State Indices of super-threshold elements: $\mathcal{I} \gets \{i \in \{1, \ldots, n\} \mid u_i > \theta\}$
+    \State Extract super-threshold values: $\mathbf{v} \gets \mathbf{u}_\mathcal{I}$
+    \State Compute the mean of super-threshold values: $\bar{v} \gets \frac{1}{|\mathcal{I}|} \sum_{i \in \mathcal{I}} v_i$
+    \State Apply drift towards mean: $\mathbf{v}' \gets \mathbf{v} + \lambda(\bar{v}I - \mathbf{v})$
+    \State Update super-threshold elements: $\mathbf{u}'_\mathcal{I} \gets \mathbf{v}'$
+    \State Preserve sub-threshold elements: $\mathbf{u}'_{\{1,\ldots,n\} \setminus \mathcal{I}} \gets \mathbf{u}_{\{1,\ldots,n\} \setminus \mathcal{I}}$
+    \State \Return $\mathbf{u}'$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\noindent In the exploration phase, no target position is provided. In this case, step $5$ is skipped and step $7$ is reduced to an equality $\mathbf{u}_{\text{next}}=\mathbf{u}_{\text{prox}}$, resulting in a behaviour solely relying on the proximal positions.
+
