@@ -1,8 +1,13 @@
-import numpy as np 
-import matplotlib.pyplot as plt 
+import numpy as np
+import matplotlib.pyplot as plt
 from itertools import product as iterprod
-from scipy.signal import correlate2d, find_peaks
+from scipy.signal import correlate2d, find_peaks, convolve2d
+import json, sys, os
+from datetime import datetime
 import warnings
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 try:
     from tools.utils import logger, tqdm_enumerate
 except ModuleNotFoundError:
@@ -10,6 +15,10 @@ except ModuleNotFoundError:
     class Logger:
 
         print('Logger not found, using fake logger')
+
+        def __call__(self, msg: str=""):
+
+            self.info(msg=msg)
 
         def info(self, msg: str):
             print(msg)
@@ -136,6 +145,7 @@ class PCNNetwork:
         # General 
         self.N = N
         self.Nj = Nj
+        self._w_kernel = kwargs.get('w_kernel', np.ones((4, 4)))
 
         # define instance id as a string of alphanumeric characters
         self.id = random_id()
@@ -157,6 +167,7 @@ class PCNNetwork:
 
         # Feedforward weights
         self.Wff = np.zeros((N, Nj))
+        # self.Wff = np.abs(np.random.normal(0, 0.0001, size=(N, Nj)))
         self._wff_min = kwargs.get('wff_min', 0.0)
         self._wff_max = kwargs.get('wff_max', 3)
         self._wff_tau = kwargs.get('wff_tau', 500)
@@ -214,8 +225,11 @@ class PCNNetwork:
         self.var1 = None
         self.var2 = None
         self.var3 = []
+        self.var4 = None
         self.idx_selective = 0
         self.selective_neurons = []
+
+        self.loaded = False
 
     def __repr__(self):
 
@@ -384,7 +398,8 @@ class PCNNetwork:
 
 
         # threshold = self.Wff.max(axis=1, keepdims=True) * 0.3
-        threshold = self.Wff.max(axis=1, keepdims=True) * 0.4 # <---------------------
+        threshold = self.Wff.max(axis=1, keepdims=True) * 0.5 # <---------------------
+
         w_trim = np.where(self.Wff < threshold, 0., self.Wff)
         # w_trim = self._softmax(x=W, beta=beta)
         # low_bounds = np.sort(self._softmax(x=W),
@@ -475,7 +490,13 @@ class PCNNetwork:
         # self.W_rec += self._lr * (self.u_trace @ self.u_trace.T) * (1 - np.eye(self.N)) 
 
         # self.W_rec *= self.temp
-        self._update_recurrent()
+
+        if np.where(self.temp == 1.)[0].size > self.selective_neurons.__len__():
+            self.W_rec = make_wrec2D(weights=self.W_clone.copy(),
+                                     kernel=self._w_kernel.copy(),  # this is why I hate python
+                                     threshold=0.5).copy()
+
+            self.selective_neurons = np.where(self.temp == 1.)[0]
 
         # re-tuning
         if self._is_retuning:
@@ -501,47 +522,69 @@ class PCNNetwork:
 
         return (v @ w.T) / (np.linalg.norm(v) * np.linalg.norm(w, axis=1))
 
-    def _update_recurrent(self):
+    def get_wrec(self):
+
+        self.W_rec = make_wrec2D(weights=self.W_final.copy(),
+                                        kernel=np.ones((4, 4)),
+                                        threshold=0.5).copy()
+
+    def _update_recurrent(self, kernel: np.ndarray=None, threshold: float=0.5):
 
         """
         Update function
         """
 
-        max_distance = 0.3
+        # max_distance = 0.
 
         # update list of selective neurons
-        all_selective = np.where(self.temp == 1.)[0]
+        # all_selective = np.where(self.temp == 1.)[0]
 
-        # get the indices of the newly selective neurons
-        new_selective = [i for i in all_selective if i not in self.selective_neurons]
+        # # get the indices of the newly selective neurons
+        # new_selective = [i for i in all_selective if i not in self.selective_neurons]
 
-        # if len(new_selective) > -1:
-        if self.t % 100 == 0:
+        # if len(new_selective) > 0:
+
+        if kernel is None:
+            kernel = np.ones((4, 4))
+        if threshold is None:
+            threshold = 0.5
+
+        self.W_rec = make_wrec2D(weights=self.W_final.copy(),
+                                 kernel=kernel,
+                                 threshold=threshold).copy()
+
+            # self.selective_neurons = all_selective
+
+
+        # if self.t % 100 == 0:
 
             # W = np.where(self._softmax(self.W_final > 0.3), self.W_final, 0)
 
             # for all newly selective neurons, update the recurrent weights
-            for i in range(self.N):
+            # for i in range(self.N):
 
-                # calculate the euclidean distance wrt all other neurons in input space 
-                for j in range(self.N):
-                    if i == j or j not in all_selective: continue
+                # calculate the euclidean distance wrt all other neurons in input space
+                # for j in range(self.N):
+                #     if i == j or j not in all_selective: continue
 
-                    Wi = np.where(self._softmax(self.W_final[i] > 0.4, axis=0), 
-                                  self.W_final[i], 0)
-                    Wj = np.where(self._softmax(self.W_final[j] > 0.4, axis=0), 
-                                  self.W_final[j], 0)
+                    # Wi = np.where(self._softmax(self.W_clone[i] > 0., axis=0),
+                    #               self.W_clone[i], 0)
+                    # Wj = np.where(self._softmax(self.W_clone[j] > 0., axis=0),
+                    #               self.W_clone[j], 0)
+                    # Wi = np.where(self.W_clone[i] > 0.0, self.W_clone[i], 0)
+                    # Wj = np.where(self.W_clone[j] > 0.0, self.W_clone[j], 0)
+
                     # dist = cosine_similarity(Wi, Wj)
-                    dist = cosine_similarity(Wi*self.u_trace[i], 
-                                             Wj*self.u_trace[j])
+                    # dist = cosine_similarity(Wi*self.u_trace[i], 
+                    #                          Wj*self.u_trace[j])
 
                     # dist = np.linalg.norm(self.Wff[i] - self.Wff[j])
 
-                    if dist > max_distance:
-                        self.W_rec[i, j] = dist
+                    # if dist > max_distance:
+                    #     self.W_rec[i, j] = dist
 
-        # update the list 
-        self.selective_neurons = all_selective
+            # update the list 
+            # self.selective_neurons = np.where(self.temp == 1.)[0]
 
     def step(self, x: np.ndarray=None):
 
@@ -558,7 +601,9 @@ class PCNNetwork:
         if x is not None:
 
             # define weights
-            self.W_final = self.Wff * (1 - self.W_cold_mask) + self.W_clone * self.W_cold_mask
+            if not self.loaded:
+                self.W_final = self.Wff * (1 - self.W_cold_mask) + \
+                    self.W_clone * self.W_cold_mask
 
             # step
             self.Ix = self.W_final @ x * (1 - self.W_cold_mask) + \
@@ -568,6 +613,13 @@ class PCNNetwork:
             self.var1 = self.W_final.copy()
 
         # calculate synaptic current
+        self.var4 = calc_osc(
+                N=self.N, t=self.t,
+                I=self._range, O=self.tuning, K=self._nb_per_cycle,
+                b=self._theta_freq, nb_skip=self._nb_skip,
+                sigma=self._sigma_gamma
+        )
+
         self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(
                 N=self.N, t=self.t,
                 I=self._range, O=self.tuning, K=self._nb_per_cycle,
@@ -575,20 +627,32 @@ class PCNNetwork:
                 sigma=self._sigma_gamma
         )
 
+
+        # self.Is = self._IS_magnitude * (1 - self.temp) * calc_osc(
+        #         N=self.N, t=self.t,
+        #         I=self._range, O=self.tuning, K=self._nb_per_cycle,
+        #         b=self._theta_freq, nb_skip=self._nb_skip,
+        #         sigma=self._sigma_gamma
+        # )
+
         # activation
         self.u = self.activation_func(
             self.u - self.u / self._tau + self.Ix + self.Is
         )
 
-        # trace 
-        self.u_trace += (self.Ix * (self.temp>0.9) - self.u_trace) / self._u_trace_decay
+        # trace
+        self.u_trace += (self.Ix * (self.temp>0.9) - \
+            self.u_trace) / self._u_trace_decay
 
         # update DA
         ut_block = (self.u * self.temp).max()  # float [0, 1]
-        DA_block = ut_block * 1*(ut_block > 0.99)  # bool <----------------- !!
+        DA_block = ut_block * 1*(ut_block > 0.99) * (
+            self.DA < 0.0)  # bool <----------------- !!
+
         self.DA_block = DA_block
-        self.DA += (1 - DA_block - self.DA) / self._DA_tau
-        self.var2 = DA_block
+        # self.DA += (1 - DA_block - self.DA) / self._DA_tau
+        self.DA += (1 - ut_block - self.DA) / self._DA_tau
+        self.var2 = ut_block
 
         # update weights
         if self._plastic:
@@ -605,6 +669,32 @@ class PCNNetwork:
         """
 
         return self.u.copy()
+
+    def set_da_tau(self, DA_tau: float):
+
+        """
+        Set the time constant of the dopamine
+
+        Parameters
+        ----------
+        DA_tau: float
+            Time constant of the dopamine
+        """
+
+        self._DA_tau = DA_tau
+
+    def set_u_tau(self, u_tau: float):
+
+        """
+        Set the time constant of the internal dynamics
+
+        Parameters
+        ----------
+        u_tau: float
+            Time constant of the internal dynamics
+        """
+
+        self._tau = u_tau
 
     def set_off(self, bias: float=None, gain: float=None):
 
@@ -655,6 +745,26 @@ class PCNNetwork:
 
         self.reset()
 
+    def set_weights(self, Wff: np.ndarray, W_rec: np.ndarray=None):
+
+        """
+        Set the weights of the network
+
+        Parameters
+        ----------
+        Wff: np.ndarray
+            Feedforward weights
+        W_rec: np.ndarray
+            Recurrent weights
+        """
+
+        # self.Wff = Wff.copy()
+        # self.W_final = Wff.copy()
+        # if W_rec is not None:
+        #     self.W_rec = W_rec
+
+        self.loaded = True
+
     def reset(self):
 
         """
@@ -684,6 +794,83 @@ class PCNNetwork:
             k=self._nb_per_cycle, N=self.N)
         self.tuning = calc_tuning(N=self.N, K=self._nb_per_cycle,
                                   b=self._theta_freq)
+
+
+""" PC + PCNN """
+
+
+class SuperPCNN:
+
+    def __init__(self, layer: object, pcnn: PCNNetwork, interval: int=1):
+
+        """
+        SuperPC class
+
+        Parameters
+        ----------
+        layer: object
+            Layer object
+        pcnn: PCNNetwork
+            PCNNetwork object
+        interval: int
+            time taken to process each step.
+            Default: 1
+        """
+
+        self.layer = layer
+        self.pcnn = pcnn
+
+        self.N = pcnn.N
+        self.n = int(np.sqrt(pcnn.N))
+        self._interval = interval
+
+    def __repr__(self):
+
+        return f"SuperPCNN(layer={self.layer}, pcnn={self.pcnn})"
+
+    def step(self, position: np.ndarray=None, max_rate: float=1.) -> np.ndarray:
+
+        """
+        Step function
+
+        Parameters
+        ----------
+        x: np.ndarray
+            Input from other neurons
+
+        Returns
+        -------
+        output: np.ndarray
+            Output of the network
+        """
+
+        # step
+        for _ in range(self._interval):
+            y = self.layer.step(position=position, max_rate=1.)
+            self.pcnn.step(x=y.reshape(-1, 1))
+
+        return self.pcnn.output * max_rate
+
+    def set_off(self, **kwargs):
+
+        """
+        Turn off plasticity
+
+        Parameters
+        ----------
+        **kwargs: dict
+            Keyword arguments
+        """
+
+        self.pcnn.set_off(**kwargs)
+
+    def reset(self):
+
+        """
+        Reset function
+        """
+
+        self.pcnn.reset()
 
 
 
@@ -830,6 +1017,63 @@ def calc_osc(N: int, t: int, I: int, O: int, K: int,
                      nb_skip=nb_skip) * calc_gamma(t=t, O=O, b=b, 
                                                    sigma=sigma)
 
+
+def make_wrec2D(weights: np.ndarray,
+                kernel: np.ndarray,
+                threshold: float,
+                threshold_2: float=1e-3) -> np.ndarray:
+
+    """
+    make the recurrent connections 
+
+    Parameters
+    ----------
+    weights : np.ndarray
+        Weights of the network.
+    kernel : np.ndarray
+        Kernel for the convolution.
+        Default: np.ones((4, 4))
+    threshold : float
+        Threshold for the weights. 
+        Default: 0
+    threshold_2 : float
+        Threshold for the weights. 
+        Default: 1e-3
+
+    Returns
+    -------
+    W : np.ndarray
+        Recurrent connections.
+    """
+
+    wff_or = weights.copy()
+    N = wff_or.shape[0]
+    n = int(np.sqrt(wff_or.shape[1]))
+    wff = np.empty((N, (n - kernel.shape[0]+1)**2))
+    # logger.debug(f"{wff_or.shape=}, {n=}, {wff.shape=} {kernel.shape=}")
+
+    # apply a 1D conv over each row
+    for i in range(N):
+        try:
+            wff[i] = convolve2d(wff_or[i].reshape(n, n),
+                                kernel, mode='valid').flatten()
+        except ValueError:
+            logger.debug(f"ValueError: {wff_or[i].shape=}, {n=} {wff[i].shape=}")
+            raise ValueError
+
+    W = np.empty((N, N))
+    for i in range(N):
+        for j in range(N):
+            if wff[i].sum() < threshold_2 or \
+                wff[j].sum() < threshold_2:
+                continue
+            W[i,j] = cosine_similarity(wff[i].flatten(), 
+                                       wff[j].flatten())
+
+    W = W * (1 - np.eye(N))
+    W = np.where(W > threshold, W, 0)
+
+    return W.copy()
 
 
 """ Connectivity functions """
@@ -1008,310 +1252,6 @@ def train_model(genome: dict, N: int, Nj: int, data: np.ndarray=None,
     return model, (record1, record2)
 
 
-def eval_func(weights: np.ndarray, wmax: float, axis: int=1,
-              ignore_zero: bool=False, Nj_trg: int=None) -> float:
-
-    """
-    evaluate the model by its weight matrix 
-
-    Parameters
-    ----------
-    weights : np.ndarray
-        Weight matrix of the model.
-    wmax : float
-        Maximum weight.
-    axis : int
-        Axis to evaluate the model on. Default: 1
-    ignore_zero : bool
-        Whether to ignore the zero weights entries.
-        Default: False
-    Nj_trg : int
-        Number of input neurons. Default: None
-
-    Returns
-    -------
-    score : float
-        Score associated to the weights.
-    """
-
-    # settings
-    ni, nj = weights.shape
-
-    # overridde ni if Nj_trg is given
-    nj = Nj_trg if Nj_trg is not None else nj
-
-    # places that are legitimately empty
-    nb_empty = 1*((axis==0)*(nj>ni)*(nj - ni) + (axis==1)*(nj<ni)*(ni - nj))
-
-    # sum of weights (along axis) that are above 85% of the max weight
-    W_sum = np.where(weights > wmax * 0.85, 1, 0).sum(axis=axis) 
-
-    # error: where there is more than one connection per neuron
-    e_over = W_sum[W_sum > 1] -1
-
-    # error: where there is less than one connection per neuron
-    nb_under = (W_sum < 1).sum() - nb_empty if not ignore_zero else 0
-
-    # total error: sum of the two errors, kind of
-    err = nb_under + ((e_over.sum() - nb_under) > 0)*(e_over.sum() - nb_under) 
-
-    # fraction of neurons that are doing ok
-    return 1 - abs((err.sum())/ni)
-
-
-def eval_func_2(model: object, trajectory: np.ndarray, target: float=None) -> float:
-
-    """
-    Evaluate the model by its activity.
-    Two options:
-    - if target is given, calculate the error between the target and the activity
-    - if target is not given, calculate the sum of the activity
-
-    Parameters
-    ----------
-    model : object
-        The model object.
-    trajectory : np.ndarray
-        The input trajectory.
-    target : float
-        The target value. Default: None
-
-    Returns
-    -------
-    score : float
-        Score associated to the activity.
-    """
-
-
-    # set model
-    model._plastic = False
-    model._bias = 0.8
-    model._gain = 5
-
-    # 
-    score = 0.
-
-    # evaluate
-    for t, x in enumerate(trajectory):
-
-        # step
-        model.step(x=x.reshape(-1, 1))   
-
-        # calculate the norm of the population activity
-        u_norm = np.linalg.norm(model.u)
-
-        if target is not None:
-            error += (target - u_norm)*2
-        else:
-            score += u_norm
-
-    # return the score normalized by the number of time steps
-    return score / len(trajectory)
-
-
-def eval_field_modality(activation: np.ndarray, indices: bool=False) -> int:
-
-    """
-    calculate how many peaks are in the activation map
-
-    Parameters
-    ----------
-    activation : np.ndarray
-        Activation map.
-    indices : bool
-        Whether to return the indices of the peaks. 
-        Default: False
-
-    Returns
-    -------
-    nb_peaks : int
-        Number of peaks.
-    peaks_indices : np.ndarray
-        Indices of the peaks.
-    """
-
-    # reshape the activation map
-    n = int(np.sqrt(activation.shape[0]))
-    activation = activation.reshape(n, n)
-
-    # Correlate the distribution with itself
-    autocorrelation = correlate2d(activation, activation, mode='full')
-
-    # Find peaks in the autocorrelation map
-    peaks_indices = find_peaks(autocorrelation[autocorrelation.shape[0]//2], 
-                               height=autocorrelation.max()/3)[0]
-
-    if indices:
-        return len(peaks_indices), peaks_indices
-    return len(peaks_indices)
-
-
-def eval_information(model: object, trajectory: np.ndarray, 
-                     **kwargs) -> tuple:
-
-    """
-    Evaluate the model by its information content.
-
-    Parameters
-    ----------
-    model : object
-        The model object.
-    trajectory : np.ndarray
-        The input trajectory.
-
-    Returns
-    -------
-    max_value : float
-        Maximum information content.
-    diff : float
-        Difference between the maximum information content and the mean.
-        NB: the lower the better.
-    max_wi : float
-        Maximum weight sum over i.
-    """
-
-    # record the population activity for the whole track
-    AT = []
-    A = np.empty(len(trajectory))
-    model._plastic = False
-
-    for t, x in enumerate(trajectory):
-        model.step(x=x.reshape(-1, 1))   
-        AT += [tuple(np.around(model.u.flatten(), 1))]
-        A[t] = model.u.sum()
-
-    # assign a probability (frequency) for each unique pattern
-    AP = {}
-    for a in AT:
-        if a in AP.keys():
-            AP[a] += 1
-            continue
-        AP[a] = 1
-
-    for k, v in AP.items():
-        AP[k] = v / AT.__len__()
-
-    # compute the information content at each point in the track 
-    IT = np.empty(len(trajectory))
-    for t, a in enumerate(AT):
-        IT[t] = - np.log2(AP[a])
-
-    # calculate and return the information content-related metrics
-    mean = np.clip(IT, -5, 5).mean()
-    std = IT.std()
-
-    # another metric, regarding the weights 
-    # square of the difference between the maximum weight sum over i 
-    # and the maximum weight
-    # max_wi = model.Wff.sum(axis=0).max()
-
-    # number of peaks in the activation map
-    nb_peaks = eval_field_modality(activation=A)
-
-    return mean, -std, -nb_peaks
-
-
-def eval_information_II(model: object, trajectory: np.ndarray, 
-                        whole_trajectory: np.ndarray, **kwargs) -> tuple:
-
-    """
-    Evaluate the model by its information content on the trajectory
-    and its place field on the whole trajectory.:
-    - mean information content
-    - standard deviation of the information content
-    - number of peaks in the activation map
-
-    Parameters
-    ----------
-    model : object
-        The model object.
-    trajectory : np.ndarray
-        The input trajectory.
-    whole_trajectory : np.ndarray
-        The whole input trajectory.
-
-    Returns
-    -------
-    mean_IT : float
-        Mean information content.
-    std_IT : float
-        Standard deviation of the information content.
-    nb_peaks : int
-        Number of peaks in the activation map.
-    """
-
-    # ------------------------------------------------------------ #
-    # evaluate the shape of the place field
-
-    # record the population activity for the whole track
-    A = np.empty(len(whole_trajectory))
-    model.set_off()
-
-    for t, x in enumerate(whole_trajectory):
-        model.step(x=x.reshape(-1, 1))   
-        A[t] = model.u.sum()
-
-    # number of peaks in the activation map
-    nb_peaks, peaks = eval_field_modality(activation=A, indices=True)
-
-    if len(peaks) > 0:
-        
-        lim_dx = max((peaks[0] - 10, 0))
-        lim_sx = min((peaks[0] + 10, len(A)))
-
-        # get the area (+- 20 units) around the main peak
-        on_area = A[lim_dx:lim_sx]
-        off_area = np.concatenate((A[:lim_dx], A[lim_sx:]))
-
-        # calculate the ratio of the area around the main peak
-        a_ratio = on_area.sum() / off_area.sum()
-
-    else:
-        a_ratio = 0
-
-    # peaks of different neurons should be as far as possible
-    # across the network
-    mean_peak_position = np.array([np.argmax(A[i::model.N]) for i in range(model.N)]).mean()
-
-    # mean distance between peaks
-    var_peaks = mean_peak_position.var()
-
-
-    # ------------------------------------------------------------ #
-    # evaluate the information content
-
-    # record the population activity for the trajectory
-    AT = []
-    A = np.empty(len(trajectory))
-
-    for t, x in enumerate(trajectory):
-        model.step(x=x.reshape(-1, 1))   
-        AT += [tuple(np.around(model.u.flatten(), 1))]
-        A[t] = model.u.sum()
-
-    # assign a probability (frequency) for each unique pattern
-    AP = {}
-    for a in AT:
-        if a in AP.keys():
-            AP[a] += 1
-            continue
-        AP[a] = 1
-
-    for k, v in AP.items():
-        AP[k] = v / AT.__len__()
-
-    # compute the information content at each point in the track 
-    IT = np.empty(len(trajectory))
-    for t, a in enumerate(AT):
-        IT[t] = - np.log2(AP[a])
-
-    # calculate and return the information content-related metrics
-    mean = np.clip(IT, -5, 5).mean()
-    std = IT.std()
-
-    return mean, -std, -nb_peaks, -var_peak#a_ratio
-
-
 def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
 
     """
@@ -1342,3 +1282,159 @@ def cosine_similarity(v: np.ndarray, w: np.ndarray) -> float:
     # if inf or nan, return 0
     return np.nan_to_num(result, nan=0, posinf=0, neginf=0)
 
+
+def save_model(model: object, params: dict, name: str, path=None):
+
+    """
+    Save the model weights as a json
+
+    Parameters
+    ----------
+    model : object
+        Model to save.
+    params : dict
+        Parameters of the model.
+    name : str
+        Name of the file.
+    path : str
+        Path to the file. Default: None
+    """
+
+    if path is None:
+        path = f"cache/{name}.json"
+
+    file = {
+        'wff': model.Wff.tolist(),
+        'params': params,
+        'date': str(datetime.now()),
+    }
+
+    with open(path, 'w') as f:
+        json.dump(file, f)
+
+    logger(f"Model saved as {path}")
+
+
+def load_model(name: str, path=None) -> object:
+
+    """
+    Load the model weights from a json
+
+    Parameters
+    ----------
+    name : str
+        Name of the file.
+    path : str
+        Path to the file. Default: None
+
+    Returns
+    -------
+    model : object
+        Model.
+    """
+
+    if path is None:
+        logger.debug(os.getcwd())
+        # os.chdir('lab/PCNN/cache')
+        path = f"{name}.json"
+        logger.debug(os.listdir())
+
+    with open(path, 'r') as f:
+        file = json.load(f)
+
+    # os.chdir('src/')
+
+    model = PCNNetwork(**file['params'])
+
+    if 'wrec' in file:
+        model.set_weights(Wff=np.array(file['wff']),
+                          W_rec=np.array(file['wrec']))
+    else:
+        model.set_weights(Wff=np.array(file['wff']))
+
+    logger(f"Model loaded from {path}")
+
+    return model
+
+
+
+""" parameters """
+
+genome = {'gain': 6.0,
+ 'bias': 0.9,
+ 'lr': 0.9,
+ 'tau': 40,
+ 'wff_min': 0.0,
+ 'wff_max': 0.13,
+ 'wff_tau': 2000.,
+ 'soft_beta': 1.7,
+ 'beta_clone': 0.3,
+ 'low_bounds_nb': 5,
+ 'DA_tau': 200,
+ 'bias_decay': 120,
+ 'bias_scale': 0.84,
+ 'IS_magnitude': 40,
+ 'theta_freq': 0.01,
+ 'theta_freq_increase': 0.,
+ 'sigma_gamma': 9.1e-05,
+ 'nb_per_cycle': 5,
+ 'nb_skip': 1,
+ 'dt': 1.,
+ 'speed': 0.001,
+ 'N': 20,
+ 'Nj': 121,
+ 'is_retuning': True,
+ 'plastic': True}
+
+
+def make_stored_model(N: int, Nj: int):
+
+    """
+    Make a stored model
+
+    Parameters
+    ----------
+    N : int
+        Number of neurons.
+    Nj : int
+        Number of input neurons.
+    """
+
+    genome['N'] = N
+    genome['Nj'] = Nj
+
+    return PCNNetwork(**genome)
+
+
+def make_stored_super(N: int, Nj: int, sigma: float=0.01,
+                      bounds: tuple=(0, 1, 0, 1), **kwargs) -> object:
+
+    """
+    Make a stored super model
+
+    Parameters
+    ----------
+    N : int
+        Number of neurons.
+    Nj : int
+        Number of input neurons.
+    sigma : float
+        Standard deviation of the input.
+        Default: 0.01
+    bounds : tuple
+        Bounds of the input.
+        Default: (0, 1, 0, 1)
+    **kwargs : dict
+    """
+
+    pcnn = make_stored_model(N=N, Nj=Nj)
+    layer = it.PlaceLayer(N=Nj, sigma=0.015, bounds=bounds)
+
+    return SuperPCNN(layer=layer, pcnn=pcnn, **kwargs)
+
+
+if __name__ == "__main__":
+
+    sp = make_stored_super(N=100, Nj=121)
+
+    print(sp)

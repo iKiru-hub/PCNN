@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 
 
 
-
 def mutual_information(joint_xy, marginal_x, marginal_y) -> float:
 
     """
@@ -99,7 +98,6 @@ def calc_MI(X: np.ndarray, Y: np.ndarray, bins: int=10) -> float:
                                      marginal_y=marginal_y_t)
 
     return MI_t
-
 
 
 def plot_MI(X: np.ndarray, Y: np.ndarray, bins: int=10) -> None:
