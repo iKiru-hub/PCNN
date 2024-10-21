@@ -42,6 +42,7 @@ OBS_SIZE = 5
 import os
 base_path = os.getcwd().split("PCNN")[0]+"PCNN/"
 
+BASEPATH = base_path
 SAVEPATH = base_path + "src/simplerl/models"
 PCNN_PATH = base_path + "cache/campoverde"
 

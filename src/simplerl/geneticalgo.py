@@ -44,7 +44,7 @@ class RandomAgent:
         self._room = room
         self._pcnn = pcnn
 
-        #
+        # position
         self.position = position
         self.start_position = position
         self.speed = speed
@@ -53,10 +53,11 @@ class RandomAgent:
         self.velocity = self.speed * np.array([np.cos(angle),
                                                np.sin(angle)])
 
-        self.policy = kwargs.get('policy', "drift")
+        # policy
         self.epsilon = epsilon
         self.param1 = kwargs.get('param1', 1.0)
 
+        # other
         self.radius = kwargs.get('radius', 0.004)
         self.is_training = kwargs.get('is_training', True)
 
@@ -67,11 +68,12 @@ class RandomAgent:
         self.trg_representation = np.zeros(self._pcnn.N)
         self.drift_threshold = kwargs.get("drift_threshold", 0.01)
 
+        # variables
         self.t = 0
         self.delay = 20
 
+        # record
         self.activity_record = np.zeros((self._pcnn.N, 1000))
-
         self.distance = 1.
         self.new_position = None
         self.velocity_vector = np.zeros((2, 2))
@@ -92,14 +94,8 @@ class RandomAgent:
             self.velocity = -self.velocity
             self.position += self.velocity
 
-        if self.policy == "random":
-            self._random_policy()
-        elif self.policy == "drift":
-            self._apply_policy(trg_pos=trg_pos,
-                               action=action)
-        else:
-            raise ValueError(f"Unknown policy: {self.policy}")
-
+        self._apply_policy(trg_pos=trg_pos,
+                           action=action)
         # Ensure constant speed
         if self.velocity.sum() > 0:
             self.velocity = self.speed * self.velocity / np.linalg.norm(self.velocity)
@@ -107,24 +103,15 @@ class RandomAgent:
         # Update position
         self.position += self.velocity
 
-        # _, _, collision = self._room.handle_collision(
-        #     self.position, self.velocity, self.radius)
-        # if collision:
-        #     self.position -= self.velocity
-        #     self.velocity = -self.velocity
-
         # update pcnn activity
         self._pcnn(x=self.position, frozen=not self.is_training,
                    **kwargs)
         self.curr_representation = self._pcnn.u.copy()
-        # self.trg_representation = np.zeros((self._pcnn.N))
 
         # record trajectory
         self.trajectory.append(self.position.tolist())
-        # self.activity_record = np.roll(self.activity_record, -1, axis=1)
         self.activity_record[:, :-1] = self.activity_record[:, 1:]
         self.activity_record[:, -1] = self.curr_representation.flatten()
-        # self.activity_record[:, -9:] = np.repeat(self.trg_representation.reshape(-1, 1), 9, axis=1)*2
 
         return self.position
 
@@ -194,8 +181,7 @@ class RandomAgent:
 
         # --- proximal positions
         drift_representation, drift_position, drift_velocity = self._drift_policy(
-                                beta_drift=self.param1
-                            )
+                                beta_drift=self.param1)
 
         # exit 1
         if drift_representation is None:
@@ -308,6 +294,9 @@ class RandomAgent:
         return z
 
     def _variable_drift(self, a: np.ndarray, threshold: float=0.1, beta: float=0.1):
+
+        if beta is None:
+            beta = 0.
 
         # minmax normalization
         a = (a - a.min()) / (a.max() - a.min())
@@ -1296,7 +1285,7 @@ class CampoBlue(gym.Env):
         plt.xticks([])
         plt.yticks([])
         # ax.set_aspect('equal')
-        title = f"{t=} | $\\epsilon=${self.agent.epsilon:.2f} $\\lambda=${self.agent.param1:.2f} | " + \
+        title = f"{t=} | $\\epsilon=${self.agent.epsilon} $\\lambda=${self.agent.param1} | " + \
             f"d={self.agent.distance:.3f}"
         # plt.xlabel(f"$\\epsilon_e=${agent.eps:.2f}, $\\lambda_e=${agent.lambda_:.2f} npos={nextpos}")
         plt.title(title,
@@ -1333,6 +1322,13 @@ def train_simple_agent(args):
                               calc_graph_enable=False)
     pcnn_model._calc_recurrent_enable = False
 
+    # load model
+    if not args.new_pc:
+        # filename = "{}/pcnn_{}".format(ev.SAVEPATH, args.env)
+        filename = f"{ev.BASEPATH}/cache/pcnn_param.json"
+        pcnn_model.load_params(filename)
+        logger.info("PCNN model loaded")
+
     # room
     room = ev.make_room(name="square1", thickness=4.)
     logger(room)
@@ -1350,17 +1346,18 @@ def train_simple_agent(args):
 
     # --- pre-training ---
 
-    reward = Reward(start_pos=np.array([0.8, 0.8]),
-                    onset=args.pre_duration+1,  # inactive
-                    radius=0.03)
-    agent, _, = run_random_agent(agent, room, reward,
-                                 duration=args.pre_duration,
-                                 plot=False,
-                                 interval=7,
-                                 uprec=1_000,
-                                 animate=False)
-    agent._update_connections()
-    logger("Pre-training done")
+    if args.new_pc:
+        reward = Reward(start_pos=np.array([0.8, 0.8]),
+                        onset=args.pre_duration+1,  # inactive
+                        radius=0.03)
+        agent, _, = run_random_agent(agent, room, reward,
+                                     duration=args.pre_duration,
+                                     plot=False,
+                                     interval=7,
+                                     uprec=1_000,
+                                     animate=False)
+        agent._update_connections()
+        logger("Pre-training done")
 
     # --- policy training ---
     agent.reset()

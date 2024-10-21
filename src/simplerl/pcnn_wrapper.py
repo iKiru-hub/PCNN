@@ -24,7 +24,6 @@ SAVEPATH = "cache/campoverde/"
 
 
 
-
 class PClayer:
 
     def __init__(self, n: int, sigma: int,
@@ -546,11 +545,6 @@ class PCNNlayer(mm.minPCNN):
                                        alpha=self._alpha,
                                        beta=20.,
                                        clip_min=1e-3)
-        # self.u = u.generalized_sigmoid(x=self._Wff @ x,
-        #                                alpha=self._alpha,
-        #                                beta=self._beta,
-        #                                clip_min=1e-3)
-        # self.u = np.where(self.u < 2e-2, 0.0, self.u)
         self.u = np.where(self.u < 2e-3, 0.0, self.u)
 
         # [0, 1] normalization
@@ -1054,6 +1048,9 @@ class PCNNlayer(mm.minPCNN):
 
         with open(path, "r") as f:
             params = json.load(f)
+
+        # logger.debug(f"{os.getcwd()}")
+        # logger.debug(f"keys: {params.keys()}")
 
         self.N = params["N"]
         self.Nj = params["Nj"]

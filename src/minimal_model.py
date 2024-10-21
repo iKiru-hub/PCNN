@@ -1503,9 +1503,10 @@ def calc_weight_connectivity(M: np.ndarray,
     # Compute the cosine similarity
     cosine_sim = (M @ M.T) / (norm_M[:, None] * norm_M[None, :])
     # cosine_sim *= (1 - np.eye(cosine_sim.shape[0]))
-    cosine_sim *= np.tril(np.ones_like(cosine_sim), k=-1)
+    # cosine_sim *= np.tril(np.ones_like(cosine_sim), k=-1)
     cosine_sim = np.where(np.isnan(cosine_sim), 0., cosine_sim)
 
+    cosine_sim *= 1 - np.eye(cosine_sim.shape[0])
     return np.where(cosine_sim < threshold, 0., cosine_sim)
 
 
