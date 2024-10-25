@@ -357,7 +357,7 @@ def experimentIII(args):
         "beta": 20.0,
         "threshold": 0.8,
         "rep_thresold": 0.8,
-        "rec_threshold": 0.1,
+        "rec_threshold": 0.99,
         "calc_recurrent_enable": True,
         "k_neighbors": 7,
         "name": "PCNN"
@@ -368,58 +368,104 @@ def experimentIII(args):
     logger.debug(f"{pclayer=}")
     params["xfilter"] = pclayer
 
-    # model
+    # pcnn 
     model = pcnn.PCNN(**params)
     model_plotter = pcnn.PlotPCNN(model=model,
                                   makefig=False)
-    modulators_list = [mod.BoundaryMod(N=N),
-                       mod.Acetylcholine()]
+    modulators_dict = {"Bnd": mod.BoundaryMod(N=N),
+                       "Ach": mod.Acetylcholine(),
+                       "ET": mod.EligibilityTrace(N=N)}
 
-    for modulator in modulators_list:
+    for _, modulator in modulators_list.items():
         logger.debug(f"{modulator} keys: {modulator.input_key}")
 
-    modulators = mod.Modulators(modulators=modulators_list)
+    # other components
+    modulators = mod.Modulators(modulators_dict=modulators_dict)
     exp_module = mod.ExperienceModule(pcnn=model,
                                       pcnn_plotter=model_plotter,
-                                      modulators=modulators_list)
+                                      modulators=modulators)
 
     # --- agent & env
     env = ev.make_room(name="square", thickness=4.)
-    agent = ev.Zombie(body=ev.AgentBody(room=env),
-                      speed=0.01)
+    env = ev.AgentBody(room=env)
+    velocity = np.zeros(2)
+    observation = {
+        "u": np.zeros(N),
+        "position": env.position,
+        "velocity": velocity,
+        "delta_update": 0.,
+        "collision": False,
+    }
 
     fig, ax = plt.subplots(figsize=(5, 5))
 
     trajectory = []
     for t in range(duration):
 
-        x, collision = agent()
+        # env
+        position, collision, truncated = env(velocity=velocity)
+
+        # observation
+        observation["u"] = exp_module.output['u'].flatten()
+        observation["position"] = position
+        observation["velocity"] = velocity
+        observation["delta_update"] = exp_module.output['delta_update']
+        observation["collision"] = collision
 
         if collision:
             logger.debug(f">>> collision at t={t}")
 
-        exp_module(x=agent.position.reshape(-1, 1))
-        modulators(u=exp_module.output[0],
-                   position=x,
-                   delta_update=exp_module.output[2],
+
+
+        exp_module(x=position.reshape(-1, 1),
                    collision=collision)
 
-        trajectory += [agent.position.tolist()]
+        modulators(u=exp_module.output['u'].flatten(),
+                   position=position,
+                   delta_update=exp_module.output['delta_update'],
+                   collision=collision)
 
-        # -- plot
-        if t % 5 == 0:
+        velocity = exp_module.output['velocity']
+        trajectory += [position.tolist()]
 
-            ax.clear()
-            exp_module.render(ax=ax,
-                              trajectory=np.array(trajectory))
-            modulators.render()
-            env.draw(ax=ax)
-            agent.render(ax=ax)
+        # --- exit
+        if truncated:
+            plot_update(fig=fig, ax=ax,
+                        modulators=modulators,
+                        exp_module=exp_module,
+                        env=env, trajectory=trajectory,
+                        t=t, velocity=velocity)
+            logger.warning(f"truncated at t={t}")
+            input()
+            break
 
-            ax.set_title(f"t={t}")
-            fig.canvas.draw()
+        # --- plot
+        if t % 10 == 0:
 
-            plt.pause(0.01)
+            plot_update(fig=fig, ax=ax,
+                        modulators=modulators,
+                        exp_module=exp_module,
+                        env=env, trajectory=trajectory,
+                        t=t, velocity=velocity)
+
+
+def plot_update(fig, ax, modulators, exp_module, env,
+                trajectory, t, velocity):
+
+    ax.clear()
+
+    #
+    modulators.render()
+    exp_module.render(ax=ax,
+                      trajectory=np.array(trajectory))
+    env.render(ax=ax)
+
+    #
+    ax.set_title(f"t={t} | v={np.around(velocity, 3)} " + \
+        f"p={np.around(env.position, 3)}")
+    fig.canvas.draw()
+
+    plt.pause(0.001)
 
 
 
@@ -429,9 +475,12 @@ if __name__ == "__main__":
     parser.add_argument("--main", type=str, default="simple")
     parser.add_argument("--duration", type=int, default=2)
     parser.add_argument("--N", type=int, default=80)
-
+    parser.add_argument("--seed", type=int, default=0)
 
     args = parser.parse_args()
+
+    #
+    np.random.seed(args.seed)
 
     if args.main == "simple":
         simple_run(args=args)

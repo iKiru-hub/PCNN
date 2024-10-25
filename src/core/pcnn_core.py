@@ -83,7 +83,7 @@ class PCNN():
 
         # variables
         self.u = np.zeros((N, 1))
-        self.mod_input = 0.
+        self.mod_input = np.zeros((N, 1))
         self.mod_update = 1.
         self._umask = np.zeros((N, 1))
         self._Wff = np.zeros((N, Nj))
@@ -140,7 +140,7 @@ class PCNN():
         # x = x / x.sum()
 
         # step `u` | x : PC Nj > neurons N
-        u = self._Wff @ x + self.mod_input
+        u = self._Wff @ x.reshape(-1, 1) + self.mod_input.reshape(-1, 1)
         self.u = generalized_sigmoid(x=u,
                                      alpha=self._alpha,
                                      beta=self._beta,
@@ -154,8 +154,8 @@ class PCNN():
                 self._update(x=x, idx=plc)
 
         # record
-        self.record["u"] += [self.u.tolist()]
-        self.record["umax"] += [self.u.max()]
+        # self.record["u"] += [self.u.tolist()]
+        # self.record["umax"] += [self.u.max()]
 
     def __len__(self):
 
@@ -302,11 +302,15 @@ class PCNN():
         self.mod_update *= x
 
     def fwd_ext(self, x: np.ndarray):
-        self(x=x)
+        self(x=x.reshape(-1, 1))
+        return self.representation
 
     def fwd_int(self, x: np.ndarray):
+
+        # u = self.fwd_ext(x=x)
         self.u = self._Wrec @ self.u.reshape(-1, 1) + self.mod_input
         self.mod_input *= 0
+        return self.representation
 
     def freeze(self, cut_weights: bool=False):
 
@@ -330,8 +334,19 @@ class PCNN():
     def current_position(self, u: np.ndarray=None):
         if u is None:
             u = self.u
-        centers = self._centers
-        return (centers * u).sum(axis=0) / u.sum()
+
+        if u.sum() <= 0.:
+            return None
+
+        idxs = np.where(self._umask.flatten() > 0)[0]
+        centers = self._centers[idxs]
+
+        # set nan to zero
+        position = (centers.reshape(-1, 2) * \
+            u[idxs].reshape(-1, 1)).sum(axis=0) / \
+            u[idxs].sum()
+
+        return position
 
     @property
     def _centers(self) -> np.ndarray:

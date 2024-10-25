@@ -461,7 +461,7 @@ def main(args):
     model = minPCNN(**params)
     centers = []
     umask0 = model._umask.copy()
-    tper = 500 
+    tper = 500
     for t, x in tqdm_enumerate(inputs):
         model.step(x=x.reshape(-1, 1))
 

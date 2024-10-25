@@ -1088,7 +1088,8 @@ def make_env(layer: object, duration: float=2.,
     whole_track, trajectory = make_any_walk(dx=dx, distance=distance,
                                             line_env=line_env, square=square,
                                             duration=duration, speed=speed, dt=dt,
-                                            bounds=kwargs.get("bounds", (0, 1, 0, 1)))
+                                            bounds=kwargs.get("bounds", (0, 1, 0, 1)),
+                                            make_full=make_full)
 
     # make activations
     inputs = layer.parse_trajectory(trajectory=trajectory,
@@ -1100,7 +1101,7 @@ def make_env(layer: object, duration: float=2.,
         whole_track_layer = None
 
     if verbose:
-        logger.info(f"{whole_track.shape=}")
+        # logger.info(f"{whole_track.shape=}")
         logger.info(f"{trajectory.shape=}")
 
     if plot:

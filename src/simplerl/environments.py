@@ -9,7 +9,10 @@ from copy import deepcopy
 from typing import Optional, Tuple, List
 import warnings
 
-import pcnn_wrapper as pw
+import os, sys
+base_path = os.getcwd().split("PCNN")[0]+"PCNN/src/"
+sys.path.append(base_path)
+import simplerl.pcnn_wrapper as pw
 
 
 try:
@@ -42,7 +45,6 @@ OBS_SIZE = 5
 import os
 base_path = os.getcwd().split("PCNN")[0]+"PCNN/"
 
-BASEPATH = base_path
 SAVEPATH = base_path + "src/simplerl/models"
 PCNN_PATH = base_path + "cache/campoverde"
 
@@ -983,8 +985,9 @@ class AgentBody:
         self.color = kwargs.get("color", "red")
         self._room = room
         self.verbose = kwargs.get("verbose", False)
+        self.bounce_coefficient = kwargs.get("bounce_coefficient", 0.5)
 
-    def _random_position(self): 
+    def _random_position(self):
         return np.random.rand(2)
 
     def __call__(self, velocity: np.ndarray):
@@ -993,10 +996,11 @@ class AgentBody:
         self.velocity, collision = self._handle_collisions()
         self.position += self.velocity
 
-        truncated = not self._room.check_bounds(position=self.position,
-                                                radius=0.)
+        truncated = not self._room.check_bounds(
+                                position=self.position,
+                                radius=self.radius*0.2)
 
-        return collision, truncated
+        return self.position.copy(), collision, truncated*0
 
     def _handle_collisions(self) -> Tuple[Optional[float], bool]:
         new_velocity, _, collision = self._room.handle_collision(
@@ -1004,7 +1008,7 @@ class AgentBody:
         if collision:
             self.velocity = new_velocity
             # Move the agent slightly after collision to prevent sticking
-            self.position += new_velocity
+            self.position += new_velocity * (1 + self.bounce_coefficient)
             self._room.nb_collisions += 1
 
             if self.verbose:
@@ -1016,9 +1020,70 @@ class AgentBody:
         self.position = position
 
     def draw(self, ax: plt.Axes):
-        ax.add_patch(Circle(self.position, self.radius, fc=self.color, ec='black'))
-        ax.arrow(self.position[0], self.position[1], 5*self.velocity[0], 5*self.velocity[1], 
-                 head_width=0.02, head_length=0.02, fc='black', ec='black')
+        ax.add_patch(Circle(self.position, self.radius,
+                            fc=self.color, ec='black'))
+        ax.arrow(self.position[0], self.position[1],
+                 5*self.velocity[0], 5*self.velocity[1],
+                 head_width=0.02, head_length=0.02,
+                 fc='black', ec='black')
+
+    def render(self, ax: plt.Axes):
+        self._room.draw(ax=ax)
+        self.draw(ax=ax)
+
+
+class Zombie:
+
+    def __init__(self, body: AgentBody,
+                 speed: float = 0.1,
+                 makefigure: bool = False):
+
+        self.body = body
+        self.speed = speed
+
+        self.p = 0.5
+        self.velocity = np.zeros(2)
+
+        if makefigure:
+            self.fig, self.ax = plt.subplots()
+        else:
+            self.fig, self.ax = None, None
+
+    def __call__(self, **kwargs):
+
+        self.p += (0.2 - self.p) * 0.02
+        self.p = np.clip(self.p, 0.01, 0.99)
+
+        if np.random.binomial(1, self.p):
+            angle = np.random.uniform(0, 2*np.pi)
+            self.velocity = self.speed * np.array([np.cos(angle),
+                                              np.sin(angle)])
+            self.p *= 0.2
+
+        collision, _ = self.body(velocity=self.velocity)
+
+        if collision:
+            self.velocity = -self.velocity
+
+        return self.velocity, collision
+
+    @property
+    def position(self):
+        return self.body.position
+
+    def render(self, ax=None):
+
+        if ax is None:
+            ax = self.ax
+            ax.clear()
+        self.body.draw(ax=ax)
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.axis('off')
+
+        if ax == self.ax:
+            self.fig.canvas.draw()
+
 
 
 class DummyAgent:

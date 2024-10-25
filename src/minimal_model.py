@@ -711,7 +711,8 @@ class fullPCNN:
         self.Nj = params.get('Nj', 25**2)
 
         # place cells input layer
-        self._pc_in = it.PlaceLayer(N=self.Nj, sigma=sigma, bounds=bounds)
+        self._pc_in = it.PlaceLayer(N=self.Nj,
+                                    sigma=sigma, bounds=bounds)
 
         # minimal PCNN
         self._pcnn = minPCNN(**params)
