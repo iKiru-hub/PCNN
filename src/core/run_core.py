@@ -376,7 +376,7 @@ def experimentIII(args):
                        "Ach": mod.Acetylcholine(),
                        "ET": mod.EligibilityTrace(N=N)}
 
-    for _, modulator in modulators_list.items():
+    for _, modulator in modulators_dict.items():
         logger.debug(f"{modulator} keys: {modulator.input_key}")
 
     # other components
@@ -409,21 +409,14 @@ def experimentIII(args):
         observation["u"] = exp_module.output['u'].flatten()
         observation["position"] = position
         observation["velocity"] = velocity
-        observation["delta_update"] = exp_module.output['delta_update']
         observation["collision"] = collision
+        observation["delta_update"] = exp_module.output['delta_update']
 
         if collision:
             logger.debug(f">>> collision at t={t}")
 
-
-
-        exp_module(x=position.reshape(-1, 1),
-                   collision=collision)
-
-        modulators(u=exp_module.output['u'].flatten(),
-                   position=position,
-                   delta_update=exp_module.output['delta_update'],
-                   collision=collision)
+        exp_module(observation=observation)
+        modulators(observation=observation)
 
         velocity = exp_module.output['velocity']
         trajectory += [position.tolist()]

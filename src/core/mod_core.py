@@ -27,8 +27,7 @@ class LeakyVariable:
         self.name = name
         self.eq = eq
         self.ndim = ndim
-        self.v = np.ones(1)*self.eq if ndim == 1 else np.ones((ndim, 1))*self.eq
-        self.output = 0.
+        self._v = np.ones(1)*self.eq if ndim == 1 else np.ones((ndim, 1))*self.eq
         self.tau = tau
         self.record = []
         self._max_record = max_record
@@ -39,15 +38,21 @@ class LeakyVariable:
     def __repr__(self):
         return f"{self.name}(eq={self.eq}, tau={self.tau})"
 
-    def __call__(self, x: float=0.):
-        self.v += (self.eq - self.v) / self.tau + x
+    def __call__(self, x: float=0., simulate: bool=False):
+
+        if simulate:
+            return self._v + (self.eq - self._v) / self.tau + x
+
+        self._v += (self.eq - self._v) / self.tau + x
         # self.v = np.clip(self.v, -1, 1.)
-        self.record += [self.v.tolist()]
+        self.record += [self._v.tolist()]
         if len(self.record) > self._max_record:
             del self.record[0]
 
+        return self._v
+
     def reset(self):
-        self.v = self.eq
+        self._v = self.eq
         self.record = []
 
     def render(self):
@@ -56,7 +61,8 @@ class LeakyVariable:
         self.ax.plot(range(len(self.record)), self.record)
         self.ax.set_ylim(-0.1, 1.1)
         self.ax.grid()
-        self.ax.set_title(f"{self.name} | v={np.around(self.v, 2).tolist()}")
+        self.ax.set_title(f"{self.name} |" +
+            f" v={np.around(self._v, 2).tolist()}")
         self.fig.canvas.draw()
 
 
@@ -72,21 +78,25 @@ class Modulation(ABC):
 
         self.N = N
         self.leaky_var = None
-        self.output = 0.
-        self.state = (0., 0.)
         self.action = None
         self.input_key = None
+        self.output = None
 
     def __repr__(self):
         return f"Mod.{self.leaky_var.name}"
 
-    def __call__(self, inputs: float=0.):
-        self._logic(inputs=inputs)
+    def __call__(self, inputs: float=0.,
+                 simulate: bool=False):
+        self._logic(inputs=inputs,
+                    simulate=simulate)
         return self.output
 
     @abstractmethod
     def _logic(self, inputs: float):
         pass
+
+    def get_leaky_v(self):
+        return self.leaky_var._v
 
     def render(self):
         self.leaky_var.render()
@@ -106,19 +116,20 @@ class ModuleClass(ABC):
         self.output = None
         self.pcnn = None
 
-    def __call__(self, x,
+    def __call__(self, observation: dict,
                  **kwargs):
 
         self._apply_modulators()
 
-        self._logic(x, **kwargs)
+        self._logic(observation=observation,
+                    **kwargs)
         return self.output
 
     def _apply_modulators(self):
         if self.pcnn is None or self.modulators is None:
             return
 
-        for modulator in self.modulators:
+        for _, modulator in self.modulators.modulators.items():
 
             if isinstance(modulator, np.ndarray):
                 output = modulator.output.copy().reshape(-1, 1)
@@ -134,7 +145,7 @@ class ModuleClass(ABC):
                     "leaky_var action must be 'plasticity' or 'fwd'")
 
     @abstractmethod
-    def _logic(self, x: float, **kwargs):
+    def _logic(self, observation: float, **kwargs):
         pass
 
 
@@ -151,16 +162,19 @@ class Acetylcholine(Modulation):
         self.leaky_var = LeakyVariable(eq=1., tau=10,
                                        name="ACh",
                                        max_record=500)
-        self.output = self.leaky_var.v
         self.threshold = 0.9
         self.action = "plasticity"
         self.input_key = ("delta_update", None)
+        self.output = 0.
 
-    def _logic(self, inputs: tuple):
-        self.leaky_var(x= -1 * inputs[0])
-        self.state = (1*(self.leaky_var.v > self.threshold),
-                       self.leaky_var.v)
-        self.output = self.state[0]
+    def _logic(self, inputs: tuple,
+               simulate: bool=False) -> np.ndarray:
+        v = self.leaky_var(x= -1 * inputs[0], simulate=simulate)
+
+        out = [1*(v > self.threshold),
+                self.get_leaky_v()]
+        self.output = out[0]
+        return out
 
 
 class BoundaryMod(Modulation):
@@ -182,25 +196,27 @@ class BoundaryMod(Modulation):
         self.input_key = ("u", "collision")
         self.weights = np.zeros(N)
         self.eta = eta
+        self.output = np.zeros((N, 1))
 
         self.fig_bnd, self.axs_bnd = plt.subplots(
             2, 1, figsize=(4, 3))
 
-    def _logic(self, inputs: tuple):
+    def _logic(self, inputs: tuple, simulate: bool=False):
 
         x = inputs[0].flatten()
 
         if inputs[1]:
-            self.leaky_var(x=1)
-            self.weights += self.eta * self.leaky_var.v * \
+            v = self.leaky_var(x=1, simulate=simulate)
+            self.weights += self.eta * v * \
                 np.where(x < 0.3, 0, x)
             self.weights = np.clip(self.weights, 0., 1.)
         else:
-            self.leaky_var(x=0)
+            v = self.leaky_var(x=0, simulate=simulate)
 
-        self.state = ((-1 * self.weights * \
-            x).reshape(-1, 1), self.leaky_var.v)
-        self.output = self.state[0].copy()
+        out = [(-1 * self.weights * x).reshape(-1, 1),
+                self.get_leaky_v()]
+        self.output = out[0]
+        return out
 
     def super_render(self):
 
@@ -230,17 +246,21 @@ class EligibilityTrace(Modulation):
                                        name="ET",
                                        ndim=N,
                                        max_record=500)
-        self.output = self.leaky_var.v.reshape(-1, 1)
+        self.output = self.get_leaky_v().reshape(-1, 1)
         self.threshold = 0.9
         self.action = "fwd"
         self.input_key = ("u", None)
+        self.output = np.zeros((N, 1))
         self.fig, self.ax = self.leaky_var.fig, self.leaky_var.ax
 
-    def _logic(self, inputs: tuple):
+    def _logic(self, inputs: tuple, simulate: bool=False):
 
-        self.leaky_var(x=inputs[0].reshape(-1, 1)*0.1)
-        self.state = ((self.leaky_var.v-self.leaky_var.v.min()), None)
-        self.output = -1*self.state[0].reshape(-1, 1) * 10
+        v = self.leaky_var(x=inputs[0].reshape(-1, 1)*0.1,
+                           simulate=simulate)
+        out = [-10 * (v - v.min()).reshape(-1, 1),
+                self.get_leaky_v()]
+        self.output = out[0]
+        return out
 
     def render(self):
 
@@ -256,13 +276,14 @@ class EligibilityTrace(Modulation):
 
 class Modulators:
 
-    def __init__(self, modulators: list):
+    def __init__(self, modulators_dict: dict):
 
-        self.modulators = modulators
-        self.names = tuple(modulators.keys())
+        self.modulators = modulators_dict
+        self.names = tuple(modulators_dict.keys())
         self.output = {name: None for name in self.names}
 
-    def __call__(self, observation: dict):
+    def __call__(self, observation: dict,
+                 simulate: bool=False) -> dict:
 
         for name, modulator in self.modulators.items():
             inputs = []
@@ -270,11 +291,14 @@ class Modulators:
                 if key is not None:
                     inputs += [observation[key]]
             inputs += [None]
-            modulator(inputs=inputs)
+            output = modulator(inputs=inputs,
+                               simulate=simulate)
             self.output[name] = modulator.output
 
+        return self.output
+
     def render(self):
-        for modulator in self.modulators:
+        for _, modulator in self.modulators.items():
             modulator.render()
             if hasattr(modulator, "super_render"):
                 modulator.super_render()
@@ -309,7 +333,8 @@ class ExperienceModule(ModuleClass):
                        "velocity": np.zeros(2)}
 
         # --- policies
-        self.policy = RandomWalkPolicy(speed=0.005)
+        # self.random_policy = RandomWalkPolicy(speed=0.005)
+        self.action_policy = SamplingPolicy(speed=0.005)
 
         # --- visualizationo
         if makefig:
@@ -325,129 +350,92 @@ class ExperienceModule(ModuleClass):
         affects the next weight update
         """
 
-        # --- input
-        collision = kwargs.get("collision", False)
-
-        # --- logic
-        if mode == "current":
-            self.pcnn.fwd_ext(x=x)
-        elif mode == "proximal":
-            self.pcnn.fwd_int(x=x)
-
-        position = x
-        if collision: self.policy.has_collided()
+        # --- update random policy in case of collision
+        if observation["collision"]:
+            self.random_policy.has_collided()
 
         # get representations
-        repr_ext = self.pcnn.representation
-        repr_int = np.array([self.modulators[1].state[1],
-                             self.modulators[0].state[1]])
+        repr_ext = self.pcnn.fwd_ext(x=observation["position"])
+        repr_int = self.modulators.output.copy()
 
-        # move in internal space
-        action_int = self._generate_internal_action(z=repr_int)
-        pred_repr_int = repr_int + action_int
+        action_ext = self._generation_action(
+                                observation=observation)
 
-        # move in external space
-        action_ext = self._generate_external_action(
-                                z_int=pred_repr_int,
-                                curr_position=position)
+        # # move in internal space
+        # action_int = self._generate_internal_action(z=repr_int)
+        # pred_repr_int = repr_int + action_int
+
+        # # move in external space
+        # action_ext = self._generate_external_action(
+        #                         z_int=pred_repr_int,
+        #                         curr_position=position)
 
         # --- output
-        self.record += [position.tolist()]
-        self.output = {"u": repr_ext,
-                       "position": position,
-                       "delta_update": self.pcnn.delta_update,
-                       "velocity": action_ext}
+        self.record += [observation["position"].tolist()]
+        self.output = {
+                    "u": repr_ext,
+                    "position": [observation["position"].tolist()],
+                    "delta_update": self.pcnn.delta_update,
+                    "velocity": action_ext}
 
-    def _generate_internal_action(self, z: np.ndarray) -> np.ndarray:
+    def _generation_action(self, observation: dict,
+                           threshold: float=0.5) -> np.ndarray:
 
-        """
-        step in the internal space
+        done = False  # when all actions have been tried
+        while not done:
 
-        Parameters
-        ----------
-        z : np.ndarray
-            predicted internal representation
+            # --- generate a random action
+            action, done = self.action_policy()
 
-        Returns
-        -------
-        np.ndarray
-            action in the internal space
-        """
+            # --- simulate its effects
+            new_position = self._evaluate_action(
+                    action=action,
+                    current_position=observation["position"])
 
-        # goal:
-        # - ACh = 1.0
-        # - Bnd = 0.0
-        new_z = z + (np.array([1., 0.]) - z) * 0.5
+            if new_position is None:
+                u = np.zeros(self.pcnn.N)
+            else:
+                u = self.pcnn.fwd_ext(x=new_position)
 
-        return new_z
+            new_observation = {
+                "u": u,
+                "position": new_position,
+                "velocity": action,
+                "collision": False,
+                "delta_update": 0.}
 
-    def _evaluate_action(self, action: np.ndarray,
-                         current_position: np.ndarray) -> np.ndarray:
+            modulation = self.modulators(
+                            observation=new_observation,
+                            simulate=True)
 
-        """
-        evaluate the action
+            # --- evaluate
+            score = 1
+            score -= 0.5*new_observation["u"].max()
+            score -= 0.5*modulation["Bnd"][1]
 
-        Parameters
-        ----------
-        action : np.ndarray
-            action in the external space
+            # the action is good enough
+            if score > threshold:
+                break
 
-        Returns
-        -------
-        np.ndarray
-            evaluated action
-        """
+            # try again
+            self.action_policy.update(score=0.5*score)
 
-        new_position = current_position + action
-
-    def _generate_external_action(self, z_int: np.ndarray,
-                                  curr_position: np.ndarray) -> np.ndarray:
-
-        """
-        step in the external space
-
-        Parameters
-        ----------
-        z_int : np.ndarray
-            predicted internal representation
-        curr_position : np.ndarray
-            external representation
-
-        Returns
-        -------
-        np.ndarray
-            action in the external space
-        """
-
-        # proximal representation of the current position
-        self.pcnn.add_input(x=self.modulators[2].output)
-        representation = self.pcnn.fwd_int(x=curr_position)
-        mean_position = self.pcnn.current_position(
-                        u=representation)
-
-        if len(self.pcnn) < 10 :#or position is None:
-            return self.policy()
-
-        if mean_position is None:
-            return self.policy()
-
-        speed = 0.005
-        action = mean_position - curr_position.flatten()
-        action = np.around(speed * action / np.abs(action).sum(), 4)
-
-        assert np.abs(action).sum() <= speed*1.1, f"action {np.abs(action).sum()} [{action}] has greater magnitude than {speed=}"
+        # ---
+        self.action_policy.reset()
 
         return action
 
     def render(self, ax=None, **kwargs):
+
+        self.action_policy.render()
 
         if ax is None:
             ax = self.ax
 
         if self.pcnn_plotter is not None:
             self.pcnn_plotter.render(ax=ax,
-                    trajectory=kwargs.get("trajectory", False),
-                    new_a=-1*self.modulators[0].output)
+                trajectory=kwargs.get("trajectory", False),
+                new_a=-1*self.modulators.modulators["Bnd"].output)
 
 
     def reset(self, complete: bool=False):
@@ -572,6 +560,86 @@ class RandomWalkPolicy:
 
     def has_collided(self):
         self.velocity = -self.velocity
+
+
+
+class SamplingPolicy:
+
+    def __init__(self, speed: float=0.1):
+
+        self._samples = [np.array([0., 0.]),
+                         np.array([0., speed]),
+                         np.array([speed, 0.]),
+                         np.array([0., -speed]),
+                         np.array([-speed, 0.])]
+        self._num_samples = len(self._samples)
+
+        self._idx = None
+        self._available_idxs = list(range(self._num_samples))
+        self._p = np.ones(self._num_samples) / self._num_samples
+        self._velocity = self._samples[0]
+
+        # render
+        self.fig, self.ax = plt.subplots(figsize=(4, 3))
+
+    def __call__(self, keep: bool=False) -> tuple:
+
+        # --- keep the current velocity
+        if keep and self._idx is not None:
+            return self._velocity.copy(), False
+
+        # --- first sample
+        if self._idx is None:
+            self._idx = np.random.choice(
+                            self._num_samples, p=self._p)
+            self._available_idxs.remove(self._idx)
+            self._velocity = self._samples[self._idx]
+            return self._velocity.copy(), False
+
+        # --- all samples have been tried
+        if len(self._available_idxs) == 0:
+            self._velocity = self._samples[np.argmax(self._p)]
+            return self._velocity.copy(), True
+
+        # --- sample again
+        p = self._p[self._available_idxs].copy()
+        p /= p.sum()
+        self._idx = np.random.choice(
+                        self._available_idxs,
+                        p=p)
+        self._available_idxs.remove(self._idx)
+        self._velocity = self._samples[self._idx]
+
+        return self._velocity.copy()
+
+    def update(self, score: float):
+
+        # update the probability
+        self._p[self._idx] += score
+
+        # normalize
+        self._p = self._p / self._p.sum()
+
+    def render(self):
+
+        self.ax.clear()
+        self.ax.bar(range(self._num_samples), self._p)
+        self.ax.set_xticks(range(self._num_samples))
+        self.ax.set_xticklabels(["stay", "up", "right",
+                                 "down", "left"])
+        self.ax.set_title(f"Action Space")
+        self.ax.set_ylim(0, 1)
+        self.fig.canvas.draw()
+
+    def reset(self):
+        self._idx = None
+        self._available_idxs = list(range(self._num_samples))
+        self._p = np.ones(self._num_samples) / self._num_samples
+        self._velocity = self._samples[0]
+
+    def has_collided(self):
+
+        self._velocity = -self._velocity
 
 
 
