@@ -146,8 +146,24 @@ class Room:
                          velocity: np.ndarray,
                          radius: float) -> Tuple[np.ndarray,
                             Optional[float], bool]:
+
+        beyond = False
+        if position[0] < self.bounds[0] + radius or \
+            position[0] > self.bounds[1] - radius:
+            velocity[0] = -velocity[0]
+            beyond = True
+        if position[1] < self.bounds[2] + radius or \
+            position[1] > self.bounds[3] - radius:
+            velocity[1] = -velocity[1]
+            beyond = True
+
+        if beyond:
+            return velocity, None, True
+
         for wall in self.walls:
-            new_velocity, angle = wall.collide(position, velocity, radius)
+            new_velocity, angle = wall.collide(position,
+                                               velocity,
+                                               radius)
             if new_velocity is not None:
                 return new_velocity, angle, True
         return velocity, None, False

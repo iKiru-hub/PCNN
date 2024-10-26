@@ -353,10 +353,11 @@ def experimentIII(args):
     params = {
         "N": N,
         "Nj": Nj,
-        "alpha": 0.1,
+        "alpha": 0.3,
         "beta": 20.0,
-        "threshold": 0.8,
-        "rep_thresold": 0.8,
+        "clip_min": 0.005,
+        "threshold": 0.4,
+        "rep_threshold": 0.7,
         "rec_threshold": 0.99,
         "calc_recurrent_enable": True,
         "k_neighbors": 7,
@@ -373,8 +374,10 @@ def experimentIII(args):
     model_plotter = pcnn.PlotPCNN(model=model,
                                   makefig=False)
     modulators_dict = {"Bnd": mod.BoundaryMod(N=N),
-                       "Ach": mod.Acetylcholine(),
-                       "ET": mod.EligibilityTrace(N=N)}
+                       "Ach": mod.Acetylcholine(visualize=False),
+                       "ET": mod.EligibilityTrace(N=N,
+                                                  visualize=False),
+                       "dPos": mod.PositionTrace(visualize=False)}
 
     for _, modulator in modulators_dict.items():
         logger.debug(f"{modulator} keys: {modulator.input_key}")
@@ -384,6 +387,8 @@ def experimentIII(args):
     exp_module = mod.ExperienceModule(pcnn=model,
                                       pcnn_plotter=model_plotter,
                                       modulators=modulators)
+    agent = mod.Agent(exp_module=exp_module,
+                      modulators=modulators)
 
     # --- agent & env
     env = ev.make_room(name="square", thickness=4.)
@@ -396,6 +401,11 @@ def experimentIII(args):
         "delta_update": 0.,
         "collision": False,
     }
+    output = {
+        "u": np.zeros(N),
+        "velocity": velocity,
+        "delta_update": 0.,
+    }
 
     fig, ax = plt.subplots(figsize=(5, 5))
 
@@ -404,28 +414,26 @@ def experimentIII(args):
 
         # env
         position, collision, truncated = env(velocity=velocity)
+        trajectory += [position.tolist()]
 
         # observation
-        observation["u"] = exp_module.output['u'].flatten()
+        observation["u"] = agent.exp_module.fwd_pcnn(
+            x=position.reshape(-1, 1)).flatten()
         observation["position"] = position
         observation["velocity"] = velocity
         observation["collision"] = collision
-        observation["delta_update"] = exp_module.output['delta_update']
+        observation["delta_update"] = output['delta_update']
 
         if collision:
             logger.debug(f">>> collision at t={t}")
 
-        exp_module(observation=observation)
-        modulators(observation=observation)
-
-        velocity = exp_module.output['velocity']
-        trajectory += [position.tolist()]
+        output = agent(observation=observation)
+        velocity = output['velocity']
 
         # --- exit
         if truncated:
             plot_update(fig=fig, ax=ax,
-                        modulators=modulators,
-                        exp_module=exp_module,
+                        agent=agent,
                         env=env, trajectory=trajectory,
                         t=t, velocity=velocity)
             logger.warning(f"truncated at t={t}")
@@ -434,23 +442,19 @@ def experimentIII(args):
 
         # --- plot
         if t % 10 == 0:
-
             plot_update(fig=fig, ax=ax,
-                        modulators=modulators,
-                        exp_module=exp_module,
+                        agent=agent,
                         env=env, trajectory=trajectory,
                         t=t, velocity=velocity)
 
 
-def plot_update(fig, ax, modulators, exp_module, env,
+def plot_update(fig, ax, agent, env,
                 trajectory, t, velocity):
 
     ax.clear()
 
     #
-    modulators.render()
-    exp_module.render(ax=ax,
-                      trajectory=np.array(trajectory))
+    agent.render(ax=ax, trajectory=np.array(trajectory))
     env.render(ax=ax)
 
     #

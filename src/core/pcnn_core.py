@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 from numba import jit
 from abc import ABC, abstractmethod
 
+# set off runtime warnings
+np.seterr(divide='ignore', invalid='ignore')
+
 from tools.utils import clf, tqdm_enumerate, logger
 import inputools.Trajectory as it
 
@@ -69,8 +72,9 @@ class PCNN():
         self.N = N
         self.Nj = Nj
         self.xfilter = xfilter
-        self._alpha = kwargs.get('alpha', 0.1)
+        self._alpha = kwargs.get('alpha', 0.3)
         self._beta = kwargs.get('beta', 20.0)
+        self._clip_min = kwargs.get('clip_min', 0.005)
         self._threshold = kwargs.get('threshold', 0.3)
         self._rep_threshold = kwargs.get('rep_threshold', 0.3)
         self._indexes = np.arange(N)
@@ -140,11 +144,12 @@ class PCNN():
         # x = x / x.sum()
 
         # step `u` | x : PC Nj > neurons N
-        u = self._Wff @ x.reshape(-1, 1) + self.mod_input.reshape(-1, 1)
+        u = self._Wff @ x.reshape(-1, 1) + \
+            self.mod_input.reshape(-1, 1)
         self.u = generalized_sigmoid(x=u,
                                      alpha=self._alpha,
                                      beta=self._beta,
-                                     clip_min=1e-3)
+                                     clip_min=self._clip_min)
         self.mod_input *= 0
 
         # update modulators
@@ -235,7 +240,7 @@ class PCNN():
         if idx is None:
             return
 
-        self._Wff_backup = self._Wff.copy()
+        # self._Wff_backup = self._Wff.copy()
 
         # if the levels of ACh are high enough, update
         # the plastic neuron
@@ -254,13 +259,18 @@ class PCNN():
 
             # revert back
             if similarity > self._rep_threshold:
+                # logger.debug(f"reverting back.. {similarity=}")
                 self._Wff = self._Wff_backup.copy()
                 self.record["dw"][-1] = 0.
                 return
 
+            logger.debug(f"adding new neuron.. {similarity=}")
+
             # proceed
             # self._Wff_backup = self._Wff.copy()
             self.cell_count += 1
+
+            self._Wff_backup = self._Wff.copy()
 
             if self._calc_recurrent_enable:
                 self._update_recurrent()
@@ -810,14 +820,12 @@ def simple_run():
         "Nj": Nj,
         "alpha": 0.2,
         "beta": 20.0,
-        "threshold": 0.9,
-        "rep_thresold": 0.9,
+        "clip_min": 0.005,  # "clip_min": 0.005,
+        "threshold": 0.3,
+        "rep_threshold": 0.8,
         "rec_threshold": 0.1,
         "calc_recurrent_enable": True,
         "k_neighbors": 7,
-        "eq_ach": 1.,
-        "tau_ach": 2.,
-        "ach_threshold": 0.9,
     }
 
     # make trajectory
@@ -828,7 +836,7 @@ def simple_run():
                             is2d=True,
                             sigma=0.01)
 
-    pclayer = PClayer(n=13, sigma=0.01)
+    pclayer = PClayer(n=13, sigma=0.007)
     use_pc = 1
     if use_pc:
         params["xfilter"] = pclayer
