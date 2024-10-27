@@ -78,6 +78,7 @@ class PCNN():
         self._threshold = kwargs.get('threshold', 0.3)
         self._rep_threshold = kwargs.get('rep_threshold', 0.3)
         self._indexes = np.arange(N)
+        self._trace_tau = kwargs.get('trace_tau', 100)
 
         # recurrent connections
         self._rec_threshold = kwargs.get('rec_threshold', 0.2)
@@ -94,6 +95,8 @@ class PCNN():
         self._Wff_backup = np.zeros((N, Nj))
         self._Wrec = np.zeros((N, N))
         self._is_plastic = True
+
+        self.trace = np.zeros((N, 1))
 
         # record
         self.cell_count = 0
@@ -150,6 +153,7 @@ class PCNN():
                                      alpha=self._alpha,
                                      beta=self._beta,
                                      clip_min=self._clip_min)
+        self.trace += (self.u - self.trace) / self._trace_tau
         self.mod_input *= 0
 
         # update modulators
@@ -285,6 +289,14 @@ class PCNN():
             self._Wrec = k_most_neighbors(M=self._Wrec,
                                           k=self._k_neighbors)
 
+    def clean_recurrent(self, wall_vectors: np.ndarray):
+
+        self._Wrec = remove_wall_intersecting_edges(
+            nodes=self._centers.copy(),
+            connectivity_matrix=self._Wrec.copy(),
+            walls=wall_vectors
+        )
+
     def add_input(self, x: np.ndarray):
 
         """
@@ -311,8 +323,9 @@ class PCNN():
 
         self.mod_update *= x
 
-    def fwd_ext(self, x: np.ndarray):
-        self(x=x.reshape(-1, 1))
+    def fwd_ext(self, x: np.ndarray,
+                frozen: bool=False):
+        self(x=x.reshape(-1, 1), frozen=frozen)
         return self.representation
 
     def fwd_int(self, x: np.ndarray):
@@ -693,6 +706,37 @@ def calc_centers_from_layer(wff: np.ndarray, centers: np.ndarray):
     y = np.where(np.isnan(y), -np.inf, y)
 
     return np.column_stack((x, y))
+
+
+
+@jit(nopython=True)
+def remove_wall_intersecting_edges(nodes: np.ndarray,
+                        connectivity_matrix: np.ndarray,
+                        walls: np.ndarray):
+
+    def ccw(A, B, C):
+        return (C[1] - A[1]) * (B[0] - A[0]) > (B[1] - A[1]) * (C[0] - A[0])
+
+    def intersect(A, B, C, D):
+        return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)
+
+
+    n = len(nodes)
+    new_connectivity = connectivity_matrix.copy()
+
+    for i in range(n):
+        for j in range(n):
+            if j > i: continue
+
+            if connectivity_matrix[i, j] != 0:
+                edge = (nodes[i], nodes[j])
+                for wall in walls:
+                    if intersect(edge[0], edge[1], wall[0], wall[1]):
+                        new_connectivity[i, j] = 0
+                        new_connectivity[j, i] = 0
+                        break
+
+    return new_connectivity
 
 
 

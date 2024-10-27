@@ -5,6 +5,9 @@ from tools.utils import logger
 import pcnn_core as pcnn
 
 
+def set_seed(seed: int=0):
+    np.random.seed(seed)
+
 
 
 class LeakyVariable:
@@ -317,7 +320,6 @@ class EligibilityTrace(Modulation):
         self.fig.canvas.draw()
 
 
-
 class PositionTrace(Modulation):
 
     def __init__(self, visualize: bool=True):
@@ -363,7 +365,7 @@ class PositionTrace(Modulation):
             f"{np.abs(self.output).max():.2f}")
         self.fig.canvas.draw()
 
-
+# --- #
 
 class Modulators:
 
@@ -413,7 +415,8 @@ class ExperienceModule(ModuleClass):
     def __init__(self, pcnn: pcnn.PCNN,
                  modulators: Modulators,
                  pcnn_plotter: object=None,
-                 makefig: bool=False):
+                 visualize: bool=False,
+                 speed: int=0.005):
 
         super().__init__()
         self.pcnn = pcnn
@@ -426,10 +429,15 @@ class ExperienceModule(ModuleClass):
 
         # --- policies
         # self.random_policy = RandomWalkPolicy(speed=0.005)
-        self.action_policy = SamplingPolicy(speed=0.005)
+        self.action_policy = SamplingPolicy(speed=speed)
+        self.action_policy_int = SamplingPolicy(speed=speed)
+
+        self.action_delay = 30
+        self.action_threshold_eq = -0.001
+        self.action_threshold = self.action_threshold_eq
 
         # --- visualizationo
-        if makefig:
+        if visualize:
             self.fig, self.ax = plt.subplots(figsize=(4, 3))
         else:
             self.fig, self.ax = None, None
@@ -448,45 +456,55 @@ class ExperienceModule(ModuleClass):
             self.action_policy.has_collided()
 
         # --- get representations
-        spatial_repr = self.pcnn.fwd_ext(x=observation["position"])
+        spatial_repr = self.pcnn.fwd_ext(
+                            x=observation["position"])
 
         # --- generate an action
         # TODO : use directive
-        action_ext = self._generation_action(
+        # action_ext, action_idx, score = self._generation_action(
+        #                         observation=observation,
+        #                         directive=directive)
+        action_ext, action_idx, score = self._generate_action_from_simulation(
                                 observation=observation,
                                 directive=directive)
 
         # --- output
         self.record += [observation["position"].tolist()]
         self.output = {
-                    "u": spatial_repr,
-                    "position": [observation["position"].tolist()],
-                    "delta_update": self.pcnn.delta_update,
-                    "velocity": action_ext}
+                "u": spatial_repr,
+                "delta_update": self.pcnn.delta_update,
+                "velocity": action_ext,
+                "action_idx": action_idx}
 
     def _generation_action(self, observation: dict,
-                           threshold: float=0.5,
                            directive: str="new") -> np.ndarray:
 
-        done = False  # when all actions have been tried
-        while not done:
+        self.action_policy_int.reset()
+        done = False # when all actions have been tried
+        while True:
 
             # --- generate a random action
             if directive == "new":
-                action, done = self.action_policy()
+                action, done, action_idx = self.action_policy_int()
             elif directive == "keep":
                 action = observation["velocity"]
+                action_idx = observation["action_idx"]
             else:
                 raise ValueError("directive must be " + \
                     "'new' or 'keep'")
 
             # --- simulate its effects
-            new_position = observation["position"] + action
 
+            # new position if the action is taken
+            new_position = observation["position"] + \
+                action * self.action_delay
+
+            # new observation/effects
             if new_position is None:
                 u = np.zeros(self.pcnn.N)
             else:
-                u = self.pcnn.fwd_ext(x=new_position)
+                u = self.pcnn.fwd_ext(x=new_position,
+                                      frozen=True)
 
             new_observation = {
                 "u": u,
@@ -499,26 +517,146 @@ class ExperienceModule(ModuleClass):
                             observation=new_observation,
                             simulate=True)
 
-            # --- evaluate
-            score = 1
-            score -= 0.5*new_observation["u"].max()
-            bnd_mod = np.abs(modulation["Bnd"]).max()
-            score *= np.clip(1 - 10*bnd_mod, 0, 1)
+            # --- evaluate the effects
+            score = 0
 
-            logger(f"score: {score:.4f}")
+            # relevant modulators
+            repr_max = 15*new_observation["u"].max()
+            bnd_mod = 10*np.abs(modulation["Bnd"]).max()
+            dpos = 2*modulation["dPos"]*(
+                        modulation["dPos"] < 0.4)
 
-            # the action is good enough
-            if score > threshold or done:
+            score -= repr_max
+            score -= dpos
+            score -= bnd_mod
+
+            # logger(f"  ({action_idx}) -> {score:.4f} " + \
+            #     f"[{repr_max:.3f}, {dpos:.3f}, {bnd_mod:.3f}]")
+
+            # the action is above threshold
+            if score > self.action_threshold:
+
+                # lower the threshold
+                self.action_threshold = min((score,
+                                self.action_threshold_eq))
+                # logger.debug(">>> lower threshold to " + \
+                #     f"{self.action_threshold:.4f}")
                 break
+
+            # it is the best available action
+            elif done:
+
+                # set new threshold
+                # [account for a little of bad luck]
+                self.action_threshold = score*1.1
+                # logger.debug(">>> new threshold: " + \
+                #     f"{self.action_threshold:.4f}")
+                break
+
             directive = "new"
 
             # try again
-            self.action_policy.update(score=0.5*score)
+            self.action_policy_int.update(score=score)
+
+        # ---
+
+        return action, action_idx, score
+
+    def _simulation_loop(self, observation: dict,
+                      depth: int,
+                      threshold: float=0.,
+                      max_depth: int=10) -> dict:
+
+        position = observation["position"]
+        action = observation["velocity"]
+        action_idx = observation["action_idx"]
+
+        # --- simulate its effects
+        action, action_idx, score = self._generation_action(
+                                observation=observation,
+                                directive="keep")
+        observation["position"] += action
+        observation["velocity"] = action
+        observation["action_idx"] = action_idx
+
+        if score > threshold:
+            return score, True
+
+        elif depth >= max_depth:
+            return score, False
+
+        return self._simulation_loop(observation=observation,
+                               depth=depth+1,
+                               threshold=threshold,
+                               max_depth=max_depth)
+
+    def _generate_action_from_simulation(self,
+            observation: dict, directive: str) -> tuple:
+
+        # logger("[Simulation start]")
+
+        done = False # when all actions have been tried
+        while True:
+
+            # save state
+            action_threshold_or = self.action_threshold
+
+            # --- generate a random action
+            if directive == "new":
+                action, done, action_idx = self.action_policy()
+            elif directive == "keep":
+                action = observation["velocity"]
+                action_idx = observation["action_idx"]
+            else:
+                raise ValueError("directive must be " + \
+                    "'new' or 'keep'")
+
+            # --- simulate its effects over a few steps
+
+            # roll out
+            score, success = self._simulation_loop(
+                            observation=observation,
+                            depth=0,
+                            threshold=self.action_threshold_eq,
+                            max_depth=20)
+
+            # restore state
+            self.action_threshold = action_threshold_or
+
+            # logger.debug(f"[S] >>> idx: {action_idx} -> {score:.4f}"+\
+            #              f" [threshold: {self.action_threshold}]")
+
+            # the action is above threshold
+            if score > self.action_threshold:
+
+                # lower the threshold
+                self.action_threshold = min((score,
+                                self.action_threshold_eq))
+                # logger.debug("[S] >>> lower threshold to " + \
+                #     f"{self.action_threshold:.4f}")
+                break
+
+            # it is the best available action
+            elif done:
+
+                # set new threshold
+                # [account for a little of bad luck]
+                self.action_threshold = score*1.1
+                # logger.debug("[S] >>> new threshold: " + \
+                #     f"{self.action_threshold:.4f}")
+                break
+
+            directive = "new"
+
+            # update
+            self.action_policy.update(score=score)
 
         # ---
         self.action_policy.reset()
 
-        return action
+        # logger("[Simulation end]")
+
+        return action, action_idx, score
 
     def render(self, ax=None, **kwargs):
 
@@ -531,7 +669,6 @@ class ExperienceModule(ModuleClass):
             self.pcnn_plotter.render(ax=ax,
                 trajectory=kwargs.get("trajectory", False),
                 new_a=-1*self.modulators.modulators["Bnd"].output)
-
 
     def reset(self, complete: bool=False):
         super().reset(complete=complete)
@@ -648,19 +785,21 @@ class Agent:
             directive = "new"
 
         # --- update experience module
-        logger(f"AGENT -> {directive}")
+        # logger(f"[{directive.upper()}]")
         exp_output = self.exp_module(
                             observation=observation,
                             directive=directive)
 
-        self.output = {
-            "u": exp_output["u"],
-            "delta_update": exp_output["delta_update"],
-            "velocity": exp_output["velocity"]}
+        self.output = exp_output
 
         self.movement = self.output["velocity"]
 
         return self.output
+
+    def pcnn_rountine(self, wall_vectors: np.ndarray):
+
+        self.exp_module.pcnn.clean_recurrent(
+                                wall_vectors=wall_vectors)
 
     def render(self, ax: object, trajectory: np.ndarray):
 
@@ -725,6 +864,7 @@ class SamplingPolicy:
         self._available_idxs = list(range(self._num_samples))
         self._p = np.ones(self._num_samples) / self._num_samples
         self._velocity = self._samples[0]
+        self._values = np.zeros(self._num_samples)
 
         # render
         self.fig, self.ax = plt.subplots(figsize=(4, 3))
@@ -733,23 +873,28 @@ class SamplingPolicy:
 
         # --- keep the current velocity
         if keep and self._idx is not None:
-            return self._velocity.copy(), False
+            return self._velocity.copy(), False, self._idx
 
         # --- first sample
         if self._idx is None:
             self._idx = np.random.choice(
                             self._num_samples, p=self._p)
+            # logger.debug(f"av: {self._available_idxs} [idx: {self._idx}]")
             self._available_idxs.remove(self._idx)
             self._velocity = self._samples[self._idx]
-            return self._velocity.copy(), False
+            return self._velocity.copy(), False, self._idx
 
         # --- all samples have been tried
         if len(self._available_idxs) == 0:
 
-            self._idx = np.random.choice(self._num_samples,
-                                              p=self._p)
+            # logger.debug(f"random action from : {np.around(self._values.flatten(), 3)}")
+
+            # self._idx = np.random.choice(self._num_samples,
+            #                                   p=self._p)
+            self._idx = np.argmax(self._values)
+
             self._velocity = self._samples[self._idx]
-            return self._velocity.copy(), True
+            return self._velocity.copy(), True, self._idx
 
         # --- sample again
         p = self._p[self._available_idxs].copy()
@@ -760,26 +905,54 @@ class SamplingPolicy:
         self._available_idxs.remove(self._idx)
         self._velocity = self._samples[self._idx]
 
-        return self._velocity.copy(), False
+        return self._velocity.copy(), False, self._idx
 
     def update(self, score: float):
 
-        # update the probability
-        self._p[self._idx] += score
+        # --- normalize the score
+        score = pcnn.generalized_sigmoid(x=score,
+                                         alpha=0.,
+                                         beta=1.)
+
+        self._values[self._idx] = score
+
+        # --- update the probability
+        # a raw score of 0. becomes 0.5 [sigmoid]
+        # and this ends in a multiplier of 1. [id]
+        # self._p[self._idx] *= (0.5 + score)
 
         # normalize
-        self._p = self._p / self._p.sum()
+        # self._p = self._p / self._p.sum()
+
+        # logger.warning(f"{np.around(self._values.flatten(), 3)}")
+
+    def get_state(self):
+
+        return {"values": self._values,
+                "idx": self._idx,
+                "p": self._p,
+                "velocity": self._velocity,
+                "available_idxs": self._available_idxs}
+
+    def set_state(self, state: dict):
+
+        self._values = state["values"]
+        self._idx = state["idx"]
+        self._p = state["p"]
+        self._velocity = state["velocity"]
+        self._available_idxs = state["available_idxs"]
 
     def render(self):
 
         self.ax.clear()
-        self.ax.bar(range(self._num_samples), self._p)
+        self.ax.bar(range(self._num_samples), self._values)
         self.ax.set_xticks(range(self._num_samples))
         # self.ax.set_xticklabels(["stay", "up", "right",
         #                          "down", "left"])
         self.ax.set_xlabel("Action")
         self.ax.set_title(f"Action Space")
         self.ax.set_ylim(0, 1)
+        self.ax.set_ylabel("value")
         self.fig.canvas.draw()
 
     def reset(self):
@@ -787,6 +960,7 @@ class SamplingPolicy:
         self._available_idxs = list(range(self._num_samples))
         self._p = np.ones(self._num_samples) / self._num_samples
         self._velocity = self._samples[0]
+        self._values = np.zeros(self._num_samples)
 
     def has_collided(self):
 
@@ -795,4 +969,12 @@ class SamplingPolicy:
 
 
 
+"""
+IDEAS
+-----
+
+- lock a selected action so to match its predicted value
+with the future value at time t_a, where t_a is the depth
+of the simulation generating the action
+"""
 

@@ -133,7 +133,11 @@ class Wall:
 class Room:
     def __init__(self, walls: List[Wall], **kwargs):
         self.walls = walls
-        self.bounds = kwargs.get("bounds", [0, 1, 0, 1])
+        # self.bounds = kwargs.get("bounds", [0, 1, 0, 1])
+
+        wdx = 0.05
+        self.bounds = kwargs.get("bounds", [wdx, 1.-wdx,
+                                            wdx, 1.-wdx])
         self.name = kwargs.get("name", "Base")
 
         self.nb_collisions = 0
@@ -142,43 +146,71 @@ class Room:
     def __repr__(self):
         return "Room.{}(#walls{})".format(self.name, len(self.walls))
 
-    def handle_collision(self, position: np.ndarray,
-                         velocity: np.ndarray,
-                         radius: float) -> Tuple[np.ndarray,
-                            Optional[float], bool]:
+    def check_bounds(self, position: np.ndarray,
+                     radius: float,
+                     velocity: np.ndarray=None):
 
         beyond = False
         if position[0] < self.bounds[0] + radius or \
             position[0] > self.bounds[1] - radius:
-            velocity[0] = -velocity[0]
+            if velocity is not None:
+                velocity[0] = -velocity[0]
             beyond = True
         if position[1] < self.bounds[2] + radius or \
             position[1] > self.bounds[3] - radius:
-            velocity[1] = -velocity[1]
+            if velocity is not None:
+                velocity[1] = -velocity[1]
             beyond = True
 
+        return beyond, velocity
+
+    def handle_collision(self, position: np.ndarray,
+                         velocity: np.ndarray,
+                         radius: float,
+                         stop: bool=False) -> Tuple[np.ndarray,
+                            Optional[float], bool]:
+
+
+        beyond, new_velocity = self.check_bounds(
+            position=position, radius=radius,
+            velocity=velocity)
+
         if beyond:
-            return velocity, None, True
+            logger.error(f"OUT OF THE BORDERS")
+            self._self_check(position, velocity, radius,
+                             stop)
+            return new_velocity, None, True
 
         for wall in self.walls:
             new_velocity, angle = wall.collide(position,
                                                velocity,
                                                radius)
             if new_velocity is not None:
+                self._self_check(position, velocity, radius,
+                                 stop)
                 return new_velocity, angle, True
+
+        self._self_check(position, velocity, radius, stop)
         return velocity, None, False
+
+    def _self_check(self, position, velocity, radius,
+                    stop: bool=False):
+
+        if stop: return
+
+        beyond, new_velocity = self.check_bounds(
+            position=position+velocity, radius=0.,
+            velocity=velocity)
+
+        if beyond:
+            logger.error(f"DOOMED TO COLLIDE")
+            logger.error(f"[p:{np.around(position, 3)}, v:{np.around(velocity, 3)}]")
 
     def handle_vector_collision(self, vector: np.ndarray):
         for wall in self.walls:
             if wall.vector_collide(vector):
                 return True
         return False
-
-    def check_bounds(self, position: np.ndarray, radius: float) -> bool:
-        """Check if a circle is within the room bounds"""
-        x, y = position
-        return self.bounds[0] + radius <= x <= self.bounds[1] - radius and \
-               self.bounds[2] + radius <= y <= self.bounds[3] - radius
 
     def draw(self, ax: plt.Axes=None,
              alpha: float=1.):
@@ -1010,7 +1042,16 @@ class AgentBody:
 
         self.velocity = velocity
         self.velocity, collision = self._handle_collisions()
-        self.position += self.velocity
+
+        # update position
+        # + considering a possible collision
+        self.position += self.velocity * (1 + \
+                            self.bounce_coefficient * \
+                            1 * collision)
+
+        if collision:
+            logger.debug(f"new velocity: {np.around(self.velocity, 3)}")
+            logger.debug(f"new position: {np.around(self.position, 3)}")
 
         truncated = not self._room.check_bounds(
                                 position=self.position,
@@ -1024,7 +1065,6 @@ class AgentBody:
         if collision:
             self.velocity = new_velocity
             # Move the agent slightly after collision to prevent sticking
-            self.position += new_velocity * (1 + self.bounce_coefficient)
             self._room.nb_collisions += 1
 
             if self.verbose:

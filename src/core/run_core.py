@@ -377,7 +377,7 @@ def experimentIII(args):
                        "Ach": mod.Acetylcholine(visualize=False),
                        "ET": mod.EligibilityTrace(N=N,
                                                   visualize=False),
-                       "dPos": mod.PositionTrace(visualize=False)}
+                       "dPos": mod.PositionTrace(visualize=True)}
 
     for _, modulator in modulators_dict.items():
         logger.debug(f"{modulator} keys: {modulator.input_key}")
@@ -386,12 +386,13 @@ def experimentIII(args):
     modulators = mod.Modulators(modulators_dict=modulators_dict)
     exp_module = mod.ExperienceModule(pcnn=model,
                                       pcnn_plotter=model_plotter,
-                                      modulators=modulators)
+                                      modulators=modulators,
+                                      speed=0.005)
     agent = mod.Agent(exp_module=exp_module,
                       modulators=modulators)
 
     # --- agent & env
-    env = ev.make_room(name="square", thickness=4.)
+    env = ev.make_room(name="square1", thickness=4.)
     env = ev.AgentBody(room=env)
     velocity = np.zeros(2)
     observation = {
@@ -405,6 +406,7 @@ def experimentIII(args):
         "u": np.zeros(N),
         "velocity": velocity,
         "delta_update": 0.,
+        "action_idx": None,
     }
 
     fig, ax = plt.subplots(figsize=(5, 5))
@@ -412,22 +414,25 @@ def experimentIII(args):
     trajectory = []
     for t in range(duration):
 
-        # env
+        # --- env
         position, collision, truncated = env(velocity=velocity)
         trajectory += [position.tolist()]
 
-        # observation
+        # --- observation
         observation["u"] = agent.exp_module.fwd_pcnn(
             x=position.reshape(-1, 1)).flatten()
         observation["position"] = position
         observation["velocity"] = velocity
         observation["collision"] = collision
         observation["delta_update"] = output['delta_update']
+        observation["action_idx"] = output['action_idx']
 
         if collision:
             logger.debug(f">>> collision at t={t}")
 
+        # --- agent
         output = agent(observation=observation)
+        agent.pcnn_rountine(wall_vectors=env._room.wall_vectors)
         velocity = output['velocity']
 
         # --- exit
@@ -441,7 +446,7 @@ def experimentIII(args):
             break
 
         # --- plot
-        if t % 10 == 0:
+        if t % 20 == 0:
             plot_update(fig=fig, ax=ax,
                         agent=agent,
                         env=env, trajectory=trajectory,
@@ -478,6 +483,7 @@ if __name__ == "__main__":
 
     #
     np.random.seed(args.seed)
+    mod.set_seed(seed=args.seed)
 
     if args.main == "simple":
         simple_run(args=args)
