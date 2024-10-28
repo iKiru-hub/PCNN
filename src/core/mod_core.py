@@ -9,7 +9,6 @@ def set_seed(seed: int=0):
     np.random.seed(seed)
 
 
-
 class LeakyVariable:
 
     def __init__(self, eq: float=0., tau: float=10,
@@ -97,6 +96,7 @@ class Modulation(ABC):
         self.action = None
         self.input_key = None
         self.output = None
+        self.value = None
 
     def __repr__(self):
         return f"Mod.{self.leaky_var.name}"
@@ -198,6 +198,7 @@ class Acetylcholine(Modulation):
         out = [1*(v > self.threshold),
                 self.get_leaky_v()]
         self.output = out[0]
+        self.value = out[0]
         return out
 
 
@@ -246,6 +247,7 @@ class BoundaryMod(Modulation):
         out = [(-1 * self.weights * x).reshape(-1, 1),
                 self.get_leaky_v()]
         self.output = out[0]
+        self.value = out[0].max()
         self.var = x.copy()
         return out
 
@@ -349,6 +351,7 @@ class PositionTrace(Modulation):
         out = [res.sum(),
                self.get_leaky_v()]
         self.output = out[0]
+        self.value = out[0]
         return out
 
     def render(self):
@@ -365,21 +368,28 @@ class PositionTrace(Modulation):
             f"{np.abs(self.output).max():.2f}")
         self.fig.canvas.draw()
 
-# --- #
+# ---
 
 class Modulators:
 
-    def __init__(self, modulators_dict: dict):
+    def __init__(self, modulators_dict: dict,
+                 visualize: bool=False):
 
         self.modulators = modulators_dict
         self.names = tuple(modulators_dict.keys())
         self.output = {name: modulators_dict[name].output \
             for name in self.names}
+        self.values = np.zeros(len(self.names))
+
+        self.visualize = visualize
+        if visualize:
+            self.fig, self.axs = plt.subplots(figsize=(4, 3))
 
     def __call__(self, observation: dict,
                  simulate: bool=False) -> dict:
 
-        for name, modulator in self.modulators.items():
+        for i, (name, modulator) in enumerate(
+                                self.modulators.items()):
             inputs = []
             for key in modulator.input_key:
                 if key is not None:
@@ -388,14 +398,30 @@ class Modulators:
             output = modulator(inputs=inputs,
                                simulate=simulate)
             self.output[name] = modulator.output
+            self.values[i] = modulator.value
 
         return self.output
 
     def render(self):
+
+        # render singular modulators
         for _, modulator in self.modulators.items():
             modulator.render()
             if hasattr(modulator, "super_render"):
                 modulator.super_render()
+
+        # render dashboard
+        if self.visualize:
+
+            self.axs.clear()
+            self.axs.bar(range(len(self.names)), self.values,
+                            color="orange")
+            self.axs.set_xticks(range(len(self.names)))
+            self.axs.set_xticklabels(self.names)
+            self.axs.set_title("Modulators")
+            self.axs.set_ylim(-2, 2)
+            self.fig.canvas.draw()
+
 
 
 """ --- some MODULE classes --- """
@@ -416,7 +442,8 @@ class ExperienceModule(ModuleClass):
                  modulators: Modulators,
                  pcnn_plotter: object=None,
                  visualize: bool=False,
-                 speed: int=0.005):
+                 speed: int=0.005,
+                 max_depth: int=10):
 
         super().__init__()
         self.pcnn = pcnn
@@ -432,9 +459,11 @@ class ExperienceModule(ModuleClass):
         self.action_policy = SamplingPolicy(speed=speed)
         self.action_policy_int = SamplingPolicy(speed=speed)
 
-        self.action_delay = 30
+        self.action_delay = 1
         self.action_threshold_eq = -0.001
         self.action_threshold = self.action_threshold_eq
+
+        self.max_depth = max_depth
 
         # --- visualizationo
         if visualize:
@@ -464,7 +493,7 @@ class ExperienceModule(ModuleClass):
         # action_ext, action_idx, score = self._generation_action(
         #                         observation=observation,
         #                         directive=directive)
-        action_ext, action_idx, score = self._generate_action_from_simulation(
+        action_ext, action_idx, score, depth = self._generate_action_from_simulation(
                                 observation=observation,
                                 directive=directive)
 
@@ -474,9 +503,11 @@ class ExperienceModule(ModuleClass):
                 "u": spatial_repr,
                 "delta_update": self.pcnn.delta_update,
                 "velocity": action_ext,
-                "action_idx": action_idx}
+                "action_idx": action_idx,
+                "score": score,
+                "depth": depth}
 
-    def _generation_action(self, observation: dict,
+    def _generate_action(self, observation: dict,
                            directive: str="new") -> np.ndarray:
 
         self.action_policy_int.reset()
@@ -572,7 +603,7 @@ class ExperienceModule(ModuleClass):
         action_idx = observation["action_idx"]
 
         # --- simulate its effects
-        action, action_idx, score = self._generation_action(
+        action, action_idx, score = self._generate_action(
                                 observation=observation,
                                 directive="keep")
         observation["position"] += action
@@ -580,10 +611,10 @@ class ExperienceModule(ModuleClass):
         observation["action_idx"] = action_idx
 
         if score > threshold:
-            return score, True
+            return score, True, depth
 
         elif depth >= max_depth:
-            return score, False
+            return score, False, depth
 
         return self._simulation_loop(observation=observation,
                                depth=depth+1,
@@ -614,11 +645,11 @@ class ExperienceModule(ModuleClass):
             # --- simulate its effects over a few steps
 
             # roll out
-            score, success = self._simulation_loop(
+            score, success, depth = self._simulation_loop(
                             observation=observation,
                             depth=0,
                             threshold=self.action_threshold_eq,
-                            max_depth=20)
+                            max_depth=self.max_depth)
 
             # restore state
             self.action_threshold = action_threshold_or
@@ -656,7 +687,7 @@ class ExperienceModule(ModuleClass):
 
         # logger("[Simulation end]")
 
-        return action, action_idx, score
+        return action, action_idx, score, depth
 
     def render(self, ax=None, **kwargs):
 
@@ -667,8 +698,8 @@ class ExperienceModule(ModuleClass):
 
         if self.pcnn_plotter is not None:
             self.pcnn_plotter.render(ax=ax,
-                trajectory=kwargs.get("trajectory", False),
-                new_a=-1*self.modulators.modulators["Bnd"].output)
+                trajectory=kwargs.get("trajectory", False))
+                # new_a=-1*self.modulators.modulators["Bnd"].output)
 
     def reset(self, complete: bool=False):
         super().reset(complete=complete)
@@ -715,6 +746,11 @@ class ExploratoryModule(ModuleClass):
         return tape
 
 
+
+""" --- high level MODULES --- """
+
+
+
 class SelfModule(ModuleClass):
 
     def __init__(self, expl_module: ExploratoryModule):
@@ -754,59 +790,104 @@ class SelfModule(ModuleClass):
                              np.sin(theta)])
 
 
-
-class Agent:
+class Brain:
 
     def __init__(self, exp_module: ExperienceModule,
-                 modulators: Modulators):
+                 modulators: Modulators,
+                 plot_intv: int=1):
 
         self.exp_module = exp_module
         self.modulators = modulators
 
         self.movement = None
-        self.output = {"u": np.zeros(exp_module.pcnn.N),
-                       "delta_update": 0.,
-                       "velocity": np.zeros(2)}
+        self.observation_ext = {
+            "position": np.zeros(2).astype(float),
+            "collision": False
+        }
+
+        self.observation_int = {
+            "u": np.zeros(exp_module.pcnn.N),
+            "delta_update": 0.,
+            "velocity": np.zeros(2),
+            "action_idx": 0,
+            "depth": 0,
+            "score": 0,
+            "onset": 0}
+
+        self.state = self.observation_ext | self.observation_int
+
+        self.directive = "new"
+        self._elapsed_time = 0
+        self._plot_intv = plot_intv
+        self.t = -1
+
+        # record
+        self.record = {"trajectory": []}
 
     def __call__(self, observation: dict):
 
-        # --- first move
-        if self.movement is None:
-            directive = "new"
-        else:
-            directive = "keep"
+        self.t += 1
+        self.observation_ext = observation
+        self.state = self.observation_ext | self.observation_int
+
+        self.record["trajectory"] += [
+                    self.observation_ext["position"].tolist()]
 
         # --- update modulation
-        mod_observation = self.modulators(observation=observation)
+        mod_observation = self.modulators(observation=self.state)
 
         # TODO : add directive depending on modulation
 
-        if mod_observation["dPos"] < 0.05:
-            directive = "new"
+        # set new directive
+        if self.t == 0:
+            self.directive = "new"
+
+        if self.directive == "force_keep" and \
+            (self.t - self.observation_int["onset"]) < \
+            self.observation_int["depth"]:
+
+            return self.movement
+        elif self.directive == "force_keep":
+            self.directive = "new"
+
+        elif mod_observation["dPos"] < 0.05:
+            self.directive = "new"
+
+        else:
+            self.directive = "keep"
 
         # --- update experience module
         # logger(f"[{directive.upper()}]")
-        exp_output = self.exp_module(
-                            observation=observation,
-                            directive=directive)
+        # full output
+        self.observation_int = self.exp_module(
+                            observation=self.state,
+                            directive=self.directive)
 
-        self.output = exp_output
+        # --- update output
+        self.observation_int["onset"] = self.t
+        self.directive = "force_keep"
+        self.movement = self.observation_int["velocity"]
 
-        self.movement = self.output["velocity"]
+        return self.movement
 
-        return self.output
+    def routines(self, wall_vectors: np.ndarray):
 
-    def pcnn_rountine(self, wall_vectors: np.ndarray):
-
+        # pcnn routine
         self.exp_module.pcnn.clean_recurrent(
                                 wall_vectors=wall_vectors)
 
-    def render(self, ax: object, trajectory: np.ndarray):
+    def render(self, **kwargs):
 
-        self.modulators.render()
-        self.exp_module.render(ax=ax,
-                          trajectory=np.array(trajectory))
+        if self.t % self._plot_intv == 0:
 
+            self.modulators.render()
+            self.exp_module.render(ax=kwargs.get("ax", None),
+                              trajectory=np.array(
+                                   self.record["trajectory"]))
+
+    @property
+    def render_values(self):
+        return self.modulators.values.copy(), self.modulators.names
 
 
 

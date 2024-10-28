@@ -7,6 +7,7 @@ from tools.utils import clf, tqdm_enumerate, logger
 import inputools.Trajectory as it
 import pcnn_core as pcnn
 import mod_core as mod
+import envs_core as evc
 
 import os, sys
 base_path = os.getcwd().split("PCNN")[0]+"PCNN/src/"
@@ -372,7 +373,7 @@ def experimentIII(args):
     # pcnn 
     model = pcnn.PCNN(**params)
     model_plotter = pcnn.PlotPCNN(model=model,
-                                  makefig=False)
+                                  visualize=True)
     modulators_dict = {"Bnd": mod.BoundaryMod(N=N),
                        "Ach": mod.Acetylcholine(visualize=False),
                        "ET": mod.EligibilityTrace(N=N,
@@ -383,12 +384,14 @@ def experimentIII(args):
         logger.debug(f"{modulator} keys: {modulator.input_key}")
 
     # other components
-    modulators = mod.Modulators(modulators_dict=modulators_dict)
+    modulators = mod.Modulators(modulators_dict=modulators_dict,
+                                visualize=True)
     exp_module = mod.ExperienceModule(pcnn=model,
                                       pcnn_plotter=model_plotter,
                                       modulators=modulators,
-                                      speed=0.005)
-    agent = mod.Agent(exp_module=exp_module,
+                                      speed=0.006,
+                                      max_depth=50)
+    agent = mod.Brain(exp_module=exp_module,
                       modulators=modulators)
 
     # --- agent & env
@@ -411,7 +414,7 @@ def experimentIII(args):
 
     fig, ax = plt.subplots(figsize=(5, 5))
 
-    trajectory = []
+    trajectory = [env.position.tolist()]
     for t in range(duration):
 
         # --- env
@@ -424,16 +427,15 @@ def experimentIII(args):
         observation["position"] = position
         observation["velocity"] = velocity
         observation["collision"] = collision
-        observation["delta_update"] = output['delta_update']
-        observation["action_idx"] = output['action_idx']
+        observation["delta_update"] = agent.observation_int['delta_update']
+        observation["action_idx"] = agent.observation_int['action_idx']
 
         if collision:
             logger.debug(f">>> collision at t={t}")
 
         # --- agent
-        output = agent(observation=observation)
-        agent.pcnn_rountine(wall_vectors=env._room.wall_vectors)
-        velocity = output['velocity']
+        velocity = agent(observation=observation)
+        agent.routines(wall_vectors=env._room.wall_vectors)
 
         # --- exit
         if truncated:
@@ -471,6 +473,72 @@ def plot_update(fig, ax, agent, env,
 
 
 
+def experimentIV(args):
+
+    # --- settings
+    np.random.seed(args.seed)
+    evc.set_seed(seed=args.seed)
+    duration = args.duration
+
+    # --- brain
+    N = args.N
+    Nj = 13**2
+
+    logger(f"{duration}")
+    logger(f"{N=}")
+    logger(f"{Nj=}")
+
+    params = {
+        "N": N,
+        "Nj": Nj,
+        "alpha": 0.3,
+        "beta": 20.0,
+        "clip_min": 0.005,
+        "threshold": 0.4,
+        "rep_threshold": 0.7,
+        "rec_threshold": 0.99,
+        "calc_recurrent_enable": True,
+        "k_neighbors": 7,
+        "name": "PCNN"
+    }
+
+    # pc filter
+    pclayer = pcnn.PClayer(n=13, sigma=0.01)
+    logger.debug(f"{pclayer=}")
+    params["xfilter"] = pclayer
+
+    # pcnn
+    model = pcnn.PCNN(**params)
+    model_plotter = pcnn.PlotPCNN(model=model,
+                                  visualize=False)
+    modulators_dict = {"Bnd": mod.BoundaryMod(N=N,
+                                              visualize=False),
+                       "Ach": mod.Acetylcholine(visualize=False),
+                       "ET": mod.EligibilityTrace(N=N,
+                                                  visualize=False),
+                       "dPos": mod.PositionTrace(visualize=False)}
+
+    for _, modulator in modulators_dict.items():
+        logger.debug(f"{modulator} keys: {modulator.input_key}")
+
+    # other components
+    modulators = mod.Modulators(modulators_dict=modulators_dict,
+                                visualize=True)
+    exp_module = mod.ExperienceModule(pcnn=model,
+                                      pcnn_plotter=model_plotter,
+                                      modulators=modulators,
+                                      speed=0.01)
+    brain = mod.Brain(exp_module=exp_module,
+                      modulators=modulators)
+
+    # --- agent & env
+    agent = evc.AgentBody(brain=brain)
+
+    # --- run
+    evc.main(agent=agent,
+             duration=duration)
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -484,6 +552,7 @@ if __name__ == "__main__":
     #
     np.random.seed(args.seed)
     mod.set_seed(seed=args.seed)
+    evc.set_seed(seed=args.seed)
 
     if args.main == "simple":
         simple_run(args=args)
@@ -493,6 +562,10 @@ if __name__ == "__main__":
         experimentII(args=args)
     elif args.main == "III":
         experimentIII(args=args)
+    elif args.main == "IV":
+        experimentIV(args=args)
+    else:
+        raise ValueError("Invalid main")
 
 
 

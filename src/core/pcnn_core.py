@@ -514,16 +514,20 @@ class PClayer(InputFilter):
 class PlotPCNN:
 
     def __init__(self, model: PCNN,
-                 makefig: bool=True):
+                 visualize: bool=True):
 
         self._model = model
-        if makefig:
+        self.visualize = visualize
+        if visualize:
             self._fig, self._ax = plt.subplots(figsize=(6, 6))
         else:
             self._fig, self._ax = None, None
 
     def render(self, trajectory: np.ndarray=None,
                ax=None, new_a: np.ndarray=None):
+
+        if not self.visualize:
+            return
 
         if ax is None:
             ax = self._ax
@@ -709,16 +713,16 @@ def calc_centers_from_layer(wff: np.ndarray, centers: np.ndarray):
 
 
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def remove_wall_intersecting_edges(nodes: np.ndarray,
                         connectivity_matrix: np.ndarray,
                         walls: np.ndarray):
 
     def ccw(A, B, C):
-        return (C[1] - A[1]) * (B[0] - A[0]) > (B[1] - A[1]) * (C[0] - A[0])
+        return np.any((C[1] - A[1]) * (B[0] - A[0]) > (B[1] - A[1]) * (C[0] - A[0]))
 
     def intersect(A, B, C, D):
-        return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)
+        return np.any(ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D))
 
 
     n = len(nodes)
