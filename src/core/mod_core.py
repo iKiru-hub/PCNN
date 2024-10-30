@@ -4,6 +4,9 @@ from abc import ABC, abstractmethod
 from tools.utils import logger
 import pcnn_core as pcnn
 
+import matplotlib
+matplotlib.use("TkAgg")
+
 
 def set_seed(seed: int=0):
     np.random.seed(seed)
@@ -34,7 +37,7 @@ class LeakyVariable:
         self.tau = tau
         self.record = []
         self._max_record = max_record
-        self._visualize = visualize
+        self._visualize = False 
 
         # figure configs
         if self._visualize:
@@ -229,6 +232,7 @@ class BoundaryMod(Modulation):
         if visualize:
             self.fig_bnd, self.axs_bnd = plt.subplots(
                 2, 1, figsize=(4, 3))
+            logger(f"%visualizing {self.__class__}")
 
         self.var = np.zeros(N)
 
@@ -297,6 +301,7 @@ class EligibilityTrace(Modulation):
 
         if visualize:
             self.fig, self.ax = self.leaky_var.fig, self.leaky_var.ax
+            logger(f"%visualizing {self.__class__}")
 
     def _logic(self, inputs: tuple, simulate: bool=False):
 
@@ -340,6 +345,7 @@ class PositionTrace(Modulation):
         self.output = 1.
         if self._visualize:
             self.fig, self.ax = self.leaky_var.fig, self.leaky_var.ax
+            logger(f"%visualizing {self.__class__}")
 
     def _logic(self, inputs: tuple, simulate: bool=False):
 
@@ -384,6 +390,7 @@ class Modulators:
         self.visualize = visualize
         if visualize:
             self.fig, self.axs = plt.subplots(figsize=(4, 3))
+            logger(f"%visualizing {self.__class__}")
 
     def __call__(self, observation: dict,
                  simulate: bool=False) -> dict:
@@ -417,9 +424,10 @@ class Modulators:
             self.axs.bar(range(len(self.names)), self.values,
                             color="orange")
             self.axs.set_xticks(range(len(self.names)))
-            self.axs.set_xticklabels(self.names)
+            self.axs.set_xticklabels([f"{n} {v:.2f}" for n, v \
+                in zip(self.names, self.values)])
             self.axs.set_title("Modulators")
-            self.axs.set_ylim(-2, 2)
+            self.axs.set_ylim(-0.1, 1.3)
             self.fig.canvas.draw()
 
 
@@ -442,6 +450,7 @@ class ExperienceModule(ModuleClass):
                  modulators: Modulators,
                  pcnn_plotter: object=None,
                  visualize: bool=False,
+                 visualize_action: bool=False,
                  speed: int=0.005,
                  max_depth: int=10):
 
@@ -456,18 +465,22 @@ class ExperienceModule(ModuleClass):
 
         # --- policies
         # self.random_policy = RandomWalkPolicy(speed=0.005)
-        self.action_policy = SamplingPolicy(speed=speed)
-        self.action_policy_int = SamplingPolicy(speed=speed)
+        self.action_policy = SamplingPolicy(speed=speed,
+                                            visualize=False)
+        self.action_policy_int = SamplingPolicy(speed=speed,
+                                                visualize=visualize_action)
 
-        self.action_delay = 1
+        self.action_delay = 1 # ---
         self.action_threshold_eq = -0.001
         self.action_threshold = self.action_threshold_eq
 
         self.max_depth = max_depth
 
-        # --- visualizationo
+        # --- visualization
+        self.visualize = visualize
         if visualize:
             self.fig, self.ax = plt.subplots(figsize=(4, 3))
+            logger(f"%visualizing {self.__class__}")
         else:
             self.fig, self.ax = None, None
         self.record = []
@@ -512,6 +525,8 @@ class ExperienceModule(ModuleClass):
 
         self.action_policy_int.reset()
         done = False # when all actions have been tried
+
+        logger("------")
         while True:
 
             # --- generate a random action
@@ -552,20 +567,24 @@ class ExperienceModule(ModuleClass):
             score = 0
 
             # relevant modulators
-            repr_max = 15*new_observation["u"].max()
+            repr_max = 20*new_observation["u"].max()
             bnd_mod = 10*np.abs(modulation["Bnd"]).max()
-            dpos = 2*modulation["dPos"]*(
+            dpos = 0.3*modulation["dPos"]*(
                         modulation["dPos"] < 0.4)
 
             score -= repr_max
             score -= dpos
             score -= bnd_mod
 
-            # logger(f"  ({action_idx}) -> {score:.4f} " + \
-            #     f"[{repr_max:.3f}, {dpos:.3f}, {bnd_mod:.3f}]")
+            if action_idx == 4:
+                score = -1.
+
+            logger(f"  ({action_idx}) -> {score:.4f} " + \
+                f"[umax={repr_max:.3f}, dpos={dpos:.3f}, bnd={bnd_mod:.3f}]")
 
             # the action is above threshold
-            if score > self.action_threshold:
+            # if score > self.action_threshold:
+            if False:
 
                 # lower the threshold
                 self.action_threshold = min((score,
@@ -603,9 +622,12 @@ class ExperienceModule(ModuleClass):
         action_idx = observation["action_idx"]
 
         # --- simulate its effects
-        action, action_idx, score = self._generate_action(
+        _, _, score = self._generate_action(
                                 observation=observation,
                                 directive="keep")
+        # action, action_idx, score = self._generate_action(
+        #                         observation=observation,
+        #                         directive="keep")
         observation["position"] += action
         observation["velocity"] = action
         observation["action_idx"] = action_idx
@@ -691,9 +713,9 @@ class ExperienceModule(ModuleClass):
 
     def render(self, ax=None, **kwargs):
 
-        self.action_policy.render()
+        self.action_policy_int.render()
 
-        if ax is None:
+        if ax is None and self.visualize:
             ax = self.ax
 
         if self.pcnn_plotter is not None:
@@ -924,22 +946,26 @@ class RandomWalkPolicy:
 
 class SamplingPolicy:
 
-    def __init__(self, speed: float=0.1):
+    def __init__(self, speed: float=0.1,
+                 visualize: bool=False):
 
-        self._samples = [np.array([0., speed]),
+        self._samples = [np.array([-speed/np.sqrt(2),
+                                   speed/np.sqrt(2)]),
+                         np.array([0., speed]),
                          np.array([speed/np.sqrt(2),
                                    speed/np.sqrt(2)]),
+                         np.array([-speed, 0.]),
+                         np.array([0., 0.]),
                          np.array([speed, 0.]),
-                         np.array([speed/np.sqrt(2),
+                         np.array([-speed/np.sqrt(2),
                                    -speed/np.sqrt(2)]),
                          np.array([0., -speed]),
-                         np.array([-speed/np.sqrt(2),
-                                   -speed/np.sqrt(2)]),
-                         np.array([-speed, 0.]),
-                         np.array([-speed/np.sqrt(2),
-                                   speed/np.sqrt(2)])]
+                         np.array([speed/np.sqrt(2),
+                                   -speed/np.sqrt(2)])]
 
         self._num_samples = len(self._samples)
+        self._samples_indexes = list(range(self._num_samples))
+        # del self._samples_indexes[4]
 
         self._idx = None
         self._available_idxs = list(range(self._num_samples))
@@ -948,7 +974,10 @@ class SamplingPolicy:
         self._values = np.zeros(self._num_samples)
 
         # render
-        self.fig, self.ax = plt.subplots(figsize=(4, 3))
+        self.visualize = visualize
+        if visualize:
+            self.fig, self.ax = plt.subplots(figsize=(4, 6))
+            logger(f"%visualizing {self.__class__}")
 
     def __call__(self, keep: bool=False) -> tuple:
 
@@ -959,7 +988,7 @@ class SamplingPolicy:
         # --- first sample
         if self._idx is None:
             self._idx = np.random.choice(
-                            self._num_samples, p=self._p)
+                            self._samples_indexes, p=self._p)
             # logger.debug(f"av: {self._available_idxs} [idx: {self._idx}]")
             self._available_idxs.remove(self._idx)
             self._velocity = self._samples[self._idx]
@@ -992,7 +1021,7 @@ class SamplingPolicy:
 
         # --- normalize the score
         score = pcnn.generalized_sigmoid(x=score,
-                                         alpha=0.,
+                                         alpha=-0.5,
                                          beta=1.)
 
         self._values[self._idx] = score
@@ -1025,15 +1054,38 @@ class SamplingPolicy:
 
     def render(self):
 
+        if not self.visualize:
+            return
+
+        self._values = (self._values.max() - self._values) / \
+            (self._values.max() - self._values.min())
+        # self._values = np.where(np.isnan(self._values), 0,
+        #                         self._values)
+
         self.ax.clear()
-        self.ax.bar(range(self._num_samples), self._values)
-        self.ax.set_xticks(range(self._num_samples))
+
+        self.ax.imshow(self._values.reshape(3, 3),
+                       cmap="Blues", vmin=0, vmax=1)
+
+        # labels inside each square
+        for i in range(3):
+            for j in range(3):
+                self.ax.text(j, i, f"{self._values[3*i+j]:.2f}",
+                             ha="center", va="center",
+                             color="black",
+                             fontsize=13)
+
+        # self.ax.bar(range(self._num_samples), self._values)
+        # self.ax.set_xticks(range(self._num_samples))
         # self.ax.set_xticklabels(["stay", "up", "right",
         #                          "down", "left"])
-        self.ax.set_xlabel("Action")
+        # self.ax.set_xticklabels(np.around(self._values, 4))
+        # self.ax.set_xlabel("Action")
         self.ax.set_title(f"Action Space")
-        self.ax.set_ylim(0, 1)
-        self.ax.set_ylabel("value")
+        self.ax.set_yticks([])
+        self.ax.set_xticks([])
+        # self.ax.set_ylim(0, 1.1)
+        # self.ax.set_ylabel("value")
         self.fig.canvas.draw()
 
     def reset(self):
@@ -1041,11 +1093,14 @@ class SamplingPolicy:
         self._available_idxs = list(range(self._num_samples))
         self._p = np.ones(self._num_samples) / self._num_samples
         self._velocity = self._samples[0]
-        self._values = np.zeros(self._num_samples)
+        # self._values = np.zeros(self._num_samples)
 
     def has_collided(self):
 
         self._velocity = -self._velocity
+
+
+
 
 
 

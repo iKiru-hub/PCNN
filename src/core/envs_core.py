@@ -121,7 +121,7 @@ class AgentBody:
 
     def __init__(self, brain: object=None,
                  x: int=None, y: int=None, radius=10,
-                 color: str=ORANGE):
+                 color: str=ORANGE, render_freq=100):
 
         if x is None or y is None:
             self.x = np.random.randint(10, SCREEN_WIDTH-10)
@@ -139,6 +139,8 @@ class AgentBody:
 
         self.brain = brain
 
+        self.render_freq = render_freq
+        self.t = 0
 
         # Example usage:
         self.win = grph.GraphWin("Bar Plot", 600, 500)
@@ -147,6 +149,8 @@ class AgentBody:
         return f"AgentBody({self.x}, {self.y})"
 
     def __call__(self, room: Room):
+
+        self.t += 1
 
         # Update position based on velocity
         new_x = self.x + 2*self.velocity[0]
@@ -201,11 +205,14 @@ class AgentBody:
 
         logger(f"position: {self.x:04.0f}, {self.y:04.0f}")
 
+        if self.t % self.render_freq == 0:
+            return
+
         if self.brain is not None:
             data, names = self.brain.render_values
 
             data = np.where(np.isnan(data), 0, data)
-            self.brain.render()
+            # self.brain.render()
             # render_bar_plot(data=data, names=names,
             #                 screen=screen,
             #                 bar_color=(0, 0, 255),
@@ -214,7 +221,7 @@ class AgentBody:
             #                 font_size=24,
             #                 margin=10)
 
-            # draw_bar_plot(self.win, data, names)
+            draw_bar_plot(self.win, data, names)
             # self.win.getMouse()  # Wait for mouse click to close
 
 
@@ -307,6 +314,7 @@ def render_bar_plot(data: list,
 
 
 def draw_bar_plot(win, values, names, bar_width=40, gap=20):
+
     """
     Draws a bar plot on the given Graphics window.
 
@@ -322,33 +330,38 @@ def draw_bar_plot(win, values, names, bar_width=40, gap=20):
         raise ValueError("Length of values and names must be the same.")
 
     # Calculate scaling and max height
-    max_value = max(values)
+    max_value = 1.
     plot_height = 400  # height of the plot area
     plot_width = (bar_width + gap) * len(values)  # width of the plot area
-    scale = plot_height / max_value
+    scale = 200
 
     # Set up the window size
-    win.setCoords(0, 0, plot_width, plot_height + 100)
+    win.setCoords(0, 0, plot_width, plot_height)
 
     # clear the window
     win.delete("all")
 
+    # set background color
+    win.setBackground("white")
 
     # Draw bars
+    base_height = 100
     for i, value in enumerate(values):
         bar_height = value * scale
         x_left = i * (bar_width + gap)
         x_right = x_left + bar_width
-        bar = grph.Rectangle(grph.Point(x_left, 0), grph.Point(x_right, bar_height))
+        bar = grph.Rectangle(grph.Point(x_left, base_height),
+                             grph.Point(x_right, bar_height + base_height))
         bar.setFill("blue")
         bar.draw(win)
 
         # Draw value label on top of each bar
-        value_text = grph.Text(grph.Point((x_left + x_right) / 2, bar_height + 10), str(value))
-        value_text.draw(win)
+        # value_text = grph.Text(grph.Point((x_left + x_right) / 2, bar_height + 10), str(value))
+        # value_text.draw(win)
 
         # Draw name label below each bar
-        name_text = grph.Text(grph.Point((x_left + x_right) / 2, -20), names[i])
+        name_text = grph.Text(grph.Point((x_left + x_right) / 2, 15),
+                              f"{names[i]}\n{value:.2f}")
         name_text.draw(win)
 
 

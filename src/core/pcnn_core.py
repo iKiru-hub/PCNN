@@ -526,10 +526,7 @@ class PlotPCNN:
     def render(self, trajectory: np.ndarray=None,
                ax=None, new_a: np.ndarray=None):
 
-        if not self.visualize:
-            return
-
-        if ax is None:
+        if ax is None and self.visualize:
             ax = self._ax
             ax.clear()
 
@@ -609,6 +606,14 @@ def generalized_sigmoid(x: np.ndarray,
     x = gamma / (1.0 + np.exp(-beta * (x - alpha)))
 
     return np.where(x < clip_min, 0., x)
+
+def softmax(x: np.ndarray, beta: float=1.) -> np.ndarray:
+
+    """
+    softmax function
+    """
+
+    return np.exp(x * beta) / np.sum(np.exp(x * beta))
 
 
 @jit(nopython=False)
@@ -723,6 +728,7 @@ def remove_wall_intersecting_edges(nodes: np.ndarray,
 
     def intersect(A, B, C, D):
         return np.any(ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D))
+        # return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)
 
 
     n = len(nodes)

@@ -132,6 +132,7 @@ class Wall:
 
 class Room:
     def __init__(self, walls: List[Wall], **kwargs):
+
         self.walls = walls
         # self.bounds = kwargs.get("bounds", [0, 1, 0, 1])
 
@@ -142,6 +143,7 @@ class Room:
 
         self.nb_collisions = 0
         self.wall_vectors = np.stack([wall._wall_vector for wall in self.walls])
+        self.visualize = kwargs.get("visualize", False)
 
     def __repr__(self):
         return "Room.{}(#walls{})".format(self.name, len(self.walls))
@@ -214,6 +216,8 @@ class Room:
 
     def draw(self, ax: plt.Axes=None,
              alpha: float=1.):
+        if not self.visualize:
+            return
         for wall in self.walls:
             wall.draw(ax=ax, alpha=alpha)
 
@@ -221,7 +225,8 @@ class Room:
         self.nb_collisions = 0
 
 
-def make_room(name: str="square", thickness: float=1.):
+def make_room(name: str="square", thickness: float=1.,
+              visualize: bool=False):
 
     walls = [
             Wall([0, 0], orientation="horizontal",
@@ -235,13 +240,15 @@ def make_room(name: str="square", thickness: float=1.):
     ]
 
     if name == "square":
-        room = Room(walls=walls, name="Square")
+        room = Room(walls=walls, name="Square",
+                    visualize=visualize)
     elif name == "square1":
         walls += [ 
             Wall([0, 0.5], orientation="horizontal",
                  length=0.5, thickness=thickness),
         ]
-        room = Room(walls=walls, name="Square1")
+        room = Room(walls=walls, name="Square1",
+                    visualize=visualize)
     elif name == "square2":
         walls += [
             Wall([0.5, 0.], orientation="vertical",
@@ -249,7 +256,8 @@ def make_room(name: str="square", thickness: float=1.):
             # Wall([0.5, 0.5], orientation="horizontal",
             #      length=0.5, thickness=thickness),
         ]
-        room = Room(walls=walls, name="Square2")
+        room = Room(walls=walls, name="Square2",
+                    visualize=visualize)
     elif name == "flat":
         walls += [
             Wall([0., 0.33], orientation="horizontal",
@@ -257,7 +265,8 @@ def make_room(name: str="square", thickness: float=1.):
             Wall([0., 0.66], orientation="horizontal",
                     length=0.6, thickness=thickness),
         ]
-        room = Room(walls=walls, name="Flat")
+        room = Room(walls=walls, name="Flat",
+                    visualize=visualize)
     elif name == "flat2":
         walls += [
             Wall([0., 0.33], orientation="horizontal",
@@ -273,7 +282,8 @@ def make_room(name: str="square", thickness: float=1.):
             Wall([0.6, 0.875], orientation="vertical",
                     length=0.115, thickness=thickness),
         ]
-        room = Room(walls=walls, name="Flat")
+        room = Room(walls=walls, name="Flat",
+                    visualize=visualize)
     else:
         raise NameError("'{}' is not a room".format(name))
 
@@ -1024,6 +1034,7 @@ def render_env_pcnn(env: object, save=False, **kwargs):
 
 
 class AgentBody:
+
     def __init__(self, room: Room,
                  position: Optional[np.ndarray] = None,
                  **kwargs):

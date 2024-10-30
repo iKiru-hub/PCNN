@@ -15,6 +15,9 @@ sys.path.append(base_path)
 import utils
 import simplerl.environments as ev
 
+import matplotlib
+matplotlib.use("TkAgg")
+
 
 
 
@@ -358,7 +361,7 @@ def experimentIII(args):
         "beta": 20.0,
         "clip_min": 0.005,
         "threshold": 0.4,
-        "rep_threshold": 0.7,
+        "rep_threshold": 0.9,
         "rec_threshold": 0.99,
         "calc_recurrent_enable": True,
         "k_neighbors": 7,
@@ -373,29 +376,31 @@ def experimentIII(args):
     # pcnn 
     model = pcnn.PCNN(**params)
     model_plotter = pcnn.PlotPCNN(model=model,
-                                  visualize=True)
-    modulators_dict = {"Bnd": mod.BoundaryMod(N=N),
+                                  visualize=False)
+    modulators_dict = {"Bnd": mod.BoundaryMod(N=N,
+                                              visualize=False),
                        "Ach": mod.Acetylcholine(visualize=False),
-                       "ET": mod.EligibilityTrace(N=N,
-                                                  visualize=False),
-                       "dPos": mod.PositionTrace(visualize=True)}
+                       "dPos": mod.PositionTrace(visualize=False)}
 
     for _, modulator in modulators_dict.items():
         logger.debug(f"{modulator} keys: {modulator.input_key}")
 
     # other components
     modulators = mod.Modulators(modulators_dict=modulators_dict,
-                                visualize=True)
+                                visualize=False)
     exp_module = mod.ExperienceModule(pcnn=model,
                                       pcnn_plotter=model_plotter,
                                       modulators=modulators,
                                       speed=0.006,
-                                      max_depth=50)
+                                      max_depth=50,
+                                      visualize=False,
+                                      visualize_action=False)
     agent = mod.Brain(exp_module=exp_module,
                       modulators=modulators)
 
     # --- agent & env
-    env = ev.make_room(name="square1", thickness=4.)
+    env = ev.make_room(name="square1", thickness=4.,
+                       visualize=True)
     env = ev.AgentBody(room=env)
     velocity = np.zeros(2)
     observation = {
@@ -510,7 +515,7 @@ def experimentIV(args):
     # pcnn
     model = pcnn.PCNN(**params)
     model_plotter = pcnn.PlotPCNN(model=model,
-                                  visualize=False)
+                                  visualize=True)
     modulators_dict = {"Bnd": mod.BoundaryMod(N=N,
                                               visualize=False),
                        "Ach": mod.Acetylcholine(visualize=False),
