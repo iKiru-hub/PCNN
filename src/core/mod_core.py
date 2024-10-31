@@ -8,6 +8,9 @@ import matplotlib
 matplotlib.use("TkAgg")
 
 
+FIGPATH = "dashboard/media"
+
+
 def set_seed(seed: int=0):
     np.random.seed(seed)
 
@@ -17,6 +20,7 @@ class LeakyVariable:
     def __init__(self, eq: float=0., tau: float=10,
                  name: str="leaky", ndim: int=1,
                  visualize: bool=False,
+                 number: int=None,
                  max_record: int=100):
 
         """
@@ -38,6 +42,7 @@ class LeakyVariable:
         self.record = []
         self._max_record = max_record
         self._visualize = False 
+        self._number = number
 
         # figure configs
         if self._visualize:
@@ -80,6 +85,10 @@ class LeakyVariable:
         self.ax.grid()
         self.ax.set_title(f"{self.name} |" +
             f" v={np.around(self._v, 2).tolist()}")
+
+        if self._number is not None:
+            self.fig.savefig(f"{FIGPATH}/{self._number}.png")
+            return
         self.fig.canvas.draw()
 
 
@@ -100,6 +109,7 @@ class Modulation(ABC):
         self.input_key = None
         self.output = None
         self.value = None
+        self._number = None
 
     def __repr__(self):
         return f"Mod.{self.leaky_var.name}"
@@ -134,6 +144,7 @@ class ModuleClass(ABC):
         self.modulators = None
         self.output = None
         self.pcnn = None
+        self._number = None
 
     def __call__(self, observation: dict,
                  **kwargs):
@@ -178,21 +189,93 @@ class ModuleClass(ABC):
 
 """ --- some leaky_var classes --- """
 
+class Dopamine(Modulation):
+
+    def __init__(self, N: int, visualize: bool=True,
+                 number: int=None):
+
+        super().__init__(N=1)
+        self.leaky_var = LeakyVariable(eq=0., tau=5,
+                                       name="DA",
+                                       max_record=500,
+                                       visualize=visualize,
+                                       number=number)
+        self.threshold = 0.7
+        self.action = "fwd"
+        self.input_key = ("u", "reward", None)
+        self.weights = np.zeros(N)
+        self.eta = 0.1
+        self.output = np.zeros((N, 1))
+        self._visualize = visualize
+        if visualize:
+            self.fig, self.ax = plt.subplots(figsize=(4, 3))
+            logger(f"%visualizing {self.__class__}")
+        self._number = number
+
+    def _logic(self, inputs: tuple,
+               simulate: bool=False) -> np.ndarray:
+
+        u = inputs[0].flatten()
+
+        if inputs[1] > 0:
+            v = np.clip(self.leaky_var(x=inputs[1], simulate=simulate),
+                        0, 1)
+
+            # potentiation
+            self.weights += self.eta * v * np.where(u < 0.2, 0, u)
+
+            # depression
+            self.weights -= self.eta * (1 - v) * np.where(u < 0.2, u, 0)
+        else:
+            v = np.clip(self.leaky_var(x=0, simulate=simulate),
+                        0, 1)
+        # self.weights = np.clip(self.weights, 0., 1.)
+
+        out = [(self.weights * u).reshape(-1, 1),
+                self.get_leaky_v()]
+        self.output = out[0]
+        self.value = out[0].max()
+        self.var = u.copy()
+
+        return out
+
+    def render(self):
+
+        if not self._visualize:
+            return
+
+        self.ax.clear()
+        self.ax.imshow(self.weights.reshape(1, -1),
+                           aspect="auto", cmap="Greens_r",
+                           vmin=0., vmax=4.)
+        self.ax.set_title(f"Dopamine Modulation | " + \
+            f"max:{self.weights.max():.2f} [{np.argmax(self.weights)}]")
+        self.ax.set_yticks([])
+
+        if self._number is not None:
+            self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+            return
+
+        self.fig.canvas.draw()
+
 
 class Acetylcholine(Modulation):
 
-    def __init__(self, visualize: bool=True):
+    def __init__(self, visualize: bool=True,
+                 number: int=None):
 
         super().__init__()
         self.leaky_var = LeakyVariable(eq=1., tau=10,
                                        name="ACh",
                                        max_record=500,
-                                       visualize=visualize)
+                                       visualize=visualize,
+                                       number=number)
         self.threshold = 0.9
         self.action = "plasticity"
         self.input_key = ("delta_update", None)
         self.output = 0.
         self._visualize = visualize
+        self._number = number
 
     def _logic(self, inputs: tuple,
                simulate: bool=False) -> np.ndarray:
@@ -216,18 +299,20 @@ class BoundaryMod(Modulation):
     """
 
     def __init__(self, N: int, eta: float=0.1,
-                 visualize: bool=True):
+                 visualize: bool=True, number: int=None):
 
         super().__init__(N=N)
         self.leaky_var = LeakyVariable(eq=0., tau=3,
                                        name="Bnd",
-                                       visualize=visualize)
+                                       visualize=visualize,
+                                       number=number)
         self.action = "fwd"
         self.input_key = ("u", "collision")
         self._visualize = visualize
         self.weights = np.zeros(N)
         self.eta = eta
         self.output = np.zeros((N, 1))
+        self._number = number
 
         if visualize:
             self.fig_bnd, self.axs_bnd = plt.subplots(
@@ -248,7 +333,7 @@ class BoundaryMod(Modulation):
         else:
             v = self.leaky_var(x=0, simulate=simulate)
 
-        out = [(-1 * self.weights * x).reshape(-1, 1),
+        out = [(self.weights * x).reshape(-1, 1),
                 self.get_leaky_v()]
         self.output = out[0]
         self.value = out[0].max()
@@ -279,25 +364,32 @@ class BoundaryMod(Modulation):
                                 alpha=0.4, linestyle="--")
         self.axs_bnd[1].grid()
 
+        if self._number is not None:
+            self.fig_bnd.savefig(f"{FIGPATH}/fig{self._number}.png")
+            return
+
         self.fig_bnd.canvas.draw()
 
 
 class EligibilityTrace(Modulation):
 
-    def __init__(self, N: int, visualize: bool=True):
+    def __init__(self, N: int, visualize: bool=True,
+                 number: int=None):
 
         super().__init__(N=N)
         self.leaky_var = LeakyVariable(eq=0., tau=50,
                                        name="ET",
                                        ndim=N,
                                        max_record=500,
-                                       visualize=visualize)
+                                       visualize=visualize,
+                                       number=number)
         self.output = self.get_leaky_v().reshape(-1, 1)
         self._visualize = visualize
         self.threshold = 0.9
         self.action = "fwd"
         self.input_key = ("u", None)
         self.output = np.zeros((N, 1))
+        self._number = number
 
         if visualize:
             self.fig, self.ax = self.leaky_var.fig, self.leaky_var.ax
@@ -329,20 +421,23 @@ class EligibilityTrace(Modulation):
 
 class PositionTrace(Modulation):
 
-    def __init__(self, visualize: bool=True):
+    def __init__(self, visualize: bool=True,
+                 number: int=None):
 
         super().__init__(N=1)
         self.leaky_var = LeakyVariable(eq=0., tau=50,
                                        name="dPos",
                                        ndim=2,
                                        max_record=500,
-                                       visualize=visualize)
+                                       visualize=visualize,
+                                       number=number)
         self.output = self.get_leaky_v().reshape(-1, 1)
         self._visualize = visualize
         self.threshold = 0.9
         self.action = "fwd"
         self.input_key = ("position", None)
         self.output = 1.
+        self._number = number
         if self._visualize:
             self.fig, self.ax = self.leaky_var.fig, self.leaky_var.ax
             logger(f"%visualizing {self.__class__}")
@@ -379,14 +474,17 @@ class PositionTrace(Modulation):
 class Modulators:
 
     def __init__(self, modulators_dict: dict,
-                 visualize: bool=False):
+                 visualize: bool=False,
+                 number: int=None):
 
         self.modulators = modulators_dict
         self.names = tuple(modulators_dict.keys())
+        logger(f"modulators : {self.names}")
         self.output = {name: modulators_dict[name].output \
             for name in self.names}
         self.values = np.zeros(len(self.names))
 
+        self._number = number
         self.visualize = visualize
         if visualize:
             self.fig, self.axs = plt.subplots(figsize=(4, 3))
@@ -428,7 +526,13 @@ class Modulators:
                 in zip(self.names, self.values)])
             self.axs.set_title("Modulators")
             self.axs.set_ylim(-0.1, 1.3)
+
+            if self._number is not None:
+                self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+                return
+
             self.fig.canvas.draw()
+
 
 
 
@@ -468,7 +572,7 @@ class ExperienceModule(ModuleClass):
         self.action_policy = SamplingPolicy(speed=speed,
                                             visualize=False)
         self.action_policy_int = SamplingPolicy(speed=speed,
-                                                visualize=visualize_action)
+                                    visualize=visualize_action)
 
         self.action_delay = 1 # ---
         self.action_threshold_eq = -0.001
@@ -478,11 +582,11 @@ class ExperienceModule(ModuleClass):
 
         # --- visualization
         self.visualize = visualize
-        if visualize:
-            self.fig, self.ax = plt.subplots(figsize=(4, 3))
-            logger(f"%visualizing {self.__class__}")
-        else:
-            self.fig, self.ax = None, None
+        # if visualize:
+        #     self.fig, self.ax = plt.subplots(figsize=(4, 3))
+        #     logger(f"%visualizing {self.__class__}")
+        # else:
+        #     self.fig, self.ax = None, None
         self.record = []
 
     def _logic(self, observation: dict,
@@ -526,7 +630,6 @@ class ExperienceModule(ModuleClass):
         self.action_policy_int.reset()
         done = False # when all actions have been tried
 
-        logger("------")
         while True:
 
             # --- generate a random action
@@ -557,6 +660,7 @@ class ExperienceModule(ModuleClass):
                 "position": new_position,
                 "velocity": action,
                 "collision": False,
+                "reward": 0.,
                 "delta_update": 0.}
 
             modulation = self.modulators(
@@ -567,9 +671,9 @@ class ExperienceModule(ModuleClass):
             score = 0
 
             # relevant modulators
-            repr_max = 20*new_observation["u"].max()
+            repr_max = 10*new_observation["u"].max()
             bnd_mod = 10*np.abs(modulation["Bnd"]).max()
-            dpos = 0.3*modulation["dPos"]*(
+            dpos = 1.*modulation["dPos"]*(
                         modulation["dPos"] < 0.4)
 
             score -= repr_max
@@ -579,9 +683,6 @@ class ExperienceModule(ModuleClass):
             if action_idx == 4:
                 score = -1.
 
-            logger(f"  ({action_idx}) -> {score:.4f} " + \
-                f"[umax={repr_max:.3f}, dpos={dpos:.3f}, bnd={bnd_mod:.3f}]")
-
             # the action is above threshold
             # if score > self.action_threshold:
             if False:
@@ -589,8 +690,6 @@ class ExperienceModule(ModuleClass):
                 # lower the threshold
                 self.action_threshold = min((score,
                                 self.action_threshold_eq))
-                # logger.debug(">>> lower threshold to " + \
-                #     f"{self.action_threshold:.4f}")
                 break
 
             # it is the best available action
@@ -599,8 +698,6 @@ class ExperienceModule(ModuleClass):
                 # set new threshold
                 # [account for a little of bad luck]
                 self.action_threshold = score*1.1
-                # logger.debug(">>> new threshold: " + \
-                #     f"{self.action_threshold:.4f}")
                 break
 
             directive = "new"
@@ -646,8 +743,6 @@ class ExperienceModule(ModuleClass):
     def _generate_action_from_simulation(self,
             observation: dict, directive: str) -> tuple:
 
-        # logger("[Simulation start]")
-
         done = False # when all actions have been tried
         while True:
 
@@ -676,17 +771,12 @@ class ExperienceModule(ModuleClass):
             # restore state
             self.action_threshold = action_threshold_or
 
-            # logger.debug(f"[S] >>> idx: {action_idx} -> {score:.4f}"+\
-            #              f" [threshold: {self.action_threshold}]")
-
             # the action is above threshold
             if score > self.action_threshold:
 
                 # lower the threshold
                 self.action_threshold = min((score,
                                 self.action_threshold_eq))
-                # logger.debug("[S] >>> lower threshold to " + \
-                #     f"{self.action_threshold:.4f}")
                 break
 
             # it is the best available action
@@ -695,8 +785,6 @@ class ExperienceModule(ModuleClass):
                 # set new threshold
                 # [account for a little of bad luck]
                 self.action_threshold = score*1.1
-                # logger.debug("[S] >>> new threshold: " + \
-                #     f"{self.action_threshold:.4f}")
                 break
 
             directive = "new"
@@ -707,21 +795,19 @@ class ExperienceModule(ModuleClass):
         # ---
         self.action_policy.reset()
 
-        # logger("[Simulation end]")
-
         return action, action_idx, score, depth
 
     def render(self, ax=None, **kwargs):
 
         self.action_policy_int.render()
 
-        if ax is None and self.visualize:
-            ax = self.ax
+        # if ax is None and self.visualize:
+        #     ax = self.ax
 
         if self.pcnn_plotter is not None:
-            self.pcnn_plotter.render(ax=ax,
-                trajectory=kwargs.get("trajectory", False))
-                # new_a=-1*self.modulators.modulators["Bnd"].output)
+            self.pcnn_plotter.render(ax=None,
+                trajectory=kwargs.get("trajectory", False),
+                new_a=1*self.modulators.modulators["DA"].output)
 
     def reset(self, complete: bool=False):
         super().reset(complete=complete)
@@ -879,7 +965,6 @@ class Brain:
             self.directive = "keep"
 
         # --- update experience module
-        # logger(f"[{directive.upper()}]")
         # full output
         self.observation_int = self.exp_module(
                             observation=self.state,
@@ -989,7 +1074,6 @@ class SamplingPolicy:
         if self._idx is None:
             self._idx = np.random.choice(
                             self._samples_indexes, p=self._p)
-            # logger.debug(f"av: {self._available_idxs} [idx: {self._idx}]")
             self._available_idxs.remove(self._idx)
             self._velocity = self._samples[self._idx]
             return self._velocity.copy(), False, self._idx
@@ -997,7 +1081,6 @@ class SamplingPolicy:
         # --- all samples have been tried
         if len(self._available_idxs) == 0:
 
-            # logger.debug(f"random action from : {np.around(self._values.flatten(), 3)}")
 
             # self._idx = np.random.choice(self._num_samples,
             #                                   p=self._p)
@@ -1033,8 +1116,6 @@ class SamplingPolicy:
 
         # normalize
         # self._p = self._p / self._p.sum()
-
-        # logger.warning(f"{np.around(self._values.flatten(), 3)}")
 
     def get_state(self):
 
@@ -1098,6 +1179,7 @@ class SamplingPolicy:
     def has_collided(self):
 
         self._velocity = -self._velocity
+
 
 
 

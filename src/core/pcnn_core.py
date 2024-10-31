@@ -15,6 +15,7 @@ sys.path.append(base_path)
 import utils
 
 
+FIGPATH = "dashboard/media/"
 
 
 class PCNN():
@@ -514,21 +515,25 @@ class PClayer(InputFilter):
 class PlotPCNN:
 
     def __init__(self, model: PCNN,
-                 visualize: bool=True):
+                 visualize: bool=True,
+                 number: int=None):
 
         self._model = model
+        self._number = number
         self.visualize = visualize
-        if visualize:
-            self._fig, self._ax = plt.subplots(figsize=(6, 6))
-        else:
-            self._fig, self._ax = None, None
+        # if visualize:
+        #     self._fig, self._ax = plt.subplots(figsize=(6, 6))
+        # else:
+        #     self._fig, self._ax = None, None
 
     def render(self, trajectory: np.ndarray=None,
                ax=None, new_a: np.ndarray=None):
 
-        if ax is None and self.visualize:
-            ax = self._ax
-            ax.clear()
+        # if ax is None and self.visualize:
+        #     ax = self._ax
+        #     ax.clear()
+
+        fig, ax = plt.subplots(figsize=(6, 6))
 
         new_a = new_a if new_a is not None else self._model.u
 
@@ -560,8 +565,13 @@ class PlotPCNN:
         ax.set_xlim((0, 1))
         ax.set_title(f"PCNN | N={len(self._model)}")
 
-        if ax == self._ax:
-            self._fig.canvas.draw()
+        if self._number is not None:
+            fig.savefig(f"{FIGPATH}fig{self._number}.png")
+            plt.close()
+            return
+
+        # if ax == self._ax:
+        #     self._fig.canvas.draw()
 
 
 
@@ -606,6 +616,7 @@ def generalized_sigmoid(x: np.ndarray,
     x = gamma / (1.0 + np.exp(-beta * (x - alpha)))
 
     return np.where(x < clip_min, 0., x)
+
 
 def softmax(x: np.ndarray, beta: float=1.) -> np.ndarray:
 

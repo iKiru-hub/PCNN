@@ -143,7 +143,7 @@ class AgentBody:
         self.t = 0
 
         # Example usage:
-        self.win = grph.GraphWin("Bar Plot", 600, 500)
+        # self.win = grph.GraphWin("Bar Plot", 600, 500)
 
     def __str__(self):
         return f"AgentBody({self.x}, {self.y})"
@@ -175,9 +175,11 @@ class AgentBody:
             observation = {
                 "position": np.array(self._scale_to_01(
                         self.x, self.y)),
-                "velocity": self.velocity,
+                "velocity": self._scale_to_01_vec(self.velocity),
                 "collision": collision
             }
+
+            logger.debug(f"{observation['position']}")
 
             self.velocity = self.brain(observation=observation)
             self.velocity = self._scale_to_screen(self.velocity)
@@ -190,6 +192,13 @@ class AgentBody:
 
         return x, y
 
+    def _scale_to_01_vec(self, position: np.ndarray):
+
+        position[0] = position[0] / SCREEN_WIDTH
+        position[1] = position[1] / SCREEN_HEIGHT
+
+        return position
+
     def _scale_to_screen(self, position: np.array):
 
         position[0] = position[0] * SCREEN_WIDTH
@@ -200,19 +209,18 @@ class AgentBody:
     def render(self, screen: object):
 
         pygame.draw.circle(screen, self.color,
-                           (int(self.x), int(self.y)),
+                           (int(self.x),
+                            int(SCREEN_HEIGHT-self.y)),
                            self.radius)
-
-        logger(f"position: {self.x:04.0f}, {self.y:04.0f}")
 
         if self.t % self.render_freq == 0:
             return
 
         if self.brain is not None:
-            data, names = self.brain.render_values
+            # data, names = self.brain.render_values
 
-            data = np.where(np.isnan(data), 0, data)
-            # self.brain.render()
+            # data = np.where(np.isnan(data), 0, data)
+            self.brain.render()
             # render_bar_plot(data=data, names=names,
             #                 screen=screen,
             #                 bar_color=(0, 0, 255),
@@ -221,7 +229,7 @@ class AgentBody:
             #                 font_size=24,
             #                 margin=10)
 
-            draw_bar_plot(self.win, data, names)
+            # draw_bar_plot(self.win, data, names)
             # self.win.getMouse()  # Wait for mouse click to close
 
 
@@ -276,93 +284,93 @@ class Randy:
         pass
 
 
-def render_bar_plot(data: list,
-                    names: list,
-                    screen: object, **kwargs):
+# def render_bar_plot(data: list,
+#                     names: list,
+#                     screen: object, **kwargs):
 
-    # Extract optional parameters or set defaults
-    bar_color = kwargs.get('bar_color', (0, 0, 255))
-    bg_color = kwargs.get('bg_color', (255, 255, 255))
-    label_color = kwargs.get('label_color', (0, 0, 0))
-    font_size = kwargs.get('font_size', 24)
-    margin = kwargs.get('margin', 10)
+#     # Extract optional parameters or set defaults
+#     bar_color = kwargs.get('bar_color', (0, 0, 255))
+#     bg_color = kwargs.get('bg_color', (255, 255, 255))
+#     label_color = kwargs.get('label_color', (0, 0, 0))
+#     font_size = kwargs.get('font_size', 24)
+#     margin = kwargs.get('margin', 10)
 
-    # Calculate bar dimensions
-    bar_width = (SCREEN_ANALYSIS_WIDTH - 2 * margin) // len(data)
-    max_value = max(data)
+#     # Calculate bar dimensions
+#     bar_width = (SCREEN_ANALYSIS_WIDTH - 2 * margin) // len(data)
+#     max_value = max(data)
 
-    # Draw bars
-    for i, value in enumerate(data):
-        value = max(value, 1e-6)
-        if np.isnan(value):
-            value = 0
-        bar_height = int((value / max_value) * (
-            SCREEN_ANALYSIS_HEIGHT - 2 * margin))
-        x = SCREEN_ANALYSIS_HEIGHT - (margin + i * bar_width)
-        y = SCREEN_ANALYSIS_HEIGHT - margin - bar_height
-        pygame.draw.rect(screen, bar_color,
-                         (x, y,
-                          bar_width - margin, bar_height))
+#     # Draw bars
+#     for i, value in enumerate(data):
+#         value = max(value, 1e-6)
+#         if np.isnan(value):
+#             value = 0
+#         bar_height = int((value / max_value) * (
+#             SCREEN_ANALYSIS_HEIGHT - 2 * margin))
+#         x = SCREEN_ANALYSIS_HEIGHT - (margin + i * bar_width)
+#         y = SCREEN_ANALYSIS_HEIGHT - margin - bar_height
+#         pygame.draw.rect(screen, bar_color,
+#                          (x, y,
+#                           bar_width - margin, bar_height))
 
-        # Draw labels
-        font = pygame.font.Font(None, font_size)
-        label = font.render(names[i], True, label_color)
-        screen.blit(label, (x + (bar_width - \
-            margin) // 2 - label.get_width() // 2,
-                            SCREEN_ANALYSIS_HEIGHT - margin + 5))
+#         # Draw labels
+#         font = pygame.font.Font(None, font_size)
+#         label = font.render(names[i], True, label_color)
+#         screen.blit(label, (x + (bar_width - \
+#             margin) // 2 - label.get_width() // 2,
+#                             SCREEN_ANALYSIS_HEIGHT - margin + 5))
 
 
 
-def draw_bar_plot(win, values, names, bar_width=40, gap=20):
+# def draw_bar_plot(win, values, names, bar_width=40, gap=20):
 
-    """
-    Draws a bar plot on the given Graphics window.
+#     """
+#     Draws a bar plot on the given Graphics window.
 
-    Parameters:
-    win        -- The Graphics window to draw on.
-    values     -- List of values (heights of the bars).
-    names      -- List of names corresponding to each bar.
-    bar_width  -- Width of each bar (default 40).
-    gap        -- Gap between each bar (default 20).
-    """
-    # Check that values and names have the same length
-    if len(values) != len(names):
-        raise ValueError("Length of values and names must be the same.")
+#     Parameters:
+#     win        -- The Graphics window to draw on.
+#     values     -- List of values (heights of the bars).
+#     names      -- List of names corresponding to each bar.
+#     bar_width  -- Width of each bar (default 40).
+#     gap        -- Gap between each bar (default 20).
+#     """
+#     # Check that values and names have the same length
+#     if len(values) != len(names):
+#         raise ValueError("Length of values and names must be the same.")
 
-    # Calculate scaling and max height
-    max_value = 1.
-    plot_height = 400  # height of the plot area
-    plot_width = (bar_width + gap) * len(values)  # width of the plot area
-    scale = 200
+#     # Calculate scaling and max height
+#     max_value = 1.
+#     plot_height = 400  # height of the plot area
+#     plot_width = (bar_width + gap) * len(values)  # width of the plot area
+#     scale = 200
 
-    # Set up the window size
-    win.setCoords(0, 0, plot_width, plot_height)
+#     # Set up the window size
+#     win.setCoords(0, 0, plot_width, plot_height)
 
-    # clear the window
-    win.delete("all")
+#     # clear the window
+#     win.delete("all")
 
-    # set background color
-    win.setBackground("white")
+#     # set background color
+#     win.setBackground("white")
 
-    # Draw bars
-    base_height = 100
-    for i, value in enumerate(values):
-        bar_height = value * scale
-        x_left = i * (bar_width + gap)
-        x_right = x_left + bar_width
-        bar = grph.Rectangle(grph.Point(x_left, base_height),
-                             grph.Point(x_right, bar_height + base_height))
-        bar.setFill("blue")
-        bar.draw(win)
+#     # Draw bars
+#     base_height = 100
+#     for i, value in enumerate(values):
+#         bar_height = value * scale
+#         x_left = i * (bar_width + gap)
+#         x_right = x_left + bar_width
+#         bar = grph.Rectangle(grph.Point(x_left, base_height),
+#                              grph.Point(x_right, bar_height + base_height))
+#         bar.setFill("blue")
+#         bar.draw(win)
 
-        # Draw value label on top of each bar
-        # value_text = grph.Text(grph.Point((x_left + x_right) / 2, bar_height + 10), str(value))
-        # value_text.draw(win)
+#         # Draw value label on top of each bar
+#         # value_text = grph.Text(grph.Point((x_left + x_right) / 2, bar_height + 10), str(value))
+#         # value_text.draw(win)
 
-        # Draw name label below each bar
-        name_text = grph.Text(grph.Point((x_left + x_right) / 2, 15),
-                              f"{names[i]}\n{value:.2f}")
-        name_text.draw(win)
+#         # Draw name label below each bar
+#         name_text = grph.Text(grph.Point((x_left + x_right) / 2, 15),
+#                               f"{names[i]}\n{value:.2f}")
+#         name_text.draw(win)
 
 
 """ initialize """
@@ -371,7 +379,7 @@ def draw_bar_plot(win, values, names, bar_width=40, gap=20):
 
 # Main loop
 def main(agent: AgentBody, room_name: str=None,
-         duration: int=100000):
+         duration: int=100000, render: bool=True):
 
     # Initialize Pygame
     pygame.init()
@@ -392,7 +400,7 @@ def main(agent: AgentBody, room_name: str=None,
     running = True
     t = 0
     for t in range(duration):
-        screen.fill(BACKGROUND_COLOR)  # Clear screen
+        # screen.fill(BACKGROUND_COLOR)  # Clear screen
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -402,15 +410,17 @@ def main(agent: AgentBody, room_name: str=None,
         agent(room=room)
 
         # --- render
-        room.render(screen=screen)
+        # room.render(screen=screen)
         agent.render(screen=screen)
 
         # - #
-        pygame.display.flip()
-        clock.tick(400)
+        # if render:
+        #     pygame.display.flip()
+        #     clock.tick(200)
 
     logger()
     logger(f"<Simulation ended at t={t}>")
+    input("Press Enter ...")
     pygame.quit()
 
 

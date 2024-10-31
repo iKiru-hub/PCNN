@@ -284,6 +284,19 @@ def make_room(name: str="square", thickness: float=1.,
         ]
         room = Room(walls=walls, name="Flat",
                     visualize=visualize)
+    elif name == "hole1":
+        walls += [
+            Wall([0.33, 0.33], orientation="horizontal",
+                    length=0.33, thickness=thickness),
+            Wall([0.33, 0.33], orientation="vertical",
+                    length=0.33, thickness=thickness),
+            Wall([0.66, 0.33], orientation="vertical",
+                    length=0.33, thickness=thickness),
+            Wall([0.33, 0.66], orientation="horizontal",
+                    length=0.33, thickness=thickness),
+        ]
+        room = Room(walls=walls, name="HoleI",
+                    visualize=visualize)
     else:
         raise NameError("'{}' is not a room".format(name))
 
@@ -1152,7 +1165,6 @@ class Zombie:
             self.fig.canvas.draw()
 
 
-
 class DummyAgent:
 
     def __init__(self, **kwargs):
@@ -1183,6 +1195,27 @@ class DummyAgent:
 
     def reset(self):
         self.t = 0
+
+
+class RewardObj:
+
+    def __init__(self, position: np.ndarray,
+                 radius: float=0.05):
+
+        self._position = position
+        self._radius = radius
+
+    def __call__(self, position: np.ndarray):
+
+        distance = np.linalg.norm(position - self._position)
+        if distance < self._radius:
+            return np.random.binomial(1, 0.8)
+        return 0.0
+
+    def render(self, ax: plt.Axes):
+
+        ax.add_patch(Circle(self._position, self._radius,
+                            fc="green", ec='black'))
 
 
 

@@ -9,7 +9,7 @@ import pcnn_core as pcnn
 import mod_core as mod
 import envs_core as evc
 
-import os, sys
+import os, sys, json
 base_path = os.getcwd().split("PCNN")[0]+"PCNN/src/"
 sys.path.append(base_path)
 import utils
@@ -18,6 +18,22 @@ import simplerl.environments as ev
 import matplotlib
 matplotlib.use("TkAgg")
 
+
+
+CONFIGPATH = "dashboard/media/configs.json"
+
+
+def write_configs(num_figs: int):
+
+    info = {
+        "num_figs": num_figs
+    }
+
+    with open(CONFIGPATH, 'w') as f:
+        json.dump(info, f)
+
+    logger(f"configs written to {CONFIGPATH}")
+    logger(f"{info}")
 
 
 
@@ -361,8 +377,8 @@ def experimentIII(args):
         "beta": 20.0,
         "clip_min": 0.005,
         "threshold": 0.4,
-        "rep_threshold": 0.9,
-        "rec_threshold": 0.99,
+        "rep_threshold": 0.8,
+        "rec_threshold": 0.7,
         "calc_recurrent_enable": True,
         "k_neighbors": 7,
         "name": "PCNN"
@@ -373,13 +389,17 @@ def experimentIII(args):
     logger.debug(f"{pclayer=}")
     params["xfilter"] = pclayer
 
-    # pcnn 
+    # pcnn
     model = pcnn.PCNN(**params)
     model_plotter = pcnn.PlotPCNN(model=model,
-                                  visualize=False)
+                                  visualize=True,
+                                  number=0)
     modulators_dict = {"Bnd": mod.BoundaryMod(N=N,
-                                              visualize=False),
-                       "Ach": mod.Acetylcholine(visualize=False),
+                                              visualize=False,
+                                              number=2),
+                       "DA": mod.Dopamine(N=N,
+                                          visualize=True,
+                                          number=3),
                        "dPos": mod.PositionTrace(visualize=False)}
 
     for _, modulator in modulators_dict.items():
@@ -387,21 +407,25 @@ def experimentIII(args):
 
     # other components
     modulators = mod.Modulators(modulators_dict=modulators_dict,
-                                visualize=False)
+                                visualize=True,
+                                number=1)
     exp_module = mod.ExperienceModule(pcnn=model,
                                       pcnn_plotter=model_plotter,
                                       modulators=modulators,
                                       speed=0.006,
-                                      max_depth=50,
+                                      max_depth=6,
                                       visualize=False,
                                       visualize_action=False)
     agent = mod.Brain(exp_module=exp_module,
                       modulators=modulators)
 
     # --- agent & env
-    env = ev.make_room(name="square1", thickness=4.,
+    env = ev.make_room(name="flat", thickness=4.,
                        visualize=True)
-    env = ev.AgentBody(room=env)
+    env = ev.AgentBody(room=env,
+                       position=np.array([0.2, 0.2]))
+    reward_obj = ev.RewardObj(position=np.array([0.6, 0.5]),
+                       radius=0.1)
     velocity = np.zeros(2)
     observation = {
         "u": np.zeros(N),
@@ -409,6 +433,7 @@ def experimentIII(args):
         "velocity": velocity,
         "delta_update": 0.,
         "collision": False,
+        "reward": 0.
     }
     output = {
         "u": np.zeros(N),
@@ -417,13 +442,17 @@ def experimentIII(args):
         "action_idx": None,
     }
 
-    fig, ax = plt.subplots(figsize=(5, 5))
+    if True:
+        fig, ax = plt.subplots(figsize=(5, 5))
+
+    write_configs(num_figs=4)
 
     trajectory = [env.position.tolist()]
     for t in range(duration):
 
         # --- env
         position, collision, truncated = env(velocity=velocity)
+        reward = reward_obj(position=position)
         trajectory += [position.tolist()]
 
         # --- observation
@@ -432,6 +461,7 @@ def experimentIII(args):
         observation["position"] = position
         observation["velocity"] = velocity
         observation["collision"] = collision
+        observation["reward"] = reward
         observation["delta_update"] = agent.observation_int['delta_update']
         observation["action_idx"] = agent.observation_int['action_idx']
 
@@ -453,11 +483,12 @@ def experimentIII(args):
             break
 
         # --- plot
-        if t % 20 == 0:
-            plot_update(fig=fig, ax=ax,
-                        agent=agent,
-                        env=env, trajectory=trajectory,
-                        t=t, velocity=velocity)
+        if t % 100 == 0:
+            agent.render()
+            # plot_update(fig=fig, ax=ax,
+            #             agent=agent,
+            #             env=env, trajectory=trajectory,
+            #             t=t, velocity=velocity)
 
 
 def plot_update(fig, ax, agent, env,
@@ -466,16 +497,14 @@ def plot_update(fig, ax, agent, env,
     ax.clear()
 
     #
-    agent.render(ax=ax, trajectory=np.array(trajectory))
     env.render(ax=ax)
 
     #
-    ax.set_title(f"t={t} | v={np.around(velocity, 3)} " + \
-        f"p={np.around(env.position, 3)}")
+    # ax.set_title(f"t={t} | v={np.around(velocity, 3)} " + \
+    #     f"p={np.around(env.position, 3)}")
     fig.canvas.draw()
 
     plt.pause(0.001)
-
 
 
 def experimentIV(args):
@@ -544,6 +573,72 @@ def experimentIV(args):
              duration=duration)
 
 
+def experimentV(args):
+
+    # --- settings
+    np.random.seed(args.seed)
+    evc.set_seed(seed=args.seed)
+    duration = args.duration
+
+    # --- brain
+    N = args.N
+    Nj = 13**2
+
+    logger(f"{duration}")
+    logger(f"{N=}")
+    logger(f"{Nj=}")
+
+    params = {
+        "N": N,
+        "Nj": Nj,
+        "alpha": 0.3,
+        "beta": 20.0,
+        "clip_min": 0.005,
+        "threshold": 0.4,
+        "rep_threshold": 0.9,
+        "rec_threshold": 0.99,
+        "calc_recurrent_enable": True,
+        "k_neighbors": 7,
+        "name": "PCNN"
+    }
+
+    # pc filter
+    pclayer = pcnn.PClayer(n=13, sigma=0.01)
+    logger.debug(f"{pclayer=}")
+    params["xfilter"] = pclayer
+
+    # pcnn
+    model = pcnn.PCNN(**params)
+    model_plotter = pcnn.PlotPCNN(model=model,
+                                  visualize=True,
+                                  number=0)
+    modulators_dict = {"Bnd": mod.BoundaryMod(N=N,
+                                              visualize=True,
+                                              number=2),
+                       "dPos": mod.PositionTrace(visualize=False)}
+
+    for _, modulator in modulators_dict.items():
+        logger.debug(f"{modulator} keys: {modulator.input_key}")
+
+    # other components
+    modulators = mod.Modulators(modulators_dict=modulators_dict,
+                                visualize=True,
+                                number=1)
+    exp_module = mod.ExperienceModule(pcnn=model,
+                                      pcnn_plotter=model_plotter,
+                                      modulators=modulators,
+                                      speed=0.009)
+    brain = mod.Brain(exp_module=exp_module,
+                      modulators=modulators)
+
+    # --- agent & env
+    agent = evc.AgentBody(brain=brain)
+
+    # --- run
+    evc.main(agent=agent,
+             duration=duration)
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -569,6 +664,8 @@ if __name__ == "__main__":
         experimentIII(args=args)
     elif args.main == "IV":
         experimentIV(args=args)
+    elif args.main == "V":
+        experimentV(args=args)
     else:
         raise ValueError("Invalid main")
 
