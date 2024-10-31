@@ -269,7 +269,7 @@ class PCNN():
                 self.record["dw"][-1] = 0.
                 return
 
-            logger.debug(f"adding new neuron.. {similarity=}")
+            logger.debug(f" [+1] adding new neuron: {similarity=}")
 
             # proceed
             # self._Wff_backup = self._Wff.copy()
@@ -516,7 +516,9 @@ class PlotPCNN:
 
     def __init__(self, model: PCNN,
                  visualize: bool=True,
-                 number: int=None):
+                 number: int=None,
+                 edges: bool=True,
+                 cmap: str='viridis'):
 
         self._model = model
         self._number = number
@@ -527,20 +529,23 @@ class PlotPCNN:
         #     self._fig, self._ax = None, None
 
     def render(self, trajectory: np.ndarray=None,
-               ax=None, new_a: np.ndarray=None):
+               edges: bool=True, cmap: str='viridis',
+               ax=None, new_a: np.ndarray=None,
+               title: str=None):
 
-        # if ax is None and self.visualize:
-        #     ax = self._ax
-        #     ax.clear()
-
-        fig, ax = plt.subplots(figsize=(6, 6))
+        new_ax = False
+        if ax is None:
+            new_ax = True
+            fig, ax = plt.subplots(figsize=(6, 6))
 
         new_a = new_a if new_a is not None else self._model.u
 
         # --- trajectory
         if trajectory is not None:
             ax.plot(trajectory[:, 0], trajectory[:, 1], 'r-',
-                          lw=0.5, alpha=0.6)
+                          lw=0.5, alpha=0.3)
+            ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
+                        c='r', s=70, marker='x')
 
         # --- network
         centers = self._model._centers
@@ -549,23 +554,27 @@ class PlotPCNN:
         ax.scatter(centers[:, 0],
                    centers[:, 1],
                    c=new_a.flatten(),
-                   s=40, cmap='viridis',
+                   s=40, cmap=cmap,
                    vmin=0, vmax=0.04)
 
-        for i in range(connectivity.shape[0]):
-            for j in range(connectivity.shape[1]):
-                if connectivity[i, j] > 0:
-                    ax.plot([centers[i, 0], centers[j, 0]],
-                            [centers[i, 1], centers[j, 1]], 'k-',
-                            alpha=0.2, lw=0.5)
+        if edges:
+            for i in range(connectivity.shape[0]):
+                for j in range(connectivity.shape[1]):
+                    if connectivity[i, j] > 0:
+                        ax.plot([centers[i, 0], centers[j, 0]],
+                                [centers[i, 1], centers[j, 1]],
+                                'k-',
+                                alpha=0.2, lw=0.5)
 
         #
         ax.axis('off')
         ax.set_ylim((0, 1))
         ax.set_xlim((0, 1))
-        ax.set_title(f"PCNN | N={len(self._model)}")
+        if title is None:
+            title = f"PCNN | N={len(self._model)}"
+        ax.set_title(title)
 
-        if self._number is not None:
+        if self._number is not None and new_ax:
             fig.savefig(f"{FIGPATH}fig{self._number}.png")
             plt.close()
             return

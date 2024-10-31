@@ -373,10 +373,10 @@ def experimentIII(args):
     params = {
         "N": N,
         "Nj": Nj,
-        "alpha": 0.3,
-        "beta": 20.0,
+        "alpha": 0.17,
+        "beta": 35.0,
         "clip_min": 0.005,
-        "threshold": 0.4,
+        "threshold": 0.3,
         "rep_threshold": 0.8,
         "rec_threshold": 0.7,
         "calc_recurrent_enable": True,
@@ -395,12 +395,16 @@ def experimentIII(args):
                                   visualize=True,
                                   number=0)
     modulators_dict = {"Bnd": mod.BoundaryMod(N=N,
-                                              visualize=False,
-                                              number=2),
+                                              threshold=0.02,
+                                              visualize=True,
+                                              number=5),
                        "DA": mod.Dopamine(N=N,
                                           visualize=True,
-                                          number=3),
-                       "dPos": mod.PositionTrace(visualize=False)}
+                                          number=4),
+                       "dPos": mod.PositionTrace(visualize=False),
+                       "Pop": mod.PopulationMod(N=N,
+                                                visualize=True,
+                                                number=1)}
 
     for _, modulator in modulators_dict.items():
         logger.debug(f"{modulator} keys: {modulator.input_key}")
@@ -408,24 +412,25 @@ def experimentIII(args):
     # other components
     modulators = mod.Modulators(modulators_dict=modulators_dict,
                                 visualize=True,
-                                number=1)
+                                number=3)
     exp_module = mod.ExperienceModule(pcnn=model,
                                       pcnn_plotter=model_plotter,
                                       modulators=modulators,
                                       speed=0.006,
-                                      max_depth=6,
+                                      max_depth=20,
                                       visualize=False,
                                       visualize_action=False)
     agent = mod.Brain(exp_module=exp_module,
-                      modulators=modulators)
+                      modulators=modulators,
+                      number=2)
 
     # --- agent & env
-    env = ev.make_room(name="flat", thickness=4.,
+    env = ev.make_room(name="square", thickness=4.,
                        visualize=True)
     env = ev.AgentBody(room=env,
-                       position=np.array([0.2, 0.2]))
-    reward_obj = ev.RewardObj(position=np.array([0.6, 0.5]),
-                       radius=0.1)
+                       position=np.array([0.8, 0.2]))
+    reward_obj = ev.RewardObj(position=np.array([0.5, 0.5]),
+                       radius=0.2)
     velocity = np.zeros(2)
     observation = {
         "u": np.zeros(N),
@@ -445,7 +450,7 @@ def experimentIII(args):
     if True:
         fig, ax = plt.subplots(figsize=(5, 5))
 
-    write_configs(num_figs=4)
+    write_configs(num_figs=6)
 
     trajectory = [env.position.tolist()]
     for t in range(duration):
@@ -468,6 +473,9 @@ def experimentIII(args):
         if collision:
             logger.debug(f">>> collision at t={t}")
 
+        if reward > 0:
+            logger.debug(f">>> reward at t={t}")
+
         # --- agent
         velocity = agent(observation=observation)
         agent.routines(wall_vectors=env._room.wall_vectors)
@@ -487,17 +495,20 @@ def experimentIII(args):
             agent.render()
             # plot_update(fig=fig, ax=ax,
             #             agent=agent,
-            #             env=env, trajectory=trajectory,
+            #             env=env,
+            #             reward_obj=reward_obj,
+            #             trajectory=trajectory,
             #             t=t, velocity=velocity)
 
 
-def plot_update(fig, ax, agent, env,
+def plot_update(fig, ax, agent, env, reward_obj,
                 trajectory, t, velocity):
 
     ax.clear()
 
     #
     env.render(ax=ax)
+    reward_obj.render(ax=ax)
 
     #
     # ax.set_title(f"t={t} | v={np.around(velocity, 3)} " + \

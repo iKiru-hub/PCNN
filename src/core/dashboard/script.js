@@ -69,6 +69,7 @@ async function updateImageCount() {
         const response = await fetch(CONFIG_PATH);
         const config = await response.json();
         imageCount = config.num_figs || 0;
+        console.log(`Image count read: ${config.num_figs}`);
         console.log(`Image count set to: ${imageCount}`);
         loadImages(); // Load images with the updated image count
     } catch (error) {
