@@ -39,11 +39,27 @@ body {
     background-color: #333; /* Darker color when active */
 }
 
+#simulationLogs {
+    width: 100%;
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #444;
+}
+
+#simulationLogs h3 {
+    font-size: 18px;
+    margin: 0 0 10px;
+}
+
+#log-container p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
 #grid {
     flex-grow: 1;
     display: grid;
-    grid-template-columns: repeat(auto-fill,
-                        minmax(350px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 1px;
     padding: 1px;
 }
@@ -63,4 +79,3 @@ img {
     width: 100%;
     height: auto;
 }
-

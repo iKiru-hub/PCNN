@@ -106,3 +106,42 @@ window.onload = () => {
     document.getElementById('refreshButton').onclick = refreshImages;
     document.getElementById('toggleUpdateButton').onclick = toggleAutoUpdate;
 };
+
+
+// Function to fetch and display logs from logs.json
+async function fetchLogs() {
+    try {
+        const response = await fetch('media/configs.json'); // Path to logs.json
+        const logs = await response.json();
+        const logContainer = document.getElementById('log-container');
+        logContainer.innerHTML = ''; // Clear old logs
+
+        // Populate log data
+        for (const [key, value] of Object.entries(logs)) {
+            const logItem = document.createElement('p');
+            logItem.textContent = `${key}: ${value}`;
+            logContainer.appendChild(logItem);
+        }
+    } catch (error) {
+        console.error("Error loading logs:", error);
+        document.getElementById('log-container').textContent = "Error loading logs";
+    }
+}
+
+// Function to initialize the plot
+function initializePlot() {
+    // Plotly.newPlot('plot', [{ y: [], type: 'line' }]);
+
+    setInterval(async () => {
+        // const newValue = Math.random(); // Replace with your data source
+        // Plotly.extendTraces('plot', { y: [[newValue]] }, [0]);
+
+        // Refresh logs every 10 seconds
+        fetchLogs();
+    }, 1000);
+}
+
+// Load logs and initialize plot on page load
+fetchLogs();
+initializePlot();
+

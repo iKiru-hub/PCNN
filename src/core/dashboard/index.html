@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulation Dashboard</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
 
@@ -12,11 +13,18 @@
         <div id="sidebar">
             <button id="refreshButton">Refresh Images</button>
             <button id="toggleUpdateButton">Toggle Auto-Refresh</button>
+            <div id="simulationLogs">
+                <h3>Simulation Logs</h3>
+                <div id="log-container">
+                    <!-- Logs will populate here -->
+                </div>
+            </div>
         </div>
-        <div id="grid"></div>
+        <div id="grid">
+            <div id="plot"></div> <!-- Placeholder for the plot -->
+        </div>
     </div>
 
     <script src="script.js"></script>
 </body>
 </html>
-
