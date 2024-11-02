@@ -18,3 +18,8 @@
 \contentsline {subsection}{\numberline {4.2}Decision-making and RL}{12}{subsection.4.2}%
 \contentsline {subsubsection}{\numberline {4.2.1}Velocity calculation}{12}{subsubsection.4.2.1}%
 \contentsline {subsubsection}{\numberline {4.2.2}Proximal modulation}{13}{subsubsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.3}Modulators}{14}{subsection.4.3}%
+\contentsline {paragraph}{Acetylcholine}{14}{section*.9}%
+\contentsline {paragraph}{Dopamine}{14}{section*.10}%
+\contentsline {paragraph}{Boundaries}{14}{section*.11}%
+\contentsline {paragraph}{Velocity Modulation}{14}{section*.12}%

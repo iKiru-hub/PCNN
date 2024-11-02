@@ -152,11 +152,53 @@ class Modulation(ABC):
             self.state = (0., 0.)
 
 
+class Program(ABC):
+
+    """
+    Actions:
+    - "plasticity"
+    - "fwd"
+    """
+
+    def __init__(self, **kwargs):
+
+        self.N = kwargs.get("N", 1)
+        self.name = kwargs.get("name", "program")
+        self.input_key = None
+        self.output = None
+        self.value = None
+        self._visualize = kwargs.get("visualize", False)
+        self._number = kwargs.get("number", None)
+        self.mod_weight = kwargs.get("mod_weight", 1.)
+
+    def __repr__(self):
+        return f"Prog.{self.name}"
+
+    def __call__(self, inputs: float=0.,
+                 simulate: bool=False):
+        self._logic(inputs=inputs,
+                    simulate=simulate)
+        return self.output
+
+    @abstractmethod
+    def _logic(self, inputs: float):
+        pass
+
+    def render(self):
+        pass
+
+    def reset(self, complete: bool=False):
+        self.leaky_var.reset()
+        if complete:
+            self.output = None
+            self.state = (0., 0.)
+
+
 class ModuleClass(ABC):
 
     def __init__(self):
 
-        self.modulators = None
+        self.circuits = None
         self.output = None
         self.pcnn = None
         self._number = None
@@ -170,11 +212,11 @@ class ModuleClass(ABC):
                     **kwargs)
         return self.output
 
-    def _apply_modulators(self):
-        if self.pcnn is None or self.modulators is None:
+    def _apply_circuits(self):
+        if self.pcnn is None or self.circuits is None:
             return
 
-        for _, modulator in self.modulators.modulators.items():
+        for _, modulator in self.circuits.circuits.items():
 
             if isinstance(modulator, np.ndarray):
                 output = modulator.output.copy().reshape(-1, 1)
@@ -295,6 +337,36 @@ class Acetylcholine(Modulation):
         return out
 
 
+class FatigueMod(Modulation):
+
+    def __init__(self, **kwargs):
+
+        super().__init__(**kwargs)
+        self.leaky_var = LeakyVariable(eq=1., tau=1000,
+                                       name="Ftg",
+                                       max_record=500)
+        self.threshold = 0.9
+        self.action = "fwd"
+        self.input_key = ("reward", None)
+        self.output = np.zeros((1, 1))
+
+        if self._visualize:
+            self.fig, self.ax = plt.subplots(figsize=(4, 3))
+            logger(f"%visualizing {self.__class__}")
+
+    def _logic(self, inputs: tuple,
+               simulate: bool=False) -> np.ndarray:
+
+        if inputs[0] > 0:
+            v = self.leaky_var(x=-1, simulate=simulate)
+        else:
+            v = self.leaky_var(simulate=simulate)
+
+        self.output = v
+        self.value = v
+        return
+
+
 class BoundaryMod(Modulation):
 
     """
@@ -378,18 +450,14 @@ class BoundaryMod(Modulation):
         self.fig_bnd.canvas.draw()
 
 
-class PopulationMod(Modulation):
+class PopulationProgMax(Program):
 
     def __init__(self, **kwargs):
 
             super().__init__(**kwargs)
-            self.leaky_var = LeakyVariable(eq=0., tau=20,
-                                        name="Pop")
-            self.threshold = 0.9
-            self.action = "fwd"
             self.input_key = ("u", None)
             self.output = np.zeros((self.N, 1))
-            self.activity = np.zeros(self.N)
+            self._activity = np.zeros(self.N)
 
             if self._visualize:
                 self.fig, self.ax = plt.subplots(figsize=(4, 3))
@@ -397,14 +465,11 @@ class PopulationMod(Modulation):
 
     def _logic(self, inputs: tuple, simulate: bool=False):
 
-        v = self.leaky_var(x=inputs[0].max(),
-                           simulate=simulate)
-        out = [inputs[0],
-                self.get_leaky_v()]
-        self.output = out[0].max()
-        self.value = out[0].max()
-        self.activity = inputs[0].flatten()
-        return out
+        self.output = inputs[0].max()
+        self.value = inputs[0].max()
+        if not simulate:
+            self.activity = inputs[0].flatten()
+        return self.output
 
     def render(self):
 
@@ -413,14 +478,12 @@ class PopulationMod(Modulation):
 
         self.ax.clear()
 
-        # self.ax.imshow(self.activity.reshape(1, -1),
-        #                aspect="auto", cmap="Greys")
-        self.ax.bar(range(self.N), self.activity,
+        self.ax.bar(range(self.N), self._activity,
                     color="grey")
         self.ax.grid()
         self.ax.set_ylim(0, 1.)
         self.ax.set_title(f"Population Activity " + \
-            f"$u_{{max}}$={self.activity.max():.2f}")
+            f"$u_{{max}}$={self._activity.max():.2f}")
 
         if self._number is not None:
             self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
@@ -555,7 +618,7 @@ class Modulators:
             output = modulator(inputs=inputs,
                                simulate=simulate)
             self.output[name] = modulator.output
-            self.values[i] = modulator.value
+            sef.values[i] = modulator.value
 
         return self.output
 
@@ -578,9 +641,74 @@ class Modulators:
             self.axs.bar(range(len(self.names)), self.values,
                             color="orange")
             self.axs.set_xticks(range(len(self.names)))
-            self.axs.set_xticklabels([f"{n} {v:.2f}" for n, v \
+            self.axs.set_xticklabels([f"{n}\n{v:.2f}" for n, v \
                 in zip(self.names, self.values)])
             self.axs.set_title("Modulators")
+            self.axs.set_ylim(-0.1, 1.3)
+
+            if self._number is not None:
+                self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+                return
+
+            self.fig.canvas.draw()
+
+
+class Circuits:
+
+    def __init__(self, circuits_dict: dict,
+                 visualize: bool=False,
+                 number: int=None):
+
+        self.circuits = circuits_dict
+        self.names = tuple(circuits_dict.keys())
+        logger(f"circuits : {self.names}")
+        self.output = {name: circuits_dict[name].output \
+            for name in self.names}
+        self.values = np.zeros(len(self.names))
+
+        self._number = number
+        self.visualize = visualize
+        if visualize:
+            self.fig, self.axs = plt.subplots(figsize=(4, 4))
+            logger(f"%visualizing {self.__class__}")
+
+    def __call__(self, observation: dict,
+                 simulate: bool=False) -> dict:
+
+        for i, (name, circuit) in enumerate(
+                                self.circuits.items()):
+            inputs = []
+            for key in circuit.input_key:
+                if key is not None:
+                    inputs += [observation[key]]
+            inputs += [None]
+            output = circuit(inputs=inputs,
+                             simulate=simulate)
+            self.output[name] = circuit.output
+            self.values[i] = circuit.value
+
+        return self.output
+
+    def render(self, pcnn_plotter: object=None):
+
+        # render singular circuit
+        for _, circuit in self.circuits.items():
+            if hasattr(circuit, "weights") and \
+                pcnn_plotter is not None:
+                circuit.render_field(pcnn_plotter=pcnn_plotter)
+            else:
+                circuit.render()
+
+        # render dashboard
+        if self.visualize:
+
+            self.axs.clear()
+            self.axs.bar(range(len(self.names)), self.values,
+                         color="purple")
+            self.axs.set_xticks(range(len(self.names)))
+            self.axs.set_xticklabels([f"{n}\n{v:.2f}" for n, v \
+                in zip(self.names, self.values)])
+            self.axs.set_title("Circuits")
             self.axs.set_ylim(-0.1, 1.3)
 
             if self._number is not None:
@@ -607,7 +735,7 @@ class ExperienceModule(ModuleClass):
     """
 
     def __init__(self, pcnn: pcnn.PCNN,
-                 modulators: Modulators,
+                 circuits: Circuits,
                  pcnn_plotter: object=None,
                  action_delay: float=5.,
                  visualize: bool=False,
@@ -617,12 +745,15 @@ class ExperienceModule(ModuleClass):
 
         super().__init__()
         self.pcnn = pcnn
-        self.modulators = modulators
+        self.circuits = circuits
         self.pcnn_plotter = pcnn_plotter
-        self.output = {"u": np.zeros(pcnn.N),
-                       "position": np.zeros(2),
-                       "delta_update": 0.,
-                       "velocity": np.zeros(2)}
+        self.output = {
+                "u": np.zeros(pcnn.N),
+                "delta_update": np.zeros(pcnn.N),
+                "velocity": np.zeros(2),
+                "action_idx": None,
+                "score": None,
+                "depth": None}
 
         # --- policies
         # self.random_policy = RandomWalkPolicy(speed=0.005)
@@ -722,7 +853,7 @@ class ExperienceModule(ModuleClass):
                 "reward": 0.,
                 "delta_update": 0.}
 
-            modulation = self.modulators(
+            modulation = self.circuits(
                             observation=new_observation,
                             simulate=True)
 
@@ -820,6 +951,9 @@ class ExperienceModule(ModuleClass):
 
             # --- simulate its effects over a few steps
 
+            observation["velocity"] = action
+            observation["action_idx"] = action_idx
+
             # roll out
             score, success, depth = self._simulation_loop(
                             observation=observation,
@@ -866,7 +1000,7 @@ class ExperienceModule(ModuleClass):
         if self.pcnn_plotter is not None:
             self.pcnn_plotter.render(ax=None,
                 trajectory=kwargs.get("trajectory", False),
-                new_a=1*self.modulators.modulators["DA"].output)
+                new_a=1*self.circuits.circuits["DA"].output)
 
     def reset(self, complete: bool=False):
         super().reset(complete=complete)
@@ -960,12 +1094,12 @@ class SelfModule(ModuleClass):
 class Brain:
 
     def __init__(self, exp_module: ExperienceModule,
-                 modulators: Modulators,
+                 circuits: Circuits,
                  number: int=None,
                  plot_intv: int=1):
 
         self.exp_module = exp_module
-        self.modulators = modulators
+        self.circuits = circuits
 
         self.movement = None
         self.observation_ext = {
@@ -1007,7 +1141,7 @@ class Brain:
                     self.observation_ext["position"].tolist()]
 
         # --- update modulation
-        mod_observation = self.modulators(observation=self.state)
+        mod_observation = self.circuits(observation=self.state)
 
         # TODO : add directive depending on modulation
 
@@ -1054,7 +1188,7 @@ class Brain:
 
         if self.t % self._plot_intv == 0:
 
-            self.modulators.render(
+            self.circuits.render(
                 pcnn_plotter=self.exp_module.pcnn_plotter)
             self.exp_module.render(ax=kwargs.get("ax", None),
                               trajectory=np.array(
@@ -1075,7 +1209,7 @@ class Brain:
 
     @property
     def render_values(self):
-        return self.modulators.values.copy(), self.modulators.names
+        return self.circuits.values.copy(), self.circuits.names
 
 
 
@@ -1112,31 +1246,49 @@ class RandomWalkPolicy:
 
 class SamplingPolicy:
 
-    def __init__(self, speed: float=0.1,
+    def __init__(self, samples: list=None,
+                 speed: float=0.1,
                  visualize: bool=False,
-                 number: int=None):
+                 number: int=None,
+                 name: str=None):
 
-        self._samples = [np.array([-speed/np.sqrt(2),
-                                   speed/np.sqrt(2)]),
-                         np.array([0., speed]),
-                         np.array([speed/np.sqrt(2),
-                                   speed/np.sqrt(2)]),
-                         np.array([-speed, 0.]),
-                         np.array([0., 0.]),
-                         np.array([speed, 0.]),
-                         np.array([-speed/np.sqrt(2),
-                                   -speed/np.sqrt(2)]),
-                         np.array([0., -speed]),
-                         np.array([speed/np.sqrt(2),
-                                   -speed/np.sqrt(2)])]
+        """
+        Parameters
+        ----------
+        samples : list, optional
+            List of samples. The default is None.
+        speed : float, optional
+            Speed of the agent. The default is 0.1.
+        visualize : bool, optional
+            Visualize the policy. The default is False.
+        number : int, optional
+            Number of the figure. The default is None.
+        name : str, optional
+            Name of the policy. The default is None.
+        """
+
+        self._name = name if name is not None else "SamplingPolicy"
+        self._samples = samples
+        if samples is None:
+            self._samples = [np.array([-speed/np.sqrt(2),
+                                       speed/np.sqrt(2)]),
+                             np.array([0., speed]),
+                             np.array([speed/np.sqrt(2),
+                                       speed/np.sqrt(2)]),
+                             np.array([-speed, 0.]),
+                             np.array([0., 0.]),
+                             np.array([speed, 0.]),
+                             np.array([-speed/np.sqrt(2),
+                                       -speed/np.sqrt(2)]),
+                             np.array([0., -speed]),
+                             np.array([speed/np.sqrt(2),
+                                       -speed/np.sqrt(2)])]
+            logger(f"{self.__class__} using default samples [2D movements]")
 
         np.random.shuffle(self._samples)
 
-        logger.debug(f"%samples {self._samples}")
-
         self._num_samples = len(self._samples)
         self._samples_indexes = list(range(self._num_samples))
-        # del self._samples_indexes[4]
 
         self._idx = None
         self._available_idxs = list(range(self._num_samples))
@@ -1153,6 +1305,10 @@ class SamplingPolicy:
 
     def __len__(self):
         return self._num_samples
+
+    def __str__(self):
+
+        return f"{self._name}(#samples={self._num_samples})"
 
     def __call__(self, keep: bool=False) -> tuple:
 
@@ -1272,7 +1428,6 @@ class SamplingPolicy:
     def has_collided(self):
 
         self._velocity = -self._velocity
-
 
 
 

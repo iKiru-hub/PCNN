@@ -1,97 +1,66 @@
-import pygame
-import math
+import numpy as np
+import matplotlib.pyplot as plt
+import pcnn_core as pcr
+import pclib
 
-# Initialize Pygame
-pygame.init()
 
-# Define colors
-WHITE = (255, 255, 255)
-BLUE = (0, 0, 255)
 
-# Define screen size
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+n = 7
+N = n**2
+K = 10
 
-class Wall:
-    def __init__(self, x, y, width, height, thickness=5):
-        self.rect = pygame.Rect(x, y, width, height)
-        self.thickness = thickness
+# connectivity matrix with some clusters in it
+M = np.zeros((N, N))
+M[:K, :K] = np.random.binomial(1, 0.5, (K, K))
+M[K:K+K, K:K+K] = np.random.binomial(1, 0.5, (K, K))
+M *= 1 - np.eye(N)
 
-    def draw(self, screen):
-        pygame.draw.rect(screen, WHITE, self.rect, self.thickness)
+# make place cells
+pc = pcr.PClayer(n=n,
+                 sigma=0.01)
 
-class Room:
-    def __init__(self):
-        self.walls = []
 
-    def add_wall(self, wall):
-        self.walls.append(wall)
+fig, ax = plt.subplots(1, 1)
 
-    def draw(self, screen):
-        for wall in self.walls:
-            wall.draw(screen)
+# set of initial positions over the grid
+X, Y = np.meshgrid(np.linspace(0, 1, 10),
+                     np.linspace(0, 1, 10))
+X = X.flatten()
+Y = Y.flatten()
+pos = np.array([X, Y]).T
 
-class Agent:
-    def __init__(self, x, y, radius=10):
-        self.x = x
-        self.y = y
-        self.radius = radius
-        self.color = BLUE
-        self.velocity = pygame.math.Vector2(2, 3)  # Start with an initial velocity
 
-    def update(self, room):
-        # Update position based on velocity
-        self.x += self.velocity.x
-        self.y += self.velocity.y
+for i in range(len(pos)):
 
-        # Check for collision with walls and bounce
-        for wall in room.walls:
-            if wall.rect.collidepoint(self.x + self.velocity.x, self.y):
-                self.velocity.x *= -1  # Bounce horizontally
-            if wall.rect.collidepoint(self.x, self.y + self.velocity.y):
-                self.velocity.y *= -1  # Bounce vertically
+    x = pos[i]
 
-    def draw(self, screen):
-        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
+    traj = [x.tolist()]
+    for t in range(100):
 
-# Main loop
-def main():
-    clock = pygame.time.Clock()
-    room = Room()
+        # forward
+        a = pc(x=x)
 
-    # Define walls (left, right, top, bottom)
-    room.add_wall(Wall(0, 0, SCREEN_WIDTH, 5))            # Top wall
-    room.add_wall(Wall(0, SCREEN_HEIGHT - 5, SCREEN_WIDTH, 5))  # Bottom wall
-    room.add_wall(Wall(0, 0, 5, SCREEN_HEIGHT))           # Left wall
-    room.add_wall(Wall(SCREEN_WIDTH - 5, 0, 5, SCREEN_HEIGHT))  # Right wall
-    room.add_wall(Wall(2*SCREEN_WIDTH//3, 0, 5, 400))  # Right wall
-    room.add_wall(Wall(SCREEN_WIDTH//3, 0, 5, 400))  # Right wall
+        # recurrent
+        a = M @ a
 
-    # add wall in the middle
-    # room.add_wall(Wall(SCREEN_WIDTH // 2 - 50,
-    #                    SCREEN_HEIGHT // 2 - 50,
-    #                    100, 100))
+        # new position
+        x = pcr.calc_position_from_centers(a=a,
+                                           centers=pc.centers)
 
-    agent = Agent(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        traj.append(x.tolist())
 
-    running = True
-    while running:
-        screen.fill((0, 0, 0))  # Clear screen
+    traj = np.array(traj)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+    # ax.clear()
+    ax.plot(traj[:, 0], traj[:, 1], 'ko-',
+            alpha=0.1)
+    ax.scatter(traj[-1, 0], traj[-1, 1], c='r')
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_aspect('equal')
+    ax.set_title(f'iter={i}')
+    plt.pause(0.001)
 
-        agent.update(room)
-        room.draw(screen)
-        agent.draw(screen)
+plt.show()
 
-        pygame.display.flip()
-        clock.tick(600)
-
-    pygame.quit()
-
-if __name__ == "__main__":
-    main()
 

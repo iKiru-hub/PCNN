@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024/Homebrew) (preloaded format=pdflatex 2024.10.6)  2 NOV 2024 14:37
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024/Homebrew) (preloaded format=pdflatex 2024.10.6)  2 NOV 2024 15:45
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -110,11 +110,78 @@ LaTeX Info: Redefining \Relbar on input line 971.
 \mathdisplay@stack=\toks21
 LaTeX Info: Redefining \[ on input line 2953.
 LaTeX Info: Redefining \] on input line 2954.
+) (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/bbold/bbold.sty
+Package: bbold 1994/04/06 Bbold symbol package
+) (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/mathastext/mathastext.sty
+Package: mathastext 2023/12/29 v1.3zb Use the text font in math mode (JFB)
+
+Package mathastext Info: Starting the math mode configuration.
+\mst@exists@muskip=\muskip17
+\mst@forall@muskip=\muskip18
+\mst@prime@muskip=\muskip19
+\mst@do@nonletters=\toks22
+\mst@do@easynonletters=\toks23
+\mst@do@az=\toks24
+\mst@do@AZ=\toks25
+\symmtoperatorfont=\mathgroup4
+\symmtletterfont=\mathgroup5
+(   mathastext:   ) ! and ?
+(   mathastext:   ) punctuation: , . : ; and \colon
+LaTeX Info: Redefining \rightarrowfill on input line 897.
+LaTeX Info: Redefining \leftarrowfill on input line 902.
+(   mathastext:   ) + and =
+(   mathastext:   ) adding = ; and + to \nfss@catcodes
+(   mathastext:   ) parentheses ( ) [ ] and slash /
+(   mathastext:   ) \# \mathdollar \% \& 
+(   mathastext:   ) \imath and \jmath 
+LaTeX Font Info:    Overwriting math alphabet `\Mathnormalbold' in version `normal'
+(Font)                  OT1/cmr/b/n --> OT1/cmr/b/n on input line 2516.
+LaTeX Font Info:    Overwriting math alphabet `\Mathnormalbold' in version `bold'
+(Font)                  OT1/cmr/b/n --> OT1/cmr/b/n on input line 2516.
+LaTeX Font Info:    Overwriting symbol font `mtletterfont' in version `normal'
+(Font)                  OT1/cmr/m/n --> OT1/cmr/m/n on input line 2516.
+LaTeX Font Info:    Overwriting symbol font `mtletterfont' in version `bold'
+(Font)                  OT1/cmr/m/n --> OT1/cmr/b/n on input line 2516.
+LaTeX Font Info:    Overwriting symbol font `mtoperatorfont' in version `normal'
+(Font)                  OT1/cmr/m/n --> OT1/cmr/m/n on input line 2516.
+LaTeX Font Info:    Overwriting symbol font `mtoperatorfont' in version `bold'
+(Font)                  OT1/cmr/m/n --> OT1/cmr/b/n on input line 2516.
+LaTeX Font Info:    Overwriting math alphabet `\Mathbf' in version `normal'
+(Font)                  OT1/cmr/b/n --> OT1/cmr/b/n on input line 2516.
+LaTeX Font Info:    Overwriting math alphabet `\Mathbf' in version `bold'
+(Font)                  OT1/cmr/b/n --> OT1/cmr/b/n on input line 2516.
+LaTeX Font Info:    Overwriting math alphabet `\Mathit' in version `normal'
+(Font)                  OT1/cmr/m/it --> OT1/cmr/m/it on input line 2516.
+LaTeX Font Info:    Overwriting math alphabet `\Mathit' in version `bold'
+(Font)                  OT1/cmr/m/it --> OT1/cmr/b/it on input line 2516.
+LaTeX Font Info:    Overwriting math alphabet `\Mathsf' in version `normal'
+(Font)                  OT1/cmss/m/n --> OT1/cmss/m/n on input line 2516.
+LaTeX Font Info:    Overwriting math alphabet `\Mathsf' in version `bold'
+(Font)                  OT1/cmss/m/n --> OT1/cmss/b/n on input line 2516.
+LaTeX Font Info:    Overwriting math alphabet `\Mathtt' in version `normal'
+(Font)                  OT1/cmtt/m/n --> OT1/cmtt/m/n on input line 2516.
+LaTeX Font Info:    Overwriting math alphabet `\Mathtt' in version `bold'
+(Font)                  OT1/cmtt/m/n --> OT1/cmtt/b/n on input line 2516.
+(   mathastext:   ) Latin letters in the `normal', resp. `bold',
+(   mathastext:   ) math versions are now set up to use the fonts
+(   mathastext:   ) OT1/cmr/m/n, resp. OT1/cmr/b/n.
+(   mathastext:   ) Other characters (digits, ...) and \log-like names will be
+(   mathastext:   ) typeset with the n shape.
+(   mathastext:   ) \hbar
+(   mathastext:   ) minus as endash
+(   mathastext:   ) \HUGE has been (re)-defined.
+(   mathastext:   ) mathastext has declared larger sizes for subscripts.
+(   mathastext:   ) To keep LaTeX defaults, use option `defaultmathsizes'.
+
+Package mathastext Info: Loading is complete.  You can now use \Mathastext to
+(mathastext)             modify the normal and bold math versions.  Use it
+(mathastext)             with optional argument or use \MTDeclareVersion to
+(mathastext)             declare additional math versions.
 ) (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/graphics/graphicx.sty
 Package: graphicx 2021/09/16 v1.2d Enhanced LaTeX Graphics (DPC,SPQR)
  (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/graphics/keyval.sty
 Package: keyval 2022/05/29 v1.15 key=value parser (DPC)
-\KV@toks@=\toks22
+\KV@toks@=\toks26
 ) (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/graphics/graphics.sty
 Package: graphics 2022/03/10 v1.4e Standard LaTeX Graphics (DPC,SPQR)
  (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/graphics/trig.sty
@@ -163,7 +230,8 @@ Package: kvdefinekeys 2019-12-19 v1.6 Define keys (HO)
 Package: pdfescape 2019/12/09 v1.15 Implements pdfTeX's escape features (HO)
  (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty
 Package: ltxcmds 2023-12-04 v1.26 LaTeX kernel commands for general use (HO)
-) (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
+)
+(/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
 Package: pdftexcmds 2020-06-27 v0.33 Utility functions of pdfTeX for LuaTeX (HO)
  (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/generic/infwarerr/infwarerr.sty
 Package: infwarerr 2019/12/03 v1.5 Providing info/warning/error messages (HO)
@@ -171,8 +239,7 @@ Package: infwarerr 2019/12/03 v1.5 Providing info/warning/error messages (HO)
 Package pdftexcmds Info: \pdf@primitive is available.
 Package pdftexcmds Info: \pdf@ifprimitive is available.
 Package pdftexcmds Info: \pdfdraftmode found.
-))
-(/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/hycolor/hycolor.sty
+)) (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/hycolor/hycolor.sty
 Package: hycolor 2020-01-27 v1.10 Color options for hyperref/bookmark (HO)
 ) (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/auxhook/auxhook.sty
 Package: auxhook 2019-12-17 v1.6 Hooks for auxiliary files (HO)
@@ -215,7 +282,7 @@ Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
 Package hyperref Info: Bookmarks ON on input line 4446.
 \c@Hy@tempcnt=\count301
  (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/url/url.sty
-\Urlmuskip=\muskip17
+\Urlmuskip=\muskip20
 Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
 )
 LaTeX Info: Redefining \url on input line 4784.
@@ -262,20 +329,20 @@ Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 28
 \Hy@SectionHShift=\skip53
 ) (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/algorithms/algorithm.sty
 Package: algorithm 2009/08/24 v0.1 Document Style `algorithm' - floating environment
- (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/float/float.sty
+
+(/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/float/float.sty
 Package: float 2001/11/08 v1.3d Float enhancements (AL)
 \c@float@type=\count308
-\float@exts=\toks23
+\float@exts=\toks27
 \float@box=\box53
-\@float@everytoks=\toks24
+\@float@everytoks=\toks28
 \@floatcapt=\box54
 ) (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/base/ifthen.sty
 Package: ifthen 2022/04/13 v1.1d Standard LaTeX ifthen package (DPC)
 )
-\@float@every@algorithm=\toks25
+\@float@every@algorithm=\toks29
 \c@algorithm=\count309
-)
-(/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/algorithmicx/algpseudocode.sty
+) (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/algorithmicx/algpseudocode.sty
 Package: algpseudocode 
  (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/algorithmicx/algorithmicx.sty
 Package: algorithmicx 2005/04/27 v1.2 Algorithmicx
@@ -297,8 +364,8 @@ Document Style - pseudocode environments for use with the `algorithmicx' style
 Package: amssymb 2013/01/14 v3.01 AMS font symbols
  (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/amsfonts/amsfonts.sty
 Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
-\symAMSa=\mathgroup4
-\symAMSb=\mathgroup5
+\symAMSa=\mathgroup6
+\symAMSb=\mathgroup7
 LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
 LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
 (Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
@@ -307,7 +374,7 @@ Package: array 2023/10/16 v2.5g Tabular extension package (FMi)
 \col@sep=\dimen164
 \ar@mcellbox=\box55
 \extrarowheight=\dimen165
-\NC@list=\toks26
+\NC@list=\toks30
 \extratabsurround=\skip57
 \backup@length=\skip58
 \ar@cellbox=\box56
@@ -335,51 +402,39 @@ File: l3backend-pdftex.def 2024-02-20 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count321
 \l__pdf_internal_box=\box57
 ) (./main.aux)
-Runaway argument?
-{{4}{9}{\textsc {Goal-Directed Behavior} - Left: \textit {agent traje\ETC.
-./main.tex:26: File ended while scanning use of \@newl@bel.
-<inserted text> 
-                \par 
-l.26 \begin{document}
-                     
-I suspect you have forgotten a `}', causing me
-to read past where you wanted me to stop.
-I'll try to recover; but if the error is serious,
-you'd better type `E' or `X' now and fix your file.
-
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 26.
-LaTeX Font Info:    ... okay on input line 26.
-(/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 28.
+LaTeX Font Info:    ... okay on input line 28.
+ (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count322
 \scratchdimen=\dimen179
 \scratchbox=\box58
 \nofMPsegments=\count323
 \nofMParguments=\count324
-\everyMPshowfont=\toks27
+\everyMPshowfont=\toks31
 \MPscratchCnt=\count325
 \MPscratchDim=\dimen180
 \MPnumerator=\count326
 \makeMPintoPDFobject=\count327
-\everyMPtoPDFconversion=\toks28
+\everyMPtoPDFconversion=\toks32
 ) (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
@@ -390,16 +445,16 @@ Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: float package is loaded.
 Package caption Info: hyperref package is loaded.
 Package caption Info: End \AtBeginDocument code.
-Package hyperref Info: Link coloring OFF on input line 26.
+Package hyperref Info: Link coloring OFF on input line 28.
  (./main.out) (./main.out)
 \@outlinefile=\write3
 \openout3 = `main.out'.
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 35.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 37.
  (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 35.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 37.
  (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
@@ -408,108 +463,53 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 \tf@toc=\write4
 \openout4 = `main.toc'.
 
- [2] (./introduction.tex
-
-LaTeX Warning: Citation `sorscherUnifiedTheoryOrigin2019' on page 3 undefined on input line 12.
-
-
-LaTeX Warning: Citation `cuevaEmergenceGridlikeRepresentations2018' on page 3 undefined on input line 12.
-
-
-LaTeX Warning: Citation `baninoVectorbasedNavigationUsing2018' on page 3 undefined on input line 12.
-
-
-LaTeX Warning: Citation `brzoskoRetroactiveModulationSpike2015' on page 3 undefined on input line 22.
-
-
-LaTeX Warning: Citation `brzoskoSequentialNeuromodulationHebbian2017' on page 3 undefined on input line 22.
-
-
-LaTeX Warning: Citation `meiEffectsNeuromodulationinspiredMechanisms2023' on page 3 undefined on input line 23.
-
-
-LaTeX Warning: Citation `bittnerBehavioralTimeScale2017' on page 3 undefined on input line 32.
-
-) [3] (./methods.tex
-<figures/minimal_architecture.png, id=25, 561.09625pt x 462.72874pt>
+ [2] (./introduction.tex) [3] (./methods.tex
+<figures/minimal_architecture.png, id=133, 561.09625pt x 462.72874pt>
 File: figures/minimal_architecture.png Graphic file (type png)
 <use figures/minimal_architecture.png>
 Package pdftex.def Info: figures/minimal_architecture.png  used on input line 19.
 (pdftex.def)             Requested size: 276.00105pt x 227.6146pt.
- [4 <./figures/minimal_architecture.png>]
-
-LaTeX Warning: Reference `sec:appendix' on page 5 undefined on input line 47.
-
-[5] [6]
-<figures/policy_diagram.png, id=65, 893.3375pt x 644.4075pt>
+ [4 <./figures/minimal_architecture.png>] [5] [6]
+<figures/policy_diagram.png, id=168, 893.3375pt x 644.4075pt>
 File: figures/policy_diagram.png Graphic file (type png)
 <use figures/policy_diagram.png>
 Package pdftex.def Info: figures/policy_diagram.png  used on input line 96.
 (pdftex.def)             Requested size: 310.4979pt x 223.98257pt.
 ) [7 <./figures/policy_diagram.png>] (./results.tex
-<figures/pc_generation.png, id=74, 1016.79875pt x 534.99875pt>
+<figures/pc_generation.png, id=177, 1016.79875pt x 534.99875pt>
 File: figures/pc_generation.png Graphic file (type png)
 <use figures/pc_generation.png>
 Package pdftex.def Info: figures/pc_generation.png  used on input line 9.
 (pdftex.def)             Requested size: 341.5519pt x 179.70937pt.
-
-
-LaTeX Warning: Reference `fig:rl1' on page 8 undefined on input line 19.
-
-<figures/rl_1.png, id=75, 5420.25pt x 2409.0pt>
+<figures/rl_1.png, id=179, 5420.25pt x 2409.0pt>
 File: figures/rl_1.png Graphic file (type png)
 <use figures/rl_1.png>
 Package pdftex.def Info: figures/rl_1.png  used on input line 23.
 (pdftex.def)             Requested size: 327.74895pt x 145.6365pt.
-[8 <./figures/pc_generation.png>]
-
-LaTeX Warning: Reference `fig:rl1' on page 9 undefined on input line 30.
-
-) [9 <./figures/rl_1.png>] (./main.bbl
-
-LaTeX Warning: Empty `thebibliography' environment on input line 3.
-
-) [10] (./appendix.tex [11]
+ [8 <./figures/pc_generation.png>]) [9 <./figures/rl_1.png>] (./main.bbl) [10] (./appendix.tex [11]
 Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 76.
- [12] (./modulators.tex
-Overfull \hbox (102.95462pt too wide) in paragraph at lines 3--13
- [][] 
- []
-
-)) [13] (./main.aux)
+LaTeX Font Info:    Trying to load font information for U+bbold on input line 80.
+ (/opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/tex/latex/bbold/Ubbold.fd) [12] (./modulators.tex [13])) [14] (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-02-20>
  ***********
-
-
-LaTeX Warning: There were undefined references.
-
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
-
-Package rerunfilecheck Warning: File `main.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
-Package rerunfilecheck Info: Checksums for `main.out':
-(rerunfilecheck)             Before: D41D8CD98F00B204E9800998ECF8427E;0
-(rerunfilecheck)             After:  F589BE2A199B87BC03A75F047AEF52BE;2682.
+Package rerunfilecheck Info: File `main.out' has not changed.
+(rerunfilecheck)             Checksum: D0C1F30DB59B01DAE9636BB0055BE1C8;2790.
  ) 
 Here is how much of TeX's memory you used:
- 12132 strings out of 474116
- 194755 string characters out of 5732613
- 1940187 words of memory out of 5000000
- 34269 multiletter control sequences out of 15000+600000
- 567366 words of font info for 72 fonts, out of 8000000 for 9000
+ 13017 strings out of 474116
+ 208264 string characters out of 5732613
+ 1938187 words of memory out of 5000000
+ 35130 multiletter control sequences out of 15000+600000
+ 567563 words of font info for 72 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,10n,79p,583b,454s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex7.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on main.pdf (13 pages, 1016977 bytes).
+ 75i,10n,79p,583b,710s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/bbold-type1/bbold10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmb10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx8.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex8.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></opt/homebrew/Cellar/texlive/20240312_2/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
+Output written on main.pdf (14 pages, 1022881 bytes).
 PDF statistics:
- 227 PDF objects out of 1000 (max. 8388607)
- 164 compressed objects within 2 object streams
- 55 named destinations out of 1000 (max. 500000)
- 21 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 332 PDF objects out of 1000 (max. 8388607)
+ 267 compressed objects within 3 object streams
+ 67 named destinations out of 1000 (max. 500000)
+ 173 words of extra memory for PDF output out of 10000 (max. 10000000)
 

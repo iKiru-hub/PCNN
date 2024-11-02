@@ -1207,15 +1207,20 @@ class RewardObj:
 
     def __call__(self, position: np.ndarray):
 
+        """
+        assuming a box of size 1x1
+        """
+
         distance = np.linalg.norm(position - self._position)
+        p = np.exp(-distance**2 / (2 * self._radius**2))
         if distance < self._radius:
-            return np.random.binomial(1, 0.8)
+            return np.random.binomial(1, p)
         return 0.0
 
     def render(self, ax: plt.Axes):
 
         ax.add_patch(Circle(self._position, self._radius,
-                            fc="green", ec='black'))
+                            fc="green", ec='black', alpha=0.3))
 
 
 

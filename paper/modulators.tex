@@ -1,15 +1,58 @@
-\begin{table}[h!]
-    \centering
-    \begin{tabular}{>{\bfseries}l >{\itshape}l >{\itshape}l >{\itshape}l >{\itshape}l >{\itshape}l}
-        \toprule
-        \textbf{Modulator} & \textit{Dimensions} & \textit{Inputs} & \textit{Output} & \textit{Range} & \textit{Action} \\
-        \midrule
-        Modulator 1 & Dimension details & Input details & Output details & Range details & Action details \\
-        Modulator 2 & Dimension details & Input details & Output details & Range details & Action details \\
-        Modulator 3 & Dimension details & Input details & Output details & Range details & Action details \\
-        % Add more rows as needed
-        \bottomrule
-    \end{tabular}
-    \caption{List of Neuromodulators and Their Features}
-    \label{tab:neuromodulators}
-\end{table}
+
+\newpage
+
+\subsection{Modulators}
+
+The modulator class is defined through a collection of attributes common among all modulators. These attributes include the dimensionality of the modulator, the inputs it receives, the range of values it can take, the action it performs, and the rule that governs its dynamics. Further, almost all
+modulators relies on an internal leaky variable that is updated at each time step. The dynamics of this variable are described as $\tau \dot{v} = E-v + I_{\text{ext}}$. The parameters $\tau$ and $E$ are specific to each modulator, as well as the type of external input they are sensitive to and the
+dimensionality of the variable $v$ itself.
+
+
+\paragraph{Acetylcholine} [ACh]
+\hfill \break
+\textit{Function:} modulate the speed of formation of new place cells by modulating the intesity of the weight update.\\
+\textit{Inputs:} $\text{max}_{i}\sum_{j}\Delta W_{i,j}^{\text{ff}}$\\
+\textit{Output:} $\mathbb{1}(v>\theta_{ACh})\in [0,1)$ \\
+\textit{Action:} multiplicative term in the weight update rule
+
+
+\paragraph{Dopamine} [DA]
+\hfill \break
+\textit{Function:} represent a positive valence in a given input position or region, binding place cells with the current reward value\\
+\textit{Inputs:} $R\in \{0,1\};\;u\in [0,1]^{N}$\\
+\textit{Output:} $(W^{\text{DA}}\cdot v) \in \mathbb{R}^{N}$ \\
+\textit{Action:} additive term in the forward pass\\
+\textit{Learning:} the weights $W^{\text{DA}}$ are updated according to the reward signal $R$ (filtered through $v=\dot{v}(R)$) and the eligibility trace $u$. There is hebbian potentiation (LTP) $\Delta W^{\text{DA}}_{+}=\eta (v \cdot H(u^T))$ and homeostatic depression (LTD) $\Delta
+W^{\text{DA}}_{-}=\eta ((1-v) \cdot H(1-u^T))$, where $H$ is the Heaviside step function.
+
+
+\paragraph{Boundaries} [Bnd]
+\hfill \break
+\textit{Function:} it represents a negative valence in a given input position or region, binding place cells with the current collision value\\
+\textit{Inputs:} $C\in \{0,1\};\;u\in [0,1]^{N}$\\
+\textit{Output:} $(W^{\text{Bnd}}\cdot v) \in \mathbb{R}^{N}$ \\
+\textit{Action:} additive term in the forward pass\\
+\textit{Learning:} the weights $W^{\text{Bnd}}$ are updated according to the collision signal $C$ (filtered through $v=\dot{v}(C)$) and the eligibility trace $u$. There is hebbian potentiation and homeostatic depression like for dopamine.
+
+\paragraph{Velocity Modulation} [Vel]
+\hfill \break
+\textit{Function:} it represents the intensity of the change in position $\frac{d\textbf{x}}{dt}$ (\textit{i.e.} the derivative or velocity)\\
+\textit{Inputs:} $\textbf{x}\in \mathbb{R}^{2}$\\
+\textit{Output:} $\text{relu}_{\theta_{\text{Vel}}}(|\textbf{x}-v|_{1})\in \mathbb{R}$ 
+
+
+% \begin{table}[h!]
+%     \centering
+%     \begin{tabular}{>{\bfseries}l >{\itshape}l >{\itshape}l >{\itshape}l >{\itshape}l >{\itshape}l}
+%         \toprule
+%         \textbf{} & \textit{dim} & \textit{Inputs} & \textit{Range} & \textit{Action} & \textit{Rule} \\
+%         \midrule
+%         ACh & 1 & $\Delta W_{\text{ff}}$ & $[0,1)$ & plasticity & $\textbf{1}(v>\theta)$\\
+%         DA & N & reward & $[0,1)$ & forward & $$\\
+%         Bnd & N & collision & $[0,1)$ & forward \\
+%         % Add more rows as needed
+%         \bottomrule
+%     \end{tabular}
+%     \caption{List of Neuromodulators and Their Features}
+%     \label{tab:neuromodulators}
+% \end{table}

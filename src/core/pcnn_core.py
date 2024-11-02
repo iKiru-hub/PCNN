@@ -507,8 +507,11 @@ class PClayer(InputFilter):
             x.reshape(-1, 2) - self.centers.reshape(-1, 1,
                                         2), axis=2)**2 / self.sigma)
 
-    def plot(self):
+    def render(self):
         plt.scatter(self.centers[:, 0], self.centers[:, 1], s=10)
+        plt.axis('off')
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
         plt.show()
 
 
@@ -736,6 +739,16 @@ def calc_centers_from_layer(wff: np.ndarray, centers: np.ndarray):
 
     return np.column_stack((x, y))
 
+
+def calc_position_from_centers(a: np.ndarray,
+                               centers: np.ndarray) -> np.ndarray:
+
+    """
+    calculate the position of the agent from the
+    activations of the neurons in the layer
+    """
+
+    return (centers * a.reshape(-1, 1)).sum(axis=0) / a.sum()
 
 
 # @jit(nopython=True)

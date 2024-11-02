@@ -23,10 +23,14 @@ matplotlib.use("TkAgg")
 CONFIGPATH = "dashboard/media/configs.json"
 
 
-def write_configs(num_figs: int):
+def write_configs(num_figs: int,
+                  circuits: object,
+                  t: int):
 
     info = {
-        "num_figs": num_figs
+        "num_figs": num_figs,
+        "circuits": circuits.names,
+        "t": t
     }
 
     with open(CONFIGPATH, 'w') as f:
@@ -394,34 +398,43 @@ def experimentIII(args):
     model_plotter = pcnn.PlotPCNN(model=model,
                                   visualize=True,
                                   number=0)
-    modulators_dict = {"Bnd": mod.BoundaryMod(N=N,
-                                              threshold=0.02,
-                                              visualize=True,
-                                              number=5),
-                       "DA": mod.Dopamine(N=N,
-                                          visualize=True,
-                                          number=4),
-                       "dPos": mod.PositionTrace(visualize=False),
-                       "Pop": mod.PopulationMod(N=N,
-                                                visualize=True,
-                                                number=1)}
 
-    for _, modulator in modulators_dict.items():
-        logger.debug(f"{modulator} keys: {modulator.input_key}")
+    # --- circuits
+    circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
+                                            threshold=0.02,
+                                            visualize=True,
+                                            number=5),
+                     "DA": mod.Dopamine(N=N,
+                                        visualize=True,
+                                        number=4),
+                     "dPos": mod.PositionTrace(visualize=False),
+                     "Pop": mod.PopulationProgMax(N=N,
+                                                  visualize=True,
+                                                  number=1),
+                     "Ftg": mod.FatigueMod()}
 
-    # other components
-    modulators = mod.Modulators(modulators_dict=modulators_dict,
-                                visualize=True,
-                                number=3)
+    for _, circuit in circuits_dict.items():
+        logger.debug(f"{circuit} keys: {circuit.input_key}")
+
+    # object
+    # modulators = mod.Modulators(modulators_dict=modulators_dict,
+    #                             visualize=True,
+    #                             number=3)
+
+    circuits = mod.Circuits(circuits_dict=circuits_dict,
+                            visualize=True,
+                            number=3)
+
+    # --- modules
     exp_module = mod.ExperienceModule(pcnn=model,
                                       pcnn_plotter=model_plotter,
-                                      modulators=modulators,
+                                      circuits=circuits,
                                       speed=0.006,
                                       max_depth=20,
                                       visualize=False,
                                       visualize_action=False)
     agent = mod.Brain(exp_module=exp_module,
-                      modulators=modulators,
+                      circuits=circuits,
                       number=2)
 
     # --- agent & env
@@ -429,8 +442,8 @@ def experimentIII(args):
                        visualize=True)
     env = ev.AgentBody(room=env,
                        position=np.array([0.8, 0.2]))
-    reward_obj = ev.RewardObj(position=np.array([0.5, 0.5]),
-                       radius=0.2)
+    reward_obj = ev.RewardObj(position=np.array([0.7, 0.8]),
+                       radius=0.1)
     velocity = np.zeros(2)
     observation = {
         "u": np.zeros(N),
@@ -447,13 +460,16 @@ def experimentIII(args):
         "action_idx": None,
     }
 
-    if True:
+    if args.plot:
         fig, ax = plt.subplots(figsize=(5, 5))
-
-    write_configs(num_figs=6)
 
     trajectory = [env.position.tolist()]
     for t in range(duration):
+
+        if t % 1000 == 0:
+            write_configs(num_figs=6,
+                          circuits=circuits,
+                          t=t)
 
         # --- env
         position, collision, truncated = env(velocity=velocity)
@@ -493,12 +509,14 @@ def experimentIII(args):
         # --- plot
         if t % 100 == 0:
             agent.render()
-            # plot_update(fig=fig, ax=ax,
-            #             agent=agent,
-            #             env=env,
-            #             reward_obj=reward_obj,
-            #             trajectory=trajectory,
-            #             t=t, velocity=velocity)
+
+            if args.plot:
+                plot_update(fig=fig, ax=ax,
+                            agent=agent,
+                            env=env,
+                            reward_obj=reward_obj,
+                            trajectory=trajectory,
+                            t=t, velocity=velocity)
 
 
 def plot_update(fig, ax, agent, env, reward_obj,
@@ -656,11 +674,17 @@ if __name__ == "__main__":
     parser.add_argument("--main", type=str, default="simple")
     parser.add_argument("--duration", type=int, default=2)
     parser.add_argument("--N", type=int, default=80)
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=-1,
+                        help="random seed: -1 for random seed.")
+    parser.add_argument("--plot", action="store_true")
 
     args = parser.parse_args()
 
     #
+    if args.seed < 0:
+        args.seed = np.random.randint(0, 10000)
+        logger.debug(f"seed: {args.seed}")
+
     np.random.seed(args.seed)
     mod.set_seed(seed=args.seed)
     evc.set_seed(seed=args.seed)
