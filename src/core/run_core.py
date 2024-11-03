@@ -25,12 +25,18 @@ CONFIGPATH = "dashboard/media/configs.json"
 
 def write_configs(num_figs: int,
                   circuits: object,
-                  t: int):
+                  t: int,
+                  trg_module: object,
+                  observation: dict=None):
 
     info = {
         "num_figs": num_figs,
         "circuits": circuits.names,
-        "t": t
+        "t": t,
+        "position": np.around(observation["position"], 3).tolist(),
+        "velocity": np.around(observation["velocity"], 3).tolist(),
+        "trg_pos": np.around(trg_module.output["trg_position"], 3).tolist(),
+        "trg_velocity": np.around(trg_module.output["velocity"], 3).tolist()
     }
 
     with open(CONFIGPATH, 'w') as f:
@@ -365,6 +371,7 @@ def experimentIII(args):
     # --- settings
     np.random.seed(0)
     duration = args.duration
+    SPEED = 0.008
 
     # --- brain
     N = args.N
@@ -403,14 +410,17 @@ def experimentIII(args):
     circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
                                             threshold=0.02,
                                             visualize=True,
+                                            score_weight=5.,
                                             number=5),
                      "DA": mod.Dopamine(N=N,
                                         visualize=True,
+                                        score_weight=1.,
                                         number=4),
-                     "dPos": mod.PositionTrace(visualize=False),
+                     "dPos": mod.PositionTrace(visualize=False,
+                                               score_weight=2.),
                      "Pop": mod.PopulationProgMax(N=N,
                                                   visualize=True,
-                                                  number=1),
+                                                  number=0.1),
                      "Ftg": mod.FatigueMod()}
 
     for _, circuit in circuits_dict.items():
@@ -426,24 +436,43 @@ def experimentIII(args):
                             number=3)
 
     # --- modules
+
+    trg_module = mod.TargetModule(pcnn=model,
+                                  pcnn_plotter=model_plotter,
+                                  circuits=circuits,
+                                  speed=SPEED,
+                                  score_weight=1.,
+                                  visualize=True,
+                                  visualize_action=False,
+                                  number=6)
+
+    weight_policy = mod.WeightsPolicy(circuits_dict=circuits_dict,
+                                       trg_module=trg_module,
+                                       visualize=True,
+                                       number=7)
+    logger(f"{weight_policy}")
+
     exp_module = mod.ExperienceModule(pcnn=model,
                                       pcnn_plotter=model_plotter,
+                                      trg_module=trg_module,
+                                      weight_policy=weight_policy,
                                       circuits=circuits,
-                                      speed=0.006,
+                                      speed=SPEED,
                                       max_depth=20,
                                       visualize=False,
-                                      visualize_action=False)
+                                      number=2,
+                                      visualize_action=True)
     agent = mod.Brain(exp_module=exp_module,
                       circuits=circuits,
-                      number=2)
+                      number=None)
 
     # --- agent & env
     env = ev.make_room(name="square", thickness=4.,
                        visualize=True)
     env = ev.AgentBody(room=env,
                        position=np.array([0.8, 0.2]))
-    reward_obj = ev.RewardObj(position=np.array([0.7, 0.8]),
-                       radius=0.1)
+    reward_obj = ev.RewardObj(position=np.array([0.2, 0.6]),
+                       radius=0.12)
     velocity = np.zeros(2)
     observation = {
         "u": np.zeros(N),
@@ -467,9 +496,11 @@ def experimentIII(args):
     for t in range(duration):
 
         if t % 1000 == 0:
-            write_configs(num_figs=6,
+            write_configs(num_figs=8,
                           circuits=circuits,
-                          t=t)
+                          t=t,
+                          trg_module=trg_module,
+                          observation=observation)
 
         # --- env
         position, collision, truncated = env(velocity=velocity)
@@ -507,7 +538,7 @@ def experimentIII(args):
             break
 
         # --- plot
-        if t % 100 == 0:
+        if t % 50 == 0:
             agent.render()
 
             if args.plot:

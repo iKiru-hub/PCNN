@@ -82,7 +82,7 @@ function refreshImages() {
     updateImageCount();
     const refreshButton = document.getElementById('refreshButton');
     refreshButton.classList.add('active');
-    setTimeout(() => refreshButton.classList.remove('active'), 200);
+    setTimeout(() => refreshButton.classList.remove('active'), 100);
 }
 
 function toggleAutoUpdate() {

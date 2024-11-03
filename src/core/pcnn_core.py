@@ -329,10 +329,10 @@ class PCNN():
         self(x=x.reshape(-1, 1), frozen=frozen)
         return self.representation
 
-    def fwd_int(self, x: np.ndarray):
+    def fwd_int(self, u: np.ndarray):
 
         # u = self.fwd_ext(x=x)
-        self.u = self._Wrec @ self.u.reshape(-1, 1) + self.mod_input
+        self.u = self._Wrec @ u.reshape(-1, 1) + self.mod_input
         self.mod_input *= 0
         return self.representation
 
@@ -534,6 +534,8 @@ class PlotPCNN:
     def render(self, trajectory: np.ndarray=None,
                edges: bool=True, cmap: str='viridis',
                ax=None, new_a: np.ndarray=None,
+               alpha_nodes: float=0.1,
+               alpha_edges: float=0.2,
                title: str=None):
 
         new_ax = False
@@ -541,14 +543,14 @@ class PlotPCNN:
             new_ax = True
             fig, ax = plt.subplots(figsize=(6, 6))
 
-        new_a = new_a if new_a is not None else self._model.u
+        # new_a = new_a if new_a is not None else self._model.u
 
         # --- trajectory
         if trajectory is not None:
             ax.plot(trajectory[:, 0], trajectory[:, 1], 'r-',
-                          lw=0.5, alpha=0.3)
+                          lw=0.5, alpha=0.5 if new_a is not None else 0.9)
             ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
-                        c='r', s=70, marker='x')
+                        c='k', s=100, marker='x')
 
         # --- network
         centers = self._model._centers
@@ -556,18 +558,20 @@ class PlotPCNN:
 
         ax.scatter(centers[:, 0],
                    centers[:, 1],
-                   c=new_a.flatten(),
+                   c=new_a if new_a is not None else None,
                    s=40, cmap=cmap,
-                   vmin=0, vmax=0.04)
+                   vmin=0, vmax=0.04,
+                   alpha=alpha_nodes)
 
-        if edges:
+        if edges and new_a is not None:
             for i in range(connectivity.shape[0]):
                 for j in range(connectivity.shape[1]):
                     if connectivity[i, j] > 0:
                         ax.plot([centers[i, 0], centers[j, 0]],
                                 [centers[i, 1], centers[j, 1]],
                                 'k-',
-                                alpha=0.2, lw=0.5)
+                                alpha=alpha_edges,
+                                lw=0.5)
 
         #
         ax.axis('off')
@@ -691,6 +695,22 @@ def cosine_similarity(M: np.ndarray):
     M = M / np.linalg.norm(M, axis=1, keepdims=True)
     M = np.where(np.isnan(M), 0., M)
     return (M @ M.T) * (1 - np.eye(M.shape[0]))
+
+
+def cosine_similarity_vec(x: np.ndarray,
+                         y: np.ndarray) -> np.ndarray:
+
+    """
+    calculate the cosine similarity
+    """
+
+    y = y.reshape(-1, 1)
+    x = x.reshape(1, -1)
+
+    z = (x @ y) / (np.linalg.norm(x) * np.linalg.norm(y))
+    if np.isnan(z):
+        return 0.
+    return z.item()
 
 
 def k_most_neighbors(M: np.ndarray, k: int):

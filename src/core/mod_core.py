@@ -108,6 +108,7 @@ class Modulation(ABC):
         self.input_key = None
         self.output = None
         self.value = None
+        self.score_weight = kwargs.get("score_weight", 1.)
         self._visualize = kwargs.get("visualize", False)
         self._number = kwargs.get("number", None)
         self.mod_weight = kwargs.get("mod_weight", 1.)
@@ -119,7 +120,7 @@ class Modulation(ABC):
                  simulate: bool=False):
         self._logic(inputs=inputs,
                     simulate=simulate)
-        return self.output
+        return self.score_weight * self.output
 
     @abstractmethod
     def _logic(self, inputs: float):
@@ -138,7 +139,8 @@ class Modulation(ABC):
                             trajectory=None,
                             new_a=self.weights,
                             edges=False,
-                            cmap="Blues",
+                            cmap="Greens",
+                            alpha_nodes=0.8,
                             title=f"{self.leaky_var.name}")
 
         if self._number is not None:
@@ -167,6 +169,7 @@ class Program(ABC):
         self.input_key = None
         self.output = None
         self.value = None
+        self.score_weight = kwargs.get("score_weight", 1.)
         self._visualize = kwargs.get("visualize", False)
         self._number = kwargs.get("number", None)
         self.mod_weight = kwargs.get("mod_weight", 1.)
@@ -178,7 +181,7 @@ class Program(ABC):
                  simulate: bool=False):
         self._logic(inputs=inputs,
                     simulate=simulate)
-        return self.output
+        return self.score_weight * self.output
 
     @abstractmethod
     def _logic(self, inputs: float):
@@ -202,6 +205,7 @@ class ModuleClass(ABC):
         self.output = None
         self.pcnn = None
         self._number = None
+        self.score_weight = 1.
 
     def __call__(self, observation: dict,
                  **kwargs):
@@ -240,7 +244,6 @@ class ModuleClass(ABC):
 
     def fwd_pcnn(self, x: np.ndarray) -> np.ndarray:
         return self.pcnn.fwd_ext(x=x)
-
 
 
 
@@ -362,8 +365,8 @@ class FatigueMod(Modulation):
         else:
             v = self.leaky_var(simulate=simulate)
 
-        self.output = v
-        self.value = v
+        self.output = self.score_weight * v.item()
+        self.value = v.item()
         return
 
 
@@ -450,95 +453,6 @@ class BoundaryMod(Modulation):
         self.fig_bnd.canvas.draw()
 
 
-class PopulationProgMax(Program):
-
-    def __init__(self, **kwargs):
-
-            super().__init__(**kwargs)
-            self.input_key = ("u", None)
-            self.output = np.zeros((self.N, 1))
-            self._activity = np.zeros(self.N)
-
-            if self._visualize:
-                self.fig, self.ax = plt.subplots(figsize=(4, 3))
-                logger(f"%visualizing {self.__class__}")
-
-    def _logic(self, inputs: tuple, simulate: bool=False):
-
-        self.output = inputs[0].max()
-        self.value = inputs[0].max()
-        if not simulate:
-            self.activity = inputs[0].flatten()
-        return self.output
-
-    def render(self):
-
-        if not self._visualize:
-            return
-
-        self.ax.clear()
-
-        self.ax.bar(range(self.N), self._activity,
-                    color="grey")
-        self.ax.grid()
-        self.ax.set_ylim(0, 1.)
-        self.ax.set_title(f"Population Activity " + \
-            f"$u_{{max}}$={self._activity.max():.2f}")
-
-        if self._number is not None:
-            self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
-            return
-        self.fig.canvas.draw()
-
-
-class EligibilityTrace(Modulation):
-
-    def __init__(self, N: int, visualize: bool=True,
-                 number: int=None):
-
-        super().__init__(N=N)
-        self.leaky_var = LeakyVariable(eq=0., tau=50,
-                                       name="ET",
-                                       ndim=N,
-                                       max_record=500,
-                                       visualize=visualize,
-                                       number=number)
-        self.output = self.get_leaky_v().reshape(-1, 1)
-        self._visualize = visualize
-        self.threshold = 0.9
-        self.action = "fwd"
-        self.input_key = ("u", None)
-        self.output = np.zeros((N, 1))
-        self._number = number
-
-        if visualize:
-            self.fig, self.ax = self.leaky_var.fig, self.leaky_var.ax
-            logger(f"%visualizing {self.__class__}")
-
-    def _logic(self, inputs: tuple, simulate: bool=False):
-
-        v = self.leaky_var(x=inputs[0].reshape(-1, 1)*0.1,
-                           simulate=simulate)
-        out = [-10 * (v - v.min()).reshape(-1, 1),
-                self.get_leaky_v()]
-        self.output = out[0]
-        return out
-
-    def render(self):
-
-        if not self._visualize:
-            return
-
-        self.ax.clear()
-
-        self.ax.imshow(np.abs(self.output).reshape(1, -1),
-                       aspect="auto", cmap="Reds")
-        self.ax.set_yticks([])
-        self.ax.set_title(f"Eligibility Trace " + \
-            f"{np.abs(self.output).max():.2f}")
-        self.fig.canvas.draw()
-
-
 class PositionTrace(Modulation):
 
     def __init__(self, **kwargs):
@@ -584,73 +498,141 @@ class PositionTrace(Modulation):
             f"{np.abs(self.output).max():.2f}")
         self.fig.canvas.draw()
 
-# ---
 
-class Modulators:
+class Regions(Modulation):
 
-    def __init__(self, modulators_dict: dict,
-                 visualize: bool=False,
-                 number: int=None):
+    def __init__(self, **kwargs):
 
-        self.modulators = modulators_dict
-        self.names = tuple(modulators_dict.keys())
-        logger(f"modulators : {self.names}")
-        self.output = {name: modulators_dict[name].output \
-            for name in self.names}
-        self.values = np.zeros(len(self.names))
-
-        self._number = number
-        self.visualize = visualize
-        if visualize:
-            self.fig, self.axs = plt.subplots(figsize=(4, 3))
+        super().__init__(**kwargs)
+        self.leaky_var = LeakyVariable(eq=0., tau=50,
+                                       name="Red",
+                                       ndim=2,
+                                       max_record=500)
+        self.output = self.get_leaky_v().reshape(-1, 1)
+        self.threshold = 0.9
+        self.action = "fwd"
+        self.input_key = ("position", None)
+        self.output = np.zeros((self.N, 1))
+        if self._visualize:
+            self.fig, self.ax = plt.subplots(figsize=(4, 3))
             logger(f"%visualizing {self.__class__}")
 
-    def __call__(self, observation: dict,
-                 simulate: bool=False) -> dict:
+    def _logic(self, inputs: tuple, simulate: bool=False):
 
-        for i, (name, modulator) in enumerate(
-                                self.modulators.items()):
-            inputs = []
-            for key in modulator.input_key:
-                if key is not None:
-                    inputs += [observation[key]]
-            inputs += [None]
-            output = modulator(inputs=inputs,
-                               simulate=simulate)
-            self.output[name] = modulator.output
-            sef.values[i] = modulator.value
+        v = self.leaky_var(eq=inputs[0].reshape(-1, 1),
+                           simulate=simulate)
 
+        res = np.abs(inputs[0].reshape(-1, 1) - v)
+
+        out = [res.sum(),
+               self.get_leaky_v()]
+        self.output = out[0] * (out[0] > 0.25)
+        self.value = out[0]
+        return out
+
+    def render(self):
+
+        if not self._visualize:
+            return
+
+        self.ax.clear()
+
+        self.ax.bar(range(2), self.output,
+                    color="orange")
+        self.ax.set_ylim(0., 0.8)
+        self.ax.set_title(f"Position Trace " + \
+            f"{np.abs(self.output).max():.2f}")
+        self.fig.canvas.draw()
+
+
+
+# --- PROGRAMS
+
+
+class PopulationProgMax(Program):
+
+    def __init__(self, **kwargs):
+
+            super().__init__(**kwargs)
+            self.input_key = ("u", None)
+            self.output = np.zeros((self.N, 1))
+            self._activity = np.zeros(self.N)
+
+            if self._visualize:
+                self.fig, self.ax = plt.subplots(figsize=(4, 3))
+                logger(f"%visualizing {self.__class__}")
+
+    def _logic(self, inputs: tuple, simulate: bool=False):
+
+        self.output = inputs[0].max()
+        self.value = inputs[0].max()
+        if not simulate:
+            self.activity = inputs[0].flatten()
         return self.output
 
-    def render(self, pcnn_plotter: object=None):
+    def render(self):
 
-        # render singular modulators
-        for _, modulator in self.modulators.items():
-            if hasattr(modulator, "weights") and \
-                pcnn_plotter is not None:
-                modulator.render_field(pcnn_plotter=pcnn_plotter)
-            else:
-                modulator.render()
-            # if hasattr(modulator, "super_render"):
-            #     modulator.super_render()
+        if not self._visualize:
+            return
 
-        # render dashboard
-        if self.visualize:
+        self.ax.clear()
 
-            self.axs.clear()
-            self.axs.bar(range(len(self.names)), self.values,
-                            color="orange")
-            self.axs.set_xticks(range(len(self.names)))
-            self.axs.set_xticklabels([f"{n}\n{v:.2f}" for n, v \
-                in zip(self.names, self.values)])
-            self.axs.set_title("Modulators")
-            self.axs.set_ylim(-0.1, 1.3)
+        self.ax.bar(range(self.N), self._activity,
+                    color="grey")
+        self.ax.grid()
+        self.ax.set_ylim(0, 1.)
+        self.ax.set_title(f"Population Activity " + \
+            f"$u_{{max}}$={self._activity.max():.2f}")
 
-            if self._number is not None:
-                self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
-                return
+        if self._number is not None:
+            self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+            return
+        self.fig.canvas.draw()
 
-            self.fig.canvas.draw()
+
+class TargetProg(Program):
+
+    def __init__(self, **kwargs):
+
+        super().__init__(**kwargs)
+        self.input_key = ("u", None)
+        self.output = np.zeros((self.N, 1))
+        self._activity = np.zeros(self.N)
+
+        if self._visualize:
+            self.fig, self.ax = plt.subplots(figsize=(4, 3))
+            logger(f"%visualizing {self.__class__}")
+
+    def _logic(self, inputs: tuple, simulate: bool=False):
+
+        self.output = inputs[0].max()
+        self.value = inputs[0].max()
+        if not simulate:
+            self.activity = inputs[0].flatten()
+        return self.output
+
+    def render(self):
+
+        if not self._visualize:
+            return
+
+        self.ax.clear()
+
+        self.ax.bar(range(self.N), self._activity,
+                    color="grey")
+        self.ax.grid()
+        self.ax.set_ylim(0, 1.)
+        self.ax.set_title(f"Population Activity " + \
+            f"$u_{{max}}$={self._activity.max():.2f}")
+
+        if self._number is not None:
+            self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+            return
+        self.fig.canvas.draw()
+
+
+
+# --- COLLECTION
 
 
 class Circuits:
@@ -672,6 +654,9 @@ class Circuits:
             self.fig, self.axs = plt.subplots(figsize=(4, 4))
             logger(f"%visualizing {self.__class__}")
 
+    def __len__(self):
+        return len(self.circuits)
+
     def __call__(self, observation: dict,
                  simulate: bool=False) -> dict:
 
@@ -682,8 +667,8 @@ class Circuits:
                 if key is not None:
                     inputs += [observation[key]]
             inputs += [None]
-            output = circuit(inputs=inputs,
-                             simulate=simulate)
+            _ = circuit(inputs=inputs,
+                        simulate=simulate)
             self.output[name] = circuit.output
             self.values[i] = circuit.value
 
@@ -719,7 +704,6 @@ class Circuits:
 
 
 
-
 """ --- some MODULE classes --- """
 
 
@@ -736,10 +720,14 @@ class ExperienceModule(ModuleClass):
 
     def __init__(self, pcnn: pcnn.PCNN,
                  circuits: Circuits,
+                 trg_module: object,
+                 weight_policy: object,
                  pcnn_plotter: object=None,
-                 action_delay: float=5.,
+                 action_delay: float=2.,
                  visualize: bool=False,
                  visualize_action: bool=False,
+                 number: int=None,
+                 weights: np.ndarray=None,
                  speed: int=0.005,
                  max_depth: int=10):
 
@@ -747,20 +735,25 @@ class ExperienceModule(ModuleClass):
         self.pcnn = pcnn
         self.circuits = circuits
         self.pcnn_plotter = pcnn_plotter
+        self.trg_module = trg_module
+        self.weight_policy = weight_policy
         self.output = {
                 "u": np.zeros(pcnn.N),
                 "delta_update": np.zeros(pcnn.N),
                 "velocity": np.zeros(2),
                 "action_idx": None,
                 "score": None,
-                "depth": None}
+                "depth": None,
+                "score_values": np.zeros((9, 4)).tolist(),
+                "action_values": np.zeros(9).tolist()}
 
         # --- policies
         # self.random_policy = RandomWalkPolicy(speed=0.005)
         self.action_policy = SamplingPolicy(speed=speed,
-                                            visualize=False)
+                                    visualize=visualize_action,
+                                            number=number)
         self.action_policy_int = SamplingPolicy(speed=speed,
-                                    visualize=visualize_action)
+                                    visualize=False)
         self.action_space_len = len(self.action_policy)
 
         self.action_delay = action_delay # ---
@@ -768,6 +761,11 @@ class ExperienceModule(ModuleClass):
         self.action_threshold = self.action_threshold_eq
 
         self.max_depth = max_depth
+
+        self.weights = weights
+        if self.weights is None:
+            self.weights = np.ones(len(self.circuits)) / \
+                len(self.circuits)
 
         # --- visualization
         self.visualize = visualize
@@ -800,7 +798,7 @@ class ExperienceModule(ModuleClass):
         # action_ext, action_idx, score = self._generation_action(
         #                         observation=observation,
         #                         directive=directive)
-        action_ext, action_idx, score, depth = self._generate_action_from_simulation(
+        action_ext, action_idx, score, depth, score_values, action_values = self._generate_action_from_simulation(
                                 observation=observation,
                                 directive=directive)
 
@@ -812,19 +810,29 @@ class ExperienceModule(ModuleClass):
                 "velocity": action_ext,
                 "action_idx": action_idx,
                 "score": score,
-                "depth": depth}
+                "depth": depth,
+                "score_values": score_values,
+                "action_values": action_values}
+
+        logger(f"action: {action_ext} | " + \
+               f"score: {score} | " + \
+               f"depth: {depth} | " + \
+               f"action_values: {action_values} | " + \
+               f"[action_idx: {action_idx}]" + \
+               f"score_values: {score_values}")
 
     def _generate_action(self, observation: dict,
                            directive: str="new") -> np.ndarray:
 
         self.action_policy_int.reset()
         done = False # when all actions have been tried
+        score_values = [[], [], [], [], [], [], [], [], []]
 
         while True:
 
             # --- generate a random action
             if directive == "new":
-                action, done, action_idx = self.action_policy_int()
+                action, done, action_idx, action_values = self.action_policy_int()
             elif directive == "keep":
                 action = observation["velocity"]
                 action_idx = observation["action_idx"]
@@ -856,22 +864,35 @@ class ExperienceModule(ModuleClass):
             modulation = self.circuits(
                             observation=new_observation,
                             simulate=True)
+            trg_modulation = self.trg_module(
+                            observation=new_observation,
+                            directive="compare")
+
+            if isinstance(trg_modulation, np.ndarray):
+                trg_modulation = trg_modulation.item()
 
             # --- evaluate the effects
+            self.weight_policy(
+                        circuits_dict=self.circuits.circuits,                               trg_module=self.trg_module)
             score = 0
 
             # relevant modulators
-            # repr_max = 40*new_observation["u"].max()
-            # repr_max = modulation["Pop"]
-            # bnd_mod = np.abs(modulation["Bnd"]).max()
-            # dpos = modulation["dPos"]*(modulation["dPos"] < 0.4)
-
-            score -= modulation["Pop"]
-            score -= modulation["Bnd"]
-            score -= modulation["dPos"]
+            values = [modulation["Bnd"].item(),
+                      modulation["dPos"].item(),
+                      modulation["Pop"].item(),
+                      trg_modulation["score"]]
+            score -= sum(values)
+            # score_values += [values]
 
             if action_idx == 4:
                 score = -1.
+
+            # ---
+            score_values[action_idx] += [trg_modulation["score"],
+                                         modulation["Bnd"].item(),
+                                         score]
+
+            # ---
 
             # the action is above threshold
             # if score > self.action_threshold:
@@ -896,8 +917,12 @@ class ExperienceModule(ModuleClass):
             self.action_policy_int.update(score=score)
 
         # ---
+        # logger.warning(f"score: {score_values} | ")
 
-        return action, action_idx, score
+        assert len(self.action_policy_int._available_idxs) == 0, \
+            "action policy must be empty after a loop"
+
+        return action, action_idx, score, score_values, action_values
 
     def _simulation_loop(self, observation: dict,
                       depth: int,
@@ -909,7 +934,7 @@ class ExperienceModule(ModuleClass):
         action_idx = observation["action_idx"]
 
         # --- simulate its effects
-        _, _, score = self._generate_action(
+        action, action_idx, score, score_values, action_values = self._generate_action(
                                 observation=observation,
                                 directive="keep")
         # action, action_idx, score = self._generate_action(
@@ -919,11 +944,11 @@ class ExperienceModule(ModuleClass):
         observation["velocity"] = action
         observation["action_idx"] = action_idx
 
-        if score > threshold:
-            return score, True, depth
+        if score > threshold and False:
+            return score, True, depth, score_values, action_values
 
         elif depth >= max_depth:
-            return score, False, depth
+            return score, False, depth, score_values, action_values
 
         return self._simulation_loop(observation=observation,
                                depth=depth+1,
@@ -934,6 +959,9 @@ class ExperienceModule(ModuleClass):
             observation: dict, directive: str) -> tuple:
 
         done = False # when all actions have been tried
+        self.action_policy.reset()
+        assert len(self.action_policy._available_idxs) == 9, \
+            "action policy must have 9 actions"
         while True:
 
             # save state
@@ -941,10 +969,11 @@ class ExperienceModule(ModuleClass):
 
             # --- generate a random action
             if directive == "new":
-                action, done, action_idx = self.action_policy()
+                action, done, action_idx, _ = self.action_policy()
             elif directive == "keep":
                 action = observation["velocity"]
                 action_idx = observation["action_idx"]
+                done = False
             else:
                 raise ValueError("directive must be " + \
                     "'new' or 'keep'")
@@ -954,8 +983,13 @@ class ExperienceModule(ModuleClass):
             observation["velocity"] = action
             observation["action_idx"] = action_idx
 
+            # drive toward a target
+            self.trg_module(observation=observation,
+                            directive="calculate")
+            self.weight_policy()
+
             # roll out
-            score, success, depth = self._simulation_loop(
+            score, success, depth, score_values, action_values = self._simulation_loop(
                             observation=observation,
                             depth=0,
                             threshold=self.action_threshold_eq,
@@ -965,19 +999,19 @@ class ExperienceModule(ModuleClass):
             self.action_threshold = action_threshold_or
 
             # the action is above threshold
-            if score > self.action_threshold:
+            if score > self.action_threshold and False:
 
                 # lower the threshold
                 self.action_threshold = min((score,
                                 self.action_threshold_eq))
-                break
+                # break
 
             # it is the best available action
             elif done:
 
                 # set new threshold
                 # [account for a little of bad luck]
-                self.action_threshold = score*1.1
+                # self.action_threshold = score*1.1
                 break
 
             directive = "new"
@@ -988,11 +1022,13 @@ class ExperienceModule(ModuleClass):
         # ---
         self.action_policy.reset()
 
-        return action, action_idx, score, depth
+        return action, action_idx, score, depth, score_values, action_values
 
     def render(self, ax=None, **kwargs):
 
-        self.action_policy_int.render()
+        self.action_policy.render(values=self.output["score_values"], action_values=self.output["action_values"])
+        self.trg_module.render()
+        self.weight_policy.render()
 
         # if ax is None and self.visualize:
         #     ax = self.ax
@@ -1045,6 +1081,232 @@ class ExploratoryModule(ModuleClass):
             self._loop(x=x, tape=tape, duration=duration)
 
         return tape
+
+
+class TargetModule(ModuleClass):
+
+    """
+    Input:
+        x: 2D position [array]
+        mode: mode [str] ("current" or "proximal")
+    Output:
+        representation: output [array]
+        current position: [array]
+    """
+
+    def __init__(self, pcnn: pcnn.PCNN,
+                 circuits: Circuits,
+                 pcnn_plotter: object=None,
+                 visualize: bool=True,
+                 visualize_action: bool=False,
+                 speed: int=0.005,
+                 max_depth: int=10,
+                 score_weight: float=1.,
+                 number: int=None):
+
+        super().__init__()
+        self.pcnn = pcnn
+        self.circuits = circuits
+        self.pcnn_plotter = pcnn_plotter
+        self.speed = speed
+        self.max_depth = max_depth
+        self.score_weight = score_weight
+        self.output = {
+                "u": np.zeros(pcnn.N),
+                "trg_position": np.zeros(2),
+                "velocity": np.zeros(2),
+                "score": 0.}
+
+        # --- visualization
+        self.visualize = visualize
+        self._number = number
+        if visualize:
+            self.fig, self.ax = plt.subplots(figsize=(4, 3))
+            logger(f"%visualizing {self.__class__}")
+
+    def _logic(self, observation: dict,
+               directive: str=None):
+
+        # compare a queries velocity with the
+        # calculated target velocity
+        if directive == "compare":
+
+            # only if fatigue is high
+            if self.circuits.circuits["Ftg"].value > 0.4:
+                score = pcnn.cosine_similarity_vec(
+                                self.output["velocity"],
+                                observation["velocity"])
+
+                self.output["score"] = np.array([-1 * score]) #* self.score_weight
+                # ptrg_vs_actionsrint(f"compared: {observation['velocity']} | " + \
+                #       f"target: {self.output['velocity']} | " + \
+                #       f"score: {self.output['score']}")
+            else:
+                self.score_weight = np.ones(1)
+                self.output["score"] = 0.
+
+            return
+
+        # calculate the target position
+
+        # --- modulation
+        modulation = self.circuits.circuits["DA"].weights
+
+        # --- get representations
+        curr_repr = self.pcnn.fwd_ext(
+                            x=observation["position"],
+                            frozen=True)
+        curr_pos = observation["position"]
+
+        trg_repr, flag = self._converge_to_location(
+                x=np.zeros((self.pcnn.N, 1)),
+                depth=0,
+                modulation=modulation,
+                threshold=0.8)
+        centers = self.pcnn._centers
+
+        # set -np.inf values to zero
+        centers = np.where(centers == -np.inf, 0, centers)
+        trg_pos = pcnn.calc_position_from_centers(a=trg_repr,
+                                    centers=centers)
+
+        # velocity
+        velocity = trg_pos - curr_pos
+        velocity = velocity / np.linalg.norm(velocity) * self.speed
+
+        # intensity
+        if self.circuits.circuits["Ftg"].value > 0.4:
+            score = -1 * int(flag) * self.circuits.circuits["Ftg"].value
+        else:
+            self.score_weight = 1.
+            score = 0.
+
+        # --- output
+        self.output = {
+                "u": trg_repr,
+                "trg_position": trg_pos,
+                "velocity": velocity,
+                "score": np.array([score])}
+
+    def _converge_to_location(self, x: np.ndarray,
+                              depth: int,
+                              modulation: np.ndarray,
+                              threshold: float=0.1):
+
+        u = self.pcnn._Wrec @ (x + modulation.reshape(-1, 1))
+
+        c = pcnn.cosine_similarity_vec(u, x)
+        if c > threshold:
+            return u, True
+
+        if depth >= self.max_depth:
+            return u, False
+
+        return self._converge_to_location(x=u,
+                                          depth=depth+1,
+                                          modulation=modulation,
+                                          threshold=threshold)
+
+    def render(self, **kwargs):
+
+        if not self.visualize:
+            return
+
+
+        # if self.pcnn_plotter is not None:
+        #     self.pcnn_plotter.render(ax=self.ax,
+        #         trajectory=kwargs.get("trajectory", None),
+        #         new_a=1*self.output["u"])
+
+        self.ax.clear()
+        self.ax.scatter(self.output["trg_position"][0],
+                    self.output["trg_position"][1],
+                    marker="x", color="red",
+                    s=100*np.abs(self.output["score"]))
+        self.ax.set_title(f"Target Module | " + \
+                          f" I={np.around(self.output['score'], 2)}")
+        self.ax.set_xlim(0, 1)
+        self.ax.set_ylim(0, 1)
+        self.ax.set_xticks([])
+        self.ax.set_yticks([])
+        self.ax.set_aspect("equal")
+        self.ax.set_xlabel(f"trg_pos={np.around(self.output['trg_position'], 3)}")
+        self.ax.grid()
+
+        if self._number is not None:
+            self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+            return
+
+    def reset(self, complete: bool=False):
+        super().reset(complete=complete)
+
+
+class WeightsPolicy:
+
+    def __init__(self, circuits_dict: dict,
+                 trg_module: object,
+                 visualize: bool=False,
+                 number: int=None):
+
+        self.objects = circuits_dict | {"trg": trg_module}
+        self.weights = np.ones(len(self.objects)) / \
+            len(self.objects)
+        self.windex = {name: i for i, name in \
+            enumerate(self.objects.keys())}
+
+        self.visualize = visualize
+        self._number = number
+        if visualize:
+            self.fig, self.ax = plt.subplots(figsize=(4, 3))
+            logger(f"%visualizing {self.__class__}")
+
+    def __str__(self):
+        return f"{self.__class__}(#N={len(self.objects)})"
+
+    def __call__(self, **kwargs):
+
+        return self._assign()
+
+    def _assign(self):
+
+        # --- retrieve
+        for i, (_, obj) in enumerate(self.objects.items()):
+            self.weights[i] = obj.score_weight
+
+        # --- logic
+        # self.weights[self.windex["trg"]] = 20 * \
+        #     (self.objects["Ftg"].output > 0.4)
+        # self.weights[self.windex["Pop"]] = 1 * \
+        #     (self.objects["Ftg"].output < 0.4)
+        # self.weights[self.windex["Bnd"]] = 1 if self.objects["Ftg"].output < 0.4 else 0.1
+
+        # --- normalize
+        self.weights = self.weights / self.weights.sum()
+
+        # --- update
+        for i, (_, obj) in enumerate(self.objects.items()):
+            obj.score_weight = self.weights[i]
+
+        return self.weights.copy()
+
+    def render(self):
+
+        if not self.visualize:
+            return
+
+        self.ax.clear()
+        self.ax.bar(range(len(self.objects)), self.weights,
+                    color="blue")
+        self.ax.set_xticks(range(len(self.objects)))
+        self.ax.set_xticklabels([f"{n}" for n in self.objects.keys()])
+        self.ax.set_title("Weights")
+        # self.ax.set_ylim(0, 5)
+
+        if self._number is not None:
+            self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+            return
+
+        self.fig.canvas.draw()
 
 
 
@@ -1114,7 +1376,12 @@ class Brain:
             "action_idx": 0,
             "depth": 0,
             "score": 0,
-            "onset": 0}
+            "onset": 0,
+            "trg_u": np.zeros(exp_module.pcnn.N),
+            "trg_position": np.zeros(2),
+            "trg_velocity": np.zeros(2),
+            "importance": 0,
+        }
 
         self.state = self.observation_ext | self.observation_int
 
@@ -1194,18 +1461,18 @@ class Brain:
                               trajectory=np.array(
                                    self.record["trajectory"]))
 
-            if self.number is not None:
+            # if self.number is not None:
 
-                self.ax.clear()
-                self.ax.bar(range(len(self.frequencies)),
-                            self.frequencies / self.frequencies.sum(),
-                            color="black")
-                self.ax.set_xticks(range(len(self.frequencies)))
-                self.ax.set_xticklabels([f"{i}" for i in range(len(self.frequencies))])
-                self.ax.set_title("Action Frequencies")
-                self.ax.set_ylim(0, 1)
+            #     self.ax.clear()
+            #     self.ax.bar(range(len(self.frequencies)),
+            #                 self.frequencies / self.frequencies.sum(),
+            #                 color="black")
+            #     self.ax.set_xticks(range(len(self.frequencies)))
+            #     self.ax.set_xticklabels([f"{i}" for i in range(len(self.frequencies))])
+            #     self.ax.set_title("Action Frequencies")
+            #     self.ax.set_ylim(0, 1)
 
-                self.fig.savefig(f"{FIGPATH}/fig{self.number}.png")
+            #     self.fig.savefig(f"{FIGPATH}/fig{self.number}.png")
 
     @property
     def render_values(self):
@@ -1285,7 +1552,7 @@ class SamplingPolicy:
                                        -speed/np.sqrt(2)])]
             logger(f"{self.__class__} using default samples [2D movements]")
 
-        np.random.shuffle(self._samples)
+        # np.random.shuffle(self._samples)
 
         self._num_samples = len(self._samples)
         self._samples_indexes = list(range(self._num_samples))
@@ -1322,7 +1589,7 @@ class SamplingPolicy:
                             self._samples_indexes, p=self._p)
             self._available_idxs.remove(self._idx)
             self._velocity = self._samples[self._idx]
-            return self._velocity.copy(), False, self._idx
+            return self._velocity.copy(), False, self._idx, self._values
 
         # --- all samples have been tried
         if len(self._available_idxs) == 0:
@@ -1330,10 +1597,10 @@ class SamplingPolicy:
 
             # self._idx = np.random.choice(self._num_samples,
             #                                   p=self._p)
-            self._idx = np.argmax(self._values)
+            self._idx = np.argmax(self._values.flatten())
 
             self._velocity = self._samples[self._idx]
-            return self._velocity.copy(), True, self._idx
+            return self._velocity.copy(), True, self._idx, self._values
 
         # --- sample again
         p = self._p[self._available_idxs].copy()
@@ -1344,14 +1611,13 @@ class SamplingPolicy:
         self._available_idxs.remove(self._idx)
         self._velocity = self._samples[self._idx]
 
-        return self._velocity.copy(), False, self._idx
-
+        return self._velocity.copy(), False, self._idx, self._values
     def update(self, score: float):
 
         # --- normalize the score
-        score = pcnn.generalized_sigmoid(x=score,
-                                         alpha=-0.5,
-                                         beta=1.)
+        # score = pcnn.generalized_sigmoid(x=score,
+        #                                  alpha=-0.5,
+        #                                  beta=1.)
 
         self._values[self._idx] = score
 
@@ -1379,25 +1645,40 @@ class SamplingPolicy:
         self._velocity = state["velocity"]
         self._available_idxs = state["available_idxs"]
 
-    def render(self):
+    def render(self, values: np.ndarray=None,
+               action_values: np.ndarray=None):
 
         if not self.visualize:
             return
 
-        self._values = (self._values.max() - self._values) / \
-            (self._values.max() - self._values.min())
+        # self._values = (self._values.max() - self._values) / \
+        #     (self._values.max() - self._values.min())
         # self._values = np.where(np.isnan(self._values), 0,
         #                         self._values)
 
         self.ax.clear()
 
-        self.ax.imshow(self._values.reshape(3, 3),
-                       cmap="Blues", vmin=0, vmax=1)
+        if action_values is not None:
+            self.ax.imshow(action_values.reshape(3, 3),
+                           cmap="RdBu_r", vmin=-1.1, vmax=1.1,
+                           aspect="equal",
+                           interpolation="nearest")
+        else:
+            self.ax.imshow(self._values.reshape(3, 3),
+                           cmap="RdBu_r", vmin=-1.1, vmax=1.1,
+                           aspect="equal",
+                           interpolation="nearest")
 
         # labels inside each square
         for i in range(3):
             for j in range(3):
-                self.ax.text(j, i, f"{self._values[3*i+j]:.2f}",
+
+                if values is not None:
+                    text = "".join([f"{np.around(v, 2)}\n" for v in values[3*i+j]])
+                else:
+                    text = f"{self._samples[3*i+j][1]:.3f}\n" + \
+                          f"{self._samples[3*i+j][0]:.3f}"
+                self.ax.text(j, i, f"{text}",
                              ha="center", va="center",
                              color="black",
                              fontsize=13)
@@ -1406,11 +1687,12 @@ class SamplingPolicy:
         # self.ax.set_xticks(range(self._num_samples))
         # self.ax.set_xticklabels(["stay", "up", "right",
         #                          "down", "left"])
-        # self.ax.set_xticklabels(np.around(self._values, 4))
-        # self.ax.set_xlabel("Action")
+        # self.ax.set_xticklabels(np.around(self._values, 2))
+        self.ax.set_xlabel("Action")
         self.ax.set_title(f"Action Space")
-        self.ax.set_yticks([])
-        self.ax.set_xticks([])
+        self.ax.set_yticks(range(3))
+        # self.ax.set_ylim(-1, 1)
+        self.ax.set_xticks(range(3))
 
         if self._number is not None:
             self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
@@ -1423,7 +1705,7 @@ class SamplingPolicy:
         self._available_idxs = list(range(self._num_samples))
         self._p = np.ones(self._num_samples) / self._num_samples
         self._velocity = self._samples[0]
-        # self._values = np.zeros(self._num_samples)
+        self._values = np.zeros(self._num_samples) - 1.
 
     def has_collided(self):
 
