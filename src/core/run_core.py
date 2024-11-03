@@ -411,7 +411,7 @@ def experimentIII(args):
                                             threshold=0.02,
                                             visualize=True,
                                             score_weight=5.,
-                                            number=5),
+                                        number=5),
                      "DA": mod.Dopamine(N=N,
                                         visualize=True,
                                         score_weight=1.,
@@ -419,8 +419,8 @@ def experimentIII(args):
                      "dPos": mod.PositionTrace(visualize=False,
                                                score_weight=2.),
                      "Pop": mod.PopulationProgMax(N=N,
-                                                  visualize=True,
-                                                  number=0.1),
+                                                  visualize=False,
+                                                  number=None),
                      "Ftg": mod.FatigueMod()}
 
     for _, circuit in circuits_dict.items():
@@ -441,15 +441,15 @@ def experimentIII(args):
                                   pcnn_plotter=model_plotter,
                                   circuits=circuits,
                                   speed=SPEED,
-                                  score_weight=1.,
+                                  score_weight=10.,
                                   visualize=True,
                                   visualize_action=False,
-                                  number=6)
+                                  number=1)
 
     weight_policy = mod.WeightsPolicy(circuits_dict=circuits_dict,
                                        trg_module=trg_module,
                                        visualize=True,
-                                       number=7)
+                                       number=6)
     logger(f"{weight_policy}")
 
     exp_module = mod.ExperienceModule(pcnn=model,
@@ -471,8 +471,8 @@ def experimentIII(args):
                        visualize=True)
     env = ev.AgentBody(room=env,
                        position=np.array([0.8, 0.2]))
-    reward_obj = ev.RewardObj(position=np.array([0.2, 0.6]),
-                       radius=0.12)
+    reward_obj = ev.RewardObj(position=np.array([0.8, 0.6]),
+                       radius=0.15)
     velocity = np.zeros(2)
     observation = {
         "u": np.zeros(N),

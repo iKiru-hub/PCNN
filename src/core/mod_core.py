@@ -139,8 +139,8 @@ class Modulation(ABC):
                             trajectory=None,
                             new_a=self.weights,
                             edges=False,
-                            cmap="Greens",
                             alpha_nodes=0.8,
+                            cmap="Greens",
                             title=f"{self.leaky_var.name}")
 
         if self._number is not None:
@@ -751,9 +751,11 @@ class ExperienceModule(ModuleClass):
         # self.random_policy = RandomWalkPolicy(speed=0.005)
         self.action_policy = SamplingPolicy(speed=speed,
                                     visualize=visualize_action,
-                                            number=number)
+                                            number=number,
+                                            name="SamplingMain")
         self.action_policy_int = SamplingPolicy(speed=speed,
-                                    visualize=False)
+                                    visualize=False,
+                                    name="SamplingInt")
         self.action_space_len = len(self.action_policy)
 
         self.action_delay = action_delay # ---
@@ -814,12 +816,14 @@ class ExperienceModule(ModuleClass):
                 "score_values": score_values,
                 "action_values": action_values}
 
+        possible_actions = "|".join([f"{r[0]*1000:.2f},{r[1]*1000:.2f}" for r in self.action_policy._samples])
+
         logger(f"action: {action_ext} | " + \
                f"score: {score} | " + \
                f"depth: {depth} | " + \
+               f"action_idx: {action_idx} | " + \
                f"action_values: {action_values} | " + \
-               f"[action_idx: {action_idx}]" + \
-               f"score_values: {score_values}")
+            f"actions: {possible_actions}")
 
     def _generate_action(self, observation: dict,
                            directive: str="new") -> np.ndarray:
@@ -877,11 +881,11 @@ class ExperienceModule(ModuleClass):
             score = 0
 
             # relevant modulators
-            values = [modulation["Bnd"].item(),
-                      modulation["dPos"].item(),
-                      modulation["Pop"].item(),
-                      trg_modulation["score"]]
-            score -= sum(values)
+            values = [-0*modulation["Bnd"].item(),
+                      0*modulation["dPos"].item(),
+                      0*modulation["Pop"].item(),
+                      -trg_modulation["score"]]
+            score += sum(values)
             # score_values += [values]
 
             if action_idx == 4:
@@ -889,7 +893,6 @@ class ExperienceModule(ModuleClass):
 
             # ---
             score_values[action_idx] += [trg_modulation["score"],
-                                         modulation["Bnd"].item(),
                                          score]
 
             # ---
@@ -919,9 +922,6 @@ class ExperienceModule(ModuleClass):
         # ---
         # logger.warning(f"score: {score_values} | ")
 
-        assert len(self.action_policy_int._available_idxs) == 0, \
-            "action policy must be empty after a loop"
-
         return action, action_idx, score, score_values, action_values
 
     def _simulation_loop(self, observation: dict,
@@ -944,10 +944,10 @@ class ExperienceModule(ModuleClass):
         observation["velocity"] = action
         observation["action_idx"] = action_idx
 
-        if score > threshold and False:
-            return score, True, depth, score_values, action_values
+        # if score > threshold:
+        #     return score, True, depth, score_values, action_values
 
-        elif depth >= max_depth:
+        if depth >= max_depth:
             return score, False, depth, score_values, action_values
 
         return self._simulation_loop(observation=observation,
@@ -962,6 +962,8 @@ class ExperienceModule(ModuleClass):
         self.action_policy.reset()
         assert len(self.action_policy._available_idxs) == 9, \
             "action policy must have 9 actions"
+        logger.debug(f"---- generate action [{directive=}] ...")
+        counter = 0
         while True:
 
             # save state
@@ -969,11 +971,13 @@ class ExperienceModule(ModuleClass):
 
             # --- generate a random action
             if directive == "new":
-                action, done, action_idx, _ = self.action_policy()
+                action, done, action_idx, action_values_main = self.action_policy()
+                print(f"({counter}) | new: {action_idx=} {done=}")
             elif directive == "keep":
                 action = observation["velocity"]
                 action_idx = observation["action_idx"]
                 done = False
+                print(f"(#) | keep: {action_idx=}")
             else:
                 raise ValueError("directive must be " + \
                     "'new' or 'keep'")
@@ -1011,16 +1015,25 @@ class ExperienceModule(ModuleClass):
 
                 # set new threshold
                 # [account for a little of bad luck]
-                # self.action_threshold = score*1.1
+                self.action_threshold = score*1.1
                 break
 
             directive = "new"
 
             # update
             self.action_policy.update(score=score)
+            counter += 1
+
+            print(f".. score: {np.around(score, 3)}")
 
         # ---
         self.action_policy.reset()
+
+        logger.debug(f"#generated action: {action} | " + \
+                     f"score: {score} | " + \
+                     f"depth: {depth} | " + \
+                     f"[M] action_idx: {action_idx} | " + \
+                     f"[M] action_values: {action_values_main}")
 
         return action, action_idx, score, depth, score_values, action_values
 
@@ -1412,6 +1425,7 @@ class Brain:
 
         # TODO : add directive depending on modulation
 
+
         # set new directive
         if self.t == 0:
             self.directive = "new"
@@ -1419,16 +1433,20 @@ class Brain:
         if self.directive == "force_keep" and \
             (self.t - self.observation_int["onset"]) < \
             self.observation_int["depth"]:
+            print("force keep ...")
 
             return self.movement
-        elif self.directive == "force_keep":
-            self.directive = "new"
+
+#         elif self.directive == "force_keep":
+#             self.directive = "new"
 
         elif mod_observation["dPos"] < 0.05:
             self.directive = "new"
 
         else:
             self.directive = "keep"
+
+        logger.debug(f"Brain || directive: {self.directive}")
 
         # --- update experience module
         # full output
@@ -1442,6 +1460,9 @@ class Brain:
         self.movement = self.observation_int["velocity"]
 
         self.frequencies[self.observation_int["action_idx"]] += 1
+
+        logger.debug(f"keep: {self.observation_int['onset']}"+\
+            f" | t={self.t} dir: {self.directive}")
 
         return self.movement
 
@@ -1594,12 +1615,18 @@ class SamplingPolicy:
         # --- all samples have been tried
         if len(self._available_idxs) == 0:
 
-
             # self._idx = np.random.choice(self._num_samples,
             #                                   p=self._p)
-            self._idx = np.argmax(self._values.flatten())
+
+            if np.where(self._values == 0)[0].size > 1:
+                self._idx = np.random.choice(
+                                np.where(self._values == 0)[0])
+            else:
+                self._idx = np.argmax(self._values)
 
             self._velocity = self._samples[self._idx]
+            # print(f"{self._name} || selected: {self._idx} | " + \
+            #     f"{self._values.max()} | values: {np.around(self._values, 2)} v={np.around(self._velocity*1000, 2)}")
             return self._velocity.copy(), True, self._idx, self._values
 
         # --- sample again
@@ -1665,7 +1692,7 @@ class SamplingPolicy:
                            interpolation="nearest")
         else:
             self.ax.imshow(self._values.reshape(3, 3),
-                           cmap="RdBu_r", vmin=-1.1, vmax=1.1,
+                           cmap="RdBu_r", vmin=-3.1, vmax=3.1,
                            aspect="equal",
                            interpolation="nearest")
 
@@ -1705,7 +1732,7 @@ class SamplingPolicy:
         self._available_idxs = list(range(self._num_samples))
         self._p = np.ones(self._num_samples) / self._num_samples
         self._velocity = self._samples[0]
-        self._values = np.zeros(self._num_samples) - 1.
+        self._values = np.zeros(self._num_samples)
 
     def has_collided(self):
 
