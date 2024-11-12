@@ -15,9 +15,11 @@ sys.path.append(base_path)
 import utils
 import simplerl.environments as ev
 
-import matplotlib
-matplotlib.use("TkAgg")
+# import matplotlib
+# matplotlib.use("TkAgg")
 
+
+import pclib
 
 
 CONFIGPATH = "dashboard/media/configs.json"
@@ -396,12 +398,25 @@ def experimentIII(args):
     }
 
     # pc filter
-    pclayer = pcnn.PClayer(n=13, sigma=0.01)
-    logger.debug(f"{pclayer=}")
-    params["xfilter"] = pclayer
+    # pclayer = pcnn.PClayer(n=13, sigma=0.01)
+    # logger.debug(f"{pclayer=}")
+    # params["xfilter"] = pclayer
+    # model = pcnn.PCNN(**params)
+
+    # ---
+    sigma = 0.05
+    bounds = np.array([0., 1., 0., 1.])
+    xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, bounds)
+
+    # definition
+    model = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.5,
+                      clip_min=0.09, threshold=0.5,
+                      rep_threshold=0.5, rec_threshold=0.01,
+                      num_neighbors=8, trace_tau=0.1,
+                      xfilter=xfilter, name="2D")
+    # ---
 
     # pcnn
-    model = pcnn.PCNN(**params)
     model_plotter = pcnn.PlotPCNN(model=model,
                                   visualize=True,
                                   number=0)

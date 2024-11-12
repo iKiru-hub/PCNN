@@ -167,6 +167,8 @@ class PCNN():
         # self.record["u"] += [self.u.tolist()]
         # self.record["umax"] += [self.u.max()]
 
+        return self.u.copy().flatten()
+
     def __len__(self):
 
         """
@@ -324,9 +326,8 @@ class PCNN():
 
         self.mod_update *= x
 
-    def fwd_ext(self, x: np.ndarray,
-                frozen: bool=False):
-        self(x=x.reshape(-1, 1), frozen=frozen)
+    def fwd_ext(self, x: np.ndarray):
+        self(x=x.reshape(-1, 1), frozen=True)
         return self.representation
 
     def fwd_int(self, u: np.ndarray):
@@ -351,9 +352,15 @@ class PCNN():
     def representation(self):
         return self.u.flatten().copy()
 
-    @property
-    def delta_update(self):
+    # @property
+    def get_delta_update(self):
         return self.record["dw"][-1]
+
+    def get_size(self):
+        return self.N
+
+    def get_wrec(self):
+        return self._Wrec.copy()
 
     def current_position(self, u: np.ndarray=None):
         if u is None:
@@ -372,8 +379,7 @@ class PCNN():
 
         return position
 
-    @property
-    def _centers(self) -> np.ndarray:
+    def get_centers(self) -> np.ndarray:
         return calc_centers_from_layer(wff=self._Wff,
                                        centers=self.xfilter.centers)
 
@@ -553,8 +559,8 @@ class PlotPCNN:
                         c='k', s=100, marker='x')
 
         # --- network
-        centers = self._model._centers
-        connectivity = self._model._Wrec
+        centers = self._model.get_centers()
+        connectivity = self._model.get_wrec()
 
         ax.scatter(centers[:, 0],
                    centers[:, 1],

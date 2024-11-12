@@ -3,9 +3,8 @@ import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 from tools.utils import logger
 import pcnn_core as pcnn
+import pclib
 
-import matplotlib
-matplotlib.use("TkAgg")
 
 
 FIGPATH = "dashboard/media"
@@ -70,6 +69,9 @@ class LeakyVariable:
 
         return self._v
 
+    def get_v(self):
+        return self._v
+
     def reset(self):
         self._v = self.eq
         self.record = []
@@ -90,6 +92,139 @@ class LeakyVariable:
             self.fig.savefig(f"{FIGPATH}/{self._number}.png")
             return
         self.fig.canvas.draw()
+
+
+class LeakyVariableWrapper1D(pclib.LeakyVariable1D):
+
+    def __init__(self, eq: float=0., tau: float=10,
+                 name: str="leaky", ndim: int=1,
+                 visualize: bool=False,
+                 number: int=None,
+                 max_record: int=100):
+
+        """
+        Parameters
+        ----------
+        eq : float
+            Default 0.
+        tau : float
+            Default 10
+        threshold : float
+            Default 0.
+        """
+
+        super().__init__(name=name, eq=eq, tau=tau,
+                         min_v=0.)
+
+        self.name = name
+        self.record = []
+        self._max_record = max_record
+        self._visualize = False
+        self._number = number
+
+        # figure configs
+        if self._visualize:
+            self.fig, self.ax = plt.subplots(figsize=(4, 3))
+
+    def __call__(self, x: float=0.,
+                 simulate: bool=False):
+
+        if simulate:
+            return super().__call__(x, True)
+
+        self.record += [super().__call__(x)]
+        if len(self.record) > self._max_record:
+            del self.record[0]
+
+        return self.record[-1]
+
+    def reset(self):
+        super().reset()
+        self.record = []
+
+    def render(self):
+
+        if not self._visualize:
+            return
+
+        self.ax.clear()
+        self.ax.plot(range(len(self.record)), self.record)
+        self.ax.set_ylim(-0.1, 1.1)
+        self.ax.grid()
+        self.ax.set_title(f"{self.name} |" +
+            f" v={np.around(self.get_v(), 2).tolist()}")
+
+        if self._number is not None:
+            self.fig.savefig(f"{FIGPATH}/{self._number}.png")
+            return
+        self.fig.canvas.draw()
+
+
+class LeakyVariableWrapperND(pclib.LeakyVariableND):
+
+    def __init__(self, eq: float=0., tau: float=10,
+                 name: str="leaky", ndim: int=1,
+                 visualize: bool=False,
+                 number: int=None,
+                 max_record: int=100):
+
+        """
+        Parameters
+        ----------
+        eq : float
+            Default 0.
+        tau : float
+            Default 10
+        threshold : float
+            Default 0.
+        """
+
+        super().__init__(name=name, eq=eq, tau=tau,
+                         ndim=ndim, min_v=0.)
+
+        self.name = name
+        self.record = []
+        self._max_record = max_record
+        self._visualize = False
+        self._number = number
+
+        # figure configs
+        if self._visualize:
+            self.fig, self.ax = plt.subplots(figsize=(4, 3))
+
+    def __call__(self, x: float=0.,
+                 simulate: bool=False):
+
+        if simulate:
+            return self.step(x, True)
+
+        self.record += [self.step(x).tolist()]
+        if len(self.record) > self._max_record:
+            del self.record[0]
+
+        return self.record[-1]
+
+    def reset(self):
+        super().reset()
+        self.record = []
+
+    def render(self):
+
+        if not self._visualize:
+            return
+
+        self.ax.clear()
+        self.ax.plot(range(len(self.record)), self.record)
+        self.ax.set_ylim(-0.1, 1.1)
+        self.ax.grid()
+        self.ax.set_title(f"{self.name} |" +
+            f" v={np.around(self.get_v(), 2).tolist()}")
+
+        if self._number is not None:
+            self.fig.savefig(f"{FIGPATH}/{self._number}.png")
+            return
+        self.fig.canvas.draw()
+
 
 
 class Modulation(ABC):
@@ -127,7 +262,7 @@ class Modulation(ABC):
         pass
 
     def get_leaky_v(self):
-        return self.leaky_var._v
+        return self.leaky_var.get_v()
 
     def render(self):
         self.leaky_var.render()
@@ -255,7 +390,7 @@ class Dopamine(Modulation):
     def __init__(self, **kwargs):
 
         super().__init__(**kwargs)
-        self.leaky_var = LeakyVariable(eq=0., tau=5,
+        self.leaky_var = LeakyVariableWrapper1D(eq=0., tau=5,
                                        name="DA",
                                        max_record=500)
         self.threshold = 0.7
@@ -275,7 +410,8 @@ class Dopamine(Modulation):
         u = inputs[0].flatten()
 
         if inputs[1] > 0:
-            v = np.clip(self.leaky_var(x=inputs[1], simulate=simulate),
+            v = np.clip(self.leaky_var(x=inputs[1],
+                                       simulate=simulate),
                         0, 1)
 
             # potentiation
@@ -321,7 +457,7 @@ class Acetylcholine(Modulation):
     def __init__(self, **kwargs):
 
         super().__init__(**kwargs)
-        self.leaky_var = LeakyVariable(eq=1., tau=10,
+        self.leaky_var = LeakyVariableWrapper1D(eq=1., tau=10,
                                        name="ACh",
                                        max_record=500)
         self.threshold = 0.9
@@ -385,7 +521,7 @@ class BoundaryMod(Modulation):
                  **kwargs):
 
         super().__init__(**kwargs)
-        self.leaky_var = LeakyVariable(eq=0., tau=3,
+        self.leaky_var = LeakyVariableWrapper1D(eq=0., tau=3,
                                        name="Bnd")
         self.action = "fwd"
         self.input_key = ("u", "collision")
@@ -458,7 +594,7 @@ class PositionTrace(Modulation):
     def __init__(self, **kwargs):
 
         super().__init__(**kwargs)
-        self.leaky_var = LeakyVariable(eq=0., tau=50,
+        self.leaky_var = LeakyVariableWrapperND(eq=0., tau=50,
                                        name="dPos",
                                        ndim=2,
                                        max_record=500)
@@ -738,8 +874,8 @@ class ExperienceModule(ModuleClass):
         self.trg_module = trg_module
         self.weight_policy = weight_policy
         self.output = {
-                "u": np.zeros(pcnn.N),
-                "delta_update": np.zeros(pcnn.N),
+                "u": np.zeros(pcnn.get_size()),
+                "delta_update": np.zeros(pcnn.get_size()),
                 "velocity": np.zeros(2),
                 "action_idx": None,
                 "score": None,
@@ -791,8 +927,7 @@ class ExperienceModule(ModuleClass):
             self.action_policy.has_collided()
 
         # --- get representations
-        spatial_repr = self.pcnn.fwd_ext(
-                            x=observation["position"])
+        spatial_repr = self.pcnn(x=observation["position"])
         observation["u"] = spatial_repr.copy()
 
         # --- generate an action
@@ -808,7 +943,7 @@ class ExperienceModule(ModuleClass):
         self.record += [observation["position"].tolist()]
         self.output = {
                 "u": spatial_repr,
-                "delta_update": self.pcnn.delta_update,
+                "delta_update": self.pcnn.delta_update(),
                 "velocity": action_ext,
                 "action_idx": action_idx,
                 "score": score,
@@ -852,10 +987,9 @@ class ExperienceModule(ModuleClass):
 
             # new observation/effects
             if new_position is None:
-                u = np.zeros(self.pcnn.N)
+                u = np.zeros(self.pcnn.get_size())
             else:
-                u = self.pcnn.fwd_ext(x=new_position,
-                                      frozen=True)
+                u = self.pcnn.fwd_ext(x=new_position)
 
             new_observation = {
                 "u": u,
@@ -1057,6 +1191,344 @@ class ExperienceModule(ModuleClass):
             self.record = []
 
 
+class ExperienceModule(ModuleClass):
+
+    """
+    Input:
+        x: 2D position [array]
+        mode: mode [str] ("current" or "proximal")
+    Output:
+        representation: output [array]
+        current position: [array]
+    """
+
+    def __init__(self, pcnn: pcnn.PCNN,
+                 circuits: Circuits,
+                 trg_module: object,
+                 weight_policy: object,
+                 pcnn_plotter: object=None,
+                 action_delay: float=2.,
+                 visualize: bool=False,
+                 visualize_action: bool=False,
+                 number: int=None,
+                 weights: np.ndarray=None,
+                 speed: int=0.005,
+                 max_depth: int=10):
+
+        super().__init__()
+        self.pcnn = pcnn
+        self.circuits = circuits
+        self.pcnn_plotter = pcnn_plotter
+        self.trg_module = trg_module
+        self.weight_policy = weight_policy
+        self.output = {
+                "u": np.zeros(pcnn.get_size()),
+                "delta_update": np.zeros(pcnn.get_size()),
+                "velocity": np.zeros(2),
+                "action_idx": None,
+                "score": None,
+                "depth": None,
+                "score_values": np.zeros((9, 4)).tolist(),
+                "action_values": np.zeros(9).tolist()}
+
+        # --- policies
+        # self.random_policy = RandomWalkPolicy(speed=0.005)
+        self.action_policy = SamplingPolicy(speed=speed,
+                                    visualize=visualize_action,
+                                            number=number,
+                                            name="SamplingMain")
+        self.action_policy_int = SamplingPolicy(speed=speed,
+                                    visualize=False,
+                                    name="SamplingInt")
+        self.action_space_len = len(self.action_policy)
+
+        self.action_delay = action_delay # ---
+        self.action_threshold_eq = -0.001
+        self.action_threshold = self.action_threshold_eq
+
+        self.max_depth = max_depth
+
+        self.weights = weights
+        if self.weights is None:
+            self.weights = np.ones(len(self.circuits)) / \
+                len(self.circuits)
+
+        # --- visualization
+        self.visualize = visualize
+        # if visualize:
+        #     self.fig, self.ax = plt.subplots(figsize=(4, 3))
+        #     logger(f"%visualizing {self.__class__}")
+        # else:
+        #     self.fig, self.ax = None, None
+        self.record = []
+
+    def _logic(self, observation: dict,
+               directive: str="keep"):
+
+        """
+        the level of acetylcholine is determined
+        affects the next weight update
+        """
+
+        # --- get representations
+        spatial_repr = self.pcnn(x=observation["position"])
+        observation["u"] = spatial_repr.copy()
+
+        # --- generate an action
+        action_ext, action_idx, score, depth, score_values, action_values = self._generate_action_from_simulation(
+                                observation=observation,
+                                directive=directive)
+
+        # --- output & logs
+        self.record += [observation["position"].tolist()]
+        self.output = {
+                "u": spatial_repr,
+                "delta_update": self.pcnn.get_delta_update(),
+                "velocity": action_ext,
+                "action_idx": action_idx,
+                "score": score,
+                "depth": depth,
+                "score_values": score_values,
+                "action_values": action_values}
+
+        possible_actions = "|".join([f"{r[0]*1000:.2f},{r[1]*1000:.2f}" for r in self.action_policy._samples])
+
+        logger(f"action: {action_ext} | " + \
+               f"score: {score} | " + \
+               f"depth: {depth} | " + \
+               f"action_idx: {action_idx} | " + \
+               f"action_values: {action_values} | " + \
+            f"actions: {possible_actions}")
+
+    def _generate_action(self, observation: dict,
+                           directive: str="new") -> np.ndarray:
+
+        self.action_policy_int.reset()
+        done = False # when all actions have been tried
+        score_values = [[], [], [], [], [], [], [], [], []]
+
+        while True:
+
+            # --- generate a random action
+            if directive == "new":
+                action, done, action_idx, action_values = self.action_policy_int()
+            elif directive == "keep":
+                action = observation["velocity"]
+                action_idx = observation["action_idx"]
+            else:
+                raise ValueError("directive must be " + \
+                    "'new' or 'keep'")
+
+            # --- simulate its effects
+
+            # new position if the action is taken
+            new_position = observation["position"] + \
+                action * self.action_delay
+
+            # new observation/effects
+            if new_position is None:
+                u = np.zeros(self.pcnn.get_size())
+            else:
+                u = self.pcnn.fwd_ext(x=new_position)
+
+            new_observation = {
+                "u": u,
+                "position": new_position,
+                "velocity": action,
+                "collision": False,
+                "reward": 0.,
+                "delta_update": 0.}
+
+            modulation = self.circuits(
+                            observation=new_observation,
+                            simulate=True)
+            trg_modulation = self.trg_module(
+                            observation=new_observation,
+                            directive="compare")
+
+            if isinstance(trg_modulation, np.ndarray):
+                trg_modulation = trg_modulation.item()
+
+            # --- evaluate the effects
+            self.weight_policy(
+                        circuits_dict=self.circuits.circuits,                               trg_module=self.trg_module)
+            score = 0
+
+            # relevant modulators
+            values = [-0*modulation["Bnd"].item(),
+                      0*modulation["dPos"].item(),
+                      0*modulation["Pop"].item(),
+                      -trg_modulation["score"]]
+            score += sum(values)
+            # score_values += [values]
+
+            if action_idx == 4:
+                score = -1.
+
+            # ---
+            score_values[action_idx] += [trg_modulation["score"],
+                                         score]
+
+            # ---
+
+            # the action is above threshold
+            # if score > self.action_threshold:
+            if False:
+
+                # lower the threshold
+                self.action_threshold = min((score,
+                                self.action_threshold_eq))
+                break
+
+            # it is the best available action
+            elif done:
+
+                # set new threshold
+                # [account for a little of bad luck]
+                self.action_threshold = score*1.1
+                break
+
+            directive = "new"
+
+            # try again
+            self.action_policy_int.update(score=score)
+
+        # ---
+        # logger.warning(f"score: {score_values} | ")
+
+        return action, action_idx, score, score_values, action_values
+
+    def _simulation_loop(self, observation: dict,
+                      depth: int,
+                      threshold: float=0.,
+                      max_depth: int=10) -> dict:
+
+        position = observation["position"]
+        action = observation["velocity"]
+        action_idx = observation["action_idx"]
+
+        # --- simulate its effects
+        action, action_idx, score, score_values, action_values = self._generate_action(
+                                observation=observation,
+                                directive="keep")
+        # action, action_idx, score = self._generate_action(
+        #                         observation=observation,
+        #                         directive="keep")
+        observation["position"] += action
+        observation["velocity"] = action
+        observation["action_idx"] = action_idx
+
+        # if score > threshold:
+        #     return score, True, depth, score_values, action_values
+
+        if depth >= max_depth:
+            return score, False, depth, score_values, action_values
+
+        return self._simulation_loop(observation=observation,
+                               depth=depth+1,
+                               threshold=threshold,
+                               max_depth=max_depth)
+
+    def _generate_action_from_simulation(self,
+            observation: dict, directive: str) -> tuple:
+
+        done = False # when all actions have been tried
+        self.action_policy.reset()
+        assert len(self.action_policy._available_idxs) == 9, \
+            "action policy must have 9 actions"
+        logger.debug(f"---- generate action [{directive=}] ...")
+        counter = 0
+        while True:
+
+            # --- generate a random action
+            if directive == "new":
+                action, done, action_idx, action_values_main = self.action_policy()
+                print(f"({counter}) | new: {action_idx=} {done=}")
+
+            elif directive == "keep":
+                action = observation["velocity"]
+                action_idx = observation["action_idx"]
+                done = False
+                print(f"(#) | keep: {action_idx=}")
+            else:
+                raise ValueError("directive must be " + \
+                    "'new' or 'keep'")
+
+            # --- simulate its effects over a few steps
+
+            observation["velocity"] = action
+            observation["action_idx"] = action_idx
+
+            # drive toward a target
+            self.trg_module(observation=observation,
+                            directive="calculate")
+            self.weight_policy()
+
+            # roll out
+            score, success, depth, score_values, action_values = self._simulation_loop(
+                            observation=observation,
+                            depth=0,
+                            threshold=self.action_threshold_eq,
+                            max_depth=self.max_depth)
+
+            # restore state
+            # self.action_threshold = action_threshold_or
+
+            # the action is above threshold
+            if score > self.action_threshold and False:
+
+                # lower the threshold
+                self.action_threshold = min((score,
+                                self.action_threshold_eq))
+                # break
+
+            # it is the best available action
+            elif done:
+
+                # set new threshold
+                # [account for a little of bad luck]
+                self.action_threshold = score*1.1
+                break
+
+            directive = "new"
+
+            # update
+            self.action_policy.update(score=score)
+            counter += 1
+
+            print(f".. score: {np.around(score, 3)}")
+
+        # ---
+        self.action_policy.reset()
+
+        logger.debug(f"#generated action: {action} | " + \
+                     f"score: {score} | " + \
+                     f"depth: {depth} | " + \
+                     f"[M] action_idx: {action_idx} | " + \
+                     f"[M] action_values: {action_values_main}")
+
+        return action, action_idx, score, depth, score_values, action_values
+
+    def render(self, ax=None, **kwargs):
+
+        self.action_policy.render(values=self.output["score_values"], action_values=self.output["action_values"])
+        self.trg_module.render()
+        self.weight_policy.render()
+
+        # if ax is None and self.visualize:
+        #     ax = self.ax
+
+        if self.pcnn_plotter is not None:
+            self.pcnn_plotter.render(ax=None,
+                trajectory=kwargs.get("trajectory", False),
+                new_a=1*self.circuits.circuits["DA"].output)
+
+    def reset(self, complete: bool=False):
+        super().reset(complete=complete)
+        if complete:
+            self.record = []
+
+
 class ExploratoryModule(ModuleClass):
 
     def __init__(self, exp_module: ExperienceModule):
@@ -1125,7 +1597,7 @@ class TargetModule(ModuleClass):
         self.max_depth = max_depth
         self.score_weight = score_weight
         self.output = {
-                "u": np.zeros(pcnn.N),
+                "u": np.zeros(pcnn.get_size()),
                 "trg_position": np.zeros(2),
                 "velocity": np.zeros(2),
                 "score": 0.}
@@ -1145,18 +1617,17 @@ class TargetModule(ModuleClass):
         if directive == "compare":
 
             # only if fatigue is high
-            if self.circuits.circuits["Ftg"].value > 0.4:
+            if self.output["score"] > 0.:
                 score = pcnn.cosine_similarity_vec(
                                 self.output["velocity"],
                                 observation["velocity"])
 
                 self.output["score"] = np.array([-1 * score]) #* self.score_weight
-                # ptrg_vs_actionsrint(f"compared: {observation['velocity']} | " + \
-                #       f"target: {self.output['velocity']} | " + \
-                #       f"score: {self.output['score']}")
             else:
                 self.score_weight = np.ones(1)
                 self.output["score"] = 0.
+
+            # assert isinstance(score, float), f"{type(score)=}"
 
             return
 
@@ -1167,16 +1638,15 @@ class TargetModule(ModuleClass):
 
         # --- get representations
         curr_repr = self.pcnn.fwd_ext(
-                            x=observation["position"],
-                            frozen=True)
+                            x=observation["position"])
         curr_pos = observation["position"]
 
         trg_repr, flag = self._converge_to_location(
-                x=np.zeros((self.pcnn.N, 1)),
+                x=np.zeros((self.pcnn.get_size(), 1)),
                 depth=0,
                 modulation=modulation,
                 threshold=0.8)
-        centers = self.pcnn._centers
+        centers = self.pcnn.get_centers()
 
         # set -np.inf values to zero
         centers = np.where(centers == -np.inf, 0, centers)
@@ -1191,22 +1661,26 @@ class TargetModule(ModuleClass):
         if self.circuits.circuits["Ftg"].value > 0.4:
             score = -1 * int(flag) * self.circuits.circuits["Ftg"].value
         else:
-            self.score_weight = 1.
             score = 0.
 
         # --- output
+        assert isinstance(score, float), f"{type(score)=}"
         self.output = {
                 "u": trg_repr,
                 "trg_position": trg_pos,
                 "velocity": velocity,
-                "score": np.array([score])}
+                "score": score}
+
+        logger(f"trg_module || v={np.around(velocity*1000, 2).tolist()}" + \
+            f" | score={score:.3f}")
 
     def _converge_to_location(self, x: np.ndarray,
                               depth: int,
                               modulation: np.ndarray,
                               threshold: float=0.1):
 
-        u = self.pcnn._Wrec @ (x + modulation.reshape(-1, 1))
+        # u = self.pcnn._Wrec @ (x + modulation.reshape(-1, 1))
+        u = self.pcnn.fwd_int(x.reshape(-1) + modulation.reshape(-1))
 
         c = pcnn.cosine_similarity_vec(u, x)
         if c > threshold:
@@ -1383,14 +1857,14 @@ class Brain:
         }
 
         self.observation_int = {
-            "u": np.zeros(exp_module.pcnn.N),
+            "u": np.zeros(exp_module.pcnn.get_size()),
             "delta_update": 0.,
             "velocity": np.zeros(2),
             "action_idx": 0,
             "depth": 0,
             "score": 0,
             "onset": 0,
-            "trg_u": np.zeros(exp_module.pcnn.N),
+            "trg_u": np.zeros(exp_module.pcnn.get_size()),
             "trg_position": np.zeros(2),
             "trg_velocity": np.zeros(2),
             "importance": 0,
@@ -1424,7 +1898,6 @@ class Brain:
         mod_observation = self.circuits(observation=self.state)
 
         # TODO : add directive depending on modulation
-
 
         # set new directive
         if self.t == 0:
@@ -1469,8 +1942,9 @@ class Brain:
     def routines(self, wall_vectors: np.ndarray):
 
         # pcnn routine
-        self.exp_module.pcnn.clean_recurrent(
-                                wall_vectors=wall_vectors)
+        # self.exp_module.pcnn.clean_recurrent(
+        #                         wall_vectors=wall_vectors)
+        pass
 
     def render(self, **kwargs):
 
@@ -1737,7 +2211,6 @@ class SamplingPolicy:
     def has_collided(self):
 
         self._velocity = -self._velocity
-
 
 
 
