@@ -1466,9 +1466,7 @@ class ExperienceModule3(ModuleClass):
                 "velocity": np.zeros(2),
                 "action_idx": None,
                 "score": None,
-                "depth": None,
-                "score_values": np.zeros((9, 4)).tolist(),
-                "action_values": np.zeros(9).tolist()}
+                "depth": None}
 
         # --- policies
         self.action_policy_int = SamplingPolicy(speed=speed,
@@ -1494,8 +1492,11 @@ class ExperienceModule3(ModuleClass):
         spatial_repr = self.pcnn(x=observation["position"])
         observation["u"] = spatial_repr.copy()
 
+        # the target is factored in
+        self.trg_module(observation=observation)
+
         # --- generate an action
-        action, action_idx, score, score_values, action_values = self._generate_action(
+        action, action_idx, score = self._generate_action(
                                 observation=observation)
 
         # --- output & logs
@@ -1506,9 +1507,7 @@ class ExperienceModule3(ModuleClass):
                 "velocity": action,
                 "action_idx": action_idx,
                 "score": score,
-                "depth": self.action_delay,
-                "score_values": score_values,
-                "action_values": action_values}
+                "depth": self.action_delay}
 
         logger(f"action: {action} | {score=:.3f}")
 
@@ -1519,9 +1518,7 @@ class ExperienceModule3(ModuleClass):
         """
 
         self.action_policy_int.reset()
-        self.trg_module(observation=observation)
         done = False # when all actions have been tried
-        score_values = [[], [], [], [], [], [], [], [], []]
 
         while True:
 
@@ -1563,10 +1560,6 @@ class ExperienceModule3(ModuleClass):
             if action_idx == 4:
                 score = -1.
 
-            # ---
-            score_values[action_idx] += [trg_modulation,
-                                         score]
-
             # it is the best available action
             if done:
                 break
@@ -1575,12 +1568,11 @@ class ExperienceModule3(ModuleClass):
             self.action_policy_int.update(score=score)
 
         # ---
-        return action, action_idx, score, score_values, action_values
+        return action, action_idx, score
 
     def render(self, ax=None, **kwargs):
 
-        self.action_policy_int.render(values=self.output["score_values"],
-                                      action_values=self.output["action_values"])
+        self.action_policy_int.render()
         self.trg_module.render()
 
         if self.pcnn_plotter is not None:
@@ -2133,14 +2125,13 @@ class SamplingPolicy:
                            interpolation="nearest")
         else:
             self.ax.imshow(self._values.reshape(3, 3),
-                           cmap="RdBu_r", vmin=-3.1, vmax=3.1,
+                           cmap="RdBu_r", vmin=-3., vmax=3.,
                            aspect="equal",
                            interpolation="nearest")
 
         # labels inside each square
         for i in range(3):
             for j in range(3):
-
                 if values is not None:
                     text = "".join([f"{np.around(v, 2)}\n" for v in values[3*i+j]])
                 else:
