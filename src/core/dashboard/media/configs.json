@@ -1,1 +1,1 @@
-{"num_figs": 8, "circuits": ["Bnd", "DA", "dPos", "Pop", "Ftg"], "t": 0, "position": [0.8, 0.2], "velocity": [0.0, 0.0], "trg_pos": [0.0, 0.0], "trg_velocity": [0.0, 0.0]}
+{"num_figs": 8, "circuits": ["Bnd", "DA", "dPos", "Pop", "Ftg"], "t": 9000, "position": [0.784, 0.291], "velocity": [-0.011, 0.011], "trg_pos": [0.7599999904632568, 0.7369999885559082], "trg_velocity": [-0.003, 0.015], "Trg_thr": 0.5}
