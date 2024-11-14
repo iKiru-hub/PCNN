@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
+from tqdm import tqdm
 
 
 
-
-
+""" functions """
 
 class OnlineFigure(ABC):
 
@@ -21,7 +21,6 @@ class OnlineFigure(ABC):
     @abstractmethod
     def update(self):
         pass
-
 
 
 def cosine_similarity(M: np.ndarray):
@@ -61,4 +60,36 @@ def calc_position_from_centers(a: np.ndarray,
     """
 
     return (centers * a.reshape(-1, 1)).sum(axis=0) / a.sum()
+
+
+""" analysis """
+
+
+def multiple_simulation(N: int, simulator: object):
+
+    """
+    run multiple simulations
+    """
+
+    def run(simulator: object):
+
+        done = False
+        while not done:
+            done = simulator.update()
+        return simulator.get_trajectory()
+
+    data = []
+    for _ in tqdm(range(N)):
+        data.append(np.array(run(simulator)))
+        simulator.reset(seed=np.random.randint(0, 10000))
+
+    # plot
+    fig, ax = plt.subplots(nrows=N, ncols=1, figsize=(13, 5))
+    for i, trajectory in enumerate(data):
+        ax[i].plot(trajectory[:, 0], trajectory[:, 1])
+        ax[i].set_title(f"simulation {i}")
+
+    plt.tight_layout()
+    plt.show()
+
 

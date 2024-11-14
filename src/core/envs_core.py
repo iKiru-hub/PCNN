@@ -233,6 +233,32 @@ class AgentBody:
             # self.win.getMouse()  # Wait for mouse click to close
 
 
+class RewardObj:
+
+    def __init__(self, position: np.ndarray,
+                 radius: float=0.05):
+
+        self._position = position
+        self._radius = radius
+
+    def __call__(self, position: np.ndarray):
+
+        """
+        assuming a box of size 1x1
+        """
+
+        distance = np.linalg.norm(position - self._position)
+        p = np.exp(-distance**2 / (2 * self._radius**2))
+        if distance < self._radius:
+            return np.random.binomial(1, p)
+        return 0.0
+
+    def render(self, ax: plt.Axes):
+
+        ax.add_patch(Circle(self._position, self._radius,
+                            fc="green", ec='black', alpha=0.3))
+
+
 
 """ other functions """
 

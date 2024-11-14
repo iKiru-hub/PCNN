@@ -532,22 +532,25 @@ class PlotPCNN:
         self._model = model
         self._number = number
         self.visualize = visualize
-        # if visualize:
-        #     self._fig, self._ax = plt.subplots(figsize=(6, 6))
+        if visualize:
+            self._fig, self._ax = plt.subplots(figsize=(6, 6))
         # else:
         #     self._fig, self._ax = None, None
 
     def render(self, trajectory: np.ndarray=None,
-               edges: bool=True, cmap: str='viridis',
+               edges: bool=True, cmap: str='RdBu_r',
                ax=None, new_a: np.ndarray=None,
                alpha_nodes: float=0.1,
                alpha_edges: float=0.2,
+               return_fig: bool=False,
                title: str=None):
 
         new_ax = False
         if ax is None:
             new_ax = True
-            fig, ax = plt.subplots(figsize=(6, 6))
+            # fig, ax = plt.subplots(figsize=(6, 6))
+            fig, ax = self._fig, self._ax
+            ax.clear()
 
         # new_a = new_a if new_a is not None else self._model.u
 
@@ -594,6 +597,9 @@ class PlotPCNN:
 
         # if ax == self._ax:
         #     self._fig.canvas.draw()
+
+        if return_fig:
+            return fig
 
 
 

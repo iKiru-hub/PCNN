@@ -10,6 +10,8 @@ import pclib
 
 FIGPATH = "dashboard/media"
 
+FIGSIZE = (4, 4)
+
 
 def set_seed(seed: int=0):
     np.random.seed(seed)
@@ -45,7 +47,7 @@ class LeakyVariableWrapper1D(pclib.LeakyVariable1D):
 
         # figure configs
         if self._visualize:
-            self.fig, self.ax = plt.subplots(figsize=(4, 3))
+            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
 
     def __call__(self, x: float=0.,
                  simulate: bool=False):
@@ -63,7 +65,7 @@ class LeakyVariableWrapper1D(pclib.LeakyVariable1D):
         super().reset()
         self.record = []
 
-    def render(self):
+    def render(self, return_fig: bool=False):
 
         if not self._visualize:
             return
@@ -79,6 +81,9 @@ class LeakyVariableWrapper1D(pclib.LeakyVariable1D):
             self.fig.savefig(f"{FIGPATH}/{self._number}.png")
             return
         self.fig.canvas.draw()
+
+        if return_fig:
+            return self.fig
 
 
 class LeakyVariableWrapperND(pclib.LeakyVariableND):
@@ -111,7 +116,7 @@ class LeakyVariableWrapperND(pclib.LeakyVariableND):
 
         # figure configs
         if self._visualize:
-            self.fig, self.ax = plt.subplots(figsize=(4, 3))
+            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
 
     def __call__(self, x: float=0.,
                  simulate: bool=False):
@@ -129,7 +134,7 @@ class LeakyVariableWrapperND(pclib.LeakyVariableND):
         super().reset()
         self.record = []
 
-    def render(self):
+    def render(self, return_fig: bool=False):
 
         if not self._visualize:
             return
@@ -145,6 +150,9 @@ class LeakyVariableWrapperND(pclib.LeakyVariableND):
             self.fig.savefig(f"{FIGPATH}/{self._number}.png")
             return
         self.fig.canvas.draw()
+
+        if return_fig:
+            return self.fig
 
 
 class Modulation(ABC):
@@ -168,7 +176,7 @@ class Modulation(ABC):
         self.mod_weight = kwargs.get("mod_weight", 1.)
 
         if self._visualize:
-            self.fig, self.ax = plt.subplots(figsize=(4, 4))
+            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
             logger(f"%visualizing {self.__class__}")
 
     def __repr__(self):
@@ -187,10 +195,11 @@ class Modulation(ABC):
     def get_leaky_v(self):
         return self.leaky_var.get_v()
 
-    def render(self):
-        self.leaky_var.render()
+    def render(self, return_fig: bool=False):
+        self.leaky_var.render(return_fig=return_fig)
 
-    def render_field(self, pcnn_plotter: object):
+    def render_field(self, pcnn_plotter: object,
+                     return_fig: bool=False):
 
         self.ax.clear()
         pcnn_plotter.render(ax=self.ax,
@@ -204,6 +213,9 @@ class Modulation(ABC):
         if self._number is not None:
             self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
             return
+
+        if return_fig:
+            return self.fig
 
     def reset(self, complete: bool=False):
         self.leaky_var.reset()
@@ -349,7 +361,7 @@ class Dopamine(Modulation):
 
         return out
 
-    def render(self):
+    def render(self, return_fig: bool=False):
 
         if not self._visualize:
             return
@@ -367,6 +379,9 @@ class Dopamine(Modulation):
             return
 
         self.fig.canvas.draw()
+
+        if return_fig:
+            return self.fig
 
 
 class Acetylcholine(Modulation):
@@ -463,7 +478,7 @@ class BoundaryMod(Modulation):
         self.var = u.copy()
         return out
 
-    def super_render(self):
+    def super_render(self, return_fig: bool=False):
 
         if not self._visualize:
             return
@@ -493,6 +508,9 @@ class BoundaryMod(Modulation):
             return
 
         self.fig_bnd.canvas.draw()
+
+        if return_fig:
+            return self.fig_bnd
 
 
 class PositionTrace(Modulation):
@@ -524,7 +542,7 @@ class PositionTrace(Modulation):
         self.value = out[0]
         return out
 
-    def render(self):
+    def render(self, return_fig: bool=False):
 
         if not self._visualize:
             return
@@ -537,6 +555,9 @@ class PositionTrace(Modulation):
         self.ax.set_title(f"Position Trace " + \
             f"{np.abs(self.output).max():.2f}")
         self.fig.canvas.draw()
+
+        if return_fig:
+            return self.fig
 
 
 class Regions(Modulation):
@@ -596,7 +617,7 @@ class PopulationProgMax(Program):
             self._activity = np.zeros(self.N)
 
             if self._visualize:
-                self.fig, self.ax = plt.subplots(figsize=(4, 3))
+                self.fig, self.ax = plt.subplots(figsize=(4, 4))
                 logger(f"%visualizing {self.__class__}")
 
     def _logic(self, inputs: tuple, simulate: bool=False):
@@ -607,7 +628,7 @@ class PopulationProgMax(Program):
             self.activity = inputs[0].flatten()
         return self.output
 
-    def render(self):
+    def render(self, return_fig: bool=False):
 
         if not self._visualize:
             return
@@ -625,6 +646,9 @@ class PopulationProgMax(Program):
             self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
             return
         self.fig.canvas.draw()
+
+        if return_fig:
+            return self.fig
 
 
 class TargetProg(Program):
@@ -637,7 +661,7 @@ class TargetProg(Program):
         self._activity = np.zeros(self.N)
 
         if self._visualize:
-            self.fig, self.ax = plt.subplots(figsize=(4, 3))
+            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
             logger(f"%visualizing {self.__class__}")
 
     def _logic(self, inputs: tuple, simulate: bool=False):
@@ -648,7 +672,7 @@ class TargetProg(Program):
             self.activity = inputs[0].flatten()
         return self.output
 
-    def render(self):
+    def render(self, return_fig: bool=False):
 
         if not self._visualize:
             return
@@ -666,6 +690,9 @@ class TargetProg(Program):
             self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
             return
         self.fig.canvas.draw()
+
+        if return_fig:
+            return self.fig
 
 
 
@@ -688,7 +715,7 @@ class Circuits:
         self._number = number
         self.visualize = visualize
         if visualize:
-            self.fig, self.ax = plt.subplots(figsize=(4, 4))
+            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
             logger(f"%visualizing {self.__class__}")
 
     def __len__(self):
@@ -711,15 +738,18 @@ class Circuits:
 
         return self.output
 
-    def render(self, pcnn_plotter: object=None):
+    def render(self, pcnn_plotter: object=None,
+               return_fig: bool=False):
 
         # render singular circuit
+        cir_figs = []
         for _, circuit in self.circuits.items():
             if hasattr(circuit, "weights") and \
                 pcnn_plotter is not None:
-                circuit.render_field(pcnn_plotter=pcnn_plotter)
+                cir_figs += [circuit.render_field(pcnn_plotter=pcnn_plotter,
+                                     return_fig=return_fig)]
             else:
-                circuit.render()
+                cir_figs += [circuit.render(return_fig=return_fig)]
 
         # render dashboard
         if self.visualize:
@@ -739,6 +769,11 @@ class Circuits:
                 return
 
             self.fig.canvas.draw()
+
+            if return_fig:
+                return [self.fig] + cir_figs
+        if return_fig:
+            return cir_figs
 
 
 
@@ -1548,17 +1583,17 @@ class ExperienceModule3(ModuleClass):
                             velocity=action)
 
             # --- evaluate the effects
-            score = 0
-
             # relevant modulators
             values = np.array([modulation["Bnd"].item(),
                                modulation["dPos"].item(),
                                modulation["Pop"].item(),
                                trg_modulation])
-            score += values @ self.weights.T
+            score = (values @ self.weights.T) / np.abs(self.weights).sum()
 
             if action_idx == 4:
                 score = -1.
+
+            score = 1 / (1 + np.exp(-score))
 
             # it is the best available action
             if done:
@@ -1572,13 +1607,22 @@ class ExperienceModule3(ModuleClass):
 
     def render(self, ax=None, **kwargs):
 
-        self.action_policy_int.render()
-        self.trg_module.render()
+        return_fig = kwargs.get("return_fig", False)
+
+        fig_api = self.action_policy_int.render(return_fig=return_fig)
+        fig_tm = self.trg_module.render(return_fig=return_fig)
 
         if self.pcnn_plotter is not None:
-            self.pcnn_plotter.render(ax=None,
-                trajectory=kwargs.get("trajectory", False),
-                new_a=1*self.circuits.circuits["DA"].output)
+            fig_pp = self.pcnn_plotter.render(ax=None,
+                # trajectory=kwargs.get("trajectory", False),
+                new_a=1*self.circuits.circuits["DA"].output,
+                                     return_fig=return_fig,
+                        alpha_nodes=0.8, alpha_edges=0.4)
+
+        if return_fig:
+            return fig_pp, fig_tm, fig_api
+
+
 
     def reset(self, complete: bool=False):
         super().reset(complete=complete)
@@ -1621,7 +1665,7 @@ class TargetModule(ModuleClass):
         self.visualize = visualize
         self._number = number
         if visualize:
-            self.fig, self.ax = plt.subplots(figsize=(4, 4))
+            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
             logger(f"%visualizing {self.__class__}")
 
     def _logic(self, observation: dict):
@@ -1655,6 +1699,10 @@ class TargetModule(ModuleClass):
             score = 1 * int(flag) * self.circuits.circuits["Ftg"].value
         else:
             score = 0.
+
+        logger.debug(f"TRG_MODULE: {flag=}, {score}")
+        if score > 0.:
+            logger.debug(f"TRG_MODULE: {score=:.4f}")
 
         # --- output
         assert isinstance(score, float), f"{type(score)=}"
@@ -1709,9 +1757,9 @@ class TargetModule(ModuleClass):
         self.ax.clear()
         self.ax.scatter(*self.output["trg_position"].flatten(),
                     marker="x", color="red",
-                    s=100*np.abs(self.output["score"]))
+                    s=100)
         self.ax.set_title(f"Target Module | " + \
-                          f" I={np.around(self.output['score'], 2)}")
+            f" I={self.output['score']:.4f}")
         self.ax.set_xlim(0, 1)
         self.ax.set_ylim(0, 1)
         self.ax.set_xticks([])
@@ -1723,6 +1771,9 @@ class TargetModule(ModuleClass):
         if self._number is not None:
             self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
             return
+
+        if kwargs.get("return_fig", False):
+            return self.fig
 
     def reset(self, complete: bool=False):
         super().reset(complete=complete)
@@ -1744,7 +1795,7 @@ class WeightsPolicy:
         self.visualize = visualize
         self._number = number
         if visualize:
-            self.fig, self.ax = plt.subplots(figsize=(4, 4))
+            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
             logger(f"%visualizing {self.__class__}")
 
     def __str__(self):
@@ -1801,9 +1852,6 @@ class WeightsPolicy:
 """ --- high level MODULES --- """
 
 
-
-
-
 class Brain:
 
     def __init__(self, exp_module: ExperienceModule,
@@ -1838,13 +1886,13 @@ class Brain:
 
         self.directive = "new"
         self._elapsed_time = 0
-        self._plot_intv = plot_intv
+        # self._plot_intv = plot_intv  # no longer used
         self.t = -1
         self.number = number
         self.frequencies = np.zeros(self.exp_module.action_space_len)
 
         if number is not None:
-            self.fig, self.ax = plt.subplots(figsize=(4, 3))
+            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
 
         # record
         self.record = {"trajectory": []}
@@ -1906,13 +1954,14 @@ class Brain:
 
     def render(self, **kwargs):
 
-        if self.t % self._plot_intv == 0:
+        fig_cir = self.circuits.render(
+            pcnn_plotter=self.exp_module.pcnn_plotter,
+            return_fig=kwargs.get("return_fig", False))
 
-            self.circuits.render(
-                pcnn_plotter=self.exp_module.pcnn_plotter)
-            self.exp_module.render(ax=kwargs.get("ax", None),
-                              trajectory=np.array(
-                                   self.record["trajectory"]))
+        fig_exp = self.exp_module.render(ax=kwargs.get("ax", None),
+                          trajectory=np.array(
+                               self.record["trajectory"]),
+                                     return_fig=kwargs.get("return_fig", False))
 
             # if self.number is not None:
 
@@ -1926,6 +1975,9 @@ class Brain:
             #     self.ax.set_ylim(0, 1)
 
             #     self.fig.savefig(f"{FIGPATH}/fig{self.number}.png")
+
+        if kwargs.get("return_fig", False):
+            return list(fig_exp) + fig_cir
 
     @property
     def render_values(self):
@@ -2020,7 +2072,7 @@ class SamplingPolicy:
         self._number = number
         self.visualize = visualize
         if visualize:
-            self.fig, self.ax = plt.subplots(figsize=(4, 4))
+            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
             logger(f"%visualizing {self.__class__}")
 
     def __len__(self):
@@ -2106,7 +2158,8 @@ class SamplingPolicy:
         self._available_idxs = state["available_idxs"]
 
     def render(self, values: np.ndarray=None,
-               action_values: np.ndarray=None):
+               action_values: np.ndarray=None,
+               return_fig: bool=False):
 
         if not self.visualize:
             return
@@ -2124,8 +2177,9 @@ class SamplingPolicy:
                            aspect="equal",
                            interpolation="nearest")
         else:
+            self._values[4] = (self._values[:4].sum() + self._values[5:].sum()) / 8
             self.ax.imshow(self._values.reshape(3, 3),
-                           cmap="RdBu_r", vmin=-3., vmax=3.,
+                           cmap="Blues_r",
                            aspect="equal",
                            interpolation="nearest")
 
@@ -2135,8 +2189,9 @@ class SamplingPolicy:
                 if values is not None:
                     text = "".join([f"{np.around(v, 2)}\n" for v in values[3*i+j]])
                 else:
-                    text = f"{self._samples[3*i+j][1]:.3f}\n" + \
-                          f"{self._samples[3*i+j][0]:.3f}"
+                    # text = f"{self._samples[3*i+j][1]:.3f}\n" + \
+                    #       f"{self._samples[3*i+j][0]:.3f}"
+                    text = f"{self._values[3*i+j]:.3f}"
                 self.ax.text(j, i, f"{text}",
                              ha="center", va="center",
                              color="black",
@@ -2158,6 +2213,9 @@ class SamplingPolicy:
             return
 
         self.fig.canvas.draw()
+
+        if return_fig:
+            return self.fig
 
     def reset(self):
         self._idx = None

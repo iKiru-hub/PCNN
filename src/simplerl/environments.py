@@ -1053,6 +1053,7 @@ class AgentBody:
                  **kwargs):
         self.radius = kwargs.get("radius", 0.05)
         self.position = position if position is not None else self._random_position()
+        self.prev_position = self.position.copy()
         self.velocity = np.zeros(2).astype(float)
         self.color = kwargs.get("color", "red")
         self._room = room
@@ -1069,6 +1070,7 @@ class AgentBody:
 
         # update position
         # + considering a possible collision
+        self.prev_position = self.position.copy()
         self.position += self.velocity * (1 + \
                             self.bounce_coefficient * \
                             1 * collision)
@@ -1099,17 +1101,31 @@ class AgentBody:
     def set_position(self, position: np.ndarray):
         self.position = position
 
-    def draw(self, ax: plt.Axes):
-        ax.add_patch(Circle(self.position, self.radius,
+    def draw(self, ax: plt.Axes, velocity: np.ndarray=None):
+        ax.add_patch(Circle(self.prev_position, self.radius,
                             fc=self.color, ec='black'))
-        ax.arrow(self.position[0], self.position[1],
-                 5*self.velocity[0], 5*self.velocity[1],
+
+        # ax.arrow(self.position[0], self.position[1],
+        #          5*velocity[0], 5*velocity[1],
+        #          head_width=0.02, head_length=0.02,
+        #          fc='black', ec='black')
+
+        displacement = self.position - self.prev_position
+        ax.arrow(self.prev_position[0], self.prev_position[1],
+                 5*displacement[0], 5*displacement[1],
                  head_width=0.02, head_length=0.02,
                  fc='black', ec='black')
 
-    def render(self, ax: plt.Axes):
+        # if velocity is not None:
+        #     ax.arrow(self.position[0], self.position[1],
+        #              5*velocity[0], 5*velocity[1],
+        #              head_width=0.02, head_length=0.02,
+        #              fc='blue', ec='black',
+        #              linestyle='dashed')
+
+    def render(self, ax: plt.Axes, velocity: np.ndarray=None):
         self._room.draw(ax=ax)
-        self.draw(ax=ax)
+        self.draw(ax=ax, velocity=velocity)
 
 
 class Zombie:
