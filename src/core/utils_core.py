@@ -46,7 +46,12 @@ def cosine_similarity_vec(x: np.ndarray,
     y = y.reshape(-1, 1)
     x = x.reshape(1, -1)
 
-    z = (x @ y) / (np.linalg.norm(x) * np.linalg.norm(y))
+    norms = (np.linalg.norm(x) * np.linalg.norm(y))
+
+    if norms == 0:
+        return 0.
+
+    z = (x @ y) / norms
     if np.isnan(z):
         return 0.
     return z.item()
@@ -130,26 +135,25 @@ def setup_logger(name: str="MAIN",
 
             return f"LoggerWrapper(name={self.logger.name}," + \
                    f"level={self.level}, " + \
-                   f"debugging={self.is_debugging})" + \
+                   f"debugging={self.is_debugging}, " + \
                    f"warning={self.is_warning})"
 
         def __call__(self, msg: str="", level: int=0):
             if level <= self.level:
                 self.logger.info(msg)
 
-        def info(self, msg: str="", level: int=0):
+        def info(self, msg: str="", level: int=3):
             self(msg, level)
 
-        def warning(self, msg: str="", level: int=0):
-            if level <= self.level and self.is_warning:
+        def warning(self, msg: str=""):
+            if self.is_warning:
                 self.logger.warning(msg)
 
-        def error(self, msg: str="", level: int=0):
-            if level <= self.level:
-                self.logger.error(msg)
+        def error(self, msg: str=""):
+            self.logger.error(msg)
 
-        def debug(self, msg, level: int=0):
-            if level <= self.level and self.is_debugging:
+        def debug(self, msg):
+            if self.is_debugging:
                 self.logger.debug(msg)
 
         def set_debugging(self, is_debugging: bool):
@@ -165,46 +169,96 @@ def setup_logger(name: str="MAIN",
                          is_debugging=is_debugging,
                          is_warning=is_warning)
 
+logger = setup_logger(name="UTILS", colored=True,
+                      level=0, is_debugging=True,
+                      is_warning=True)
 
 """ analysis """
 
 
-def multiple_simulation(N: int, simulator: object):
+def _multiple_simulations(N: int, simulator: object,
+                          use_tqdm: bool=True):
 
     """
     run multiple simulations
     """
 
+    # --- INITIALIZATION
+    # define initial positions as N points on a grid
+    # over a box [0, 1] x [0, 1]
+
+    # approximate N to the nearest square number
+    if np.sqrt(N) % 1 != 0:
+        N = int(np.sqrt(N)) ** 2
+        logger.warning(f"Approximated N to the" + \
+            f" nearest square number: {N}")
+    xg = np.linspace(0.1, 0.9, int(np.sqrt(N)))
+    yg = np.linspace(0.1, 0.9, int(np.sqrt(N)))
+    all_init_positions = np.array(np.meshgrid(xg, yg)).T.reshape(-1, 2)
+
+    # --- SIMULATION
     def run(simulator: object):
 
         done = False
         while not done:
             done = simulator.update()
-        return simulator.get_trajectory()
+
+        return simulator.get_trajectory(), simulator.get_reward_visit()
         # return simulator.get_pcnn_graph()
 
     data = []
-    for _ in tqdm(range(N)):
+    for i in tqdm(range(N), disable=not use_tqdm):
 
         # data += [run(simulator)]
+        simulator.reset(init_position=all_init_positions[i])
+        data += [run(simulator)]
 
-        data.append(np.array(run(simulator)))
-        simulator.reset(init_position=np.random.uniform(0.1, 0.9, 2))
+    return N, data
 
-    # plot
-    ncols = min((N, 5))
-    nrows = N // 5
+
+def analysis_I(N: int, simulator: object):
+
+    """
+    plot the start and end positions of the trajectory,
+    GOAL: highlight how the agent stays within the reward area
+    """
+
+    # --- RUN
+    N, data = _multiple_simulations(N, simulator)
+
+    # --- PLOT
+    if len(data) > 10:
+        num_per_col = 10
+    else:
+        num_per_col = len(data)
+    ncols = min((N, num_per_col))
+    nrows = N // num_per_col
 
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols,
                            figsize=(13, 5))
 
+    # reward
+    rw_position, rw_radius = simulator.get_reward_info()
     for i, ax in enumerate(axs.flatten()):
 
-        if i < len(data):
+        if i < len(data) and data[i][1]:
+
+            # reward area
+            ax.add_patch(plt.Circle(rw_position, rw_radius,
+                                    color="green", alpha=0.1))
 
             # trajectory
-            ax.plot(data[i][:, 0], data[i][:, 1],
-                       lw=0.5)
+            trajectory = np.array(data[i][0])
+            ax.plot(trajectory[:, 0], trajectory[:, 1],
+                       lw=0.5, alpha=0.7)
+
+            # start and end
+            ax.scatter(trajectory[0, 0], trajectory[0, 1],
+                       marker="o", color="white", s=40,
+                       edgecolor="red")
+            ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
+                       marker="o", color="red", s=40,
+                       edgecolor="red")
 
             # graph
             # nodes, edges = data[i]
@@ -223,5 +277,97 @@ def multiple_simulation(N: int, simulator: object):
 
     plt.tight_layout()
     plt.show()
+
+
+def analysis_II(N: int, simulator: object):
+
+    """
+    GOAL: highlight the fraction of simulations whose last part
+    of the trajectory is spend within the reward area, given
+    different reward positions
+    """
+
+    assert int(np.sqrt(N)) ** 2 == N, "N must be a perfect square"
+
+    # reward positions
+    # all_rw_positions = [
+    #     [0.1, 0.1], [0.2, 0.5],
+    #     [0.1, 0.9], [0.5, 0.7],
+    #     [0.9, 0.9], [0.7, 0.5],
+    #     [0.9, 0.1], [0.5, 0.2],
+    #     [0.5, 0.5]
+    # ]
+
+    all_rw_positions = [
+        [0.2, 0.2], [0.2, 0.8],
+        [0.8, 0.8], [0.8, 0.2],
+        [0.2, 0.5], [0.5, 0.7],
+        [0.7, 0.2], [0.5, 0.2],
+        [0.5, 0.5], [-10., -10.]
+    ]
+    rw_radius = simulator.get_reward_info()[1]
+    NUM_TRIALS = len(all_rw_positions)
+
+    # run & plot
+    fig, axs = plt.subplots(nrows=2, ncols=NUM_TRIALS, figsize=(13, 5))
+    for i in tqdm(range(NUM_TRIALS)):
+
+        simulator.set_rw_position(rw_position=all_rw_positions[i])
+        _, data = _multiple_simulations(N, simulator, use_tqdm=False)
+
+        # process:
+        # average residuals for the last 70% of the trajectory
+        residuals = []
+        avg_end_positions = []
+        all_positions = []
+        for trajectory, _ in data:
+
+            # average position
+            avg_pos = np.array(trajectory[int(0.7 * len(trajectory)):]).mean(axis=0)
+            avg_end_positions += [avg_pos]
+            all_positions += [avg_pos.tolist()]
+
+            # check if the average position is within the reward area
+            # if np.linalg.norm(avg_pos - all_rw_positions[i]) < rw_radius:
+            #     num_within += 1
+            rw_position_i = all_rw_positions[i] if i < NUM_TRIALS - 1 else np.array([0.5, 0.5])
+            residuals += [np.linalg.norm(avg_pos - rw_position_i)]
+
+        accuracy = 1. - np.array(residuals)
+        accuracy = np.flip(np.sort(accuracy))[:int(0.9 * N)]
+        variance = np.var(all_positions, axis=0).mean()
+
+        # plot:
+        # A) plot
+        # axs[0, i].bar(0, accuracy, color="green", alpha=0.8)
+        axs[0, i].plot(range(len(accuracy)), accuracy, color="green", alpha=0.8)
+
+        # variance as a shaded area around the mean
+        axs[0, i].fill_between(range(len(accuracy)),
+                              np.mean(accuracy) - variance,
+                              np.mean(accuracy) + variance,
+                              color="red", alpha=0.1)
+        axs[0, i].axhline(np.mean(accuracy), color="red", lw=2.)
+
+        axs[0, i].set_title(f"{np.mean(accuracy):.2f}")
+        axs[0, i].axis("off")
+        axs[0, i].set_ylim(0., 1.)
+
+        # B) scatter plot of the reward area and the average end positions
+        axs[1, i].add_patch(plt.Circle(rw_position_i, rw_radius,
+                                      color="green", alpha=0.2))
+        avg_end_positions = np.array(avg_end_positions)
+        axs[1, i].scatter(avg_end_positions[:, 0], avg_end_positions[:, 1],
+                         color="red", s=5)
+        axs[1, i].set_aspect("equal")
+        axs[1, i].set_xlim(0., 1.)
+        axs[1, i].set_ylim(0., 1.)
+        axs[1, i].set_xticks([])
+        axs[1, i].set_yticks([])
+
+    plt.tight_layout()
+    plt.show()
+
+
 
 

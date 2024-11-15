@@ -4,7 +4,8 @@ const CONFIG_PATH = 'media/configs.json';
 let imageCount = 4;
 let autoUpdate = false;
 let updateInterval = null;
-const MAX_RETRIES = 5; // Maximum number of retries for loading each image
+const MAX_RETRIES = 1; // Maximum number of retries for loading each image
+const REFRESH_INTERVAL = 2000; // Interval for auto-refresh in milliseconds
 let loadedImages = []; // Array to hold successfully loaded images
 
 async function loadImages() {
@@ -46,7 +47,7 @@ async function loadImageWithRetry(index, retries, grid) {
                 if (attempt < retries) {
                     attempt++;
                     console.log(`Retrying image plot${index}.png... (Attempt ${attempt})`);
-                    setTimeout(loadImage, 500); // Retry after 500ms
+                    setTimeout(loadImage, 1000); // Retry after 500ms
                 } else {
                     console.warn(`Failed to load image plot${index}.png after ${retries} attempts`);
                     // Check if there was a previous successfully loaded image
@@ -82,7 +83,7 @@ function refreshImages() {
     updateImageCount();
     const refreshButton = document.getElementById('refreshButton');
     refreshButton.classList.add('active');
-    setTimeout(() => refreshButton.classList.remove('active'), 200);
+    setTimeout(() => refreshButton.classList.remove('active'), 1000);
 }
 
 function toggleAutoUpdate() {
@@ -92,7 +93,7 @@ function toggleAutoUpdate() {
     if (autoUpdate) {
         console.log("Auto-refresh enabled");
         toggleButton.classList.add('active');
-        updateInterval = setInterval(updateImageCount, 2000);
+        updateInterval = setInterval(updateImageCount, 1000);
     } else {
         console.log("Auto-refresh disabled");
         toggleButton.classList.remove('active');

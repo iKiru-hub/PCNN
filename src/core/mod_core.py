@@ -10,16 +10,16 @@ import pclib
 """ INITIALIZATION """
 
 FIGPATH = "dashboard/media"
-FIGSIZE = (4, 6)
+FIGSIZE = (4, 4)
 
 
 def set_seed(seed: int=0):
     np.random.seed(seed)
 
 logger = utils.setup_logger(name="MOD",
-                            level=-1,
-                            is_debugging=False,
-                            is_warning=False)
+                            level=0,
+                            is_debugging=True,
+                            is_warning=True)
 
 
 """ ABSTRACT CLASSES """
@@ -998,8 +998,6 @@ class ExperienceModule2(ModuleClass):
             self.action_policy_int.update(score=score)
 
         # ---
-        # logger.warning(f"score: {score_values} | ")
-
         return action, action_idx, score, score_values, action_values
 
     def _simulation_loop(self, observation: dict,
@@ -1040,7 +1038,6 @@ class ExperienceModule2(ModuleClass):
         self.action_policy.reset()
         assert len(self.action_policy._available_idxs) == 9, \
             "action policy must have 9 actions"
-        logger.debug(f"---- generate action [{directive=}] ...")
         counter = 0
         while True:
 
@@ -1106,12 +1103,6 @@ class ExperienceModule2(ModuleClass):
 
         # ---
         self.action_policy.reset()
-
-        logger.debug(f"#generated action: {action} | " + \
-                     f"score: {score} | " + \
-                     f"depth: {depth} | " + \
-                     f"[M] action_idx: {action_idx} | " + \
-                     f"[M] action_values: {action_values_main}")
 
         return action, action_idx, score, depth, score_values, action_values
 
@@ -1338,8 +1329,6 @@ class ExperienceModule(ModuleClass):
             self.action_policy_int.update(score=score)
 
         # ---
-        # logger.warning(f"score: {score_values} | ")
-
         return action, action_idx, score, score_values, action_values
 
     def _simulation_loop(self, observation: dict,
@@ -1380,7 +1369,6 @@ class ExperienceModule(ModuleClass):
         self.action_policy.reset()
         assert len(self.action_policy._available_idxs) == 9, \
             "action policy must have 9 actions"
-        # logger.debug(f"---- generate action [{directive=}] ...")
         counter = 0
         while True:
 
@@ -1445,12 +1433,6 @@ class ExperienceModule(ModuleClass):
         # ---
         self.action_policy.reset()
 
-        # logger.debug(f"#generated action: {action} | " + \
-        #              f"score: {score} | " + \
-        #              f"depth: {depth} | " + \
-        #              f"[M] action_idx: {action_idx} | " + \
-        #              f"[M] action_values: {action_values_main}")
-
         return action, action_idx, score, depth, score_values, action_values
 
     def render(self, ax=None, **kwargs):
@@ -1508,22 +1490,40 @@ class ExperienceModule3(ModuleClass):
                 "velocity": np.zeros(2),
                 "action_idx": None,
                 "score": None,
-                "depth": None}
+                "depth": action_delay}
 
-        # --- policies
+        # --- action generation configuration
+        self.action_policy_main = SamplingPolicy(speed=speed,
+                                                 visualize=False,
+                                                 number=None,
+                                                 name="SamplingMain")
         self.action_policy_int = SamplingPolicy(speed=speed,
                                                 visualize=visualize_action,
                                                 number=number,
                                                 name="SamplingInt")
         self.action_space_len = len(self.action_policy_int)
         self.action_delay = action_delay # ---
+        self.max_depth = max_depth
         self.weights = weights
+
+        # internal directives
+        self.directive = {
+            "state": "new",
+            "onset": 0,
+            "action_t": 0,
+            "depth": 0,
+        }
+        self.t = 0
 
         # --- visualization
         self.record = []
+        self.rollout = {
+            "trajectory": [],
+            "action_sequence": [],
+            "score_sequence": [],
+            "index_sequence": []}
 
-    def _logic(self, observation: dict,
-               directive: str="keep"):
+    def _logic(self, observation: dict):
 
         """
         the level of acetylcholine is determined
@@ -1538,22 +1538,19 @@ class ExperienceModule3(ModuleClass):
         self.trg_module(observation=observation)
 
         # --- generate an action
-        action, action_idx, score = self._generate_action(
-                                observation=observation)
+        # self._generate_action(observation=observation)
+        self._generate_action_from_rollout(observation=observation)
 
         # --- output & logs
         self.record += [observation["position"].tolist()]
-        self.output = {
-                "u": spatial_repr,
-                "delta_update": self.pcnn.get_delta_update(),
-                "velocity": action,
-                "action_idx": action_idx,
-                "score": score,
-                "depth": self.action_delay}
+        self.output["u"] = spatial_repr
+        self.output["delta_update"] = self.pcnn.get_delta_update()
+        self.t += 1
 
-        logger(f"action: {action} | {score=:.3f}")
+        logger.debug(f"output action: {self.output['velocity']}")
 
-    def _generate_action(self, observation: dict) -> np.ndarray:
+    def _generate_action(self, observation: dict,
+                         returning: bool=False) -> np.ndarray:
 
         """
         generate a new action given an observation
@@ -1565,42 +1562,18 @@ class ExperienceModule3(ModuleClass):
         while True:
 
             # --- generate a random action
-            action, done, action_idx, action_values = self.action_policy_int()
+            action, done, action_idx, _ = self.action_policy_int()
+
 
             # --- simulate its effects
-
             # new position if the action is taken
             new_position = observation["position"] + action
 
-            # new observation/effects
-            u = self.pcnn.fwd_ext(x=new_position)
+            score = self._evaluate_action(position=new_position,
+                                          action=action,
+                                          action_idx=action_idx)
 
-            new_observation = {
-                "u": u,
-                "position": new_position,
-                "velocity": action,
-                "collision": False,
-                "reward": 0.,
-                "delta_update": 0.}
-
-            modulation = self.circuits(
-                            observation=new_observation,
-                            simulate=True)
-            trg_modulation = self.trg_module.evaluate_direction(
-                            velocity=action)
-
-            # --- evaluate the effects
-            # relevant modulators
-            values = np.array([modulation["Bnd"].item(),
-                               modulation["dPos"].item(),
-                               modulation["Pop"].item(),
-                               trg_modulation])
-            score = (values @ self.weights.T) / np.abs(self.weights).sum()
-
-            if action_idx == 4:
-                score = -1.
-
-            score = 1 / (1 + np.exp(-score))
+            # score = 1 / (1 + np.exp(-score))
 
             # it is the best available action
             if done:
@@ -1610,7 +1583,170 @@ class ExperienceModule3(ModuleClass):
             self.action_policy_int.update(score=score)
 
         # ---
-        return action, action_idx, score
+        if returning:
+            return action, action_idx, score
+
+        self.output["velocity"] = action
+        self.output["action_idx"] = action_idx
+        self.output["score"] = score
+
+    def _evaluate_action(self, position: np.ndarray,
+                         action: np.ndarray,
+                         action_idx: int) -> float:
+
+
+        # new observation/effects
+        u = self.pcnn.fwd_ext(x=position)
+
+        new_observation = {
+            "u": u,
+            "position": position,
+            "velocity": action,
+            "collision": False,
+            "reward": 0.,
+            "delta_update": 0.}
+
+        modulation = self.circuits(
+                        observation=new_observation,
+                        simulate=True)
+        trg_modulation = self.trg_module.evaluate_direction(
+                        velocity=action)
+
+        # --- evaluate the effects
+        # relevant modulators
+        values = np.array([modulation["Bnd"].item(),
+                           modulation["dPos"].item(),
+                           modulation["Pop"].item(),
+                           trg_modulation])
+        score = (values @ self.weights.T) / np.abs(self.weights).sum()
+
+        if action_idx == 4:
+            score = -1.
+
+        return score
+
+    def _action_rollout(self, observation: dict,
+                        action: np.ndarray,
+                        action_idx: int) -> tuple:
+
+        #
+        rollout_scores = []
+        action_seq = [action]
+        index_seq = [action_idx]
+
+        # first step + evaluate
+        observation["position"] = observation["position"] + action
+        trajectory = [observation["position"]]
+        rollout_scores += [self._evaluate_action(position=observation["position"],
+                                                 action=action,
+                                                 action_idx=action_idx)]
+        rollout_scores[0] = round(rollout_scores[0], 4)
+
+        # --- simulate its effects over the next steps
+        for t in range(self.max_depth):
+
+            # get the current action
+            action, action_idx, score = self._generate_action(
+                                observation=observation,
+                                returning=True)
+
+            # step
+            observation["position"] = observation["position"] + action
+
+            # save the score
+            rollout_scores += [round(score, 4)]
+            trajectory += [observation["position"]]
+            action_seq += [action]
+            index_seq += [action_idx]
+
+        return rollout_scores, trajectory, action_seq, index_seq
+
+    def _generate_action_from_rollout(self,
+                        observation: dict) -> np.ndarray:
+
+        """
+        generate a new action given an observation
+        through a rollout over many steps
+        """
+
+        logger.debug(f"current position: {observation['position']}")
+
+
+        # --- `keep` current directive
+        if self.directive["state"] == "keep":
+
+            # apply the plan
+            try:
+                self.output["velocity"] = self.rollout["action_sequence"][self.directive["action_t"]]
+                self.output["action_idx"] = self.rollout["index_sequence"][self.directive["action_t"]]
+                # logger.debug(f"next action: {self.output['velocity']} [seq: {self.rollout['action_sequence']}] [[t={self.directive['action_t']}]]")
+            except IndexError:
+                logger.error(f"index error: {self.directive['action_t']}")
+                logger.error(f"{self.rollout['action_sequence']}")
+                raise IndexError
+
+            # check whether to keep or renew
+            if self.directive["action_t"] >= self.directive["depth"]:
+                self.directive["state"] = "new"
+            self.directive["action_t"] += 1
+
+            return
+
+        # --- `new` directive
+        self.action_policy_main.reset()
+        done = False
+
+        best_score = -np.inf
+        best_action_idx = None
+        best_action = None
+        depth = 0
+        best_rollout = []
+        all_scores = []
+        while True:
+
+            # --- generate random main action
+            action, done, action_idx, _ = self.action_policy_main()
+
+            # --- evaluate action
+            rollout_scores, trajectory, action_seq, index_seq = self._action_rollout(observation=observation.copy(),
+                                                  action=action,
+                                                  action_idx=action_idx)
+            self.action_policy_main.update()
+
+            # evaluate the best action
+            if np.sum(rollout_scores[1:]) > best_score:
+                best_score = np.sum(rollout_scores[1:])
+                best_rollout = [np.stack(trajectory), rollout_scores,
+                                action_seq, index_seq, len(rollout_scores[1:])]
+
+            if done:
+                break
+            all_scores += [[action, rollout_scores]]
+
+        # if best_score <= 0.:
+        #     logger.warning("no good action found")
+        #     for a, scores in all_scores:
+        #         logger.debug(f"{a} | {scores}")
+
+        #     raise ValueError("no good action found")
+
+        # --- record result
+        depth = best_rollout[4]
+        self.output["velocity"] = best_rollout[2][0]
+        self.output["action_idx"] = best_rollout[3][0]
+        self.output["score"] = best_rollout[1][0]
+        self.directive["state"] = "keep"
+        self.directive["onset"] = self.t
+        self.directive["depth"] = depth
+        self.directive["action_t"] = 1
+
+        self.rollout["trajectory"] = best_rollout[0][:depth+2]
+        self.rollout["score_sequence"] = best_rollout[1][:depth+2]
+        self.rollout["action_sequence"] = best_rollout[2][:depth+2]
+        self.rollout["index_sequence"] = best_rollout[3][:depth+2]
+
+        logger.debug(f"rollout [{depth=}] ||\nactions: {self.rollout['action_sequence']}\nscores: {best_rollout[1]}")
+        # logger.debug(f"best action: {best_action} | {best_action_idx} | {best_score}")
 
     def render(self, ax=None, **kwargs):
 
@@ -1621,10 +1757,13 @@ class ExperienceModule3(ModuleClass):
 
         if self.pcnn_plotter is not None:
             fig_pp = self.pcnn_plotter.render(ax=None,
-                # trajectory=kwargs.get("trajectory", False),
+                trajectory=kwargs.get("trajectory", False),
+                          rollout=[self.rollout["trajectory"],
+                                   self.rollout["score_sequence"]],
                 new_a=1*self.circuits.circuits["DA"].output,
                                      return_fig=return_fig,
-                        alpha_nodes=0.8, alpha_edges=0.4)
+                        alpha_nodes=kwargs.get("alpha_nodes", 0.8),
+                        alpha_edges=kwargs.get("alpha_edges", 0.5))
 
         if return_fig:
             return fig_pp, fig_tm, fig_api
@@ -1706,10 +1845,6 @@ class TargetModule(ModuleClass):
             score = 1 * int(flag) * self.circuits.circuits["Ftg"].value
         else:
             score = 0.
-
-        logger.debug(f"TRG_MODULE: {flag=}, {score}")
-        if score > 0.:
-            logger.debug(f"TRG_MODULE: {score=:.4f}")
 
         # --- output
         assert isinstance(score, float), f"{type(score)=}"
@@ -1919,33 +2054,31 @@ class Brain:
         # TODO : add directive depending on modulation
 
         # set new directive
-        if self.t == 0:
-            self.directive = "new"
+        # if self.t == 0:
+        #     self.directive = "new"
 
-        if self.directive == "force_keep" and \
-            (self.t - self.observation_int["onset"]) < \
-            self.observation_int["depth"]:
+        # if self.directive == "force_keep" and \
+        #     (self.t - self.observation_int["onset"]) < \
+        #     self.observation_int["depth"]:
 
-            return self.movement
+        #     return self.movement
 
 #         elif self.directive == "force_keep":
 #             self.directive = "new"
 
-        elif mod_observation["dPos"] < 0.05:
-            self.directive = "new"
+        # elif mod_observation["dPos"] < 0.05:
+        #     self.directive = "new"
 
-        else:
-            self.directive = "keep"
+        # else:
+        #     self.directive = "keep"
 
         # --- update experience module
         # full output
-        self.observation_int = self.exp_module(
-                            observation=self.state,
-                            directive=self.directive)
+        self.observation_int = self.exp_module(observation=self.state)
 
         # --- update output
-        self.observation_int["onset"] = self.t
-        self.directive = "force_keep"
+        # self.observation_int["onset"] = self.t
+        # self.directive = "force_keep"
         self.movement = self.observation_int["velocity"]
 
         self.frequencies[self.observation_int["action_idx"]] += 1
@@ -1967,8 +2100,11 @@ class Brain:
 
         fig_exp = self.exp_module.render(ax=kwargs.get("ax", None),
                           trajectory=np.array(
-                               self.record["trajectory"]),
-                                     return_fig=kwargs.get("return_fig", False))
+                               self.record["trajectory"]) * \
+                                         kwargs.get("use_trajectory", False),
+                                     return_fig=kwargs.get("return_fig", False),
+                            alpha_nodes=kwargs.get("alpha_nodes", 0.8),
+                            alpha_edges=kwargs.get("alpha_edges", 0.5))
 
             # if self.number is not None:
 
@@ -2131,7 +2267,7 @@ class SamplingPolicy:
 
         return self._velocity.copy(), False, self._idx, self._values
 
-    def update(self, score: float):
+    def update(self, score: float=0.):
 
         # --- normalize the score
         # score = pcnn.generalized_sigmoid(x=score,

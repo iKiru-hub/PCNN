@@ -5,7 +5,7 @@ import time
 import run_core as rc
 
 # --- Constants ---
-REFRESH_RATE = 0.0001  # Refresh rate in seconds
+REFRESH_RATE = 0.1  # Refresh rate in seconds
 
 # --- Functions ---
 
@@ -21,7 +21,7 @@ def main():
 
     # Initialize the simulation
     simulation = rc.Simulation(seed=0,
-                               plot_interval=10)
+                               plot_interval=5)
 
     # Handle restart button
     if restart:
@@ -47,7 +47,7 @@ def main():
             time.sleep(REFRESH_RATE)  # Adjust the refresh rate as needed
         else:
             pause_message.write("Paused")  # Display "Paused" only once
-            time.sleep(0.1)  # Small delay to allow switching back to "Run"
+            time.sleep(REFRESH_RATE)  # Small delay to allow switching back to "Run"
 
 if __name__ == "__main__":
     main()

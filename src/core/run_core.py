@@ -27,9 +27,9 @@ import pclib
 
 CONFIGPATH = "dashboard/media/configs.json"
 logger = utc.setup_logger(name="RUN",
-                          level=-1,
-                          is_debugging=False,
-                          is_warning=False)
+                          level=0,
+                          is_debugging=True,
+                          is_warning=True)
 
 
 
@@ -73,12 +73,15 @@ class Simulation:
                  plot_interval: int=1,
                  rendering: bool=True,
                  max_duration: int=None,
-                 init_position: np.ndarray=None):
+                 init_position: np.ndarray=None,
+                 rw_position: np.ndarray=None,
+                 rw_radius: float=0.2,):
 
 
         # --- SETTINGS
         SPEED = 0.015
         init_position = np.array([0.8, 0.2]) if init_position is None else init_position
+        rw_position = np.array([0.8, 0.8]) if rw_position is None else rw_position
 
         self.plot_interval = plot_interval
         self.rendering = rendering
@@ -89,7 +92,9 @@ class Simulation:
                             "plot_interval": plot_interval,
                             "rendering": rendering,
                             "max_duration": max_duration,
-                            "init_position": init_position}
+                            "init_position": init_position,
+                            "rw_position": rw_position,
+                            "rw_radius": rw_radius}
 
         # --- PCNN
         N = 80
@@ -137,7 +142,7 @@ class Simulation:
         trg_module = mod.TargetModule(pcnn=model,
                                       circuits=circuits,
                                       speed=SPEED,
-                                      threshold=0.3,
+                                      threshold=0.01,
                                       visualize=rendering)
 
         # [ bnd, dpos, pop, trg ]
@@ -159,8 +164,8 @@ class Simulation:
                                 visualize=rendering)
         self.env = ev.AgentBody(room=self.env,
                                 position=init_position)
-        self.reward_obj = ev.RewardObj(position=np.array([0.5, 0.5]),
-                                       radius=0.2)
+        self.reward_obj = ev.RewardObj(position=rw_position,
+                                       radius=rw_radius)
         self.velocity = np.zeros(2)
         self.observation = {
             "u": np.zeros(N),
@@ -177,9 +182,11 @@ class Simulation:
             "action_idx": None,
         }
 
+        # --- RECORD
         self.agent.record["trajectory"] += [self.env.position.tolist()]
-
         self.t = -1
+
+        # --- visutalization
         if rendering:
             self.figures = self.agent.render(return_fig=True)
             self.fig_a, self.ax_a = plt.subplots(figsize=(4, 4))
@@ -235,6 +242,12 @@ class Simulation:
 
         return centers, connectivity
 
+    def get_reward_visit(self):
+        return self.agent.circuits.circuits["DA"].weights.sum() > 0.
+
+    def get_reward_info(self):
+        return self.init_config["rw_position"], self.init_config["rw_radius"]
+
     def _render(self):
 
         if self.t % self.plot_interval == 0:
@@ -249,6 +262,9 @@ class Simulation:
             for f in [self.fig_a] + self.agent.render(return_fig=True):
                 if f is not None:
                     self.figures.append(f)
+
+    def set_rw_position(self, rw_position: np.ndarray):
+        self.init_config["rw_position"] = rw_position
 
     def reset(self, seed: int=None, init_position: np.ndarray=None):
 
@@ -268,7 +284,7 @@ def main(args):
 
     # --- settings
     duration = args.duration
-    SPEED = 0.015
+    SPEED = 0.07
     other_info = {}
 
     # --- brain
@@ -351,7 +367,7 @@ def main(args):
     trg_module = mod.TargetModule(pcnn=model,
                                   circuits=circuits,
                                   speed=SPEED,
-                                  threshold=0.5,
+                                  threshold=0.01,
                                   visualize=True,
                                   number=1)
     other_info["Trg_thr"] = trg_module.threshold
@@ -375,13 +391,14 @@ def main(args):
     #                                   visualize_action=True)
 
     # [ bnd, dpos, pop, trg ]
-    weights = np.array([-1., 0.3, -0.5, 0.7])
+    weights = np.array([-1.2, -0.3, -2.8, 0.9])
     exp_module = mod.ExperienceModule3(pcnn=model,
                                        pcnn_plotter=model_plotter,
                                        trg_module=trg_module,
                                        circuits=circuits,
                                        weights=weights,
                                        action_delay=10,
+                                       max_depth=10,
                                        speed=SPEED,
                                        visualize=False,
                                        number=2,
@@ -433,8 +450,8 @@ def main(args):
         trajectory += [position.tolist()]
 
         # --- observation
-        observation["u"] = agent.exp_module.fwd_pcnn(
-            x=position.reshape(-1, 1)).flatten()
+        # observation["u"] = agent.exp_module.fwd_pcnn(
+        #     x=position.reshape(-1, 1)).flatten()
         observation["position"] = position
         observation["velocity"] = velocity
         observation["collision"] = collision
@@ -442,15 +459,15 @@ def main(args):
         observation["delta_update"] = agent.observation_int['delta_update']
         observation["action_idx"] = agent.observation_int['action_idx']
 
-        if collision:
-            logger.debug(f">>> collision at t={t}")
+        # if collision:
+        #     logger.debug(f">>> collision at t={t}")
 
-        if reward > 0:
-            logger.debug(f">>> reward at t={t}")
+        # if reward > 0:
+        #     logger.debug(f">>> reward at t={t}")
 
         # --- agent
         velocity = agent(observation=observation)
-        agent.routines(wall_vectors=env._room.wall_vectors)
+        # agent.routines(wall_vectors=env._room.wall_vectors)
 
         # --- exit
         if truncated:
@@ -463,8 +480,11 @@ def main(args):
             break
 
         # --- plot
-        if t % 10 == 0:
-            agent.render()
+        if t % 5 == 0:
+            if not args.plot:
+                agent.render(use_trajectory=True,
+                             alpha_nodes=0.2,
+                             alpha_edges=0.2)
 
             if args.plot:
                 plot_update(fig=fig, ax=ax,
@@ -483,6 +503,9 @@ def plot_update(fig, ax, agent, env, reward_obj,
     #
     env.render(ax=ax)
     reward_obj.render(ax=ax)
+    # agent.render(use_trajectory=True,
+    #              alpha_nodes=0.2,
+    #              alpha_edges=0.2)
 
     #
     # ax.set_title(f"t={t} | v={np.around(velocity, 3)} " + \
@@ -492,13 +515,16 @@ def plot_update(fig, ax, agent, env, reward_obj,
     plt.pause(0.001)
 
 
-
 def run_analysis(N: int=5, duration: int=1000):
 
-    simulator = Simulation(max_duration=duration,
-                           rendering=False)
+    rw_position = np.random.uniform(0.1, 0.9, 2)
 
-    utc.multiple_simulation(N=N, simulator=simulator)
+    simulator = Simulation(max_duration=duration,
+                           rendering=False,
+                           rw_position=rw_position)
+
+    # utc.analysis_I(N=N, simulator=simulator)
+    utc.analysis_II(N=N, simulator=simulator)
 
 
 
@@ -515,12 +541,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     #
-    if args.seed < 0:
-        args.seed = np.random.randint(0, 10000)
+    if args.seed > 0:
+        # args.seed = np.random.randint(0, 10000)
         logger.debug(f"seed: {args.seed}")
 
-    np.random.seed(args.seed)
-    mod.set_seed(seed=args.seed)
+        np.random.seed(args.seed)
+    # mod.set_seed(seed=args.seed)
 
     # run
     if args.main == "main":

@@ -178,7 +178,7 @@ class Room:
             velocity=velocity)
 
         if beyond:
-            logger.error(f"OUT OF THE BORDERS")
+            # logger.error(f"OUT OF THE BORDERS")
             self._self_check(position, velocity, radius,
                              stop)
             return new_velocity, None, True
@@ -1075,9 +1075,9 @@ class AgentBody:
                             self.bounce_coefficient * \
                             1 * collision)
 
-        if collision:
-            logger.debug(f"new velocity: {np.around(self.velocity, 3)}")
-            logger.debug(f"new position: {np.around(self.position, 3)}")
+        # if collision:
+        #     logger.debug(f"new velocity: {np.around(self.velocity, 3)}")
+        #     logger.debug(f"new position: {np.around(self.position, 3)}")
 
         truncated = not self._room.check_bounds(
                                 position=self.position,

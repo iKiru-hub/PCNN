@@ -549,6 +549,7 @@ class PlotPCNN:
         #     self._fig, self._ax = None, None
 
     def render(self, trajectory: np.ndarray=None,
+               rollout: tuple=None,
                edges: bool=True, cmap: str='RdBu_r',
                ax=None, new_a: np.ndarray=None,
                alpha_nodes: float=0.1,
@@ -571,6 +572,16 @@ class PlotPCNN:
                           lw=0.5, alpha=0.5 if new_a is not None else 0.9)
             ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
                         c='k', s=100, marker='x')
+
+        # --- rollout
+        if rollout is not None:
+            rollout_trj, rollout_vals = rollout
+            ax.plot(rollout_trj[:, 0], rollout_trj[:, 1], 'b',
+                    lw=1, alpha=0.5, linestyle='--')
+            for i, val in enumerate(rollout_vals):
+                ax.scatter(rollout_trj[i, 0], rollout_trj[i, 1],
+                            c='b', s=10*(2+val), alpha=0.7,
+                           marker='o')
 
         # --- network
         centers = self._model.get_centers()
@@ -605,6 +616,9 @@ class PlotPCNN:
             fig.savefig(f"{FIGPATH}fig{self._number}.png")
             plt.close()
             return
+
+        if new_ax:
+            fig.canvas.draw()
 
         # if ax == self._ax:
         #     self._fig.canvas.draw()
@@ -730,7 +744,12 @@ def cosine_similarity_vec(x: np.ndarray,
     y = y.reshape(-1, 1)
     x = x.reshape(1, -1)
 
-    z = (x @ y) / (np.linalg.norm(x) * np.linalg.norm(y))
+    norms = (np.linalg.norm(x) * np.linalg.norm(y))
+
+    if norms == 0:
+        return 0.
+
+    z = (x @ y) / norms
     if np.isnan(z):
         return 0.
     return z.item()
@@ -790,6 +809,9 @@ def calc_position_from_centers(a: np.ndarray,
     calculate the position of the agent from the
     activations of the neurons in the layer
     """
+
+    if a.sum() == 0:
+        return np.array([np.nan, np.nan])
 
     return (centers * a.reshape(-1, 1)).sum(axis=0) / a.sum()
 
