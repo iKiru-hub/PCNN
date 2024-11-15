@@ -6,17 +6,28 @@ from abc import ABC, abstractmethod
 # set off runtime warnings
 np.seterr(divide='ignore', invalid='ignore')
 
-from tools.utils import clf, tqdm_enumerate, logger
+from tools.utils import clf, tqdm_enumerate
 import inputools.Trajectory as it
 
 import os, sys
 base_path = os.getcwd().split("PCNN")[0]+"PCNN/src"
 sys.path.append(base_path)
 import utils
+import utils_core as utc
+
+
+""" INITIALIZATION """
 
 
 FIGPATH = "dashboard/media/"
 
+logger = utc.setup_logger(name="PCNN",
+                          level=-1,
+                          is_debugging=False,
+                          is_warning=False)
+
+
+""" CLASSES """
 
 class PCNN():
 

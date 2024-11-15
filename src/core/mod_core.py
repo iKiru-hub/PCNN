@@ -1,21 +1,28 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
-from tools.utils import logger
 import pcnn_core as pcnn
 import utils_core as utils
 import pclib
 
 
 
-FIGPATH = "dashboard/media"
+""" INITIALIZATION """
 
-FIGSIZE = (4, 4)
+FIGPATH = "dashboard/media"
+FIGSIZE = (4, 6)
 
 
 def set_seed(seed: int=0):
     np.random.seed(seed)
 
+logger = utils.setup_logger(name="MOD",
+                            level=-1,
+                            is_debugging=False,
+                            is_warning=False)
+
+
+""" ABSTRACT CLASSES """
 
 class LeakyVariableWrapper1D(pclib.LeakyVariable1D):
 
@@ -1505,7 +1512,7 @@ class ExperienceModule3(ModuleClass):
 
         # --- policies
         self.action_policy_int = SamplingPolicy(speed=speed,
-                                                visualize=True,
+                                                visualize=visualize_action,
                                                 number=number,
                                                 name="SamplingInt")
         self.action_space_len = len(self.action_policy_int)
@@ -2230,6 +2237,7 @@ class SamplingPolicy:
 
 
 
+""" other """
 
 
 class ExploratoryModule(ModuleClass):

@@ -23,7 +23,14 @@ import simplerl.environments as ev
 import pclib
 
 
+""" INITIALIZATION  """
+
 CONFIGPATH = "dashboard/media/configs.json"
+logger = utc.setup_logger(name="RUN",
+                          level=-1,
+                          is_debugging=False,
+                          is_warning=False)
+
 
 
 def write_configs(num_figs: int,
@@ -52,6 +59,9 @@ def write_configs(num_figs: int,
     logger(f"{info}")
 
 
+""" CLASSES """
+
+
 class Simulation:
 
     """
@@ -62,13 +72,14 @@ class Simulation:
     def __init__(self, N: int=80, seed: int=None,
                  plot_interval: int=1,
                  rendering: bool=True,
-                 max_duration: int=None):
+                 max_duration: int=None,
+                 init_position: np.ndarray=None):
 
-        if seed is not None:
-            np.random.seed(seed)
 
         # --- SETTINGS
         SPEED = 0.015
+        init_position = np.array([0.8, 0.2]) if init_position is None else init_position
+
         self.plot_interval = plot_interval
         self.rendering = rendering
         self.max_duration = max_duration
@@ -77,7 +88,8 @@ class Simulation:
                             "seed": seed,
                             "plot_interval": plot_interval,
                             "rendering": rendering,
-                            "max_duration": max}
+                            "max_duration": max_duration,
+                            "init_position": init_position}
 
         # --- PCNN
         N = 80
@@ -98,15 +110,15 @@ class Simulation:
                           xfilter=xfilter, name="2D")
 
         model_plotter = pcnn.PlotPCNN(model=model,
-                                      visualize=True)
+                                      visualize=rendering)
 
         # --- CIRCUITS
         circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
                                                 threshold=0.02,
-                                                visualize=True,
+                                                visualize=rendering,
                                                 score_weight=5.),
                          "DA": mod.Dopamine(N=N,
-                                            visualize=True,
+                                            visualize=rendering,
                                             score_weight=1.),
                          "dPos": mod.PositionTrace(visualize=False,
                                                    score_weight=2.),
@@ -119,14 +131,14 @@ class Simulation:
             logger.debug(f"{circuit} keys: {circuit.input_key}")
 
         circuits = mod.Circuits(circuits_dict=circuits_dict,
-                                visualize=True)
+                                visualize=rendering)
 
         # --- MODULES
         trg_module = mod.TargetModule(pcnn=model,
                                       circuits=circuits,
                                       speed=SPEED,
-                                      threshold=0.5,
-                                      visualize=True)
+                                      threshold=0.3,
+                                      visualize=rendering)
 
         # [ bnd, dpos, pop, trg ]
         weights = np.array([-1., 0.3, -0.5, 0.7])
@@ -138,17 +150,17 @@ class Simulation:
                                            action_delay=10,
                                            speed=SPEED,
                                            visualize=False,
-                                           visualize_action=True)
+                                           visualize_action=rendering)
         self.agent = mod.Brain(exp_module=exp_module,
                                circuits=circuits)
 
         # --- agent & env
         self.env = ev.make_room(name="square", thickness=4.,
-                           visualize=True)
+                                visualize=rendering)
         self.env = ev.AgentBody(room=self.env,
-                                position=np.array([0.8, 0.2]))
-        self.reward_obj = ev.RewardObj(position=np.array([0.8, 0.8]),
-                                       radius=0.15)
+                                position=init_position)
+        self.reward_obj = ev.RewardObj(position=np.array([0.5, 0.5]),
+                                       radius=0.2)
         self.velocity = np.zeros(2)
         self.observation = {
             "u": np.zeros(N),
@@ -168,8 +180,9 @@ class Simulation:
         self.agent.record["trajectory"] += [self.env.position.tolist()]
 
         self.t = -1
-        self.figures = self.agent.render(return_fig=True)
-        self.fig_a, self.ax_a = plt.subplots(figsize=(4, 4))
+        if rendering:
+            self.figures = self.agent.render(return_fig=True)
+            self.fig_a, self.ax_a = plt.subplots(figsize=(4, 4))
 
     def update(self) -> list:
 
@@ -215,6 +228,13 @@ class Simulation:
     def get_trajectory(self):
         return self.agent.record["trajectory"]
 
+    def get_pcnn_graph(self):
+
+        centers = self.agent.exp_module.pcnn.get_centers()
+        connectivity = self.agent.exp_module.pcnn.get_wrec()
+
+        return centers, connectivity
+
     def _render(self):
 
         if self.t % self.plot_interval == 0:
@@ -230,9 +250,10 @@ class Simulation:
                 if f is not None:
                     self.figures.append(f)
 
-    def reset(self, seed: int=None):
+    def reset(self, seed: int=None, init_position: np.ndarray=None):
 
         self.init_config["seed"] = seed
+        self.init_config["init_position"] = init_position
 
         self.__init__(**self.init_config)
         logger(f"%% reset [seed={seed}] %%")
@@ -472,21 +493,19 @@ def plot_update(fig, ax, agent, env, reward_obj,
 
 
 
-def run_analysis():
+def run_analysis(N: int=5, duration: int=1000):
 
-    simulator = Simulation(seed=0,
-                              plot_interval=10,
-                              max_duration=100,
+    simulator = Simulation(max_duration=duration,
                            rendering=False)
 
-    utc.multiple_simulation(N=5, simulator=simulator)
+    utc.multiple_simulation(N=N, simulator=simulator)
 
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--main", type=str, default="simple")
+    parser.add_argument("--main", type=str, default="main")
     parser.add_argument("--duration", type=int, default=2)
     parser.add_argument("--N", type=int, default=80)
     parser.add_argument("--seed", type=int, default=-1,
@@ -504,9 +523,12 @@ if __name__ == "__main__":
     mod.set_seed(seed=args.seed)
 
     # run
-    # main(args)
+    if args.main == "main":
+        main(args)
 
-    run_analysis()
+    elif args.main == "analysis":
+        run_analysis(N=args.N,
+                     duration=args.duration)
 
 
 
