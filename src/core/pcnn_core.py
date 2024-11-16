@@ -538,10 +538,12 @@ class PlotPCNN:
                  visualize: bool=True,
                  number: int=None,
                  edges: bool=True,
+                 bounds: tuple=(0, 1, 0, 1),
                  cmap: str='viridis'):
 
         self._model = model
         self._number = number
+        self._bounds = bounds
         self.visualize = visualize
         if visualize:
             self._fig, self._ax = plt.subplots(figsize=(6, 6))
@@ -555,6 +557,7 @@ class PlotPCNN:
                alpha_nodes: float=0.1,
                alpha_edges: float=0.2,
                return_fig: bool=False,
+               customize: bool=False,
                title: str=None):
 
         new_ax = False
@@ -574,7 +577,7 @@ class PlotPCNN:
                         c='k', s=100, marker='x')
 
         # --- rollout
-        if rollout is not None:
+        if rollout is not None and len(rollout[0]) > 0:
             rollout_trj, rollout_vals = rollout
             ax.plot(rollout_trj[:, 0], rollout_trj[:, 1], 'b',
                     lw=1, alpha=0.5, linestyle='--')
@@ -605,9 +608,14 @@ class PlotPCNN:
                                 lw=0.5)
 
         #
-        ax.axis('off')
-        ax.set_ylim((0, 1))
-        ax.set_xlim((0, 1))
+        # ax.axis('off')
+        if customize:
+            # ax.axis('off')
+            ax.set_xlim(self._bounds[0], self._bounds[1])
+            ax.set_ylim(self._bounds[2], self._bounds[3])
+            ax.set_xticks(())
+            ax.set_yticks(())
+
         if title is None:
             title = f"PCNN | N={len(self._model)}"
         ax.set_title(title)
@@ -625,7 +633,6 @@ class PlotPCNN:
 
         if return_fig:
             return fig
-
 
 
 

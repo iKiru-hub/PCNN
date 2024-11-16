@@ -1,236 +1,429 @@
-import pygame
 import numpy as np
-from tools.utils import logger
-import graphics as grph
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+from numba import jit
+import argparse
+
+from utils_core import setup_logger
 
 
-""" CONSTANTS """
+logger = setup_logger(name="ENVS",
+                      level=1,
+                      is_debugging=True,
+                      is_warning=True)
 
-SEED = None
-
-# Define colors
-WHITE = (255, 255, 255)
-BLUE = (0, 0, 255)
-BLACK = (0, 0, 0)
-ORANGE = (255, 165, 0)
-
-# MAIN SCREEN
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-BACKGROUND_COLOR = WHITE
-
-# ANALSYS SCREEN
-SCREEN_ANALYSIS_WIDTH = 300
-SCREEN_ANALYSIS_HEIGHT = 300
-ANALYSIS_BACKGROUND_COLOR = WHITE
+def set_logger_level(level: int):
+    logger.set_level(level)
+    logger(f"Logger level set to {level}", level=-1)
 
 
+""" ENVIRONMENT logic """
 
-""" CLASSES """
 
 class Wall:
-    def __init__(self, x: int, y: int,
-                 width: int, height: int,
-                 thickness: int=5,
-                 color: tuple=BLACK):
-
-        self.rect = pygame.Rect(x, y, width, height)
-        self.color = color
-        self.thickness = thickness
-
-        # center of the base
-        x_hortog_vector = np.array([
-            [x + width//2, y],
-            [x + width//2, y + height]
+    def __init__(self, point: np.ndarray,
+                 orientation: str, length: float = 1., **kwargs):
+        self.point = np.array(point)
+        self.length = length
+        self.thickness = kwargs.get('thickness', 1.)
+        self.orientation = orientation
+        self._wall_angle = 0. if orientation == "horizontal" else np.pi/2
+        self._wall_vector = np.array([
+            self.point,
+            self.point + np.array([np.cos(self._wall_angle) * \
+                length, np.sin(self._wall_angle) * length])
         ])
+        self._color = kwargs.get('color', 'black')
+        self._bounce_coefficient = kwargs.get('bounce_coefficient', 1.)
 
-        y_hortog_vector = np.array([
-            [x, y + height//2],
-            [x + width, y + height//2]
-        ])
-        self._wall_vectors = np.stack([x_hortog_vector,
-                                       y_hortog_vector])
+    def vector_collide(self, vector: np.ndarray) -> bool:
+        """ check if a given [velocity] vector intersects with the wall """
 
-    def render(self, screen: object):
-        pygame.draw.rect(screen, self.color,
-                         self.rect, self.thickness)
+        return segments_intersect(self._wall_vector[0], self._wall_vector[1],
+                                  vector[0], vector[1])
+
+    def collide(self, position: np.ndarray, velocity: np.ndarray,
+                radius: float) -> tuple:
+        """Check if a circle collides with the wall and return the new velocity and collision angle"""
+
+        # adjust radius of the object with the wall thickness
+        # radius += self.thickness
+
+        # Calculate the nearest point on the wall to the circle's center
+        wall_vector = self._wall_vector[1] - self._wall_vector[0]
+        wall_length = np.linalg.norm(wall_vector)
+        wall_unit = wall_vector / wall_length
+
+        relative_position = position - self._wall_vector[0]
+        projection = np.dot(relative_position, wall_unit)
+        projection = np.clip(projection, 0, wall_length)
+
+        nearest_point = self._wall_vector[0] + projection * wall_unit
+
+        # Check if the circle intersects with the wall
+        distance_to_wall = np.linalg.norm(position - nearest_point)
+        if distance_to_wall > radius:
+            return None, None
+
+        # Calculate reflection
+        normal = (position - nearest_point) / distance_to_wall
+        reflection = velocity - 2 * np.dot(velocity, normal) * normal
+        new_velocity = reflection * self._bounce_coefficient
+
+        # Calculate angle
+        angle = np.arctan2(new_velocity[1], new_velocity[0])
+
+        return new_velocity, angle
+
+    def render(self, ax: plt.Axes,
+               alpha: float=1.):
+
+        ax.plot([self._wall_vector[0][0],
+                 self._wall_vector[1][0]],
+                [self._wall_vector[0][1],
+                 self._wall_vector[1][1]],
+                color=self._color, alpha=alpha,
+                lw=self.thickness)
 
 
 class Room:
-    def __init__(self, walls: list=[],
-                 bounds: tuple=(0, 0, SCREEN_WIDTH,
-                                SCREEN_HEIGHT),
-                 bounce_coeff: float=1.0,
-                 name: str="Room"):
+
+    def __init__(self, walls: list, **kwargs):
+
         self.walls = walls
-        self.num_walls = len(walls)
-        self.bounce_coeff = bounce_coeff
-        self.wall_vectors = self._make_wall_vectors()
+        # self.bounds = kwargs.get("bounds", [0, 1, 0, 1])
 
-    def __str__(self):
-        return f"Room(#walls{self.num_walls})"
+        wdx = 0.05
+        self.bounds = kwargs.get("bounds", [wdx, 1.-wdx,
+                                            wdx, 1.-wdx])
+        self.name = kwargs.get("name", "Base")
 
-    def _make_wall_vectors(self):
-        wall_vectors = []
+        self.nb_collisions = 0
+        self.wall_vectors = np.stack([wall._wall_vector for wall in self.walls])
+        self.visualize = kwargs.get("visualize", False)
+        if self.visualize:
+            self.fig, self.ax = plt.subplots(figsize=(4, 4))
+
+    def __repr__(self):
+        return "Room.{}(#walls{})".format(self.name, len(self.walls))
+
+    def check_bounds(self, position: np.ndarray,
+                     radius: float,
+                     velocity: np.ndarray=None):
+
+        beyond = False
+        if position[0] < self.bounds[0] + radius or \
+            position[0] > self.bounds[1] - radius:
+            if velocity is not None:
+                velocity[0] = -velocity[0]
+            beyond = True
+        if position[1] < self.bounds[2] + radius or \
+            position[1] > self.bounds[3] - radius:
+            if velocity is not None:
+                velocity[1] = -velocity[1]
+            beyond = True
+
+        return beyond, velocity
+
+    def handle_collision(self, position: np.ndarray,
+                         velocity: np.ndarray,
+                         radius: float,
+                         stop: bool=False) -> np.ndarray:
+
+        beyond, new_velocity = self.check_bounds(
+            position=position, radius=radius,
+            velocity=velocity)
+
+        if beyond:
+            # logger.error(f"OUT OF THE BORDERS")
+            self._self_check(position, velocity, radius,
+                             stop)
+            return new_velocity, None, True
+
         for wall in self.walls:
-            wall_vectors.append(wall._wall_vectors)
-        return np.stack(wall_vectors)
+            new_velocity, angle = wall.collide(position,
+                                               velocity,
+                                               radius)
+            if new_velocity is not None:
+                self._self_check(position, velocity, radius,
+                                 stop)
+                return new_velocity, angle, True
 
-    def _check_bounds(self, x: int, y: int):
-        x = max(0, min(x, SCREEN_WIDTH))
-        y = max(0, min(y, SCREEN_HEIGHT))
-        return x, y
+        self._self_check(position, velocity, radius, stop)
+        return velocity, None, False
 
-    def is_out_of_bounds(self, x: int, y: int):
-        ans = x < 0 or x > SCREEN_WIDTH or \
-               y < 0 or y > SCREEN_HEIGHT
-        if ans:
-            logger.error(f"Out of bounds: {x}, {y}")
+    def _self_check(self, position, velocity, radius,
+                    stop: bool=False):
 
-        return ans
+        if stop: return
 
-    def check_collision(self, x: int, y: int,
-                        velocity: np.array
-                        ) -> bool:
-        collision = False
+        beyond, new_velocity = self.check_bounds(
+            position=position+velocity, radius=0.,
+            velocity=velocity)
+
+        # if beyond:
+        #     logger.error(f"DOOMED TO COLLIDE")
+            # logger.error(f"[p:{np.around(position, 3)}, v:{np.around(velocity, 3)}]")
+
+    def handle_vector_collision(self, vector: np.ndarray):
         for wall in self.walls:
-            if wall.rect.collidepoint(x + velocity[0], y):
-                velocity[0] *= - 1
-                collision = True
-            if wall.rect.collidepoint(x, y + velocity[1]):
-                velocity[1] *= - 1
-                collision = True
+            if wall.vector_collide(vector):
+                return True
+        return False
 
-        return velocity, collision
+    def render(self, ax: plt.Axes=None,
+               alpha: float=1.,
+               returning: bool=False):
 
-    def add_wall(self, wall: object):
-        self.walls.append(wall)
-        self.num_walls += 1
-        self.wall_vectors = self._make_wall_vectors()
+        if not self.visualize:
+            return
 
-    def render(self, screen: object):
+        if ax is None:
+            ax = self.ax
+            ax.clear()
+
+        ax.set_xlim(self.bounds[0],
+                    self.bounds[1])
+        ax.set_ylim(self.bounds[2],
+                    self.bounds[3])
+        # ax.set_xticks([])
+        # ax.set_yticks([])
+        ax.axis('off')
+        ax.set_aspect('equal')
         for wall in self.walls:
-            wall.render(screen)
+            wall.render(ax=ax, alpha=alpha)
+
+        self.fig.canvas.draw()
+
+        if returning:
+            return ax, self.fig
+
+
+    def reset(self):
+        self.nb_collisions = 0
+
+
+def make_room(name: str="square", thickness: float=1.,
+              bounds: list=[0, 1, 0, 1],
+              visualize: bool=False):
+
+    walls = [Wall([bounds[0], bounds[2]],
+                  orientation="horizontal",
+                  length=bounds[1]-bounds[0],
+                 thickness=thickness),
+            Wall([bounds[0], bounds[0]],
+                 orientation="vertical",
+                 length=bounds[3]-bounds[2],
+                 thickness=thickness),
+            Wall([bounds[0], bounds[3]],
+                 orientation="horizontal",
+                 length=bounds[1]-bounds[0],
+                 thickness=thickness),
+            Wall([bounds[1], bounds[2]],
+                 orientation="vertical",
+                 length=bounds[3]-bounds[2],
+                 thickness=thickness),
+    ]
+
+    if name == "square":
+        name = "square"
+    elif name == "square1":
+        walls += [
+            Wall([0, bounds[1]],
+                 orientation="horizontal",
+                 length=0.5, thickness=thickness),
+        ]
+        name = "square1"
+        room = Room(walls=walls, name="Square1",
+                    bounds=bounds,
+                    visualize=visualize)
+    elif name == "square2":
+        walls += [
+            Wall([0.5, 0.], orientation="vertical",
+                 length=0.5, thickness=thickness),
+            # Wall([0.5, 0.5], orientation="horizontal",
+            #      length=0.5, thickness=thickness),
+        ]
+        name = "square2"
+    elif name == "flat":
+        walls += [
+            Wall([0., 0.33], orientation="horizontal",
+                    length=0.6, thickness=thickness),
+            Wall([0., 0.66], orientation="horizontal",
+                    length=0.6, thickness=thickness),
+        ]
+        name = "flat"
+    elif name == "flat2":
+        walls += [
+            Wall([0., 0.33], orientation="horizontal",
+                    length=0.6, thickness=thickness),
+            Wall([0., 0.66], orientation="horizontal",
+                    length=0.6, thickness=thickness),
+            Wall([0.6, 0.], orientation="vertical",
+                    length=0.115, thickness=thickness),
+            Wall([0.6, 0.215], orientation="vertical",
+                    length=0.215, thickness=thickness),
+            Wall([0.6, 0.555], orientation="vertical",
+                    length=0.215, thickness=thickness),
+            Wall([0.6, 0.875], orientation="vertical",
+                    length=0.115, thickness=thickness),
+        ]
+        name = "flat2"
+    elif name == "hole1":
+        walls += [
+            Wall([0.33, 0.33], orientation="horizontal",
+                    length=0.33, thickness=thickness),
+            Wall([0.33, 0.33], orientation="vertical",
+                    length=0.33, thickness=thickness),
+            Wall([0.66, 0.33], orientation="vertical",
+                    length=0.33, thickness=thickness),
+            Wall([0.33, 0.66], orientation="horizontal",
+                    length=0.33, thickness=thickness),
+        ]
+        name = "hole1"
+    else:
+        raise NameError("'{}' is not a room".format(name))
+
+    room = Room(walls=walls, name=name,
+                bounds=bounds,
+                visualize=visualize)
+
+    return room
+
+
+
+""" AGENT """
 
 
 class AgentBody:
 
-    """
-    rigid body
-    """
+    def __init__(self, room: Room,
+                 position: np.ndarray = None,
+                 **kwargs):
+        self.radius = kwargs.get("radius", 0.05)
+        self.position = position if position is not None else self._random_position()
+        self.prev_position = self.position.copy()
+        self.velocity = np.zeros(2).astype(float)
+        self.color = kwargs.get("color", "red")
+        self._room = room
+        self.verbose = kwargs.get("verbose", False)
+        self.bounce_coefficient = kwargs.get("bounce_coefficient", 0.5)
 
-    def __init__(self, brain: object=None,
-                 x: int=None, y: int=None, radius=10,
-                 color: str=ORANGE, render_freq=100):
+        self.visualize = kwargs.get("visualize", False)
 
-        if x is None or y is None:
-            self.x = np.random.randint(10, SCREEN_WIDTH-10)
-            self.y = np.random.randint(10, SCREEN_HEIGHT-10)
-        else:
-            self.x = x
-            self.y = y
+    def _random_position(self):
+        return np.random.rand(2)
 
-        logger.debug(f"AgentBody({self.x}, {self.y})")
+    def __call__(self, velocity: np.ndarray):
 
-        self.radius = radius
-        self.color = color
-        self.velocity = np.array([2, 3])
-        self.collision = False
+        self.velocity = velocity
+        self.velocity, collision = self._handle_collisions()
 
-        self.brain = brain
+        # update position
+        # + considering a possible collision
+        self.prev_position = self.position.copy()
+        self.position += self.velocity * (1 + \
+                            self.bounce_coefficient * \
+                            1 * collision)
 
-        self.render_freq = render_freq
-        self.t = 0
+        # if collision:
+        #     logger.debug(f"new velocity: {np.around(self.velocity, 3)}")
+        #     logger.debug(f"new position: {np.around(self.position, 3)}")
 
-        # Example usage:
-        # self.win = grph.GraphWin("Bar Plot", 600, 500)
+        truncated = not self._room.check_bounds(
+                                position=self.position,
+                                radius=self.radius*0.2)
 
-    def __str__(self):
-        return f"AgentBody({self.x}, {self.y})"
+        return self.position.copy(), collision, truncated
 
-    def __call__(self, room: Room):
-
-        self.t += 1
-
-        # Update position based on velocity
-        new_x = self.x + 2*self.velocity[0]
-        new_y = self.y + 2*self.velocity[1]
-
-        # Check for collision with walls and bounce
-        self.velocity, collision = room.check_collision(
-                                x=self.x, y=self.y,
-                                velocity=self.velocity)
-
+    def _handle_collisions(self) -> tuple:
+        new_velocity, _, collision = self._room.handle_collision(
+            self.position, self.velocity, self.radius)
         if collision:
-            logger(f">| Collision {self.velocity}")
-            new_x = self.x + self.velocity[0] * room.bounce_coeff
-            new_y = self.y + self.velocity[1] * room.bounce_coeff
+            self.velocity = new_velocity
+            # Move the agent slightly after collision to prevent sticking
+            self._room.nb_collisions += 1
 
-        if not room.is_out_of_bounds(new_x, new_y):
-            self.x = new_x
-            self.y = new_y
+            if self.verbose:
+                logger.debug("%collision detected%")
 
-        # brain step
-        if self.brain is not None:
-            observation = {
-                "position": np.array(self._scale_to_01(
-                        self.x, self.y)),
-                "velocity": self._scale_to_01_vec(self.velocity),
-                "collision": collision
-            }
+        return new_velocity, collision
 
-            logger.debug(f"{observation['position']}")
+    def set_position(self, position: np.ndarray):
+        self.position = position
 
-            self.velocity = self.brain(observation=observation)
-            self.velocity = self._scale_to_screen(self.velocity)
-            self.brain.routines(wall_vectors=room.wall_vectors)
+    def render(self, ax: plt.Axes=None,
+               velocity: np.ndarray=None):
 
-    def _scale_to_01(self, x: int, y: int):
+        """
+        Plot the agent in the room
 
-        x = x / SCREEN_WIDTH
-        y = y / SCREEN_HEIGHT
+        Parameters
+        ----------
+        ax : plt.Axes
+            axis to plot the agent.
+            Default is None.
+        velocity : np.ndarray
+            velocity vector to plot the agent's movement.
+            Default is None.
+        """
 
-        return x, y
-
-    def _scale_to_01_vec(self, position: np.ndarray):
-
-        position[0] = position[0] / SCREEN_WIDTH
-        position[1] = position[1] / SCREEN_HEIGHT
-
-        return position
-
-    def _scale_to_screen(self, position: np.array):
-
-        position[0] = position[0] * SCREEN_WIDTH
-        position[1] = position[1] * SCREEN_HEIGHT
-
-        return position
-
-    def render(self, screen: object):
-
-        pygame.draw.circle(screen, self.color,
-                           (int(self.x),
-                            int(SCREEN_HEIGHT-self.y)),
-                           self.radius)
-
-        if self.t % self.render_freq == 0:
+        if not self.visualize:
             return
 
-        if self.brain is not None:
-            # data, names = self.brain.render_values
+        ax, fig = self._room.render(ax=ax, returning=ax is None)
 
-            # data = np.where(np.isnan(data), 0, data)
-            self.brain.render()
-            # render_bar_plot(data=data, names=names,
-            #                 screen=screen,
-            #                 bar_color=(0, 0, 255),
-            #                 bg_color=(255, 255, 255),
-            #                 label_color=(0, 0, 0),
-            #                 font_size=24,
-            #                 margin=10)
+        ax.add_patch(Circle(self.prev_position, self.radius,
+                            fc=self.color, ec='black'))
 
-            # draw_bar_plot(self.win, data, names)
-            # self.win.getMouse()  # Wait for mouse click to close
+        displacement = self.position - self.prev_position
+        ax.arrow(self.prev_position[0], self.prev_position[1],
+                 displacement[0], displacement[1],
+                 head_width=0.02, head_length=0.02,
+                 fc='black', ec='black')
+
+        if fig is not None:
+            fig.canvas.draw()
+
+
+class Zombie:
+
+    def __init__(self, body: AgentBody,
+                 speed: float = 0.1,
+                 visualize: bool = False):
+
+        self.body = body
+        self.speed = speed
+
+        self.p = 0.5
+        self.velocity = np.zeros(2)
+        self.visualize = visualize
+        self.position = self.body.position
+
+    def __call__(self, **kwargs):
+
+        self.p += (0.2 - self.p) * 0.02
+        self.p = np.clip(self.p, 0.01, 0.99)
+
+        if np.random.binomial(1, self.p):
+            angle = np.random.uniform(0, 2*np.pi)
+            self.velocity = self.speed * np.array([np.cos(angle),
+                                              np.sin(angle)])
+            self.p *= 0.2
+
+        self.position, collision, _ = self.body(velocity=self.velocity)
+
+        if collision:
+            self.velocity = -self.velocity
+
+        return self.velocity, collision
+
+    def render(self, ax: plt.Axes=None):
+
+        if not self.visualize:
+            return
+
+        self.body.render(velocity=self.velocity)
 
 
 class RewardObj:
@@ -260,201 +453,235 @@ class RewardObj:
 
 
 
-""" other functions """
+""" UTILS """
 
+@jit(nopython=True)
+def action_to_angle(value: float) -> float:
 
-def set_seed(seed: int=None):
-    if seed is not None:
-        np.random.seed(seed)
-        logger(f"seed set to {seed}")
+    """
+    map an action value (float in [-1, 1])
+    to and angle in radians (float in [0, 2*pi])
+    """
 
+    return (value + 1) * np.pi
 
-def setup_room(name: str=None, thickness: int=5,
-               bounce_coeff: float=1.0):
+@jit(nopython=True)
+def two_lines_intersection(p1, p2, p3, p4):
+    """
+    Check if two lines intersect, where
+    (p1, p2) is the first line and (p3, p4) is the second line.
+    Returns the point of intersection if the lines intersect, None otherwise.
+    """
+    (x11, y11), (x12, y12) = p1, p2
+    (x21, y21), (x22, y22) = p3, p4
 
-    sq_walls = [
-        Wall(0, 0, SCREEN_WIDTH, thickness),
-        Wall(0, SCREEN_HEIGHT - thickness,
-             SCREEN_WIDTH, thickness),
-        Wall(0, 0, thickness, SCREEN_HEIGHT),
-        Wall(SCREEN_WIDTH - thickness, 0,
-             thickness, SCREEN_HEIGHT),
-    ]
+    # Calculate the direction of the lines
+    dx1 = x12 - x11
+    dy1 = y12 - y11
+    dx2 = x22 - x21
+    dy2 = y22 - y21
 
-    room = Room(walls=sq_walls,
-                bounce_coeff=bounce_coeff)
+    # Calculate the determinant
+    determinant = dx1 * dy2 - dy1 * dx2
 
-    if name == "square" or name is None:
-        pass
+    # If the determinant is zero, the lines are parallel or coincident
+    if determinant == 0:
+        return None
 
-    elif name == "room_theeth":
-        room.add_wall(Wall(2*SCREEN_WIDTH//3, 0, 5, 400))
-        room.add_wall(Wall(SCREEN_WIDTH//3, 0, 5, 400))
+    # Calculate the intersection point
+    t1 = ((x21 - x11) * dy2 - (y21 - y11) * dx2) / determinant
+    t2 = ((x21 - x11) * dy1 - (y21 - y11) * dx1) / determinant
 
+    # Check if the intersection point lies on both line segments
+    if 0 <= t1 <= 1 and 0 <= t2 <= 1:
+        x = x11 + t1 * dx1
+        y = y11 + t1 * dy1
+        return np.array([x, y])
     else:
-        raise ValueError("Invalid room name")
+        return None
 
-    return room
+@jit(nopython=True)
+def calc_angle(vector: np.ndarray) -> float:
 
+        if vector[1, 0] - vector[0, 0] == 0:
+            if vector[1, 1] - vector[0, 1] > 0:
+                return np.pi/2
+            return 3*np.pi/2
 
-class Randy:
+        angle = np.arctan(
+            (vector[1, 1] - vector[0, 1]) / \
+                (vector[1, 0] - vector[0, 0])
+        )
 
-    def __call__(self, observation: dict):
+        if angle < 0:
+            angle += np.pi
 
-        # Random action
-        action = observation["velocity"] * (1 + \
-            np.random.uniform(-0.01, 0.01, 2))
-        return action
+        return angle
 
-    def render(self):
-        pass
+@jit(nopython=True)
+def calc_angle_between_vectors(v1: np.ndarray, v2: np.ndarray) -> float:
+    """
+    Calculate the angle between two vectors with the same origin.
 
+    Parameters
+    ----------
+    v1 : np.ndarray
+        The first vector of shape (2, 2).
+    v2 : np.ndarray
+        The second vector of shape (2, 2).
 
-# def render_bar_plot(data: list,
-#                     names: list,
-#                     screen: object, **kwargs):
+    Returns
+    -------
+    float
+        The angle between the two vectors in radians.
+    """
+    # Extract direction vectors
+    dir_v1 = v1[1] - v1[0]
+    dir_v2 = v2[1] - v2[0]
+    
+    # Calculate the dot product of the direction vectors
+    dot_product = np.dot(dir_v1, dir_v2)
+    
+    # Calculate the magnitudes of the direction vectors
+    norm_v1 = np.linalg.norm(dir_v1)
+    norm_v2 = np.linalg.norm(dir_v2)
+    
+    # Calculate the cosine of the angle
+    cos_theta = dot_product / (norm_v1 * norm_v2)
+    
+    # Ensure the cosine value is within the valid range [-1, 1] to avoid numerical errors
+    cos_theta = np.clip(cos_theta, -1.0, 1.0)
+    
+    # Calculate the angle in radians
+    angle = np.arccos(cos_theta)
+    
+    return angle
 
-#     # Extract optional parameters or set defaults
-#     bar_color = kwargs.get('bar_color', (0, 0, 255))
-#     bg_color = kwargs.get('bg_color', (255, 255, 255))
-#     label_color = kwargs.get('label_color', (0, 0, 0))
-#     font_size = kwargs.get('font_size', 24)
-#     margin = kwargs.get('margin', 10)
+@jit(nopython=True)
+def vector_norm(vector: np.ndarray):
+    return np.sqrt((vector[0, 0] - vector[1, 0])**2 +
+                   (vector[0, 1] - vector[1, 1])**2)
 
-#     # Calculate bar dimensions
-#     bar_width = (SCREEN_ANALYSIS_WIDTH - 2 * margin) // len(data)
-#     max_value = max(data)
+@jit(nopython=True)
+def reflect_point(point1: np.ndarray,
+                  point2: np.ndarray) -> tuple:
+    """
+    reflect a point (point1) wrt an origin (point2)
+    """
+    return (point2[0] + (point2[0] - point1[0]),
+            point2[1] + (point2[1] - point1[1]))
 
-#     # Draw bars
-#     for i, value in enumerate(data):
-#         value = max(value, 1e-6)
-#         if np.isnan(value):
-#             value = 0
-#         bar_height = int((value / max_value) * (
-#             SCREEN_ANALYSIS_HEIGHT - 2 * margin))
-#         x = SCREEN_ANALYSIS_HEIGHT - (margin + i * bar_width)
-#         y = SCREEN_ANALYSIS_HEIGHT - margin - bar_height
-#         pygame.draw.rect(screen, bar_color,
-#                          (x, y,
-#                           bar_width - margin, bar_height))
+@jit(nopython=True)
+def reflect_vector(vector1: np.ndarray,
+                   vector2: np.ndarray,
+                   momentum_c: float=1.) -> np.ndarray:
 
-#         # Draw labels
-#         font = pygame.font.Font(None, font_size)
-#         label = font.render(names[i], True, label_color)
-#         screen.blit(label, (x + (bar_width - \
-#             margin) // 2 - label.get_width() // 2,
-#                             SCREEN_ANALYSIS_HEIGHT - margin + 5))
+    # Normalize vector2 to get the direction vector
+    vector2_dir = vector2[1] - vector2[0]
+    vector2_dir /= np.linalg.norm(vector2_dir)
 
+    # Calculate the projection of vector1[1] onto vector2_dir
+    projection_length = np.dot(vector1[1] - vector1[0], vector2_dir)
+    projection = projection_length * vector2_dir
 
+    # Calculate the reflection point
+    reflection_point = 2 * projection - (vector1[1] - vector1[0])
+    reflection_point = vector2[0] - momentum_c * reflection_point
 
-# def draw_bar_plot(win, values, names, bar_width=40, gap=20):
-
-#     """
-#     Draws a bar plot on the given Graphics window.
-
-#     Parameters:
-#     win        -- The Graphics window to draw on.
-#     values     -- List of values (heights of the bars).
-#     names      -- List of names corresponding to each bar.
-#     bar_width  -- Width of each bar (default 40).
-#     gap        -- Gap between each bar (default 20).
-#     """
-#     # Check that values and names have the same length
-#     if len(values) != len(names):
-#         raise ValueError("Length of values and names must be the same.")
-
-#     # Calculate scaling and max height
-#     max_value = 1.
-#     plot_height = 400  # height of the plot area
-#     plot_width = (bar_width + gap) * len(values)  # width of the plot area
-#     scale = 200
-
-#     # Set up the window size
-#     win.setCoords(0, 0, plot_width, plot_height)
-
-#     # clear the window
-#     win.delete("all")
-
-#     # set background color
-#     win.setBackground("white")
-
-#     # Draw bars
-#     base_height = 100
-#     for i, value in enumerate(values):
-#         bar_height = value * scale
-#         x_left = i * (bar_width + gap)
-#         x_right = x_left + bar_width
-#         bar = grph.Rectangle(grph.Point(x_left, base_height),
-#                              grph.Point(x_right, bar_height + base_height))
-#         bar.setFill("blue")
-#         bar.draw(win)
-
-#         # Draw value label on top of each bar
-#         # value_text = grph.Text(grph.Point((x_left + x_right) / 2, bar_height + 10), str(value))
-#         # value_text.draw(win)
-
-#         # Draw name label below each bar
-#         name_text = grph.Text(grph.Point((x_left + x_right) / 2, 15),
-#                               f"{names[i]}\n{value:.2f}")
-#         name_text.draw(win)
+    # Create the reflected vector
+    reflected_vector = np.stack((vector2[0],
+                                 reflection_point))
 
 
-""" initialize """
+    return reflected_vector
 
+@jit(nopython=True)
+def check_nan_move(move: np.ndarray) -> bool:
+    if move is None:
+        return False
+    return np.isnan(move).any()
 
+@jit(nopython=True)
+def line_intersection(p1, p2, p3, p4):
 
-# Main loop
-def main(agent: AgentBody, room_name: str=None,
-         duration: int=100000, render: bool=True):
+    x1, y1 = p1
+    x2, y2 = p2
+    x3, y3 = p3
+    x4, y4 = p4
 
-    # Initialize Pygame
-    pygame.init()
-    screen = pygame.display.set_mode((SCREEN_WIDTH,
-                                      SCREEN_HEIGHT))
-    # screen_analysis = pygame.display.set_mode((
-    #     SCREEN_ANALYSIS_WIDTH, SCREEN_ANALYSIS_HEIGHT))
-    clock = pygame.time.Clock()
+    denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
 
-    room = setup_room(name=room_name,
-                      bounce_coeff=2.0)
-    pygame.display.set_caption(f"{room}     {agent}")
+    if denom == 0:
+        return None  # Lines are parallel
 
+    px = ((x1*y2 - y1*x2) * (x3 - x4) - (x1 - x2) * (x3*y4 - y3*x4)) / denom
+    py = ((x1*y2 - y1*x2) * (y3 - y4) - (y1 - y2) * (x3*y4 - y3*x4)) / denom
 
-    logger()
-    logger("<Starting simulation>")
+    return (px, py)
 
-    running = True
-    t = 0
-    for t in range(duration):
-        # screen.fill(BACKGROUND_COLOR)  # Clear screen
+@jit(nopython=True)
+def is_point_on_segment(p, segment_start, segment_end):
+    x, y = p
+    x1, y1 = segment_start
+    x2, y2 = segment_end
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+    # Check if the point is within the bounding box of the segment
+    if (min(x1, x2) <= x <= max(x1, x2) and
+        min(y1, y2) <= y <= max(y1, y2)):
+        return True
+    return False
 
-        # --- logic
-        agent(room=room)
+@jit(nopython=True)
+def segments_intersect(p1, p2, p3, p4):
+    intersection = line_intersection(p1, p2, p3, p4)
+    if intersection is None:
+        return False  # Parallel or coincident segments
 
-        # --- render
-        # room.render(screen=screen)
-        agent.render(screen=screen)
-
-        # - #
-        # if render:
-        #     pygame.display.flip()
-        #     clock.tick(200)
-
-    logger()
-    logger(f"<Simulation ended at t={t}>")
-    input("Press Enter ...")
-    pygame.quit()
+    # Check if the intersection point is on both segments
+    return (is_point_on_segment(intersection, p1, p2) and
+            is_point_on_segment(intersection, p3, p4))
 
 
 
-
+""" MAIN """
 
 if __name__ == "__main__":
 
-    agent = AgentBody(brain=Randy())
-    main(agent=agent, room_name="room_theeth")
+    # --- ARGUMENTS
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--room", type=str, default="square",
+                        help="room to use: 'square', 'square1'," + \
+                        "'square2', 'flat', 'flat2', 'hole1'")
+    parser.add_argument("--demo", action="store_true",
+                        help="run the demo with a zombie agent")
+
+    args = parser.parse_args()
+
+    # --- INITIALIZATION
+
+    room = make_room(name=args.room, thickness=2.,
+                     bounds=[0, 2, 0, 2],
+                     visualize=True)
+    env = AgentBody(room=room,
+                    position=np.random.uniform(0.1, 0.9, 2),
+                    radius=0.05, speed=0.01, color="red",
+                    visualize=True)
+    env = Zombie(body=env, speed=0.03, visualize=True)
+
+    # --- RUN
+    if args.demo:
+
+        logger("Running the demo", level=1)
+
+        while True:
+
+            env()
+            room.render()
+            env.render()
+            plt.pause(0.001)
+
+    else:
+        env.render()
+        plt.show()
+
 

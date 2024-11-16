@@ -8,13 +8,13 @@ import inputools.Trajectory as it
 import pcnn_core as pcnn
 import mod_core as mod
 import utils_core as utc
-# import envs_core as evc
+import envs_core as ev
 
 import os, sys, json
 base_path = os.getcwd().split("PCNN")[0]+"PCNN/src/"
 sys.path.append(base_path)
 import utils
-import simplerl.environments as ev
+# import simplerl.environments as ev
 
 # import matplotlib
 # matplotlib.use("TkAgg")
@@ -26,11 +26,11 @@ import pclib
 """ INITIALIZATION  """
 
 CONFIGPATH = "dashboard/media/configs.json"
+
 logger = utc.setup_logger(name="RUN",
                           level=-1,
                           is_debugging=False,
                           is_warning=False)
-
 
 
 def write_configs(num_figs: int,
@@ -58,6 +58,7 @@ def write_configs(num_figs: int,
     logger(f"configs written to {CONFIGPATH}")
     logger(f"{info}")
 
+BOUNDS = np.array([0., 1., 0., 1.])
 
 """ CLASSES """
 
@@ -77,9 +78,8 @@ class Simulation:
                  rw_position: np.ndarray=None,
                  rw_radius: float=0.2,):
 
-
         # --- SETTINGS
-        SPEED = 0.015
+        SPEED = 0.03
         init_position = np.array([0.8, 0.2]) if init_position is None else init_position
         rw_position = np.array([0.8, 0.8]) if rw_position is None else rw_position
 
@@ -104,8 +104,9 @@ class Simulation:
         logger(f"{Nj=}")
 
         sigma = 0.05
-        bounds = np.array([0., 1., 0., 1.])
-        xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, bounds)
+        # self.bounds = np.array([0., 1., 0., 1.])
+        self.bounds = BOUNDS
+        xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, self.bounds)
 
         # definition
         model = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.5,
@@ -115,6 +116,7 @@ class Simulation:
                           xfilter=xfilter, name="2D")
 
         model_plotter = pcnn.PlotPCNN(model=model,
+                                      bounds=self.bounds,
                                       visualize=rendering)
 
         # --- CIRCUITS
@@ -146,7 +148,7 @@ class Simulation:
                                       visualize=rendering)
 
         # [ bnd, dpos, pop, trg ]
-        weights = np.array([-1., 0.3, -0.5, 0.7])
+        weights = np.array([-1., 0., -2., 1., 1.5])
         exp_module = mod.ExperienceModule3(pcnn=model,
                                            pcnn_plotter=model_plotter,
                                            trg_module=trg_module,
@@ -257,6 +259,8 @@ class Simulation:
             self.env.render(ax=self.ax_a, velocity=self.velocity)
             self.ax_a.axis("off")
             self.ax_a.set_title(f"t={self.t} | v={np.around(self.velocity, 3)} ")
+            self.ax_a.set_xlim(self.bounds[:2])
+            self.ax_a.set_ylim(self.bounds[2:])
 
             self.figures = []
             for f in [self.fig_a] + self.agent.render(return_fig=True):
@@ -273,7 +277,6 @@ class Simulation:
 
         self.__init__(**self.init_config)
         logger(f"%% reset [seed={seed}] %%")
-
 
 
 def main(args):
@@ -318,7 +321,8 @@ def main(args):
 
     # ---
     sigma = 0.05
-    bounds = np.array([0., 1., 0., 1.])
+    # bounds = np.array([0., 1., 0., 1.])
+    bounds = BOUNDS
     xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, bounds)
 
     # definition
@@ -331,6 +335,7 @@ def main(args):
 
     # pcnn
     model_plotter = pcnn.PlotPCNN(model=model,
+                                  bounds=bounds,
                                   visualize=True,
                                   number=0)
 
@@ -368,7 +373,7 @@ def main(args):
     trg_module = mod.TargetModule(pcnn=model,
                                   circuits=circuits,
                                   speed=SPEED,
-                                  threshold=0.01,
+                                  threshold=0.5,
                                   visualize=True,
                                   number=1)
     other_info["Trg_thr"] = trg_module.threshold
@@ -391,15 +396,15 @@ def main(args):
     #                                   number=2,
     #                                   visualize_action=True)
 
-    # [ bnd, dpos, pop, trg ]
-    weights = np.array([-2., 0.0, -2., 0.9])
+    # [ bnd, dpos, pop, trg, smooth ]
+    weights = np.array([-2., 0.0, -2., 0.9, 0.00001])
     exp_module = mod.ExperienceModule3(pcnn=model,
                                        pcnn_plotter=model_plotter,
                                        trg_module=trg_module,
                                        circuits=circuits,
                                        weights=weights,
                                        action_delay=10,
-                                       max_depth=10,
+                                       max_depth=20,
                                        speed=SPEED,
                                        visualize=False,
                                        number=2,
@@ -410,6 +415,7 @@ def main(args):
 
     # --- agent & env
     env = ev.make_room(name="square", thickness=4.,
+                       bounds=BOUNDS,
                        visualize=True)
     env = ev.AgentBody(room=env,
                        position=np.array([0.8, 0.2]))
@@ -522,7 +528,8 @@ def run_analysis(N: int=5, duration: int=1000):
 
     simulator = Simulation(max_duration=duration,
                            rendering=False,
-                           rw_position=rw_position)
+                           rw_position=rw_position,
+                           plot_interval=1)
 
     # utc.analysis_I(N=N, simulator=simulator)
     utc.analysis_II(N=N, simulator=simulator)

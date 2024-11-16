@@ -170,9 +170,11 @@ def setup_logger(name: str="MAIN",
                          is_debugging=is_debugging,
                          is_warning=is_warning)
 
+
 logger = setup_logger(name="UTILS", colored=True,
                       level=0, is_debugging=False,
                       is_warning=False)
+
 
 """ analysis """
 
@@ -311,6 +313,8 @@ def analysis_II(N: int, simulator: object):
 
     # run & plot
     fig, axs = plt.subplots(nrows=2, ncols=NUM_TRIALS, figsize=(13, 5))
+    fig.suptitle("Reward reaching accuracy in different positions",
+                 fontsize=16)
     for i in tqdm(range(NUM_TRIALS)):
 
         simulator.set_rw_position(rw_position=all_rw_positions[i])
@@ -350,9 +354,16 @@ def analysis_II(N: int, simulator: object):
                               color="red", alpha=0.1)
         axs[0, i].axhline(np.mean(accuracy), color="red", lw=2.)
 
-        axs[0, i].set_title(f"{np.mean(accuracy):.2f}")
-        axs[0, i].axis("off")
+        if i == NUM_TRIALS - 1:
+            axs[0, i].set_title(f"[baseline]\n{np.mean(accuracy):.2f}")
+        else:
+            axs[0, i].set_title(f"{np.mean(accuracy):.2f}")
+        # axs[0, i].axis("off")
         axs[0, i].set_ylim(0., 1.)
+        axs[0, i].set_xticks([])
+        axs[0, i].set_yticks([0, 1.])
+        axs[0, i].set_yticklabels(["0", "1"])
+        axs[0, i].grid(True)
 
         # B) scatter plot of the reward area and the average end positions
         axs[1, i].add_patch(plt.Circle(rw_position_i, rw_radius,
@@ -366,8 +377,13 @@ def analysis_II(N: int, simulator: object):
         axs[1, i].set_xticks([])
         axs[1, i].set_yticks([])
 
+    # save fig
+    fig.savefig("reward_reaching_accuracy.png")
+    print("Figure saved as 'reward_reaching_accuracy.png'")
+
     plt.tight_layout()
     plt.show()
+
 
 
 

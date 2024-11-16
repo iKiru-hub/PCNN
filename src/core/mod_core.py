@@ -206,6 +206,7 @@ class Modulation(ABC):
         self.leaky_var.render(return_fig=return_fig)
 
     def render_field(self, pcnn_plotter: object,
+                     bounds: np.ndarray=None,
                      return_fig: bool=False):
 
         self.ax.clear()
@@ -215,7 +216,17 @@ class Modulation(ABC):
                             edges=False,
                             alpha_nodes=0.8,
                             cmap="Greens",
+                            customize=True,
                             title=f"{self.leaky_var.name}")
+
+        # if bounds is not None:
+        #     self.ax.set_xlim(bounds[0], bounds[1]*1.2)
+        #     self.ax.set_ylim(bounds[2], bounds[3]*1.2)
+
+        # self.ax.set_xticks([bounds[0], bounds[1]])
+        # self.ax.set_yticks([bounds[2], bounds[3]])
+        # self.ax.set_xticklabels([f"{bounds[0]:.2f}", f"{bounds[1]:.2f}"])
+        # self.ax.set_yticklabels([f"{bounds[2]:.2f}", f"{bounds[3]:.2f}"])
 
         if self._number is not None:
             self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
@@ -658,6 +669,30 @@ class PopulationProgMax(Program):
             return self.fig
 
 
+class ActionSmoothness:
+
+    def __init__(self, gain: float=None):
+
+        self.prev_action = None
+
+    def __call__(self, action: np.ndarray):
+
+        if self.prev_action is None:
+            self.prev_action = action
+            return 0.
+
+        similarity = utils.cosine_similarity_vec(
+                        self.prev_action, action)
+
+        return similarity
+
+    def update(self, action: np.ndarray):
+        self.prev_action = action
+
+    def reset(self):
+        self.prev_action = None
+
+
 class TargetProg(Program):
 
     def __init__(self, **kwargs):
@@ -746,6 +781,7 @@ class Circuits:
         return self.output
 
     def render(self, pcnn_plotter: object=None,
+               bounds: np.ndarray=None,
                return_fig: bool=False):
 
         # render singular circuit
@@ -753,8 +789,10 @@ class Circuits:
         for _, circuit in self.circuits.items():
             if hasattr(circuit, "weights") and \
                 pcnn_plotter is not None:
-                cir_figs += [circuit.render_field(pcnn_plotter=pcnn_plotter,
-                                     return_fig=return_fig)]
+                cir_figs += [circuit.render_field(
+                            pcnn_plotter=pcnn_plotter,
+                            bounds=bounds,
+                            return_fig=return_fig)]
             else:
                 cir_figs += [circuit.render(return_fig=return_fig)]
 
@@ -1484,6 +1522,7 @@ class ExperienceModule3(ModuleClass):
         self.circuits = circuits
         self.pcnn_plotter = pcnn_plotter
         self.trg_module = trg_module
+        self._action_smoother = ActionSmoothness()
         self.output = {
                 "u": np.zeros(pcnn.get_size()),
                 "delta_update": np.zeros(pcnn.get_size()),
@@ -1494,12 +1533,12 @@ class ExperienceModule3(ModuleClass):
 
         # --- action generation configuration
         self.action_policy_main = SamplingPolicy(speed=speed,
-                                                 visualize=False,
-                                                 number=None,
+                                                 visualize=visualize_action,
+                                                 number=number,
                                                  name="SamplingMain")
         self.action_policy_int = SamplingPolicy(speed=speed,
-                                                visualize=visualize_action,
-                                                number=number,
+                                                visualize=False,
+                                                number=None,
                                                 name="SamplingInt")
         self.action_space_len = len(self.action_policy_int)
         self.action_delay = action_delay # ---
@@ -1614,23 +1653,14 @@ class ExperienceModule3(ModuleClass):
         values = np.array([modulation["Bnd"].item(),
                            modulation["dPos"].item(),
                            modulation["Pop"].item(),
-                           trg_modulation])
+                           trg_modulation,
+                           self._action_smoother(action=action)])
         score = (values @ self.weights.T)# / np.abs(self.weights).sum()
 
         if action_idx == 4:
             score = -1.
 
         return score, np.around(values*self.weights, 3)
-
-    def _mod_direction(self, action1: np.ndarray,
-                       action2: np.ndarray):
-
-        """
-        take into account the alignment with the
-        previous action
-        """
-
-        return utils.cosine_similarity_vec(action1, action2)
 
     def _action_rollout(self, observation: dict,
                         action: np.ndarray,
@@ -1652,6 +1682,10 @@ class ExperienceModule3(ModuleClass):
         rollout_values += [values.tolist()]
         rollout_scores[0] = round(rollout_scores[0], 4)
 
+        # action smoothing
+        self._action_smoother.reset()
+        self._action_smoother(action=action)
+
         # --- simulate its effects over the next steps
         for t in range(self.max_depth):
 
@@ -1662,6 +1696,7 @@ class ExperienceModule3(ModuleClass):
 
             # step
             observation["position"] = observation["position"] + action
+            self._action_smoother.update(action=action)
 
             # save the score
             rollout_scores += [round(score, 4)]
@@ -1683,7 +1718,8 @@ class ExperienceModule3(ModuleClass):
         logger.debug(f"current position: {np.around(observation['position'], 4).tolist()}")
 
         # --- `keep` current directive
-        if self.directive["state"] == "keep":
+        if self.directive["state"] == "keep" and \
+            not observation["collision"]:
 
             # apply the plan
             try:
@@ -1778,14 +1814,17 @@ class ExperienceModule3(ModuleClass):
         fig_tm = self.trg_module.render(return_fig=return_fig)
 
         if self.pcnn_plotter is not None:
+            title = f"$t=${self.t} | #PCs={len(self.pcnn)}"
             fig_pp = self.pcnn_plotter.render(ax=None,
                 trajectory=kwargs.get("trajectory", False),
-                          rollout=[self.rollout["trajectory"],
-                                   self.rollout["score_sequence"]],
+                rollout=[self.rollout["trajectory"],
+                         self.rollout["score_sequence"]],
                 new_a=1*self.circuits.circuits["DA"].output,
-                                     return_fig=return_fig,
-                        alpha_nodes=kwargs.get("alpha_nodes", 0.8),
-                        alpha_edges=kwargs.get("alpha_edges", 0.5))
+                return_fig=return_fig,
+                alpha_nodes=kwargs.get("alpha_nodes", 0.8),
+                alpha_edges=kwargs.get("alpha_edges", 0.5),
+                customize=True,
+                title=title)
 
         if return_fig:
             return fig_pp, fig_tm, fig_api
@@ -2118,6 +2157,7 @@ class Brain:
 
         fig_cir = self.circuits.render(
             pcnn_plotter=self.exp_module.pcnn_plotter,
+            bounds=self.exp_module.pcnn_plotter._bounds,
             return_fig=kwargs.get("return_fig", False))
 
         fig_exp = self.exp_module.render(ax=kwargs.get("ax", None),
@@ -2178,7 +2218,6 @@ class RandomWalkPolicy:
 
     def has_collided(self):
         self.velocity = -self.velocity
-
 
 
 class SamplingPolicy:
