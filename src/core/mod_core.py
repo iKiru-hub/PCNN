@@ -17,9 +17,9 @@ def set_seed(seed: int=0):
     np.random.seed(seed)
 
 logger = utils.setup_logger(name="MOD",
-                            level=0,
-                            is_debugging=True,
-                            is_warning=True)
+                            level=-1,
+                            is_debugging=False,
+                            is_warning=False)
 
 
 """ ABSTRACT CLASSES """
@@ -1547,8 +1547,6 @@ class ExperienceModule3(ModuleClass):
         self.output["delta_update"] = self.pcnn.get_delta_update()
         self.t += 1
 
-        logger.debug(f"output action: {self.output['velocity']}")
-
     def _generate_action(self, observation: dict,
                          returning: bool=False) -> np.ndarray:
 
@@ -1569,7 +1567,7 @@ class ExperienceModule3(ModuleClass):
             # new position if the action is taken
             new_position = observation["position"] + action
 
-            score = self._evaluate_action(position=new_position,
+            score, values = self._evaluate_action(position=new_position,
                                           action=action,
                                           action_idx=action_idx)
 
@@ -1584,7 +1582,7 @@ class ExperienceModule3(ModuleClass):
 
         # ---
         if returning:
-            return action, action_idx, score
+            return action, action_idx, score, values
 
         self.output["velocity"] = action
         self.output["action_idx"] = action_idx
@@ -1593,7 +1591,6 @@ class ExperienceModule3(ModuleClass):
     def _evaluate_action(self, position: np.ndarray,
                          action: np.ndarray,
                          action_idx: int) -> float:
-
 
         # new observation/effects
         u = self.pcnn.fwd_ext(x=position)
@@ -1618,12 +1615,22 @@ class ExperienceModule3(ModuleClass):
                            modulation["dPos"].item(),
                            modulation["Pop"].item(),
                            trg_modulation])
-        score = (values @ self.weights.T) / np.abs(self.weights).sum()
+        score = (values @ self.weights.T)# / np.abs(self.weights).sum()
 
         if action_idx == 4:
             score = -1.
 
-        return score
+        return score, np.around(values*self.weights, 3)
+
+    def _mod_direction(self, action1: np.ndarray,
+                       action2: np.ndarray):
+
+        """
+        take into account the alignment with the
+        previous action
+        """
+
+        return utils.cosine_similarity_vec(action1, action2)
 
     def _action_rollout(self, observation: dict,
                         action: np.ndarray,
@@ -1631,22 +1638,25 @@ class ExperienceModule3(ModuleClass):
 
         #
         rollout_scores = []
+        rollout_values = []
         action_seq = [action]
         index_seq = [action_idx]
 
         # first step + evaluate
         observation["position"] = observation["position"] + action
         trajectory = [observation["position"]]
-        rollout_scores += [self._evaluate_action(position=observation["position"],
+        score, values = self._evaluate_action(position=observation["position"],
                                                  action=action,
-                                                 action_idx=action_idx)]
+                                                 action_idx=action_idx)
+        rollout_scores += [score]
+        rollout_values += [values.tolist()]
         rollout_scores[0] = round(rollout_scores[0], 4)
 
         # --- simulate its effects over the next steps
         for t in range(self.max_depth):
 
             # get the current action
-            action, action_idx, score = self._generate_action(
+            action, action_idx, score, values = self._generate_action(
                                 observation=observation,
                                 returning=True)
 
@@ -1658,8 +1668,9 @@ class ExperienceModule3(ModuleClass):
             trajectory += [observation["position"]]
             action_seq += [action]
             index_seq += [action_idx]
+            rollout_values += [values.tolist()]
 
-        return rollout_scores, trajectory, action_seq, index_seq
+        return rollout_scores, trajectory, action_seq, index_seq, rollout_values
 
     def _generate_action_from_rollout(self,
                         observation: dict) -> np.ndarray:
@@ -1669,8 +1680,7 @@ class ExperienceModule3(ModuleClass):
         through a rollout over many steps
         """
 
-        logger.debug(f"current position: {observation['position']}")
-
+        logger.debug(f"current position: {np.around(observation['position'], 4).tolist()}")
 
         # --- `keep` current directive
         if self.directive["state"] == "keep":
@@ -1679,7 +1689,6 @@ class ExperienceModule3(ModuleClass):
             try:
                 self.output["velocity"] = self.rollout["action_sequence"][self.directive["action_t"]]
                 self.output["action_idx"] = self.rollout["index_sequence"][self.directive["action_t"]]
-                # logger.debug(f"next action: {self.output['velocity']} [seq: {self.rollout['action_sequence']}] [[t={self.directive['action_t']}]]")
             except IndexError:
                 logger.error(f"index error: {self.directive['action_t']}")
                 logger.error(f"{self.rollout['action_sequence']}")
@@ -1708,16 +1717,24 @@ class ExperienceModule3(ModuleClass):
             action, done, action_idx, _ = self.action_policy_main()
 
             # --- evaluate action
-            rollout_scores, trajectory, action_seq, index_seq = self._action_rollout(observation=observation.copy(),
+            results = self._action_rollout(observation=observation.copy(),
                                                   action=action,
                                                   action_idx=action_idx)
             self.action_policy_main.update()
+
+            rollout_scores = results[0]
+            trajectory = results[1]
+            action_seq = results[2]
+            index_seq = results[3]
+            rollout_values = results[4]
 
             # evaluate the best action
             if np.sum(rollout_scores[1:]) > best_score:
                 best_score = np.sum(rollout_scores[1:])
                 best_rollout = [np.stack(trajectory), rollout_scores,
-                                action_seq, index_seq, len(rollout_scores[1:])]
+                                action_seq, index_seq,
+                                len(rollout_scores[1:]),
+                                rollout_values]
 
             if done:
                 break
@@ -1745,8 +1762,13 @@ class ExperienceModule3(ModuleClass):
         self.rollout["action_sequence"] = best_rollout[2][:depth+2]
         self.rollout["index_sequence"] = best_rollout[3][:depth+2]
 
-        logger.debug(f"rollout [{depth=}] ||\nactions: {self.rollout['action_sequence']}\nscores: {best_rollout[1]}")
+        # logger.debug(f"rollout [{depth=}] ||\n" + \
+        #     f"actions: {self.rollout['action_sequence']}\n" + \
+        #     f"indexes: {self.rollout['index_sequence']}\n"
+        #     f"scores: {best_rollout[1]}\n" + \
+        #     f"values: {best_rollout[5]}")
         # logger.debug(f"best action: {best_action} | {best_action_idx} | {best_score}")
+        logger.debug(f"plan xy:\n{np.around(self.rollout['trajectory'], 4).tolist()}")
 
     def render(self, ax=None, **kwargs):
 

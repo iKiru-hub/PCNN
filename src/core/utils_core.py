@@ -150,7 +150,8 @@ def setup_logger(name: str="MAIN",
                 self.logger.warning(msg)
 
         def error(self, msg: str=""):
-            self.logger.error(msg)
+            if self.is_warning:
+                self.logger.error(msg)
 
         def debug(self, msg):
             if self.is_debugging:
@@ -170,8 +171,8 @@ def setup_logger(name: str="MAIN",
                          is_warning=is_warning)
 
 logger = setup_logger(name="UTILS", colored=True,
-                      level=0, is_debugging=True,
-                      is_warning=True)
+                      level=0, is_debugging=False,
+                      is_warning=False)
 
 """ analysis """
 

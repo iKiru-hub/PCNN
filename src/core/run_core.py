@@ -27,9 +27,9 @@ import pclib
 
 CONFIGPATH = "dashboard/media/configs.json"
 logger = utc.setup_logger(name="RUN",
-                          level=0,
-                          is_debugging=True,
-                          is_warning=True)
+                          level=-1,
+                          is_debugging=False,
+                          is_warning=False)
 
 
 
@@ -285,6 +285,7 @@ def main(args):
     # --- settings
     duration = args.duration
     SPEED = 0.07
+    PLOT_INTERVAL = 5
     other_info = {}
 
     # --- brain
@@ -391,7 +392,7 @@ def main(args):
     #                                   visualize_action=True)
 
     # [ bnd, dpos, pop, trg ]
-    weights = np.array([-1.2, -0.3, -2.8, 0.9])
+    weights = np.array([-2., 0.0, -2., 0.9])
     exp_module = mod.ExperienceModule3(pcnn=model,
                                        pcnn_plotter=model_plotter,
                                        trg_module=trg_module,
@@ -480,7 +481,7 @@ def main(args):
             break
 
         # --- plot
-        if t % 5 == 0:
+        if t % PLOT_INTERVAL == 0:
             if not args.plot:
                 agent.render(use_trajectory=True,
                              alpha_nodes=0.2,
