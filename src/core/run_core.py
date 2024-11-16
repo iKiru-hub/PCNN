@@ -397,7 +397,7 @@ def main(args):
     #                                   visualize_action=True)
 
     # [ bnd, dpos, pop, trg, smooth ]
-    weights = np.array([-2., 0.0, -2., 0.9, 0.00001])
+    weights = np.array([-2., 0.0, -2., 0.9, 0.1])
     exp_module = mod.ExperienceModule3(pcnn=model,
                                        pcnn_plotter=model_plotter,
                                        trg_module=trg_module,
