@@ -5,7 +5,7 @@ import argparse
 
 from tools.utils import clf, tqdm_enumerate, logger
 import inputools.Trajectory as it
-import pcnn_core as pcnn
+import pcnn_core as pcore
 import mod_core as mod
 import utils_core as utc
 import envs_core as ev
@@ -109,13 +109,13 @@ class Simulation:
         xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, self.bounds)
 
         # definition
-        model = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.5,
+        pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.5,
                           clip_min=0.09, threshold=0.5,
                           rep_threshold=0.5, rec_threshold=0.01,
                           num_neighbors=8, trace_tau=0.1,
                           xfilter=xfilter, name="2D")
 
-        model_plotter = pcnn.PlotPCNN(model=model,
+        model_plotter = pcore.PlotPCNN(model=pcnn2D,
                                       bounds=self.bounds,
                                       visualize=rendering)
 
@@ -141,7 +141,7 @@ class Simulation:
                                 visualize=rendering)
 
         # --- MODULES
-        trg_module = mod.TargetModule(pcnn=model,
+        trg_module = mod.TargetModule(pcnn=pcnn2D,
                                       circuits=circuits,
                                       speed=SPEED,
                                       threshold=0.01,
@@ -149,16 +149,17 @@ class Simulation:
 
         # [ bnd, dpos, pop, trg ]
         weights = np.array([-1., 0., -2., 1., 1.5])
-        exp_module = mod.ExperienceModule(pcnn=model,
-                                           pcnn_plotter=model_plotter,
-                                           trg_module=trg_module,
-                                           circuits=circuits,
-                                           weights=weights,
-                                           action_delay=10,
-                                           speed=SPEED,
-                                           visualize=False,
-                                           visualize_action=rendering)
+        exp_module = mod.ExperienceModule(pcnn=pcnn2D,
+                                          pcnn_plotter=model_plotter,
+                                          trg_module=trg_module,
+                                          circuits=circuits,
+                                          weights=weights,
+                                          action_delay=10,
+                                          speed=SPEED,
+                                          visualize=False,
+                                          visualize_action=rendering)
         self.agent = mod.Brain(exp_module=exp_module,
+                               pcnn2D=pcnn2D,
                                circuits=circuits)
 
         # --- agent & env
@@ -326,7 +327,7 @@ def main(args):
     xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, bounds)
 
     # definition
-    model = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.5,
+    pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.5,
                       clip_min=0.09, threshold=0.5,
                       rep_threshold=0.5, rec_threshold=0.01,
                       num_neighbors=8, trace_tau=0.1,
@@ -334,7 +335,7 @@ def main(args):
     # ---
 
     # pcnn
-    model_plotter = pcnn.PlotPCNN(model=model,
+    model_plotter = pcore.PlotPCNN(model=pcnn2D,
                                   bounds=bounds,
                                   visualize=True,
                                   number=0)
@@ -370,7 +371,7 @@ def main(args):
 
     # --- modules
 
-    trg_module = mod.TargetModule(pcnn=model,
+    trg_module = mod.TargetModule(pcnn=pcnn2D,
                                   circuits=circuits,
                                   speed=SPEED,
                                   threshold=0.5,
@@ -398,7 +399,7 @@ def main(args):
 
     # [ bnd, dpos, pop, trg, smooth ]
     weights = np.array([-2., 0.0, -2., 0.9, 0.1])
-    exp_module = mod.ExperienceModule(pcnn=model,
+    exp_module = mod.ExperienceModule(pcnn=pcnn2D,
                                        pcnn_plotter=model_plotter,
                                        trg_module=trg_module,
                                        circuits=circuits,
@@ -411,6 +412,7 @@ def main(args):
                                        visualize_action=True)
     agent = mod.Brain(exp_module=exp_module,
                       circuits=circuits,
+                      pcnn2D=pcnn2D,
                       number=None)
 
     # --- agent & env
@@ -463,8 +465,11 @@ def main(args):
         observation["velocity"] = velocity
         observation["collision"] = collision
         observation["reward"] = reward
-        observation["delta_update"] = agent.observation_int['delta_update']
-        observation["action_idx"] = agent.observation_int['action_idx']
+        observation["delta_update"] = agent.state['delta_update']
+        observation["action_idx"] = agent.state['action_idx']
+
+        # observation["delta_update"] = agent.observation_int['delta_update']
+        # observation["action_idx"] = agent.observation_int['action_idx']
 
         # if collision:
         #     logger.debug(f">>> collision at t={t}")

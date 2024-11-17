@@ -204,9 +204,9 @@ class Room:
             position=position+velocity, radius=0.,
             velocity=velocity)
 
-        if beyond:
-            logger.error(f"DOOMED TO COLLIDE")
-            logger.error(f"[p:{np.around(position, 3)}, v:{np.around(velocity, 3)}]")
+        # if beyond:
+        #     logger.error(f"DOOMED TO COLLIDE")
+            # logger.error(f"[p:{np.around(position, 3)}, v:{np.around(velocity, 3)}]")
 
     def handle_vector_collision(self, vector: np.ndarray):
         for wall in self.walls:
@@ -1051,6 +1051,7 @@ class AgentBody:
     def __init__(self, room: Room,
                  position: Optional[np.ndarray] = None,
                  **kwargs):
+
         self.radius = kwargs.get("radius", 0.05)
         self.position = position if position is not None else self._random_position()
         self.prev_position = self.position.copy()
@@ -1112,7 +1113,7 @@ class AgentBody:
 
         displacement = self.position - self.prev_position
         ax.arrow(self.prev_position[0], self.prev_position[1],
-                 5*displacement[0], 5*displacement[1],
+                 displacement[0], displacement[1],
                  head_width=0.02, head_length=0.02,
                  fc='black', ec='black')
 

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
-import pcnn_core as pcnn
+import pcnn_core as pcore
 import utils_core as utils
 import pclib
 
@@ -832,7 +832,7 @@ class ExperienceModule(ModuleClass):
         current position: [array]
     """
 
-    def __init__(self, pcnn: pcnn.PCNN,
+    def __init__(self, pcnn: pcore.PCNN,
                  circuits: Circuits,
                  trg_module: object,
                  pcnn_plotter: object=None,
@@ -852,7 +852,6 @@ class ExperienceModule(ModuleClass):
         self.trg_module = trg_module
         self._action_smoother = ActionSmoothness()
         self.output = {
-                "u": np.zeros(pcnn.get_size()),
                 "delta_update": np.zeros(pcnn.get_size()),
                 "velocity": np.zeros(2),
                 "action_idx": None,
@@ -860,11 +859,19 @@ class ExperienceModule(ModuleClass):
                 "depth": action_delay}
 
         # --- action generation configuration
-        self.action_policy_main = SamplingPolicy(speed=speed,
+        # self.action_policy_main = ActionSampling2D(speed=speed,
+        #                                          visualize=visualize_action,
+        #                                          number=number,
+        #                                          name="SamplingMain")
+        # self.action_policy_int = ActionSampling2D(speed=speed,
+        #                                         visualize=False,
+        #                                         number=None,
+        #                                         name="SamplingInt")
+        self.action_policy_main = ActionSampling2DWrapper(speed=speed,
                                                  visualize=visualize_action,
                                                  number=number,
                                                  name="SamplingMain")
-        self.action_policy_int = SamplingPolicy(speed=speed,
+        self.action_policy_int = ActionSampling2DWrapper(speed=speed,
                                                 visualize=False,
                                                 number=None,
                                                 name="SamplingInt")
@@ -898,8 +905,8 @@ class ExperienceModule(ModuleClass):
         """
 
         # --- get representations
-        spatial_repr = self.pcnn(x=observation["position"])
-        observation["u"] = spatial_repr.copy()
+        # spatial_repr = self.pcnn(x=observation["position"])
+        # observation["u"] = spatial_repr.copy()
 
         # the target is factored in
         self.trg_module(observation=observation)
@@ -910,7 +917,7 @@ class ExperienceModule(ModuleClass):
 
         # --- output & logs
         self.record += [observation["position"].tolist()]
-        self.output["u"] = spatial_repr
+        # self.output["u"] = spatial_repr
         self.output["delta_update"] = self.pcnn.get_delta_update()
         self.t += 1
 
@@ -927,7 +934,7 @@ class ExperienceModule(ModuleClass):
         while True:
 
             # --- generate a random action
-            action, done, action_idx, _ = self.action_policy_int()
+            action, done, action_idx = self.action_policy_int()
 
 
             # --- simulate its effects
@@ -1071,7 +1078,7 @@ class ExperienceModule(ModuleClass):
         while True:
 
             # --- generate random main action
-            action, done, action_idx, _ = self.action_policy_main()
+            action, done, action_idx = self.action_policy_main()
 
             # --- evaluate action
             results = self._action_rollout(observation=observation.copy(),
@@ -1169,7 +1176,7 @@ class TargetModule(ModuleClass):
         current position: [array]
     """
 
-    def __init__(self, pcnn: pcnn.PCNN,
+    def __init__(self, pcnn: pcore.PCNN,
                  circuits: Circuits,
                  visualize: bool=True,
                  threshold: float=0.4,
@@ -1215,7 +1222,7 @@ class TargetModule(ModuleClass):
 
         # set -np.inf values to zero
         centers = np.where(centers == -np.inf, 0, centers)
-        trg_pos = pcnn.calc_position_from_centers(a=trg_repr,
+        trg_pos = pcore.calc_position_from_centers(a=trg_repr,
                                     centers=centers)
 
         # velocity
@@ -1244,7 +1251,7 @@ class TargetModule(ModuleClass):
         # u = self.pcnn._Wrec @ (x + modulation.reshape(-1, 1))
         u = self.pcnn.fwd_int(x.reshape(-1) + modulation.reshape(-1))
 
-        c = pcnn.cosine_similarity_vec(u, x)
+        c = pcore.cosine_similarity_vec(u, x)
         if c > threshold:
             return u, True
 
@@ -1311,20 +1318,22 @@ class Brain:
 
     def __init__(self, exp_module: ExperienceModule,
                  circuits: Circuits,
+                 pcnn2D: pcore.PCNN,
                  number: int=None,
                  plot_intv: int=1):
 
         self.exp_module = exp_module
         self.circuits = circuits
+        self.pcnn2D = pcnn2D
 
-        self.movement = None
-        self.observation_ext = {
-            "position": np.zeros(2).astype(float),
-            "collision": False
-        }
+        # self.movement = None
+        # self.observation_ext = {
+        #     "position": np.zeros(2).astype(float),
+        #     "collision": False
+        # }
 
-        self.observation_int = {
-            "u": np.zeros(exp_module.pcnn.get_size()),
+        self.state = {
+            "u": np.zeros(pcnn2D.get_size()),
             "delta_update": 0.,
             "velocity": np.zeros(2),
             "action_idx": 0,
@@ -1337,7 +1346,7 @@ class Brain:
             "importance": 0,
         }
 
-        self.state = self.observation_ext | self.observation_int
+        # self.state = self.observation_ext | self.observation_int
 
         self.directive = "new"
         self._elapsed_time = 0
@@ -1355,14 +1364,21 @@ class Brain:
     def __call__(self, observation: dict):
 
         self.t += 1
-        self.observation_ext = observation
-        self.state = self.observation_ext | self.observation_int
+        # self.observation_ext = observation
 
-        self.record["trajectory"] += [
-                    self.observation_ext["position"].tolist()]
+        # forward current position
+        # spatial_repr = self.pcnn2D(x=observation["position"])
+        # observation["u"] = spatial_repr
+
+        self.state["u"] = self.pcnn2D(x=observation["position"])
+        self.state = self.state | observation
 
         # --- update modulation
+        # mod_observation = self.circuits(observation=self.state)
         mod_observation = self.circuits(observation=self.state)
+        self.state = self.state | mod_observation
+
+        # self.state = self.observation_ext | self.observation_int
 
         # TODO : add directive depending on modulation
 
@@ -1387,16 +1403,19 @@ class Brain:
 
         # --- update experience module
         # full output
-        self.observation_int = self.exp_module(observation=self.state)
+        # self.observation_int = self.exp_module(observation=observation)
+        exp_output = self.exp_module(observation=self.state)
 
         # --- update output
         # self.observation_int["onset"] = self.t
         # self.directive = "force_keep"
-        self.movement = self.observation_int["velocity"]
+        self.movement = exp_output["velocity"]
 
-        self.frequencies[self.observation_int["action_idx"]] += 1
+        self.record["trajectory"] += [observation["position"].tolist()]
+        # self.frequencies[self.observation_int["action_idx"]] += 1
+        self.state = observation | exp_output
 
-        return self.movement
+        return exp_output["velocity"]
 
     def routines(self, wall_vectors: np.ndarray):
 
@@ -1444,7 +1463,7 @@ class Brain:
 """ policies """
 
 
-class SamplingPolicy:
+class ActionSampling2D:
 
     def __init__(self, samples: list=None,
                  speed: float=0.1,
@@ -1522,7 +1541,7 @@ class SamplingPolicy:
                             self._samples_indexes, p=self._p)
             self._available_idxs.remove(self._idx)
             self._velocity = self._samples[self._idx]
-            return self._velocity.copy(), False, self._idx, self._values
+            return self._velocity.copy(), False, self._idx
 
         # --- all samples have been tried
         if len(self._available_idxs) == 0:
@@ -1539,25 +1558,24 @@ class SamplingPolicy:
             self._velocity = self._samples[self._idx]
             # print(f"{self._name} || selected: {self._idx} | " + \
             #     f"{self._values.max()} | values: {np.around(self._values, 2)} v={np.around(self._velocity*1000, 2)}")
-            return self._velocity.copy(), True, self._idx, self._values
+            return self._velocity.copy(), True, self._idx
 
         # --- sample again
         p = self._p[self._available_idxs].copy()
         p /= p.sum()
+        # self._idx = np.random.choice(
+        #                 self._available_idxs,
+        #                 p=p)
         self._idx = np.random.choice(
-                        self._available_idxs,
-                        p=p)
+                        self._available_idxs)
         self._available_idxs.remove(self._idx)
         self._velocity = self._samples[self._idx]
 
-        return self._velocity.copy(), False, self._idx, self._values
+        return self._velocity.copy(), False, self._idx
 
     def update(self, score: float=0.):
 
         # --- normalize the score
-        # score = pcnn.generalized_sigmoid(x=score,
-        #                                  alpha=-0.5,
-        #                                  beta=1.)
 
         self._values[self._idx] = score
 
@@ -1656,3 +1674,78 @@ class SamplingPolicy:
 
         self._velocity = -self._velocity
 
+
+class ActionSampling2DWrapper(pclib.ActionSampling2D):
+
+    def __init__(self, speed: float, name: str,
+                 visualize: bool=False,
+                 number: int=None):
+
+        """
+        Parameters
+        ----------
+        speed : float, optional
+            Speed of the agent. The default is 0.1.
+        name : str, optional
+            Name of the policy. The default is None.
+        visualize : bool, optional
+            Visualize the policy. The default is False.
+        number : int, optional
+            Number of the figure. The default is None.
+        """
+
+        super().__init__(speed=speed, name=name)
+
+        # render
+        self._number = number
+        self.visualize = visualize
+        if visualize:
+            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
+            logger(f"%visualizing {self.__class__}")
+
+    def __call__(self, **kwargs):
+        out = list(super().__call__(*kwargs))
+        out[0] = np.array(out[0])
+        return out
+
+    def render(self, values: np.ndarray=None,
+               return_fig: bool=False):
+
+        if not self.visualize:
+            return
+
+        self.ax.clear()
+
+        values = values if values is not None else self.get_values()
+
+        values[4] = (values[:4].sum() + values[5:].sum()) / 8
+        self.ax.imshow(values.reshape(3, 3),
+                       cmap="Blues_r",
+                       aspect="equal",
+                       interpolation="nearest")
+
+        # labels inside each square
+        for i in range(3):
+            for j in range(3):
+                if values is not None:
+                    text = "".join([f"{np.around(v, 2)}\n" for v in values[3*i+j]])
+                else:
+                    text = f"{self._values[3*i+j]:.3f}"
+                self.ax.text(j, i, f"{text}",
+                             ha="center", va="center",
+                             color="black",
+                             fontsize=13)
+
+        self.ax.set_xlabel("Action")
+        self.ax.set_title(f"Action Space")
+        self.ax.set_yticks(range(3))
+        self.ax.set_xticks(range(3))
+
+        if self._number is not None:
+            self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+            return
+
+        self.fig.canvas.draw()
+
+        if return_fig:
+            return self.fig
