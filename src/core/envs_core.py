@@ -178,6 +178,7 @@ class Room:
         if not self.visualize:
             return
 
+        ax_provided = ax is not None
         if ax is None:
             ax = self.ax
             ax.clear()
@@ -193,7 +194,8 @@ class Room:
         for wall in self.walls:
             wall.render(ax=ax, alpha=alpha)
 
-        self.fig.canvas.draw()
+        if not ax_provided:
+            self.fig.canvas.draw()
 
         if returning:
             return ax, self.fig
@@ -440,16 +442,19 @@ class RewardObj:
         assuming a box of size 1x1
         """
 
-        distance = np.linalg.norm(position - self._position)
-        p = np.exp(-distance**2 / (2 * self._radius**2))
+        # distance = np.linalg.norm(position - self._position)
+        distance = ((position - self._position)**2).sum()
+        p = np.exp(- distance / \
+            (2 * self._radius**2))
         if distance < self._radius:
             return np.random.binomial(1, p)
         return 0.0
 
-    def render(self, ax: plt.Axes):
+    def render(self, ax: plt.Axes, alpha: float=0.1):
 
         ax.add_patch(Circle(self._position, self._radius,
-                            fc="green", ec='black', alpha=0.3))
+                            fc="green", ec='black',
+                            alpha=alpha))
 
 
 

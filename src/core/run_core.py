@@ -29,7 +29,7 @@ CONFIGPATH = "dashboard/media/configs.json"
 
 logger = utc.setup_logger(name="RUN",
                           level=-1,
-                          is_debugging=False,
+                          is_debugging=True,
                           is_warning=False)
 
 
@@ -45,9 +45,6 @@ def write_configs(num_figs: int,
         "circuits": circuits.names,
         "t": t,
         "position": np.around(observation["position"], 3).tolist(),
-        "velocity": np.around(observation["velocity"], 3).tolist(),
-        "trg_pos": np.around(trg_module.output["trg_position"], 3).tolist(),
-        "trg_velocity": np.around(trg_module.output["velocity"], 3).tolist()
     }
 
     info = info | other
@@ -103,8 +100,8 @@ class Simulation:
         logger(f"{N=}")
         logger(f"{Nj=}")
 
+        # ---
         sigma = 0.05
-        # self.bounds = np.array([0., 1., 0., 1.])
         self.bounds = BOUNDS
         xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, self.bounds)
 
@@ -115,7 +112,7 @@ class Simulation:
                           num_neighbors=8, trace_tau=0.1,
                           xfilter=xfilter, name="2D")
 
-        model_plotter = pcore.PlotPCNN(model=pcnn2D,
+        pcnn2D_plotter = pcore.PlotPCNN(model=pcnn2D,
                                       bounds=self.bounds,
                                       visualize=rendering)
 
@@ -150,7 +147,7 @@ class Simulation:
         # [ bnd, dpos, pop, trg ]
         weights = np.array([-1., 0., -2., 1., 1.5])
         exp_module = mod.ExperienceModule(pcnn=pcnn2D,
-                                          pcnn_plotter=model_plotter,
+                                          pcnn_plotter=pcnn2D_plotter,
                                           trg_module=trg_module,
                                           circuits=circuits,
                                           weights=weights,
@@ -213,8 +210,8 @@ class Simulation:
         self.observation["velocity"] = self.velocity
         self.observation["collision"] = collision
         self.observation["reward"] = reward
-        self.observation["delta_update"] = self.agent.observation_int['delta_update']
-        self.observation["action_idx"] = self.agent.observation_int['action_idx']
+        self.observation["delta_update"] = self.agent.state['delta_update']
+        self.observation["action_idx"] = self.agent.state['action_idx']
 
         if collision:
             logger.debug(f">>> collision at t={self.t}")
@@ -300,58 +297,35 @@ def main(args):
     logger(f"{N=}")
     logger(f"{Nj=}")
 
-    params = {
-        "N": N,
-        "Nj": Nj,
-        "alpha": 0.17,
-        "beta": 35.0,
-        "clip_min": 0.005,
-        "threshold": 0.3,
-        "rep_threshold": 0.8,
-        "rec_threshold": 0.7,
-        "calc_recurrent_enable": True,
-        "k_neighbors": 7,
-        "name": "PCNN"
-    }
-
-    # pc filter
-    # pclayer = pcnn.PClayer(n=13, sigma=0.01)
-    # logger.debug(f"{pclayer=}")
-    # params["xfilter"] = pclayer
-    # model = pcnn.PCNN(**params)
-
     # ---
     sigma = 0.05
-    # bounds = np.array([0., 1., 0., 1.])
     bounds = BOUNDS
     xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, bounds)
 
     # definition
-    pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.5,
-                      clip_min=0.09, threshold=0.5,
-                      rep_threshold=0.5, rec_threshold=0.01,
+    pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3.1, offset=1.4,
+                      clip_min=0.09, threshold=0.3,
+                      rep_threshold=0.8, rec_threshold=0.01,
                       num_neighbors=8, trace_tau=0.1,
                       xfilter=xfilter, name="2D")
-    # ---
 
-    # pcnn
-    model_plotter = pcore.PlotPCNN(model=pcnn2D,
+    # plotter
+    pcnn2D_plotter = pcore.PlotPCNN(model=pcnn2D,
                                   bounds=bounds,
                                   visualize=True,
                                   number=0)
 
     # --- circuits
     circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
-                                            threshold=0.02,
+                                            threshold=0.3,
+                                            tau=1.,
                                             visualize=True,
-                                            score_weight=5.,
-                                        number=5),
+                                            number=5),
                      "DA": mod.Dopamine(N=N,
+                                        threshold=0.01,
                                         visualize=True,
-                                        score_weight=1.,
                                         number=4),
-                     "dPos": mod.PositionTrace(visualize=False,
-                                               score_weight=2.),
+                     "dPos": mod.PositionTrace(visualize=False),
                      "Pop": mod.PopulationProgMax(N=N,
                                                   visualize=False,
                                                   number=None),
@@ -361,10 +335,6 @@ def main(args):
         logger.debug(f"{circuit} keys: {circuit.input_key}")
 
     # object
-    # modulators = mod.Modulators(modulators_dict=modulators_dict,
-    #                             visualize=True,
-    #                             number=3)
-
     circuits = mod.Circuits(circuits_dict=circuits_dict,
                             visualize=True,
                             number=3)
@@ -374,61 +344,46 @@ def main(args):
     trg_module = mod.TargetModule(pcnn=pcnn2D,
                                   circuits=circuits,
                                   speed=SPEED,
-                                  threshold=0.5,
+                                  threshold=0.2,
                                   visualize=True,
                                   number=1)
     other_info["Trg_thr"] = trg_module.threshold
 
-
-    # weight_policy = mod.WeightsPolicy(circuits_dict=circuits_dict,
-    #                                    trg_module=trg_module,
-    #                                    visualize=True,
-    #                                    number=6)
-    # logger(f"{weight_policy}")
-
-    # exp_module = mod.ExperienceModule(pcnn=model,
-    #                                   pcnn_plotter=model_plotter,
-    #                                   trg_module=trg_module,
-    #                                   weight_policy=weight_policy,
-    #                                   circuits=circuits,
-    #                                   speed=SPEED,
-    #                                   max_depth=20,
-    #                                   visualize=False,
-    #                                   number=2,
-    #                                   visualize_action=True)
-
     # [ bnd, dpos, pop, trg, smooth ]
-    weights = np.array([-2., 0.0, -2., 0.9, 0.1])
+    weights = np.array([-5., 0.0, -2., 0.9, 0.1])
     exp_module = mod.ExperienceModule(pcnn=pcnn2D,
-                                       pcnn_plotter=model_plotter,
-                                       trg_module=trg_module,
-                                       circuits=circuits,
-                                       weights=weights,
-                                       action_delay=10,
-                                       max_depth=20,
-                                       speed=SPEED,
-                                       visualize=False,
-                                       number=2,
-                                       visualize_action=True)
+                                      pcnn_plotter=pcnn2D_plotter,
+                                      trg_module=trg_module,
+                                      circuits=circuits,
+                                      weights=weights,
+                                      action_delay=10,
+                                      max_depth=10,
+                                      speed=SPEED,
+                                      visualize=False,
+                                      number=2,
+                                      visualize_action=True)
     agent = mod.Brain(exp_module=exp_module,
                       circuits=circuits,
-                      pcnn2D=pcnn2D,
-                      number=None)
+                      pcnn2D=pcnn2D)
 
     # --- agent & env
     env = ev.make_room(name="square", thickness=4.,
                        bounds=BOUNDS,
                        visualize=True)
+    pcnn2D_plotter.add_element(element=env)
+
     env = ev.AgentBody(room=env,
                        position=np.array([0.8, 0.2]))
-    reward_obj = ev.RewardObj(position=np.array([0.8, 0.8]),
-                       radius=0.15)
+    reward_obj = ev.RewardObj(position=np.array([0.5, 0.5]),
+                       radius=0.1)
+    pcnn2D_plotter.add_element(element=reward_obj)
+
     velocity = np.zeros(2)
     observation = {
-        "u": np.zeros(N),
+        # "u": np.zeros(N),
         "position": env.position,
-        "velocity": velocity,
-        "delta_update": 0.,
+        # "velocity": velocity,
+        # "delta_update": 0.,
         "collision": False,
         "reward": 0.
     }
@@ -456,17 +411,19 @@ def main(args):
         # --- env
         position, collision, truncated = env(velocity=velocity)
         reward = reward_obj(position=position)
+        # if reward:
+        #     logger.debug(f"reward at t={t}")
         trajectory += [position.tolist()]
 
         # --- observation
         # observation["u"] = agent.exp_module.fwd_pcnn(
         #     x=position.reshape(-1, 1)).flatten()
         observation["position"] = position
-        observation["velocity"] = velocity
+        # observation["velocity"] = velocity
         observation["collision"] = collision
         observation["reward"] = reward
-        observation["delta_update"] = agent.state['delta_update']
-        observation["action_idx"] = agent.state['action_idx']
+        # observation["delta_update"] = agent.state['delta_update']
+        # observation["action_idx"] = agent.state['action_idx']
 
         # observation["delta_update"] = agent.observation_int['delta_update']
         # observation["action_idx"] = agent.observation_int['action_idx']
@@ -495,8 +452,8 @@ def main(args):
         if t % PLOT_INTERVAL == 0:
             if not args.plot:
                 agent.render(use_trajectory=True,
-                             alpha_nodes=0.2,
-                             alpha_edges=0.2)
+                             alpha_nodes=0.1,
+                             alpha_edges=0.06)
 
             if args.plot:
                 plot_update(fig=fig, ax=ax,

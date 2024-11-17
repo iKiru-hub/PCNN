@@ -18,7 +18,7 @@ def set_seed(seed: int=0):
 
 logger = utils.setup_logger(name="MOD",
                             level=-1,
-                            is_debugging=False,
+                            is_debugging=True,
                             is_warning=False)
 
 
@@ -228,6 +228,8 @@ class Modulation(ABC):
         # self.ax.set_xticklabels([f"{bounds[0]:.2f}", f"{bounds[1]:.2f}"])
         # self.ax.set_yticklabels([f"{bounds[2]:.2f}", f"{bounds[3]:.2f}"])
 
+        self.fig.canvas.draw()
+
         if self._number is not None:
             self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
             return
@@ -343,7 +345,7 @@ class Dopamine(Modulation):
         self.leaky_var = LeakyVariableWrapper1D(eq=0., tau=5,
                                        name="DA",
                                        max_record=500)
-        self.threshold = 0.7
+        self.threshold = kwargs.get("threshold", 0.01)
         self.action = "fwd"
         self.input_key = ("u", "reward", None)
         self.weights = np.zeros(self.N)
@@ -360,11 +362,14 @@ class Dopamine(Modulation):
                                        simulate=simulate),
                         0, 1)
 
-            # potentiation
-            self.weights += self.eta * v * np.where(u < 0.1, 0, u)
+            if not simulate:
 
-            # depression
-            self.weights -= self.eta * (1 - v) * np.where(u < 0.1, 0, u)
+                # potentiation
+                self.weights += self.eta * v * np.where(u < self.threshold, 0, u)
+
+                # depression
+                # self.weights -= self.eta * (1 - v) * \
+                #     np.where(u < self.threshold, 0, u)
         else:
             v = np.clip(self.leaky_var(x=0, simulate=simulate),
                         0, 1)
@@ -378,27 +383,27 @@ class Dopamine(Modulation):
 
         return out
 
-    def render(self, return_fig: bool=False):
+    # def render(self, return_fig: bool=False):
 
-        if not self._visualize:
-            return
+    #     if not self._visualize:
+    #         return
 
-        self.ax.clear()
-        self.ax.imshow(self.weights.reshape(1, -1),
-                           aspect="auto", cmap="Greens_r",
-                           vmin=0., vmax=4.)
-        self.ax.set_title(f"Dopamine Modulation | " + \
-            f"max:{self.weights.max():.2f} [{np.argmax(self.weights)}]")
-        self.ax.set_yticks([])
+    #     self.ax.clear()
+    #     self.ax.imshow(self.weights.reshape(1, -1),
+    #                        aspect="auto", cmap="Greens_r",
+    #                        vmin=0., vmax=4.)
+    #     self.ax.set_title(f"Dopamine Modulation | " + \
+    #         f"max:{self.weights.max():.2f} [{np.argmax(self.weights)}]")
+    #     self.ax.set_yticks([])
 
-        if self._number is not None:
-            self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
-            return
+    #     if self._number is not None:
+    #         self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+    #         return
 
-        self.fig.canvas.draw()
+    #     self.fig.canvas.draw()
 
-        if return_fig:
-            return self.fig
+    #     if return_fig:
+    #         return self.fig
 
 
 class Acetylcholine(Modulation):
@@ -462,10 +467,10 @@ class BoundaryMod(Modulation):
 
     def __init__(self, eta: float=0.1,
                  threshold: float=0.01,
-                 **kwargs):
+                 tau: float=3, **kwargs):
 
         super().__init__(**kwargs)
-        self.leaky_var = LeakyVariableWrapper1D(eq=0., tau=3,
+        self.leaky_var = LeakyVariableWrapper1D(eq=0., tau=tau,
                                        name="Bnd")
         self.action = "fwd"
         self.input_key = ("u", "collision")
@@ -852,7 +857,6 @@ class ExperienceModule(ModuleClass):
         self.trg_module = trg_module
         self._action_smoother = ActionSmoothness()
         self.output = {
-                "delta_update": np.zeros(pcnn.get_size()),
                 "velocity": np.zeros(2),
                 "action_idx": None,
                 "score": None,
@@ -917,8 +921,6 @@ class ExperienceModule(ModuleClass):
 
         # --- output & logs
         self.record += [observation["position"].tolist()]
-        # self.output["u"] = spatial_repr
-        self.output["delta_update"] = self.pcnn.get_delta_update()
         self.t += 1
 
     def _generate_action(self, observation: dict,
@@ -1126,13 +1128,15 @@ class ExperienceModule(ModuleClass):
         self.rollout["action_sequence"] = best_rollout[2][:depth+2]
         self.rollout["index_sequence"] = best_rollout[3][:depth+2]
 
+        logger.debug(f"rollout score: {best_score:.3f}")
+
         # logger.debug(f"rollout [{depth=}] ||\n" + \
         #     f"actions: {self.rollout['action_sequence']}\n" + \
         #     f"indexes: {self.rollout['index_sequence']}\n"
         #     f"scores: {best_rollout[1]}\n" + \
         #     f"values: {best_rollout[5]}")
         # logger.debug(f"best action: {best_action} | {best_action_idx} | {best_score}")
-        logger.debug(f"plan xy:\n{np.around(self.rollout['trajectory'], 4).tolist()}")
+        # logger.debug(f"plan xy:\n{np.around(self.rollout['trajectory'], 4).tolist()}")
 
     def render(self, ax=None, **kwargs):
 
@@ -1149,6 +1153,7 @@ class ExperienceModule(ModuleClass):
                          self.rollout["score_sequence"]],
                 new_a=1*self.circuits.circuits["DA"].output,
                 return_fig=return_fig,
+                render_elements=True,
                 alpha_nodes=kwargs.get("alpha_nodes", 0.8),
                 alpha_edges=kwargs.get("alpha_edges", 0.5),
                 customize=True,
@@ -1231,7 +1236,7 @@ class TargetModule(ModuleClass):
 
         # intensity
         if self.circuits.circuits["Ftg"].value > self.threshold and flag:
-            score = 1 * int(flag) * self.circuits.circuits["Ftg"].value
+            score = int(flag) * self.circuits.circuits["Ftg"].value
         else:
             score = 0.
 
@@ -1290,7 +1295,9 @@ class TargetModule(ModuleClass):
                     marker="x", color="red",
                     s=100)
         self.ax.set_title(f"Target Module | " + \
-            f" I={self.output['score']:.4f}")
+            f" Ftg={self.circuits.circuits['Ftg'].value:.2f}" + \
+            f"$\\leq${self.threshold}"
+            f" $I=${self.output['score']:.2f}")
         self.ax.set_xlim(0, 1)
         self.ax.set_ylim(0, 1)
         self.ax.set_xticks([])
@@ -1318,45 +1325,30 @@ class Brain:
 
     def __init__(self, exp_module: ExperienceModule,
                  circuits: Circuits,
-                 pcnn2D: pcore.PCNN,
-                 number: int=None,
-                 plot_intv: int=1):
+                 pcnn2D: pcore.PCNN):
 
         self.exp_module = exp_module
         self.circuits = circuits
         self.pcnn2D = pcnn2D
 
-        # self.movement = None
-        # self.observation_ext = {
-        #     "position": np.zeros(2).astype(float),
-        #     "collision": False
-        # }
-
         self.state = {
+            "position": np.zeros(2),
+            "collision": False,
+            "reward": 0.,
             "u": np.zeros(pcnn2D.get_size()),
             "delta_update": 0.,
             "velocity": np.zeros(2),
             "action_idx": 0,
             "depth": 0,
             "score": 0,
-            "onset": 0,
-            "trg_u": np.zeros(exp_module.pcnn.get_size()),
-            "trg_position": np.zeros(2),
-            "trg_velocity": np.zeros(2),
-            "importance": 0,
         }
 
         # self.state = self.observation_ext | self.observation_int
 
         self.directive = "new"
         self._elapsed_time = 0
-        # self._plot_intv = plot_intv  # no longer used
         self.t = -1
-        self.number = number
         self.frequencies = np.zeros(self.exp_module.action_space_len)
-
-        if number is not None:
-            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
 
         # record
         self.record = {"trajectory": []}
@@ -1364,65 +1356,32 @@ class Brain:
     def __call__(self, observation: dict):
 
         self.t += 1
-        # self.observation_ext = observation
+        self.record["trajectory"] += [observation["position"].tolist()]
+        self.state["position"] = observation["position"]
+        self.state["collision"] = observation["collision"]
+        self.state["reward"] = observation["reward"]
 
         # forward current position
-        # spatial_repr = self.pcnn2D(x=observation["position"])
-        # observation["u"] = spatial_repr
-
         self.state["u"] = self.pcnn2D(x=observation["position"])
-        self.state = self.state | observation
+        self.state["delta_update"] = self.pcnn2D.get_delta_update()
 
         # --- update modulation
-        # mod_observation = self.circuits(observation=self.state)
-        mod_observation = self.circuits(observation=self.state)
-        self.state = self.state | mod_observation
-
-        # self.state = self.observation_ext | self.observation_int
-
-        # TODO : add directive depending on modulation
-
-        # set new directive
-        # if self.t == 0:
-        #     self.directive = "new"
-
-        # if self.directive == "force_keep" and \
-        #     (self.t - self.observation_int["onset"]) < \
-        #     self.observation_int["depth"]:
-
-        #     return self.movement
-
-#         elif self.directive == "force_keep":
-#             self.directive = "new"
-
-        # elif mod_observation["dPos"] < 0.05:
-        #     self.directive = "new"
-
-        # else:
-        #     self.directive = "keep"
+        c_out = self.circuits(observation=self.state)
+        if self.t == 0:
+            for key, out in c_out.items():
+                self.state[key] = out
+        else:
+            self.state[*c_out.keys()] = c_out.values()
 
         # --- update experience module
-        # full output
-        # self.observation_int = self.exp_module(observation=observation)
         exp_output = self.exp_module(observation=self.state)
-
-        # --- update output
-        # self.observation_int["onset"] = self.t
-        # self.directive = "force_keep"
-        self.movement = exp_output["velocity"]
-
-        self.record["trajectory"] += [observation["position"].tolist()]
-        # self.frequencies[self.observation_int["action_idx"]] += 1
-        self.state = observation | exp_output
+        if self.t == 0:
+            for key, out in exp_output.items():
+                self.state[key] = out
+        else:
+            self.state[*exp_output.keys()] = exp_output.values()
 
         return exp_output["velocity"]
-
-    def routines(self, wall_vectors: np.ndarray):
-
-        # pcnn routine
-        # self.exp_module.pcnn.clean_recurrent(
-        #                         wall_vectors=wall_vectors)
-        pass
 
     def render(self, **kwargs):
 
@@ -1438,19 +1397,6 @@ class Brain:
                                      return_fig=kwargs.get("return_fig", False),
                             alpha_nodes=kwargs.get("alpha_nodes", 0.8),
                             alpha_edges=kwargs.get("alpha_edges", 0.5))
-
-            # if self.number is not None:
-
-            #     self.ax.clear()
-            #     self.ax.bar(range(len(self.frequencies)),
-            #                 self.frequencies / self.frequencies.sum(),
-            #                 color="black")
-            #     self.ax.set_xticks(range(len(self.frequencies)))
-            #     self.ax.set_xticklabels([f"{i}" for i in range(len(self.frequencies))])
-            #     self.ax.set_title("Action Frequencies")
-            #     self.ax.set_ylim(0, 1)
-
-            #     self.fig.savefig(f"{FIGPATH}/fig{self.number}.png")
 
         if kwargs.get("return_fig", False):
             return list(fig_exp) + fig_cir

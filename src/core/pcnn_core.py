@@ -544,11 +544,18 @@ class PlotPCNN:
         self._model = model
         self._number = number
         self._bounds = bounds
+        self._elements = []
         self.visualize = visualize
         if visualize:
             self._fig, self._ax = plt.subplots(figsize=(6, 6))
         # else:
         #     self._fig, self._ax = None, None
+
+    def add_element(self, element: object):
+        assert hasattr(element, "render"), \
+            "element must have a render method"
+
+        self._elements += [element]
 
     def render(self, trajectory: np.ndarray=None,
                rollout: tuple=None,
@@ -557,17 +564,23 @@ class PlotPCNN:
                alpha_nodes: float=0.1,
                alpha_edges: float=0.2,
                return_fig: bool=False,
+               render_elements: bool=False,
                customize: bool=False,
                title: str=None):
 
-        new_ax = False
+        new_ax = True
         if ax is None:
-            new_ax = True
             # fig, ax = plt.subplots(figsize=(6, 6))
             fig, ax = self._fig, self._ax
             ax.clear()
+            new_ax = False
 
         # new_a = new_a if new_a is not None else self._model.u
+
+        # render other elements
+        if render_elements:
+            for element in self._elements:
+                element.render(ax=ax)
 
         # --- trajectory
         if trajectory is not None:
@@ -620,12 +633,16 @@ class PlotPCNN:
             title = f"PCNN | N={len(self._model)}"
         ax.set_title(title)
 
-        if self._number is not None and new_ax:
-            fig.savefig(f"{FIGPATH}fig{self._number}.png")
+        if self._number is not None and not new_ax:
+            try:
+                fig.savefig(f"{FIGPATH}fig{self._number}.png")
+            except Exception as e:
+                logger.debug(f"{e=}")
+                return
             plt.close()
             return
 
-        if new_ax:
+        if not new_ax:
             fig.canvas.draw()
 
         # if ax == self._ax:
