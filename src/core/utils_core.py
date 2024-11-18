@@ -1,27 +1,136 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from abc import ABC, abstractmethod
 from tqdm import tqdm
 import logging, coloredlogs
 
 
+FIGPATH = "dashboard/cache/"
 
-""" functions """
 
-class OnlineFigure(ABC):
+""" VISUALIZATION """
 
-    """
-    an object responsible for plotting online data
-    in different figures
-    """
 
-    def __init__(self):
+class PlotPCNN:
 
-        self.fig, self.ax = plt.subplots()
+    def __init__(self, model: object,
+                 visualize: bool=True,
+                 number: int=None,
+                 edges: bool=True,
+                 bounds: tuple=(0, 1, 0, 1),
+                 cmap: str='viridis'):
 
-    @abstractmethod
-    def update(self):
-        pass
+        self._model = model
+        self._number = number
+        self._bounds = bounds
+        self._elements = []
+        self.visualize = visualize
+        if visualize:
+            self._fig, self._ax = plt.subplots(figsize=(6, 6))
+        # else:
+        #     self._fig, self._ax = None, None
+
+    def add_element(self, element: object):
+        assert hasattr(element, "render"), \
+            "element must have a render method"
+
+        self._elements += [element]
+
+    def render(self, trajectory: np.ndarray=None,
+               rollout: tuple=None,
+               edges: bool=True, cmap: str='RdBu_r',
+               ax=None, new_a: np.ndarray=None,
+               alpha_nodes: float=0.1,
+               alpha_edges: float=0.2,
+               return_fig: bool=False,
+               render_elements: bool=False,
+               customize: bool=False,
+               title: str=None):
+
+        new_ax = True
+        if ax is None:
+            # fig, ax = plt.subplots(figsize=(6, 6))
+            fig, ax = self._fig, self._ax
+            ax.clear()
+            new_ax = False
+
+        # new_a = new_a if new_a is not None else self._model.u
+
+        # render other elements
+        if render_elements:
+            for element in self._elements:
+                element.render(ax=ax)
+
+        # --- trajectory
+        if trajectory is not None:
+            ax.plot(trajectory[:, 0], trajectory[:, 1], 'r-',
+                          lw=0.5, alpha=0.5 if new_a is not None else 0.9)
+            ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
+                        c='k', s=100, marker='x')
+
+        # --- rollout
+        if rollout is not None and len(rollout[0]) > 0:
+            rollout_trj, rollout_vals = rollout
+            ax.plot(rollout_trj[:, 0], rollout_trj[:, 1], 'b',
+                    lw=1, alpha=0.5, linestyle='--')
+            for i, val in enumerate(rollout_vals):
+                ax.scatter(rollout_trj[i, 0], rollout_trj[i, 1],
+                            c='b', s=10*(2+val), alpha=0.7,
+                           marker='o')
+
+        # --- network
+        centers = self._model.get_centers()
+        connectivity = self._model.get_wrec()
+
+        ax.scatter(centers[:, 0],
+                   centers[:, 1],
+                   c=new_a if new_a is not None else None,
+                   s=40, cmap=cmap,
+                   vmin=0, vmax=0.04,
+                   alpha=alpha_nodes)
+
+        if edges and new_a is not None:
+            for i in range(connectivity.shape[0]):
+                for j in range(connectivity.shape[1]):
+                    if connectivity[i, j] > 0:
+                        ax.plot([centers[i, 0], centers[j, 0]],
+                                [centers[i, 1], centers[j, 1]],
+                                'k-',
+                                alpha=alpha_edges,
+                                lw=0.5)
+
+        #
+        # ax.axis('off')
+        if customize:
+            # ax.axis('off')
+            ax.set_xlim(self._bounds[0], self._bounds[1])
+            ax.set_ylim(self._bounds[2], self._bounds[3])
+            ax.set_xticks(())
+            ax.set_yticks(())
+
+        if title is None:
+            title = f"PCNN | N={len(self._model)}"
+        ax.set_title(title, fontsize=14)
+
+        if self._number is not None and not new_ax:
+            try:
+                fig.savefig(f"{FIGPATH}fig{self._number}.png")
+            except Exception as e:
+                logger.debug(f"{e=}")
+                return
+            plt.close()
+            return
+
+        if not new_ax:
+            fig.canvas.draw()
+
+        # if ax == self._ax:
+        #     self._fig.canvas.draw()
+
+        if return_fig:
+            return fig
+
+
+""" FUNCTIONS """
 
 
 def cosine_similarity(M: np.ndarray):
@@ -65,10 +174,13 @@ def calc_position_from_centers(a: np.ndarray,
     activations of the neurons in the layer
     """
 
+    if a.sum() == 0:
+        return np.array([np.nan, np.nan])
+
     return (centers * a.reshape(-1, 1)).sum(axis=0) / a.sum()
 
 
-""" logger """
+""" LOGGER """
 
 def setup_logger(name: str="MAIN",
                  colored: bool=True,
@@ -176,7 +288,7 @@ logger = setup_logger(name="UTILS", colored=True,
                       is_warning=False)
 
 
-""" analysis """
+""" ANALYSIS """
 
 
 def _multiple_simulations(N: int, simulator: object,

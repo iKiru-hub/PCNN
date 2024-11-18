@@ -1,22 +1,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
-import pcnn_core as pcore
-import utils_core as utils
+
+import utils_core as utc
 import pclib
 
 
 
 """ INITIALIZATION """
 
-FIGPATH = "dashboard/media"
+FIGPATH = utc.FIGPATH
 FIGSIZE = (4, 4)
 
 
 def set_seed(seed: int=0):
     np.random.seed(seed)
 
-logger = utils.setup_logger(name="MOD",
+logger = utc.setup_logger(name="MOD",
                             level=-1,
                             is_debugging=True,
                             is_warning=False)
@@ -435,9 +435,10 @@ class FatigueMod(Modulation):
     def __init__(self, **kwargs):
 
         super().__init__(**kwargs)
-        self.leaky_var = LeakyVariableWrapper1D(eq=1., tau=1000,
-                                       name="Ftg",
-                                       max_record=500)
+        self.leaky_var = LeakyVariableWrapper1D(eq=1.,
+                                    tau=kwargs.get("tau", 700),
+                                    name="Ftg",
+                                    max_record=500)
         self.action = "fwd"
         self.input_key = ("reward", None)
         self.output = np.zeros((1, 1))
@@ -684,7 +685,7 @@ class ActionSmoothness:
             self.prev_action = action
             return 0.
 
-        similarity = utils.cosine_similarity_vec(
+        similarity = utc.cosine_similarity_vec(
                         self.prev_action, action)
 
         return similarity
@@ -837,7 +838,7 @@ class ExperienceModule(ModuleClass):
         current position: [array]
     """
 
-    def __init__(self, pcnn: pcore.PCNN,
+    def __init__(self, pcnn: object,
                  circuits: Circuits,
                  trg_module: object,
                  pcnn_plotter: object=None,
@@ -848,6 +849,7 @@ class ExperienceModule(ModuleClass):
                  visualize: bool=False,
                  visualize_action: bool=False,
                  number: int=None,
+                 number2: int=None,
                  **kwargs):
 
         super().__init__()
@@ -894,6 +896,12 @@ class ExperienceModule(ModuleClass):
         self.t = 0
 
         # --- visualization
+        self.visualize = visualize
+        self._number = number2
+        if visualize:
+            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
+            logger(f"%visualizing {self.__class__}")
+
         self.record = []
         self.rollout = {
             "trajectory": [],
@@ -1074,6 +1082,7 @@ class ExperienceModule(ModuleClass):
         done = False
 
         best_score = -np.inf
+        best_min = -np.inf
         depth = 0
         best_rollout = []
         all_scores = []
@@ -1095,8 +1104,11 @@ class ExperienceModule(ModuleClass):
             rollout_values = results[4]
 
             # evaluate the best action
-            if np.sum(rollout_scores[1:]) > best_score:
+            if np.sum(rollout_scores[1:]) > best_score and \
+                np.min(rollout_scores) > best_min:
+
                 best_score = np.sum(rollout_scores[1:])
+                best_min = np.min(rollout_scores[1:])
                 best_rollout = [np.stack(trajectory), rollout_scores,
                                 action_seq, index_seq,
                                 len(rollout_scores[1:]),
@@ -1105,13 +1117,6 @@ class ExperienceModule(ModuleClass):
             if done:
                 break
             all_scores += [[action, rollout_scores]]
-
-        # if best_score <= 0.:
-        #     logger.warning("no good action found")
-        #     for a, scores in all_scores:
-        #         logger.debug(f"{a} | {scores}")
-
-        #     raise ValueError("no good action found")
 
         # --- record result
         depth = best_rollout[4]
@@ -1128,21 +1133,12 @@ class ExperienceModule(ModuleClass):
         self.rollout["action_sequence"] = best_rollout[2][:depth+2]
         self.rollout["index_sequence"] = best_rollout[3][:depth+2]
 
-        logger.debug(f"rollout score: {best_score:.3f}")
-
-        # logger.debug(f"rollout [{depth=}] ||\n" + \
-        #     f"actions: {self.rollout['action_sequence']}\n" + \
-        #     f"indexes: {self.rollout['index_sequence']}\n"
-        #     f"scores: {best_rollout[1]}\n" + \
-        #     f"values: {best_rollout[5]}")
-        # logger.debug(f"best action: {best_action} | {best_action_idx} | {best_score}")
-        # logger.debug(f"plan xy:\n{np.around(self.rollout['trajectory'], 4).tolist()}")
-
     def render(self, ax=None, **kwargs):
 
         return_fig = kwargs.get("return_fig", False)
 
-        fig_api = self.action_policy_int.render(return_fig=return_fig)
+        fig_api = self.action_policy_int.render(
+                            return_fig=return_fig)
         fig_tm = self.trg_module.render(return_fig=return_fig)
 
         if self.pcnn_plotter is not None:
@@ -1159,10 +1155,28 @@ class ExperienceModule(ModuleClass):
                 customize=True,
                 title=title)
 
+        # visualize the score sequence of the current plan
+        if self.visualize:
+            self.ax.clear()
+            self.ax.plot(self.rollout["score_sequence"],
+                         '-o', color="blue", alpha=0.5)
+            self.ax.axvline(x=self.directive["action_t"],
+                            color="red", linestyle="--")
+            self.ax.set_ylim(-1, 1)
+            self.ax.set_xlabel("Time")
+            self.ax.grid()
+            self.ax.set_title(f"Behaviour Score Sequence")
+
+            self.fig.canvas.draw()
+
+            if self._number is not None:
+                self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+
+            if return_fig:
+                return fig_pp, fig_tm, fig_api, self.fig
+
         if return_fig:
             return fig_pp, fig_tm, fig_api
-
-
 
     def reset(self, complete: bool=False):
         super().reset(complete=complete)
@@ -1181,7 +1195,7 @@ class TargetModule(ModuleClass):
         current position: [array]
     """
 
-    def __init__(self, pcnn: pcore.PCNN,
+    def __init__(self, pcnn: object,
                  circuits: Circuits,
                  visualize: bool=True,
                  threshold: float=0.4,
@@ -1227,7 +1241,7 @@ class TargetModule(ModuleClass):
 
         # set -np.inf values to zero
         centers = np.where(centers == -np.inf, 0, centers)
-        trg_pos = pcore.calc_position_from_centers(a=trg_repr,
+        trg_pos = utc.calc_position_from_centers(a=trg_repr,
                                     centers=centers)
 
         # velocity
@@ -1256,7 +1270,7 @@ class TargetModule(ModuleClass):
         # u = self.pcnn._Wrec @ (x + modulation.reshape(-1, 1))
         u = self.pcnn.fwd_int(x.reshape(-1) + modulation.reshape(-1))
 
-        c = pcore.cosine_similarity_vec(u, x)
+        c = utc.cosine_similarity_vec(u, x)
         if c > threshold:
             return u, True
 
@@ -1273,7 +1287,7 @@ class TargetModule(ModuleClass):
         # compare a queried velocity with the
         # calculated target velocity
         if self.output["score"] > 0.:
-            similarity = utils.cosine_similarity_vec(
+            similarity = utc.cosine_similarity_vec(
                             self.output["velocity"],
                             velocity)
 
@@ -1281,7 +1295,8 @@ class TargetModule(ModuleClass):
         else:
             similarity = 0.
 
-        assert isinstance(similarity, float), f"wrong type {type(similarity)=}"
+        assert isinstance(similarity, float), \
+            f"wrong type {type(similarity)=}"
 
         return similarity
 
@@ -1325,7 +1340,7 @@ class Brain:
 
     def __init__(self, exp_module: ExperienceModule,
                  circuits: Circuits,
-                 pcnn2D: pcore.PCNN):
+                 pcnn2D: object):
 
         self.exp_module = exp_module
         self.circuits = circuits
@@ -1401,9 +1416,6 @@ class Brain:
         if kwargs.get("return_fig", False):
             return list(fig_exp) + fig_cir
 
-    @property
-    def render_values(self):
-        return self.circuits.values.copy(), self.circuits.names
 
 
 """ policies """

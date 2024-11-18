@@ -1,5 +1,533 @@
 
+
+""" from `pcnn_core` """
+
+
+class PCNN():
+
+    """
+    Learning place fields
+    - formation: dependant on ACh levels (exploration)
+    - remapping: dependant on DA levels (reward)
+
+    Important parameters:
+    - learning rate : speed of remapping
+    - threshold : area of the place field
+    - epsilon : repulsion threshold
+    """
+
+    def __init__(self, N: int, Nj: int,
+                 xfilter: object=None, **kwargs):
+
+        """
+        Parameters
+        ----------
+        N: int
+            number of neurons
+        Nj: int
+            number of place cells
+        xfilter: object
+            input filter object.
+            Default is None
+        **kwargs: dict
+            additional parameters for the `minPCNN`
+            alpha: float
+                threshold parameter of the sigmoid. Default is 0.1
+            beta: float
+                gain parameter of the sigmoid. Default is 20.0
+            threshold: float
+                threshold for the neuronal activity. Default is 0.3
+            rep_threshold: float
+                threshold for the lateral repulsion. Default is 0.3
+            rec_threshold: float
+                threshold for the recurrent connections. Default is 0.2
+            k_neighbors: int
+                maximum number of neighbors
+            eq_ach: float
+                equilibrium of acetilcholine. Default is 1.0
+            tau_ach: float
+                time constant for the acetilcholine. Default is 50
+            ach_threshold: float
+                threshold for the acetilcholine. Default is 0.5
+        """
+
+        super().__init__()
+
+        # parametes
+        self.name = kwargs.get('name', "PCNN")
+        self.N = N
+        self.Nj = Nj
+        self.xfilter = xfilter
+        self._alpha = kwargs.get('alpha', 0.3)
+        self._beta = kwargs.get('beta', 20.0)
+        self._clip_min = kwargs.get('clip_min', 0.005)
+        self._threshold = kwargs.get('threshold', 0.3)
+        self._rep_threshold = kwargs.get('rep_threshold', 0.3)
+        self._indexes = np.arange(N)
+        self._trace_tau = kwargs.get('trace_tau', 100)
+
+        # recurrent connections
+        self._rec_threshold = kwargs.get('rec_threshold', 0.2)
+        self._k_neighbors = kwargs.get('k_neighbors', 7)
+        self._calc_recurrent_enable = kwargs.get(
+                            'calc_recurrent_enable', True)
+
+        # variables
+        self.u = np.zeros((N, 1))
+        self.mod_input = np.zeros((N, 1))
+        self.mod_update = 1.
+        self._umask = np.zeros((N, 1))
+        self._Wff = np.zeros((N, Nj))
+        self._Wff_backup = np.zeros((N, Nj))
+        self._Wrec = np.zeros((N, N))
+        self._is_plastic = True
+
+        self.trace = np.zeros((N, 1))
+
+        # record
+        self.cell_count = 0
+        self.record = {
+            "u": [],
+            "umax": [],
+            "dw": [0.]
+        }
+        self.info = kwargs
+        self.info["N"] = N
+        self.info["Nj"] = Nj
+
+    def __repr__(self):
+        return f"PCNN(N={self.N}, Nj={self.Nj})"
+
+    def __call__(self, x: np.ndarray,
+                 frozen: bool=False):
+
+        """
+        update the network state
+
+        Parameters
+        ----------
+        x: np.ndarray
+            input to the network
+        frozen: bool
+            if True, the network will not update
+            the weights. Default is False
+        **kwargs
+            tau: float
+                time constant for the policy.
+                Default is None
+            eq_da: float
+                equilibrium value for the dopamine.
+                Default is 1.0
+        """
+
+        if self.xfilter:
+            x = self.xfilter(x=x)
+
+        if (sum(x.shape)-1) > self.Nj:
+            x = x / x.sum(axis=0) * 1.
+            x = x.reshape(1, self.Nj, -1)
+        else:
+            x = x / x.sum() * 1.
+
+        # normalize
+        # x = x / x.sum()
+
+        # step `u` | x : PC Nj > neurons N
+        u = self._Wff @ x.reshape(-1, 1) + \
+            self.mod_input.reshape(-1, 1)
+        self.u = generalized_sigmoid(x=u,
+                                     alpha=self._alpha,
+                                     beta=self._beta,
+                                     clip_min=self._clip_min)
+        self.trace += (self.u - self.trace) / self._trace_tau
+        self.mod_input *= 0
+
+        # update modulators
+        if self._is_plastic and not frozen:
+            stb, plc = self._calc_indexes()
+            if stb is None:
+                self._update(x=x, idx=plc)
+
+        # record
+        # self.record["u"] += [self.u.tolist()]
+        # self.record["umax"] += [self.u.max()]
+
+        return self.u.copy().flatten()
+
+    def __len__(self):
+
+        """
+        number of tuned neurons
+        """
+
+        return self.cell_count
+
+    def _calc_indexes(self) -> tuple:
+
+        """
+        calculate the indexes of the stable neurons and the winner
+        """
+
+        # calculate stable indexes as the index of the neurons
+        # with weights close to wmax | skip the index 0
+        stable_indexes = np.where(self._Wff.sum(axis=1) > 0.99)[0]
+        empty_indexes = self._indexes[~np.isin(self._indexes,
+                                               stable_indexes)]
+
+        # --- make mask
+        # no tuned neurons
+        if len(stable_indexes) == 0:
+            stb_winner = None
+
+        # select eventual stable winner
+        else:
+            # update mask
+            self._umask[stable_indexes] = 1.
+            self._umask[empty_indexes] = 0.
+
+            # maximally active stable neuron
+            try:
+                u_vals = self.u[stable_indexes]
+                stb_winner = stable_indexes[np.argmax(u_vals)]
+            except IndexError:
+                raise IndexError(f"{stable_indexes=}, {self.u.shape=}")
+
+            if stb_winner == 0:
+                stb_winner = None
+            elif self.u[stb_winner] < self._threshold:
+                stb_winner = None
+            else:
+                return stb_winner, None
+
+        # --- define plastic neurons
+        # argmax of the activations of non-stable neurons
+        plastic_indexes = [i for i in range(self.N) \
+                                if i not in stable_indexes]
+
+        if len(plastic_indexes) == 0:
+            return None, None
+
+        plastic_winner = np.random.choice(plastic_indexes)
+
+        return None, plastic_winner
+
+    def _update(self, x: np.ndarray, idx: int):
+
+        """
+        update the weights of the network
+
+        Parameters
+        ----------
+        x : np.ndarray
+            stimulus
+        idx : int
+            index of the selected plastic neuron
+        """
+
+        assert type(idx) == int or idx is None or \
+            type(idx) == np.int64, f"{idx=}, {type(idx)=}"
+
+        # --- FORMATION ---
+        # there is an un-tuned neuron ready to learn
+        if idx is None:
+            return
+
+        # self._Wff_backup = self._Wff.copy()
+
+        # if the levels of ACh are high enough, update
+        # the plastic neuron
+        dw = (x.flatten() - self._Wff[idx]) * self.mod_update
+        self._Wff[idx, :] += dw
+        self.mod_update = 1.
+        self.record["dw"] += [dw.sum()]
+
+        # --- add new neuron ---
+        if dw.sum() > 0.0:
+            # this trick ensures that it isn't close to others
+            # || this is necessary only because of a lurking bug
+            # || somewhere, ACh and rps are not always enough!
+            similarity = cosine_similarity(
+                M=self._Wff.copy())[:, idx].max()
+
+            # revert back
+            if similarity > self._rep_threshold:
+                # logger.debug(f"reverting back.. {similarity=}")
+                self._Wff = self._Wff_backup.copy()
+                self.record["dw"][-1] = 0.
+                return
+
+            logger.debug(f" [+1] adding new neuron: {similarity=}")
+
+            # proceed
+            # self._Wff_backup = self._Wff.copy()
+            self.cell_count += 1
+
+            self._Wff_backup = self._Wff.copy()
+
+            if self._calc_recurrent_enable:
+                self._update_recurrent()
+
+    def _update_recurrent(self, **kwargs):
+
+        self._Wrec = calc_weight_connectivity(M=self._Wff,
+                                    threshold=self._rec_threshold)
+
+        # max number of neighbors
+        if self._k_neighbors is not None:
+            self._Wrec = k_most_neighbors(M=self._Wrec,
+                                          k=self._k_neighbors)
+
+    def clean_recurrent(self, wall_vectors: np.ndarray):
+
+        self._Wrec = remove_wall_intersecting_edges(
+            nodes=self._centers.copy(),
+            connectivity_matrix=self._Wrec.copy(),
+            walls=wall_vectors
+        )
+
+    def add_input(self, x: np.ndarray):
+
+        """
+        add an input to the network
+
+        Parameters
+        ----------
+        x : np.ndarray
+            input to the network
+        """
+
+        self.mod_input += x
+
+    def add_update(self, x: np.ndarray):
+
+        """
+        add an update to the network
+
+        Parameters
+        ----------
+        x : np.ndarray
+            update to the network
+        """
+
+        self.mod_update *= x
+
+    def fwd_ext(self, x: np.ndarray):
+        self(x=x.reshape(-1, 1), frozen=True)
+        return self.representation
+
+    def fwd_int(self, u: np.ndarray):
+
+        # u = self.fwd_ext(x=x)
+        self.u = self._Wrec @ u.reshape(-1, 1) + self.mod_input
+        self.mod_input *= 0
+        return self.representation
+
+    def freeze(self, cut_weights: bool=False):
+
+        self._is_plastic = False
+
+        if cut_weights:
+            self._Wff[~self._umask.flatten().astype(bool), :] = 0.
+
+    def unfreeze(self):
+
+        self._is_plastic = True
+
+    @property
+    def representation(self):
+        return self.u.flatten().copy()
+
+    # @property
+    def get_delta_update(self):
+        return self.record["dw"][-1]
+
+    def get_size(self):
+        return self.N
+
+    def get_wrec(self):
+        return self._Wrec.copy()
+
+    def current_position(self, u: np.ndarray=None):
+        if u is None:
+            u = self.u
+
+        if u.sum() <= 0.:
+            return None
+
+        idxs = np.where(self._umask.flatten() > 0)[0]
+        centers = self._centers[idxs]
+
+        # set nan to zero
+        position = (centers.reshape(-1, 2) * \
+            u[idxs].reshape(-1, 1)).sum(axis=0) / \
+            u[idxs].sum()
+
+        return position
+
+    def get_centers(self) -> np.ndarray:
+        return calc_centers_from_layer(wff=self._Wff,
+                                       centers=self.xfilter.centers)
+
+    def reset(self, complete: bool=False):
+
+        """
+        reset the network
+
+        Parameters
+        ----------
+        complete : bool
+            whether to have a complete reset.
+            Default False.
+        """
+
+        self.u = np.zeros((self.N, 1))
+
+        self.record = {
+            "u": [],
+            "umax": [],
+            "dw": []
+        }
+
+        if complete:
+            self._umask = np.zeros((self.N, 1))
+            self._Wff = np.zeros((self.N, self.Nj))
+            self._Wrec = np.zeros((self.N, self.N))
+
+
+class InputFilter(ABC):
+
+    """
+    Abstract class for filtering inputs
+    """
+
+    @abstractmethod
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
+
+    @abstractmethod
+    def __call__(self, x: np.ndarray):
+        pass
+
+
+class PClayer(InputFilter):
+
+    def __init__(self, n: int, sigma: int,
+                 policy: object=None, **kwargs):
+
+        self.N = n**2
+        self.n = n
+        self.bounds = kwargs.get("bounds", (0, 1, 0, 1))
+        self._k = kwargs.get("k", 4)
+        self.sigma = sigma
+        self.spacing = None
+        self._endpoints = kwargs.get("endpoints", True)
+        self.centers = self._make_centers()
+        self.centers = np.around(self.centers, 3)
+
+    def __repr__(self):
+        return f"PClayer(N={self.N}, s={self.sigma})"
+
+    def _make_centers(self) -> np.ndarray:
+
+        """
+        Make the tuning function for the neurons in the layer.
+
+        Returns
+        -------
+        centers : numpy.ndarray
+            centers for the neurons in the layer.
+        """
+
+        x_min, x_max, y_min, y_max = self.bounds
+
+        # check if it is a 2D grid or 1D
+        if x_min == x_max:
+
+            # Define the centers of the tuning functions
+            # over a 1D grid
+            x_centers = np.array([x_min] * self.N)
+            y_centers = np.linspace(y_min, y_max, self.N)
+            dim = 1
+
+        elif y_min == y_max:
+
+            # Define the centers of the tuning functions
+            # over a 1D grid
+            x_centers = np.linspace(x_min, x_max, self.N)
+            y_centers = np.array([y_min] * self.N)
+            dim = 1
+
+        else:
+
+            # Define the centers of the tuning functions
+            x_centers = np.linspace(x_min, x_max, self.n,
+                                    endpoint=self._endpoints)
+            y_centers = np.linspace(y_min, y_max, self.n,
+                                    endpoint=self._endpoints)
+            dim = 2
+
+        # Make the tuning function
+        centers = np.zeros((self.N, 2))
+        for i in range(self.N):
+
+            if dim == 1:
+                centers[i] = (x_centers[i], y_centers[i])
+                continue
+            centers[i] = (x_centers[i // self.n], 
+                          y_centers[i % self.n])
+
+        return centers
+
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+
+        """
+        Activation function of the neurons in the layer.
+
+        Parameters
+        ----------
+        x : numpy.ndarray
+            Input to the activation function. Shape (n, 2)
+
+        Returns
+        -------
+        activation : numpy.ndarray
+            Activation of the neurons in the layer.
+        """
+
+        return np.exp(-np.linalg.norm(
+            x.reshape(-1, 2) - self.centers.reshape(-1, 1,
+                                        2), axis=2)**2 / self.sigma)
+
+    def render(self):
+        plt.scatter(self.centers[:, 0], self.centers[:, 1], s=10)
+        plt.axis('off')
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+        plt.show()
+
+
+""" from `utils_core` """
+
+
+class OnlineFigure(ABC):
+
+    """
+    an object responsible for plotting online data
+    in different figures
+    """
+
+    def __init__(self):
+
+        self.fig, self.ax = plt.subplots()
+
+    @abstractmethod
+    def update(self):
+        pass
+
+
+
 """ from `mod_core` """
+
 
 class LeakyVariable:
 
@@ -842,7 +1370,6 @@ class RandomWalkPolicy:
 
     def has_collided(self):
         self.velocity = -self.velocity
-
 
 
 class ExploratoryModule(ModuleClass):

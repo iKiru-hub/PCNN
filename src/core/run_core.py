@@ -1,37 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from numba import jit
-import argparse
+import argparse, json
 
-from tools.utils import clf, tqdm_enumerate, logger
-import inputools.Trajectory as it
-import pcnn_core as pcore
 import mod_core as mod
 import utils_core as utc
 import envs_core as ev
-
-import os, sys, json
-base_path = os.getcwd().split("PCNN")[0]+"PCNN/src/"
-sys.path.append(base_path)
-import utils
-# import simplerl.environments as ev
-
-# import matplotlib
-# matplotlib.use("TkAgg")
-
 
 import pclib
 
 
 """ INITIALIZATION  """
 
-CONFIGPATH = "dashboard/media/configs.json"
+
+CONFIGPATH = "dashboard/cache/configs.json"
 
 logger = utc.setup_logger(name="RUN",
                           level=-1,
                           is_debugging=True,
                           is_warning=False)
-
 
 def write_configs(num_figs: int,
                   circuits: object,
@@ -56,6 +42,7 @@ def write_configs(num_figs: int,
     logger(f"{info}")
 
 BOUNDS = np.array([0., 1., 0., 1.])
+
 
 """ CLASSES """
 
@@ -112,7 +99,7 @@ class Simulation:
                           num_neighbors=8, trace_tau=0.1,
                           xfilter=xfilter, name="2D")
 
-        pcnn2D_plotter = pcore.PlotPCNN(model=pcnn2D,
+        pcnn2D_plotter = utc.PlotPCNN(model=pcnn2D,
                                       bounds=self.bounds,
                                       visualize=rendering)
 
@@ -147,7 +134,7 @@ class Simulation:
         # [ bnd, dpos, pop, trg ]
         weights = np.array([-1., 0., -2., 1., 1.5])
         exp_module = mod.ExperienceModule(pcnn=pcnn2D,
-                                          pcnn_plotter=pcnn2D_plotter,
+                                        pcnn_plotter=pcnn2D_plotter,
                                           trg_module=trg_module,
                                           circuits=circuits,
                                           weights=weights,
@@ -285,7 +272,9 @@ def main(args):
 
     # --- settings
     duration = args.duration
-    SPEED = 0.07
+    trg_position = np.array([0.5, 0.8])
+    trg_radius = 0.1
+    SPEED = 0.03
     PLOT_INTERVAL = 5
     other_info = {}
 
@@ -303,33 +292,33 @@ def main(args):
     xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, bounds)
 
     # definition
-    pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3.1, offset=1.4,
+    pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.5,
                       clip_min=0.09, threshold=0.3,
                       rep_threshold=0.8, rec_threshold=0.01,
                       num_neighbors=8, trace_tau=0.1,
                       xfilter=xfilter, name="2D")
 
     # plotter
-    pcnn2D_plotter = pcore.PlotPCNN(model=pcnn2D,
+    pcnn2D_plotter = utc.PlotPCNN(model=pcnn2D,
                                   bounds=bounds,
                                   visualize=True,
                                   number=0)
 
     # --- circuits
     circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
-                                            threshold=0.3,
+                                            threshold=0.2,
                                             tau=1.,
                                             visualize=True,
                                             number=5),
                      "DA": mod.Dopamine(N=N,
-                                        threshold=0.01,
+                                        threshold=0.15,
                                         visualize=True,
                                         number=4),
                      "dPos": mod.PositionTrace(visualize=False),
                      "Pop": mod.PopulationProgMax(N=N,
                                                   visualize=False,
                                                   number=None),
-                     "Ftg": mod.FatigueMod()}
+                     "Ftg": mod.FatigueMod(tau=300)}
 
     for _, circuit in circuits_dict.items():
         logger.debug(f"{circuit} keys: {circuit.input_key}")
@@ -350,7 +339,7 @@ def main(args):
     other_info["Trg_thr"] = trg_module.threshold
 
     # [ bnd, dpos, pop, trg, smooth ]
-    weights = np.array([-5., 0.0, -2., 0.9, 0.1])
+    weights = np.array([-5., 0.2, -1., 0.2, 0.4])
     exp_module = mod.ExperienceModule(pcnn=pcnn2D,
                                       pcnn_plotter=pcnn2D_plotter,
                                       trg_module=trg_module,
@@ -359,8 +348,9 @@ def main(args):
                                       action_delay=10,
                                       max_depth=10,
                                       speed=SPEED,
-                                      visualize=False,
+                                      visualize=True,
                                       number=2,
+                                      number2=6,
                                       visualize_action=True)
     agent = mod.Brain(exp_module=exp_module,
                       circuits=circuits,
@@ -374,8 +364,8 @@ def main(args):
 
     env = ev.AgentBody(room=env,
                        position=np.array([0.8, 0.2]))
-    reward_obj = ev.RewardObj(position=np.array([0.5, 0.5]),
-                       radius=0.1)
+    reward_obj = ev.RewardObj(position=trg_position,
+                              radius=trg_radius)
     pcnn2D_plotter.add_element(element=reward_obj)
 
     velocity = np.zeros(2)

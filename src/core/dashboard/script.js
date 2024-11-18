@@ -1,6 +1,6 @@
 // Paths and variables
-const IMAGE_FOLDER = 'media';
-const CONFIG_PATH = 'media/configs.json';
+const IMAGE_FOLDER = 'cache';
+const CONFIG_PATH = 'cache/configs.json';
 let imageCount = 4;
 let autoUpdate = false;
 let updateInterval = null;
@@ -83,7 +83,7 @@ function refreshImages() {
     updateImageCount();
     const refreshButton = document.getElementById('refreshButton');
     refreshButton.classList.add('active');
-    setTimeout(() => refreshButton.classList.remove('active'), 1000);
+    setTimeout(() => refreshButton.classList.remove('active'), 300);
 }
 
 function toggleAutoUpdate() {
@@ -112,7 +112,7 @@ window.onload = () => {
 // Function to fetch and display logs from logs.json
 async function fetchLogs() {
     try {
-        const response = await fetch('media/configs.json'); // Path to logs.json
+        const response = await fetch('cache/configs.json'); // Path to logs.json
         const logs = await response.json();
         const logContainer = document.getElementById('log-container');
         logContainer.innerHTML = ''; // Clear old logs

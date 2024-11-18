@@ -631,7 +631,7 @@ class PlotPCNN:
 
         if title is None:
             title = f"PCNN | N={len(self._model)}"
-        ax.set_title(title)
+        ax.set_title(title, fontsize=14)
 
         if self._number is not None and not new_ax:
             try:

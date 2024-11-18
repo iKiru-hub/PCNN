@@ -444,8 +444,7 @@ class RewardObj:
 
         # distance = np.linalg.norm(position - self._position)
         distance = ((position - self._position)**2).sum()
-        p = np.exp(- distance / \
-            (2 * self._radius**2))
+        p = np.exp(-distance / (2 * self._radius**2))
         if distance < self._radius:
             return np.random.binomial(1, p)
         return 0.0
