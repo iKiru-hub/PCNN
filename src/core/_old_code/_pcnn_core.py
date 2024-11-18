@@ -657,44 +657,6 @@ class PlotPCNN:
 """ local utils """
 
 
-@jit(nopython=True)
-def generalized_sigmoid(x: np.ndarray,
-                        alpha: float,
-                        beta: float,
-                        clip_min: float=0.,
-                        gamma: float=1.
-                        ) -> np.ndarray:
-
-    """
-    generalized sigmoid function and set values below
-    a certain threshold to zero.
-
-    Parameters
-    ----------
-    x : np.ndarray
-        the input
-    alpha : float
-        the threshold
-    beta : float
-        the slope
-    gamma : float
-        the intensity (height).
-        Default is 1.
-    clip_min : float
-        the minimum value to clip.
-        Default is 0.
-
-    Returns
-    -------
-    np.ndarray
-        The output array.
-    """
-
-    x = gamma / (1.0 + np.exp(-beta * (x - alpha)))
-
-    return np.where(x < clip_min, 0., x)
-
-
 def softmax(x: np.ndarray, beta: float=1.) -> np.ndarray:
 
     """

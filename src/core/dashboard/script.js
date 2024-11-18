@@ -5,7 +5,7 @@ let imageCount = 4;
 let autoUpdate = false;
 let updateInterval = null;
 const MAX_RETRIES = 1; // Maximum number of retries for loading each image
-const REFRESH_INTERVAL = 2000; // Interval for auto-refresh in milliseconds
+const REFRESH_INTERVAL = 300; // Interval for auto-refresh in milliseconds
 let loadedImages = []; // Array to hold successfully loaded images
 
 async function loadImages() {
@@ -47,7 +47,7 @@ async function loadImageWithRetry(index, retries, grid) {
                 if (attempt < retries) {
                     attempt++;
                     console.log(`Retrying image plot${index}.png... (Attempt ${attempt})`);
-                    setTimeout(loadImage, 1000); // Retry after 500ms
+                    setTimeout(loadImage, 300); // Retry after 500ms
                 } else {
                     console.warn(`Failed to load image plot${index}.png after ${retries} attempts`);
                     // Check if there was a previous successfully loaded image
@@ -93,7 +93,7 @@ function toggleAutoUpdate() {
     if (autoUpdate) {
         console.log("Auto-refresh enabled");
         toggleButton.classList.add('active');
-        updateInterval = setInterval(updateImageCount, 1000);
+        updateInterval = setInterval(updateImageCount, 300);
     } else {
         console.log("Auto-refresh disabled");
         toggleButton.classList.remove('active');
@@ -139,7 +139,7 @@ function initializePlot() {
 
         // Refresh logs every 10 seconds
         fetchLogs();
-    }, 1000);
+    }, 300);
 }
 
 // Load logs and initialize plot on page load

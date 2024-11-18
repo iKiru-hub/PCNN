@@ -17,12 +17,21 @@ def set_seed(seed: int=0):
     np.random.seed(seed)
 
 logger = utc.setup_logger(name="MOD",
-                            level=-1,
-                            is_debugging=True,
-                            is_warning=False)
+                          level=-1,
+                          is_debugging=True,
+                          is_warning=False)
+
+def edit_logger(level: int=-1,
+                is_debugging: bool=True,
+                is_warning: bool=False):
+    global logger
+    logger.set_level(level)
+    logger.set_debugging(is_debugging)
+    logger.set_warning(is_warning)
 
 
 """ ABSTRACT CLASSES """
+
 
 class LeakyVariableWrapper1D(pclib.LeakyVariable1D):
 
@@ -488,14 +497,17 @@ class BoundaryMod(Modulation):
 
         if inputs[1]:
             v = self.leaky_var(x=1, simulate=simulate)
-            self.weights += self.eta * v * \
-                np.where(u < self.threshold, 0, u)
-            self.weights = np.clip(self.weights, 0., 1.)
+
+            if not simulate:
+                self.weights += self.eta * v * \
+                    np.where(u < self.threshold, 0, u)
+                self.weights = np.clip(self.weights, 0., 1.)
         else:
             v = self.leaky_var(x=0, simulate=simulate)
 
-        out = [self.weights.reshape(1, -1) @ u.reshape(-1, 1),
-                self.get_leaky_v()]
+        out = self.weights.reshape(1, -1) @ u.reshape(-1, 1)
+        out = utc.generalized_sigmoid(x=out, alpha=0.05,
+                                      beta=200., clip_min=0.001)
         self.output = out[0]
         self.value = out[0]
         self.var = u.copy()
@@ -907,7 +919,9 @@ class ExperienceModule(ModuleClass):
             "trajectory": [],
             "action_sequence": [],
             "score_sequence": [],
-            "index_sequence": []}
+            "index_sequence": [],
+            "values_sequence": []}
+        self._mod_names = ("Bnd", "dPos", "Pop", "Trg", "Act", "nxP")
 
     def _logic(self, observation: dict):
 
@@ -932,7 +946,8 @@ class ExperienceModule(ModuleClass):
         self.t += 1
 
     def _generate_action(self, observation: dict,
-                         returning: bool=False) -> np.ndarray:
+                         returning: bool=False,
+                         position_list: []=None) -> np.ndarray:
 
         """
         generate a new action given an observation
@@ -946,7 +961,6 @@ class ExperienceModule(ModuleClass):
             # --- generate a random action
             action, done, action_idx = self.action_policy_int()
 
-
             # --- simulate its effects
             # new position if the action is taken
             new_position = observation["position"] + action
@@ -956,6 +970,12 @@ class ExperienceModule(ModuleClass):
                                           action_idx=action_idx)
 
             # score = 1 / (1 + np.exp(-score))
+
+            # check that the new position is actually new
+            if position_list is not None:
+                if new_position.tolist() in position_list:
+                    score = -1.
+                    values += [-1.]
 
             # it is the best available action
             if done:
@@ -997,7 +1017,7 @@ class ExperienceModule(ModuleClass):
         # relevant modulators
         values = np.array([modulation["Bnd"].item(),
                            modulation["dPos"].item(),
-                           modulation["Pop"].item(),
+                           modulation["Pop"].item() * int(trg_modulation <= 0.),
                            trg_modulation,
                            self._action_smoother(action=action)])
         score = (values @ self.weights.T)# / np.abs(self.weights).sum()
@@ -1020,9 +1040,10 @@ class ExperienceModule(ModuleClass):
         # first step + evaluate
         observation["position"] = observation["position"] + action
         trajectory = [observation["position"]]
+        position_list = [observation["position"].tolist()]
         score, values = self._evaluate_action(position=observation["position"],
-                                                 action=action,
-                                                 action_idx=action_idx)
+                                              action=action,
+                                              action_idx=action_idx)
         rollout_scores += [score]
         rollout_values += [values.tolist()]
         rollout_scores[0] = round(rollout_scores[0], 4)
@@ -1037,10 +1058,12 @@ class ExperienceModule(ModuleClass):
             # get the current action
             action, action_idx, score, values = self._generate_action(
                                 observation=observation,
-                                returning=True)
+                                returning=True,
+                                position_list=position_list)
 
             # step
             observation["position"] = observation["position"] + action
+            position_list += [observation["position"].tolist()]
             self._action_smoother.update(action=action)
 
             # save the score
@@ -1109,7 +1132,8 @@ class ExperienceModule(ModuleClass):
 
                 best_score = np.sum(rollout_scores[1:])
                 best_min = np.min(rollout_scores[1:])
-                best_rollout = [np.stack(trajectory), rollout_scores,
+                best_rollout = [np.stack(trajectory),
+                                rollout_scores,
                                 action_seq, index_seq,
                                 len(rollout_scores[1:]),
                                 rollout_values]
@@ -1132,6 +1156,9 @@ class ExperienceModule(ModuleClass):
         self.rollout["score_sequence"] = best_rollout[1][:depth+2]
         self.rollout["action_sequence"] = best_rollout[2][:depth+2]
         self.rollout["index_sequence"] = best_rollout[3][:depth+2]
+        self.rollout["values_sequence"] = np.array(best_rollout[5])
+
+        logger.debug(f"values:\n{np.around(self.rollout['values_sequence'].T, 3)}")
 
     def render(self, ax=None, **kwargs):
 
@@ -1157,13 +1184,19 @@ class ExperienceModule(ModuleClass):
 
         # visualize the score sequence of the current plan
         if self.visualize:
+            length = len(self.rollout["score_sequence"])
             self.ax.clear()
             self.ax.plot(self.rollout["score_sequence"],
-                         '-o', color="blue", alpha=0.5)
+                         '-', color="blue", alpha=0.7, lw=2)
+            for i, v in enumerate(self.rollout["values_sequence"].T):
+                self.ax.scatter(range(length), v, s=30,
+                                alpha=0.8, label=self._mod_names[i])
+
             self.ax.axvline(x=self.directive["action_t"],
                             color="red", linestyle="--")
-            self.ax.set_ylim(-1, 1)
+            self.ax.set_ylim(-1.3, 1.5)
             self.ax.set_xlabel("Time")
+            self.ax.legend(loc="lower right")
             self.ax.grid()
             self.ax.set_title(f"Behaviour Score Sequence")
 
@@ -1310,7 +1343,6 @@ class TargetModule(ModuleClass):
                     marker="x", color="red",
                     s=100)
         self.ax.set_title(f"Target Module | " + \
-            f" Ftg={self.circuits.circuits['Ftg'].value:.2f}" + \
             f"$\\leq${self.threshold}"
             f" $I=${self.output['score']:.2f}")
         self.ax.set_xlim(0, 1)
@@ -1330,7 +1362,6 @@ class TargetModule(ModuleClass):
 
     def reset(self, complete: bool=False):
         super().reset(complete=complete)
-
 
 
 """ --- high level MODULES --- """
@@ -1417,221 +1448,7 @@ class Brain:
             return list(fig_exp) + fig_cir
 
 
-
 """ policies """
-
-
-class ActionSampling2D:
-
-    def __init__(self, samples: list=None,
-                 speed: float=0.1,
-                 visualize: bool=False,
-                 number: int=None,
-                 name: str=None):
-
-        """
-        Parameters
-        ----------
-        samples : list, optional
-            List of samples. The default is None.
-        speed : float, optional
-            Speed of the agent. The default is 0.1.
-        visualize : bool, optional
-            Visualize the policy. The default is False.
-        number : int, optional
-            Number of the figure. The default is None.
-        name : str, optional
-            Name of the policy. The default is None.
-        """
-
-        self._name = name if name is not None else "SamplingPolicy"
-        self._samples = samples
-        if samples is None:
-            self._samples = [np.array([-speed/np.sqrt(2),
-                                       speed/np.sqrt(2)]),
-                             np.array([0., speed]),
-                             np.array([speed/np.sqrt(2),
-                                       speed/np.sqrt(2)]),
-                             np.array([-speed, 0.]),
-                             np.array([0., 0.]),
-                             np.array([speed, 0.]),
-                             np.array([-speed/np.sqrt(2),
-                                       -speed/np.sqrt(2)]),
-                             np.array([0., -speed]),
-                             np.array([speed/np.sqrt(2),
-                                       -speed/np.sqrt(2)])]
-            logger(f"{self.__class__} using default samples [2D movements]")
-
-        # np.random.shuffle(self._samples)
-
-        self._num_samples = len(self._samples)
-        self._samples_indexes = list(range(self._num_samples))
-
-        self._idx = None
-        self._available_idxs = list(range(self._num_samples))
-        self._p = np.ones(self._num_samples) / self._num_samples
-        self._velocity = self._samples[0]
-        self._values = np.zeros(self._num_samples)
-
-        # render
-        self._number = number
-        self.visualize = visualize
-        if visualize:
-            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
-            logger(f"%visualizing {self.__class__}")
-
-    def __len__(self):
-        return self._num_samples
-
-    def __str__(self):
-
-        return f"{self._name}(#samples={self._num_samples})"
-
-    def __call__(self, keep: bool=False) -> tuple:
-
-        # --- keep the current velocity
-        if keep and self._idx is not None:
-            return self._velocity.copy(), False, self._idx
-
-        # --- first sample
-        if self._idx is None:
-            self._idx = np.random.choice(
-                            self._samples_indexes, p=self._p)
-            self._available_idxs.remove(self._idx)
-            self._velocity = self._samples[self._idx]
-            return self._velocity.copy(), False, self._idx
-
-        # --- all samples have been tried
-        if len(self._available_idxs) == 0:
-
-            # self._idx = np.random.choice(self._num_samples,
-            #                                   p=self._p)
-
-            if np.where(self._values == 0)[0].size > 1:
-                self._idx = np.random.choice(
-                                np.where(self._values == 0)[0])
-            else:
-                self._idx = np.argmax(self._values)
-
-            self._velocity = self._samples[self._idx]
-            # print(f"{self._name} || selected: {self._idx} | " + \
-            #     f"{self._values.max()} | values: {np.around(self._values, 2)} v={np.around(self._velocity*1000, 2)}")
-            return self._velocity.copy(), True, self._idx
-
-        # --- sample again
-        p = self._p[self._available_idxs].copy()
-        p /= p.sum()
-        # self._idx = np.random.choice(
-        #                 self._available_idxs,
-        #                 p=p)
-        self._idx = np.random.choice(
-                        self._available_idxs)
-        self._available_idxs.remove(self._idx)
-        self._velocity = self._samples[self._idx]
-
-        return self._velocity.copy(), False, self._idx
-
-    def update(self, score: float=0.):
-
-        # --- normalize the score
-
-        self._values[self._idx] = score
-
-        # --- update the probability
-        # a raw score of 0. becomes 0.5 [sigmoid]
-        # and this ends in a multiplier of 1. [id]
-        # self._p[self._idx] *= (0.5 + score)
-
-        # normalize
-        # self._p = self._p / self._p.sum()
-
-    def get_state(self):
-
-        return {"values": self._values,
-                "idx": self._idx,
-                "p": self._p,
-                "velocity": self._velocity,
-                "available_idxs": self._available_idxs}
-
-    def set_state(self, state: dict):
-
-        self._values = state["values"]
-        self._idx = state["idx"]
-        self._p = state["p"]
-        self._velocity = state["velocity"]
-        self._available_idxs = state["available_idxs"]
-
-    def render(self, values: np.ndarray=None,
-               action_values: np.ndarray=None,
-               return_fig: bool=False):
-
-        if not self.visualize:
-            return
-
-        # self._values = (self._values.max() - self._values) / \
-        #     (self._values.max() - self._values.min())
-        # self._values = np.where(np.isnan(self._values), 0,
-        #                         self._values)
-
-        self.ax.clear()
-
-        if action_values is not None:
-            self.ax.imshow(action_values.reshape(3, 3),
-                           cmap="RdBu_r", vmin=-1.1, vmax=1.1,
-                           aspect="equal",
-                           interpolation="nearest")
-        else:
-            self._values[4] = (self._values[:4].sum() + self._values[5:].sum()) / 8
-            self.ax.imshow(self._values.reshape(3, 3),
-                           cmap="Blues_r",
-                           aspect="equal",
-                           interpolation="nearest")
-
-        # labels inside each square
-        for i in range(3):
-            for j in range(3):
-                if values is not None:
-                    text = "".join([f"{np.around(v, 2)}\n" for v in values[3*i+j]])
-                else:
-                    # text = f"{self._samples[3*i+j][1]:.3f}\n" + \
-                    #       f"{self._samples[3*i+j][0]:.3f}"
-                    text = f"{self._values[3*i+j]:.3f}"
-                self.ax.text(j, i, f"{text}",
-                             ha="center", va="center",
-                             color="black",
-                             fontsize=13)
-
-        # self.ax.bar(range(self._num_samples), self._values)
-        # self.ax.set_xticks(range(self._num_samples))
-        # self.ax.set_xticklabels(["stay", "up", "right",
-        #                          "down", "left"])
-        # self.ax.set_xticklabels(np.around(self._values, 2))
-        self.ax.set_xlabel("Action")
-        self.ax.set_title(f"Action Space")
-        self.ax.set_yticks(range(3))
-        # self.ax.set_ylim(-1, 1)
-        self.ax.set_xticks(range(3))
-
-        if self._number is not None:
-            self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
-            return
-
-        self.fig.canvas.draw()
-
-        if return_fig:
-            return self.fig
-
-    def reset(self):
-        self._idx = None
-        self._available_idxs = list(range(self._num_samples))
-        self._p = np.ones(self._num_samples) / self._num_samples
-        self._velocity = self._samples[0]
-        self._values = np.zeros(self._num_samples)
-
-    def has_collided(self):
-
-        self._velocity = -self._velocity
-
 
 class ActionSampling2DWrapper(pclib.ActionSampling2D):
 
@@ -1707,3 +1524,6 @@ class ActionSampling2DWrapper(pclib.ActionSampling2D):
 
         if return_fig:
             return self.fig
+
+
+

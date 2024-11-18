@@ -15,9 +15,19 @@ import pclib
 CONFIGPATH = "dashboard/cache/configs.json"
 
 logger = utc.setup_logger(name="RUN",
-                          level=-1,
+                          level=1,
                           is_debugging=True,
                           is_warning=False)
+
+
+def edit_logger(level: int=-1,
+                is_debugging: bool=True,
+                is_warning: bool=False):
+    global logger
+    logger.set_level(level)
+    logger.set_debugging(is_debugging)
+    logger.set_warning(is_warning)
+
 
 def write_configs(num_figs: int,
                   circuits: object,
@@ -38,13 +48,30 @@ def write_configs(num_figs: int,
     with open(CONFIGPATH, 'w') as f:
         json.dump(info, f)
 
-    logger(f"configs written to {CONFIGPATH}")
-    logger(f"{info}")
 
 BOUNDS = np.array([0., 1., 0., 1.])
 
 
 """ CLASSES """
+
+sim_settings = {
+    "speed": 0.03,
+    "init_position": np.array([0.8, 0.2]),
+    "rw_position": np.array([0.5, 0.8]),
+    "rw_radius": 0.1,
+    "plot_interval": 1,
+    "rendering": True,
+    "room": "square",
+    "max_duration": None,
+    "seed": None
+}
+
+agent_settings = {
+    "N": 80,
+    "Nj": 14**2,
+    "exp_weights": np.array([-0.2, 0.2, -1., 0.2, 0.4]),
+    "max_depth": 7
+}
 
 
 class Simulation:
@@ -54,35 +81,30 @@ class Simulation:
     with the streamlit dashboard
     """
 
-    def __init__(self, N: int=80, seed: int=None,
-                 plot_interval: int=1,
-                 rendering: bool=True,
-                 max_duration: int=None,
-                 init_position: np.ndarray=None,
-                 rw_position: np.ndarray=None,
-                 rw_radius: float=0.2,):
+    def __init__(self, N: int=80,
+                 sim_settings: dict = sim_settings,
+                 agent_settings: dict = agent_settings):
 
         # --- SETTINGS
-        SPEED = 0.03
-        init_position = np.array([0.8, 0.2]) if init_position is None else init_position
-        rw_position = np.array([0.8, 0.8]) if rw_position is None else rw_position
+        self.sim_settings = sim_settings
+        self.agent_settings = agent_settings
 
-        self.plot_interval = plot_interval
+        seed = sim_settings["seed"]
+        SPEED = sim_settings["speed"]
+        init_position = sim_settings["init_position"]
+        rw_position = sim_settings["rw_position"]
+        rw_radius = sim_settings["rw_radius"]
+        rendering = sim_settings["rendering"]
+
+        self.plot_interval = sim_settings["plot_interval"]
         self.rendering = rendering
-        self.max_duration = max_duration
+        self.max_duration = sim_settings["max_duration"]
         self.info = {}
-        self.init_config = {"N": N,
-                            "seed": seed,
-                            "plot_interval": plot_interval,
-                            "rendering": rendering,
-                            "max_duration": max_duration,
-                            "init_position": init_position,
-                            "rw_position": rw_position,
-                            "rw_radius": rw_radius}
 
-        # --- PCNN
-        N = 80
-        Nj = 13**2
+        # --- MODEL SETTINGS
+        N = agent_settings["N"]
+        Nj = agent_settings["Nj"]
+        exp_weights = agent_settings["exp_weights"]
 
         logger(f"{N=}")
         logger(f"{Nj=}")
@@ -90,7 +112,8 @@ class Simulation:
         # ---
         sigma = 0.05
         self.bounds = BOUNDS
-        xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, self.bounds)
+        xfilter = pclib.PCLayer(int(np.sqrt(Nj)),
+                                sigma, self.bounds)
 
         # definition
         pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.5,
@@ -105,21 +128,19 @@ class Simulation:
 
         # --- CIRCUITS
         circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
-                                                threshold=0.02,
-                                                visualize=rendering,
-                                                score_weight=5.),
+                                                threshold=0.2,
+                                                eta=0.5,
+                                                tau=1.,
+                                                visualize=rendering),
                          "DA": mod.Dopamine(N=N,
-                                            visualize=rendering,
-                                            score_weight=1.),
-                         "dPos": mod.PositionTrace(visualize=False,
-                                                   score_weight=2.),
+                                            threshold=0.15,
+                                            visualize=rendering),
+                         "dPos": mod.PositionTrace(visualize=False),
                          "Pop": mod.PopulationProgMax(N=N,
                                                       visualize=False,
                                                       number=None),
-                         "Ftg": mod.FatigueMod()}
+                         "Ftg": mod.FatigueMod(tau=300)}
 
-        for _, circuit in circuits_dict.items():
-            logger.debug(f"{circuit} keys: {circuit.input_key}")
 
         circuits = mod.Circuits(circuits_dict=circuits_dict,
                                 visualize=rendering)
@@ -132,22 +153,24 @@ class Simulation:
                                       visualize=rendering)
 
         # [ bnd, dpos, pop, trg ]
-        weights = np.array([-1., 0., -2., 1., 1.5])
-        exp_module = mod.ExperienceModule(pcnn=pcnn2D,
-                                        pcnn_plotter=pcnn2D_plotter,
-                                          trg_module=trg_module,
-                                          circuits=circuits,
-                                          weights=weights,
-                                          action_delay=10,
-                                          speed=SPEED,
-                                          visualize=False,
-                                          visualize_action=rendering)
+        exp_module = mod.ExperienceModule(
+                            pcnn=pcnn2D,
+                            pcnn_plotter=pcnn2D_plotter,
+                            trg_module=trg_module,
+                            circuits=circuits,
+                            weights=exp_weights,
+                            action_delay=10,
+                            max_depth=agent_settings["max_depth"],
+                            speed=SPEED,
+                            visualize=False,
+                            visualize_action=rendering)
         self.agent = mod.Brain(exp_module=exp_module,
                                pcnn2D=pcnn2D,
                                circuits=circuits)
 
         # --- agent & env
-        self.env = ev.make_room(name="square", thickness=4.,
+        self.env = ev.make_room(name=sim_settings["room"],
+                                thickness=4.,
                                 visualize=rendering)
         self.env = ev.AgentBody(room=self.env,
                                 position=init_position)
@@ -170,7 +193,8 @@ class Simulation:
         }
 
         # --- RECORD
-        self.agent.record["trajectory"] += [self.env.position.tolist()]
+        self.agent.record["trajectory"] += [
+                    self.env.position.tolist()]
         self.t = -1
 
         # --- visutalization
@@ -187,28 +211,18 @@ class Simulation:
         self.t += 1
 
         # --- env
-        position, collision, truncated = self.env(velocity=self.velocity)
+        position, collision, truncated = self.env(
+                        velocity=self.velocity)
         reward = self.reward_obj(position=position)
 
         # --- observation
-        self.observation["u"] = self.agent.exp_module.fwd_pcnn(
-            x=position.reshape(-1, 1)).flatten()
         self.observation["position"] = position
-        self.observation["velocity"] = self.velocity
         self.observation["collision"] = collision
         self.observation["reward"] = reward
-        self.observation["delta_update"] = self.agent.state['delta_update']
-        self.observation["action_idx"] = self.agent.state['action_idx']
-
-        if collision:
-            logger.debug(f">>> collision at t={self.t}")
-
-        if reward > 0:
-            logger.debug(f">>> reward at t={self.t}")
 
         # --- agent
-        self.velocity = self.agent(observation=self.observation)
-
+        self.velocity = self.agent(
+                    observation=self.observation)
         # --- plot
         if self.rendering:
             self._render()
@@ -233,7 +247,8 @@ class Simulation:
         return self.agent.circuits.circuits["DA"].weights.sum() > 0.
 
     def get_reward_info(self):
-        return self.init_config["rw_position"], self.init_config["rw_radius"]
+        return self.sim_settings["rw_position"], \
+                    self.sim_settings["rw_radius"]
 
     def _render(self):
 
@@ -253,14 +268,15 @@ class Simulation:
                     self.figures.append(f)
 
     def set_rw_position(self, rw_position: np.ndarray):
-        self.init_config["rw_position"] = rw_position
+        self.sim_settings["rw_position"] = rw_position
 
     def reset(self, seed: int=None, init_position: np.ndarray=None):
 
-        self.init_config["seed"] = seed
-        self.init_config["init_position"] = init_position
+        self.sim_settings["seed"] = seed
+        self.sim_settings["init_position"] = init_position
 
-        self.__init__(**self.init_config)
+        self.__init__(sim_settings=self.sim_settings,
+                      agent_settings=self.agent_settings)
         logger(f"%% reset [seed={seed}] %%")
 
 
@@ -275,28 +291,29 @@ def main(args):
     trg_position = np.array([0.5, 0.8])
     trg_radius = 0.1
     SPEED = 0.03
-    PLOT_INTERVAL = 1
-    ROOM = "square1"
+    PLOT_INTERVAL = 5
+    ROOM = "flat"
 
     other_info = {}
+    logger(f"room: {ROOM}")
+    logger(f"plot_interval: {PLOT_INTERVAL}")
+    logger(f"{duration}")
 
     # --- brain
     N = args.N
-    Nj = 13**2
+    Nj = 14**2
+    sigma = 0.03
+    bounds = BOUNDS
 
-    logger(f"{duration}")
     logger(f"{N=}")
     logger(f"{Nj=}")
 
-    # ---
-    sigma = 0.05
-    bounds = BOUNDS
     xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, bounds)
 
     # definition
-    pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.5,
+    pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.,
                       clip_min=0.09, threshold=0.3,
-                      rep_threshold=0.8, rec_threshold=0.01,
+                      rep_threshold=0.9, rec_threshold=0.01,
                       num_neighbors=8, trace_tau=0.1,
                       xfilter=xfilter, name="2D")
 
@@ -309,6 +326,7 @@ def main(args):
     # --- circuits
     circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
                                             threshold=0.2,
+                                            eta=0.5,
                                             tau=1.,
                                             visualize=True,
                                             number=5),
@@ -322,8 +340,8 @@ def main(args):
                                                   number=None),
                      "Ftg": mod.FatigueMod(tau=300)}
 
-    for _, circuit in circuits_dict.items():
-        logger.debug(f"{circuit} keys: {circuit.input_key}")
+    # for _, circuit in circuits_dict.items():
+    #     logger.debug(f"{circuit} keys: {circuit.input_key}")
 
     # object
     circuits = mod.Circuits(circuits_dict=circuits_dict,
@@ -341,14 +359,14 @@ def main(args):
     other_info["Trg_thr"] = trg_module.threshold
 
     # [ bnd, dpos, pop, trg, smooth ]
-    weights = np.array([-5., 0.2, -1., 0.2, 0.4])
+    weights = np.array([-0.2, 0.2, -1., 0.2, 0.4])
     exp_module = mod.ExperienceModule(pcnn=pcnn2D,
                                       pcnn_plotter=pcnn2D_plotter,
                                       trg_module=trg_module,
                                       circuits=circuits,
                                       weights=weights,
                                       action_delay=10,
-                                      max_depth=10,
+                                      max_depth=7,
                                       speed=SPEED,
                                       visualize=True,
                                       number=2,
@@ -401,34 +419,18 @@ def main(args):
                           other=other_info)
 
         # --- env
-        position, collision, truncated = env(velocity=velocity)
+        position, collision, truncated = env(
+                    velocity=velocity)
         reward = reward_obj(position=position)
-        # if reward:
-        #     logger.debug(f"reward at t={t}")
         trajectory += [position.tolist()]
 
         # --- observation
-        # observation["u"] = agent.exp_module.fwd_pcnn(
-        #     x=position.reshape(-1, 1)).flatten()
         observation["position"] = position
-        # observation["velocity"] = velocity
         observation["collision"] = collision
         observation["reward"] = reward
-        # observation["delta_update"] = agent.state['delta_update']
-        # observation["action_idx"] = agent.state['action_idx']
-
-        # observation["delta_update"] = agent.observation_int['delta_update']
-        # observation["action_idx"] = agent.observation_int['action_idx']
-
-        # if collision:
-        #     logger.debug(f">>> collision at t={t}")
-
-        # if reward > 0:
-        #     logger.debug(f">>> reward at t={t}")
 
         # --- agent
         velocity = agent(observation=observation)
-        # agent.routines(wall_vectors=env._room.wall_vectors)
 
         # --- exit
         if truncated:
@@ -478,12 +480,19 @@ def plot_update(fig, ax, agent, env, reward_obj,
 
 def run_analysis(N: int=5, duration: int=1000):
 
-    rw_position = np.random.uniform(0.1, 0.9, 2)
+    mod.edit_logger(is_debugging=False)
+    edit_logger(level=0)
 
-    simulator = Simulation(max_duration=duration,
-                           rendering=False,
-                           rw_position=rw_position,
-                           plot_interval=1)
+    # settings
+    rw_position = np.random.uniform(0.1, 0.9, 2)
+    sim_settings["rw_position"] = rw_position
+    sim_settings["max_duration"] = duration
+    sim_settings["rendering"] = False
+    agent_settings["N"] = N
+
+    # object
+    simulator = Simulation(sim_settings=sim_settings,
+                           agent_settings=agent_settings)
 
     # utc.analysis_I(N=N, simulator=simulator)
     utc.analysis_II(N=N, simulator=simulator)

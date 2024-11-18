@@ -1,10 +1,129 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from numba import jit
 import logging, coloredlogs
 
 
 FIGPATH = "dashboard/cache/"
+
+
+""" LOGGER """
+
+
+def setup_logger(name: str="MAIN",
+                 colored: bool=True,
+                 level: int=0,
+                 is_debugging: bool=True,
+                 is_warning: bool=True) -> logging.Logger:
+
+    """
+    this function sets up a logger
+
+    Parameters
+    ----------
+    name : str
+        name of the logger. Default="MAIN"
+    colored : bool
+        use colored logs. Default=True
+    level : int
+        the level that is currently used.
+        Default=0
+    is_debugging : bool
+        use debugging mode. Default=True
+    is_warning : bool
+        use warning mode. Default=True
+
+    Returns
+    -------
+    logger : object
+        logger object
+    """
+
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+
+    # create a custom formatter
+    if colored:
+        formatter = coloredlogs.ColoredFormatter(
+            "%(asctime)s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
+
+        # create a colored stream handler with the custom formatter
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+
+        # add the handler to the logger and disable propagation
+        logger.addHandler(handler)
+
+    logger.propagate = False
+
+    # wrapper class
+    class LoggerWrapper:
+        def __init__(self, logger,
+                     level: int,
+                     is_debugging: bool=False,
+                     is_warning: bool=False):
+            self.logger = logger
+            self.level = level
+            self.is_debugging = is_debugging
+            self.is_warning = is_warning
+
+            self.logger.info(self)
+
+        def __repr__(self):
+
+            return f"LoggerWrapper(name={self.logger.name}," + \
+                   f"level={self.level}, " + \
+                   f"debugging={self.is_debugging}, " + \
+                   f"warning={self.is_warning})"
+
+        def __call__(self, msg: str="", level: int=1):
+            if level <= self.level:
+                self.logger.info(msg)
+
+        def info(self, msg: str="", level: int=1):
+            self(msg, level)
+
+        def warning(self, msg: str=""):
+            if self.is_warning:
+                self.logger.warning(msg)
+
+        def error(self, msg: str=""):
+            if self.is_warning:
+                self.logger.error(msg)
+
+        def debug(self, msg):
+            if self.is_debugging:
+                self.logger.debug(msg)
+
+        def set_debugging(self, is_debugging: bool):
+            self.is_debugging = is_debugging
+
+        def set_warning(self, is_warning: bool):
+            self.is_warning = is_warning
+
+        def set_level(self, level: int):
+            self.level = level
+
+    return LoggerWrapper(logger=logger, level=level,
+                         is_debugging=is_debugging,
+                         is_warning=is_warning)
+
+
+logger = setup_logger(name="UTILS", colored=True,
+                      level=0, is_debugging=False,
+                      is_warning=False)
+
+
+def edit_logger(level: int=-1,
+                is_debugging: bool=True,
+                is_warning: bool=False):
+    global logger
+    logger.set_level(level)
+    logger.set_debugging(is_debugging)
+    logger.set_warning(is_warning)
 
 
 """ VISUALIZATION """
@@ -180,112 +299,42 @@ def calc_position_from_centers(a: np.ndarray,
     return (centers * a.reshape(-1, 1)).sum(axis=0) / a.sum()
 
 
-""" LOGGER """
-
-def setup_logger(name: str="MAIN",
-                 colored: bool=True,
-                 level: int=0,
-                 is_debugging: bool=True,
-                 is_warning: bool=True) -> logging.Logger:
+@jit(nopython=True)
+def generalized_sigmoid(x: np.ndarray,
+                        alpha: float,
+                        beta: float,
+                        clip_min: float=0.,
+                        gamma: float=1.
+                        ) -> np.ndarray:
 
     """
-    this function sets up a logger
+    generalized sigmoid function and set values below
+    a certain threshold to zero.
 
     Parameters
     ----------
-    name : str
-        name of the logger. Default="MAIN"
-    colored : bool
-        use colored logs. Default=True
-    level : int
-        the level that is currently used.
-        Default=0
-    is_debugging : bool
-        use debugging mode. Default=True
-    is_warning : bool
-        use warning mode. Default=True
+    x : np.ndarray
+        the input
+    alpha : float
+        the threshold
+    beta : float
+        the slope
+    gamma : float
+        the intensity (height).
+        Default is 1.
+    clip_min : float
+        the minimum value to clip.
+        Default is 0.
 
     Returns
     -------
-    logger : object
-        logger object
+    np.ndarray
+        The output array.
     """
 
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    x = gamma / (1.0 + np.exp(-beta * (x - alpha)))
 
-    # create a custom formatter
-    if colored:
-        formatter = coloredlogs.ColoredFormatter(
-            "%(asctime)s | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        )
-
-        # create a colored stream handler with the custom formatter
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-
-        # add the handler to the logger and disable propagation
-        logger.addHandler(handler)
-
-    logger.propagate = False
-
-    # wrapper class
-    class LoggerWrapper:
-        def __init__(self, logger,
-                     level: int,
-                     is_debugging: bool=False,
-                     is_warning: bool=False):
-            self.logger = logger
-            self.level = level
-            self.is_debugging = is_debugging
-            self.is_warning = is_warning
-
-            self.logger.info(self)
-
-        def __repr__(self):
-
-            return f"LoggerWrapper(name={self.logger.name}," + \
-                   f"level={self.level}, " + \
-                   f"debugging={self.is_debugging}, " + \
-                   f"warning={self.is_warning})"
-
-        def __call__(self, msg: str="", level: int=0):
-            if level <= self.level:
-                self.logger.info(msg)
-
-        def info(self, msg: str="", level: int=3):
-            self(msg, level)
-
-        def warning(self, msg: str=""):
-            if self.is_warning:
-                self.logger.warning(msg)
-
-        def error(self, msg: str=""):
-            if self.is_warning:
-                self.logger.error(msg)
-
-        def debug(self, msg):
-            if self.is_debugging:
-                self.logger.debug(msg)
-
-        def set_debugging(self, is_debugging: bool):
-            self.is_debugging = is_debugging
-
-        def set_warning(self, is_warning: bool):
-            self.is_warning = is_warning
-
-        def set_level(self, level: int):
-            self.level = level
-
-    return LoggerWrapper(logger=logger, level=level,
-                         is_debugging=is_debugging,
-                         is_warning=is_warning)
-
-
-logger = setup_logger(name="UTILS", colored=True,
-                      level=0, is_debugging=False,
-                      is_warning=False)
+    return np.where(x < clip_min, 0., x)
 
 
 """ ANALYSIS """
