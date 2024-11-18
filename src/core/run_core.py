@@ -275,7 +275,9 @@ def main(args):
     trg_position = np.array([0.5, 0.8])
     trg_radius = 0.1
     SPEED = 0.03
-    PLOT_INTERVAL = 5
+    PLOT_INTERVAL = 1
+    ROOM = "square1"
+
     other_info = {}
 
     # --- brain
@@ -357,7 +359,7 @@ def main(args):
                       pcnn2D=pcnn2D)
 
     # --- agent & env
-    env = ev.make_room(name="square", thickness=4.,
+    env = ev.make_room(name=ROOM, thickness=4.,
                        bounds=BOUNDS,
                        visualize=True)
     pcnn2D_plotter.add_element(element=env)
