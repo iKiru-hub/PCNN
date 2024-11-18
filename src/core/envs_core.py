@@ -431,10 +431,20 @@ class Zombie:
 class RewardObj:
 
     def __init__(self, position: np.ndarray,
-                 radius: float=0.05):
+                 radius: float=0.05,
+                 fetching: str="probabilistic",
+                 behaviour: str="static",
+                 bounds: list=[0, 1, 0, 1]):
 
         self._position = position
         self._radius = radius
+        self._fetching = fetching
+        self._behaviour = behaviour
+        self._bounds = bounds
+        self._count = 0
+
+    def __repr__(self):
+        return f"Reward({self._fetching}, {self._behaviour})"
 
     def __call__(self, position: np.ndarray):
 
@@ -445,9 +455,29 @@ class RewardObj:
         # distance = np.linalg.norm(position - self._position)
         distance = ((position - self._position)**2).sum()
         p = np.exp(-distance / (2 * self._radius**2))
+        result = 0.
         if distance < self._radius:
-            return np.random.binomial(1, p)
-        return 0.0
+            if self._fetching == "deterministic":
+                result = 1.0
+            result = np.random.binomial(1, p)
+
+        if result:
+            self._count += 1
+            if self._behaviour == "dynamic":
+                self.reset()
+
+        return result
+
+    def get_count(self):
+        return self._count
+
+    def reset(self, new_position: np.ndarray=None):
+        if new_position is None:
+            new_position = np.array([
+                np.random.uniform(self._bounds[0], self._bounds[1]),
+                np.random.uniform(self._bounds[2], self._bounds[3])
+            ])
+        self._position = new_position
 
     def render(self, ax: plt.Axes, alpha: float=0.1):
 

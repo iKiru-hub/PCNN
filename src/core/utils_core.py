@@ -193,8 +193,8 @@ class PlotPCNN:
                     lw=1, alpha=0.5, linestyle='--')
             for i, val in enumerate(rollout_vals):
                 ax.scatter(rollout_trj[i, 0], rollout_trj[i, 1],
-                            c='b', s=10*(2+val), alpha=0.7,
-                           marker='o')
+                           facecolors='white', edgecolors='blue',
+                           s=10*(2+val), alpha=0.7, marker='o')
 
         # --- network
         centers = self._model.get_centers()
@@ -380,6 +380,56 @@ def _multiple_simulations(N: int, simulator: object,
     return N, data
 
 
+def analysis_0(simulator: object):
+
+    """
+    plot the start and end positions of the trajectory,
+    GOAL: highlight how the agent stays within the reward area
+    """
+
+    # --- RUN
+    done = False
+    simulator.reset()
+    duration = simulator.max_duration
+    for _ in tqdm(range(duration)):
+        simulator.update()
+
+    # --- PLOT
+    fig, ax = plt.subplots(figsize=(6, 6))
+
+    trajectory = np.array(simulator.get_trajectory())
+
+    # reward
+    rw_position, rw_radius = simulator.get_reward_info()
+
+    # reward area
+    ax.add_patch(plt.Circle(rw_position, rw_radius,
+                            color="green", alpha=0.1))
+
+    # trajectory
+    ax.plot(trajectory[:, 0], trajectory[:, 1],
+               lw=0.5, alpha=0.7)
+
+    # start and end
+    ax.scatter(trajectory[0, 0], trajectory[0, 1],
+               marker="o", color="white", s=40,
+               edgecolor="red")
+    ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
+               marker="o", color="red", s=40,
+               edgecolor="red")
+
+
+    # ax[i].axis("off")
+    ax.set_aspect("equal")
+    ax.set_xlim(0., 1.)
+    ax.set_ylim(0., 1.)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    plt.tight_layout()
+    plt.show()
+
+
 def analysis_I(N: int, simulator: object):
 
     """
@@ -539,12 +589,13 @@ def analysis_II(N: int, simulator: object):
         axs[1, i].set_yticks([])
 
     # save fig
-    fig.savefig("reward_reaching_accuracy.png")
-    print("Figure saved as 'reward_reaching_accuracy.png'")
+    # import time
+    # timestamp = time.strftime("%H%M%S")
+    # fig.savefig(f"reward_reaching_accuracy_{timestamp}.png")
+    # print("Figure saved as 'reward_reaching_accuracy.png'")
 
     plt.tight_layout()
     plt.show()
-
 
 
 

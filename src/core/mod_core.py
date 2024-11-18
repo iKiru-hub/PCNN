@@ -1158,7 +1158,7 @@ class ExperienceModule(ModuleClass):
         self.rollout["index_sequence"] = best_rollout[3][:depth+2]
         self.rollout["values_sequence"] = np.array(best_rollout[5])
 
-        logger.debug(f"values:\n{np.around(self.rollout['values_sequence'].T, 3)}")
+        # logger.debug(f"values:\n{np.around(self.rollout['values_sequence'].T, 3)}")
 
     def render(self, ax=None, **kwargs):
 

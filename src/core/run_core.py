@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse, json
+from tqdm import tqdm
 
 import mod_core as mod
 import utils_core as utc
@@ -15,7 +16,7 @@ import pclib
 CONFIGPATH = "dashboard/cache/configs.json"
 
 logger = utc.setup_logger(name="RUN",
-                          level=1,
+                          level=0,
                           is_debugging=True,
                           is_warning=False)
 
@@ -49,17 +50,18 @@ def write_configs(num_figs: int,
         json.dump(info, f)
 
 
-BOUNDS = np.array([0., 1., 0., 1.])
-
 
 """ CLASSES """
 
 sim_settings = {
+    "bounds": np.array([0., 1., 0., 1.]),
     "speed": 0.03,
     "init_position": np.array([0.8, 0.2]),
+    "rw_fetching": "probabilistic",
+    "rw_behaviour": "static",
     "rw_position": np.array([0.5, 0.8]),
     "rw_radius": 0.1,
-    "plot_interval": 1,
+    "plot_interval": 8,
     "rendering": True,
     "room": "square",
     "max_duration": None,
@@ -68,9 +70,19 @@ sim_settings = {
 
 agent_settings = {
     "N": 80,
-    "Nj": 14**2,
-    "exp_weights": np.array([-0.2, 0.2, -1., 0.2, 0.4]),
-    "max_depth": 7
+    "Nj": 13**2,
+    "sigma": 0.04,
+    "max_depth": 10
+}
+
+model_params = {
+    "threshold": 0.5,
+    "rep_threshold": 0.5,
+    "w1": -1.,  # bnd
+    "w2": 0.2,  # dpos
+    "w3": -0.5,  # pop
+    "w4": 1.,  # trg
+    "w5": 0.4,  # smooth
 }
 
 
@@ -81,9 +93,9 @@ class Simulation:
     with the streamlit dashboard
     """
 
-    def __init__(self, N: int=80,
-                 sim_settings: dict = sim_settings,
-                 agent_settings: dict = agent_settings):
+    def __init__(self, sim_settings: dict = sim_settings,
+                 agent_settings: dict = agent_settings,
+                 model_params: dict = model_params):
 
         # --- SETTINGS
         self.sim_settings = sim_settings
@@ -104,23 +116,26 @@ class Simulation:
         # --- MODEL SETTINGS
         N = agent_settings["N"]
         Nj = agent_settings["Nj"]
-        exp_weights = agent_settings["exp_weights"]
+        exp_weights = np.array([w for (k, w) in model_params.items()
+                                if "w" in k.lower()])
 
         logger(f"{N=}")
         logger(f"{Nj=}")
 
         # ---
-        sigma = 0.05
-        self.bounds = BOUNDS
+        sigma = agent_settings["sigma"]
+        self.bounds = sim_settings["bounds"]
         xfilter = pclib.PCLayer(int(np.sqrt(Nj)),
                                 sigma, self.bounds)
 
         # definition
-        pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.5,
-                          clip_min=0.09, threshold=0.5,
-                          rep_threshold=0.5, rec_threshold=0.01,
-                          num_neighbors=8, trace_tau=0.1,
-                          xfilter=xfilter, name="2D")
+        pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.,
+                            clip_min=0.09,
+                            threshold=model_params["threshold"],
+                            rep_threshold=model_params["rep_threshold"],
+                            rec_threshold=0.01,
+                            num_neighbors=8, trace_tau=0.1,
+                            xfilter=xfilter, name="2D")
 
         pcnn2D_plotter = utc.PlotPCNN(model=pcnn2D,
                                       bounds=self.bounds,
@@ -128,7 +143,7 @@ class Simulation:
 
         # --- CIRCUITS
         circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
-                                                threshold=0.2,
+                                                threshold=0.1,
                                                 eta=0.5,
                                                 tau=1.,
                                                 visualize=rendering),
@@ -140,7 +155,6 @@ class Simulation:
                                                       visualize=False,
                                                       number=None),
                          "Ftg": mod.FatigueMod(tau=300)}
-
 
         circuits = mod.Circuits(circuits_dict=circuits_dict,
                                 visualize=rendering)
@@ -175,7 +189,10 @@ class Simulation:
         self.env = ev.AgentBody(room=self.env,
                                 position=init_position)
         self.reward_obj = ev.RewardObj(position=rw_position,
-                                       radius=rw_radius)
+                                       radius=rw_radius,
+                                       fetching=sim_settings["rw_fetching"],
+                                       behaviour=sim_settings["rw_behaviour"],
+                                       bounds=self.bounds)
         self.velocity = np.zeros(2)
         self.observation = {
             "u": np.zeros(N),
@@ -184,12 +201,6 @@ class Simulation:
             "delta_update": 0.,
             "collision": False,
             "reward": 0.
-        }
-        self.output = {
-            "u": np.zeros(N),
-            "velocity": self.velocity,
-            "delta_update": 0.,
-            "action_idx": None,
         }
 
         # --- RECORD
@@ -233,6 +244,10 @@ class Simulation:
             logger.warning(f"truncated at t={self.t}")
             return True
 
+    def step(self): return self.update()
+
+    def output(self): pass
+
     def get_trajectory(self):
         return self.agent.record["trajectory"]
 
@@ -249,6 +264,9 @@ class Simulation:
     def get_reward_info(self):
         return self.sim_settings["rw_position"], \
                     self.sim_settings["rw_radius"]
+
+    def get_reward_count(self):
+        return self.reward_obj.get_count()
 
     def _render(self):
 
@@ -274,25 +292,33 @@ class Simulation:
 
         self.sim_settings["seed"] = seed
         self.sim_settings["init_position"] = init_position
+        self.reward_obj.reset()
 
         self.__init__(sim_settings=self.sim_settings,
                       agent_settings=self.agent_settings)
         logger(f"%% reset [seed={seed}] %%")
 
 
-def main(args):
+def main(sim_settings=sim_settings,
+         agent_settings=agent_settings,
+         model_params=model_params):
 
     """
     meant to be run standalone
     """
 
     # --- settings
-    duration = args.duration
-    trg_position = np.array([0.5, 0.8])
-    trg_radius = 0.1
-    SPEED = 0.03
-    PLOT_INTERVAL = 5
-    ROOM = "flat"
+    duration = sim_settings["max_duration"]
+    trg_position = sim_settings["rw_position"]
+    trg_radius = sim_settings["rw_radius"]
+    SPEED = sim_settings["speed"]
+    PLOT_INTERVAL = sim_settings["plot_interval"]
+    ROOM = sim_settings["room"]
+    BOUNDS = sim_settings["bounds"]
+
+    exp_weights = np.array([w for (k, w) in model_params.items()
+                            if "w" in k.lower()])
+
 
     other_info = {}
     logger(f"room: {ROOM}")
@@ -300,32 +326,33 @@ def main(args):
     logger(f"{duration}")
 
     # --- brain
-    N = args.N
-    Nj = 14**2
-    sigma = 0.03
-    bounds = BOUNDS
+    N = agent_settings["N"]
+    Nj = agent_settings["Nj"]
+    sigma = agent_settings["sigma"]
 
     logger(f"{N=}")
     logger(f"{Nj=}")
 
-    xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, bounds)
+    xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, BOUNDS)
 
     # definition
     pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.,
-                      clip_min=0.09, threshold=0.3,
-                      rep_threshold=0.9, rec_threshold=0.01,
-                      num_neighbors=8, trace_tau=0.1,
-                      xfilter=xfilter, name="2D")
+                        clip_min=0.09,
+                        threshold=model_params["threshold"],
+                        rep_threshold=model_params["rep_threshold"],
+                        rec_threshold=0.01,
+                        num_neighbors=8, trace_tau=0.1,
+                        xfilter=xfilter, name="2D")
 
     # plotter
     pcnn2D_plotter = utc.PlotPCNN(model=pcnn2D,
-                                  bounds=bounds,
+                                  bounds=BOUNDS,
                                   visualize=True,
                                   number=0)
 
     # --- circuits
     circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
-                                            threshold=0.2,
+                                            threshold=0.1,
                                             eta=0.5,
                                             tau=1.,
                                             visualize=True,
@@ -340,9 +367,6 @@ def main(args):
                                                   number=None),
                      "Ftg": mod.FatigueMod(tau=300)}
 
-    # for _, circuit in circuits_dict.items():
-    #     logger.debug(f"{circuit} keys: {circuit.input_key}")
-
     # object
     circuits = mod.Circuits(circuits_dict=circuits_dict,
                             visualize=True,
@@ -353,18 +377,17 @@ def main(args):
     trg_module = mod.TargetModule(pcnn=pcnn2D,
                                   circuits=circuits,
                                   speed=SPEED,
-                                  threshold=0.2,
+                                  threshold=0.1,
                                   visualize=True,
                                   number=1)
     other_info["Trg_thr"] = trg_module.threshold
 
     # [ bnd, dpos, pop, trg, smooth ]
-    weights = np.array([-0.2, 0.2, -1., 0.2, 0.4])
     exp_module = mod.ExperienceModule(pcnn=pcnn2D,
                                       pcnn_plotter=pcnn2D_plotter,
                                       trg_module=trg_module,
                                       circuits=circuits,
-                                      weights=weights,
+                                      weights=exp_weights,
                                       action_delay=10,
                                       max_depth=7,
                                       speed=SPEED,
@@ -383,29 +406,26 @@ def main(args):
     pcnn2D_plotter.add_element(element=env)
 
     env = ev.AgentBody(room=env,
-                       position=np.array([0.8, 0.2]))
+                       position=sim_settings["init_position"])
     reward_obj = ev.RewardObj(position=trg_position,
-                              radius=trg_radius)
+                              radius=trg_radius,
+                              fetching=sim_settings["rw_fetching"],
+                              behaviour=sim_settings["rw_behaviour"],
+                              bounds=BOUNDS)
+    logger(reward_obj)
     pcnn2D_plotter.add_element(element=reward_obj)
 
     velocity = np.zeros(2)
     observation = {
-        # "u": np.zeros(N),
         "position": env.position,
-        # "velocity": velocity,
-        # "delta_update": 0.,
         "collision": False,
         "reward": 0.
-    }
-    output = {
-        "u": np.zeros(N),
-        "velocity": velocity,
-        "delta_update": 0.,
-        "action_idx": None,
     }
 
     if args.plot:
         fig, ax = plt.subplots(figsize=(5, 5))
+
+    reward_count = 0
 
     trajectory = [env.position.tolist()]
     for t in range(duration):
@@ -423,6 +443,7 @@ def main(args):
                     velocity=velocity)
         reward = reward_obj(position=position)
         trajectory += [position.tolist()]
+        reward_count += reward
 
         # --- observation
         observation["position"] = position
@@ -442,6 +463,10 @@ def main(args):
             input()
             break
 
+        # if reward_count > 1:
+        #     logger("Reward count reached!", level=0)
+        #     break
+
         # --- plot
         if t % PLOT_INTERVAL == 0:
             if not args.plot:
@@ -456,6 +481,8 @@ def main(args):
                             reward_obj=reward_obj,
                             trajectory=trajectory,
                             t=t, velocity=velocity)
+
+    return
 
 
 def plot_update(fig, ax, agent, env, reward_obj,
@@ -488,16 +515,103 @@ def run_analysis(N: int=5, duration: int=1000):
     sim_settings["rw_position"] = rw_position
     sim_settings["max_duration"] = duration
     sim_settings["rendering"] = False
-    agent_settings["N"] = N
+    agent_settings["N"] = 200
 
     # object
     simulator = Simulation(sim_settings=sim_settings,
                            agent_settings=agent_settings)
 
+    # utc.analysis_0(simulator=simulator)
     # utc.analysis_I(N=N, simulator=simulator)
     utc.analysis_II(N=N, simulator=simulator)
 
 
+def simple_run(sim_settings: dict,
+               agent_settings: dict,
+               model_params: dict,
+               render: bool=True):
+
+    """
+    plot the start and end positions of the trajectory,
+    GOAL: highlight how the agent stays within the reward area
+    """
+
+    # --- make simulator
+    sim_settings["rendering"] = False
+    simulator = Simulation(sim_settings=sim_settings,
+                           agent_settings=agent_settings,
+                           model_params=model_params)
+
+    # --- RUN
+    done = False
+    simulator.reset()
+    duration = simulator.max_duration
+    for _ in tqdm(range(duration)):
+        simulator.update()
+
+    # --- PLOT
+    if not render:
+        return simulator
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+
+    trajectory = np.array(simulator.get_trajectory())
+
+    # reward
+    rw_position, rw_radius = simulator.get_reward_info()
+
+    # reward area
+    ax.add_patch(plt.Circle(rw_position, rw_radius,
+                            color="green", alpha=0.1))
+
+    # trajectory
+    ax.plot(trajectory[:, 0], trajectory[:, 1],
+               lw=0.5, alpha=0.7)
+
+    # start and end
+    ax.scatter(trajectory[0, 0], trajectory[0, 1],
+               marker="o", color="white", s=40,
+               edgecolor="red")
+    ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
+               marker="o", color="red", s=40,
+               edgecolor="red")
+
+
+    # ax[i].axis("off")
+    ax.set_aspect("equal")
+    ax.set_xlim(0., 1.)
+    ax.set_ylim(0., 1.)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    plt.tight_layout()
+    plt.show()
+
+
+def loop_main(sim_settings: dict,
+              agent_settings: dict):
+
+    count = 0
+    while True:
+
+        logger(f"[round {count}]", level=0)
+
+        sim_settings["seed"] = np.random.randint(0, 1000)
+        sim_settings["init_position"] = np.random.uniform(0.1, 0.9, 2)
+        sim_settings["rw_fetching"] = "deterministic"
+        sim_settings["rw_position"] = np.random.uniform(0.1, 0.9, 2)
+        sim_settings["rw_radius"] = 0.05
+        sim_settings["plot_interval"] = 5
+        sim_settings["speed"] = 0.04
+
+        agent_settings["max_depth"] = 20
+        agent_settings["exp_weights"] = np.array([-1., 0.2, -1., 0.2, 0.4]),
+        main(sim_settings=sim_settings,
+             agent_settings=agent_settings)
+
+        count += 1
+
+#
 
 if __name__ == "__main__":
 
@@ -513,19 +627,39 @@ if __name__ == "__main__":
 
     #
     if args.seed > 0:
-        # args.seed = np.random.randint(0, 10000)
         logger.debug(f"seed: {args.seed}")
-
         np.random.seed(args.seed)
-    # mod.set_seed(seed=args.seed)
+
+    # mod.edit_logger(is_debugging=False)
+    # edit_logger(level=0)
 
     # run
     if args.main == "main":
-        main(args)
+        sim_settings["seed"] = args.seed
+        sim_settings["max_duration"] = args.duration
+        sim_settings["rendering"] = not args.plot
+        agent_settings["N"] = args.N
+        main()
+
+    elif args.main == "loop":
+        sim_settings["seed"] = args.seed
+        sim_settings["max_duration"] = args.duration
+        sim_settings["rendering"] = not args.plot
+        agent_settings["N"] = args.N
+        loop_main(sim_settings=sim_settings,
+                  agent_settings=agent_settings)
 
     elif args.main == "analysis":
         run_analysis(N=args.N,
                      duration=args.duration)
 
+    elif args.main == "simple":
+        sim_settings["seed"] = args.seed
+        sim_settings["max_duration"] = args.duration
+        agent_settings["N"] = args.N
+        simple_run(sim_settings=sim_settings,
+                   agent_settings=agent_settings,
+                   model_params=model_params,
+                   render=True)
 
 
