@@ -70,7 +70,7 @@ def setup_logger(name: str="MAIN",
             self.is_debugging = is_debugging
             self.is_warning = is_warning
 
-            self.logger.info(self)
+            # self.logger.info(self)
 
         def __repr__(self):
 
