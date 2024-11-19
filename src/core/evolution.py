@@ -23,7 +23,7 @@ logger = setup_logger(name="EVO", level=0,
 
 sim_settings = {
     "bounds": np.array([0., 1., 0., 1.]),
-    "speed": 0.03,
+    "speed": 0.04,
     "init_position": np.array([0.8, 0.2]),
     "rw_fetching": "probabilistic",
     "rw_behaviour": "dynamic",
@@ -37,17 +37,26 @@ sim_settings = {
 }
 
 agent_settings = {
-    "N": 200,
+    "N": 150,
     "Nj": 13**2,
     "sigma": 0.04,
-    "max_depth": 10
+    "max_depth": 20,
 }
 
 
 """ EVALUATION """
 
-
+# @brief: reward count
 def eval_func_I(agent: object):
+
+    """
+    reward count
+    """
+
+    return agent.model.get_reward_count()
+
+
+def eval_func_II(agent: object):
 
     """
     reward count
@@ -156,7 +165,10 @@ class Env:
 
 
 # parameters that are not evolved
-FIXED_PARAMETERS = {}
+# >>> no ftg weight
+FIXED_PARAMETERS = {
+    "w4": 0.
+}
 
 
 # Define the genome as a dict of parameters
@@ -177,10 +189,11 @@ if __name__ == "__main__" :
     # ---| Setup |---
 
     fitness_weights = (1.,)
-    NPOP = 24
-    NGEN = 20
+    NPOP = int(6*6)
+    NGEN = 200
     NUM_CORES = 6  # out of 8
-    me.USE_TQDM = True
+    me.USE_TQDM = False
+    VISUALIZE = True
 
     # Ignore runtime warnings
     import warnings
@@ -231,7 +244,8 @@ if __name__ == "__main__" :
 
     # ---| Visualisation |---
 
-    visualizer = me.Visualizer(settings=settings, online=True,
+    visualizer = me.Visualizer(settings=settings,
+                               online=VISUALIZE,
                                target=None,
                                k_average=20,
                                fitness_size=len(fitness_weights),
@@ -257,7 +271,7 @@ if __name__ == "__main__" :
         "evolved": [key for key in PARAMETERS.keys() if key not in FIXED_PARAMETERS.keys()],
         "data": {"sim_settings": sim_settings.copy(),
                  "agent_settings": agent_settings.copy()},
-        "other": "evaluating reward count",
+        "other": "evaluating reward count | ftg weight=0.",
     }
 
     # ---| Run |---

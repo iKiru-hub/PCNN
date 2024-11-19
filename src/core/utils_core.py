@@ -337,6 +337,67 @@ def generalized_sigmoid(x: np.ndarray,
     return np.where(x < clip_min, 0., x)
 
 
+""" from evolution """
+
+def load_model_settings(idx: int=None, verbose: bool=True) -> tuple:
+
+    """
+    load the results from an evolutionary search and
+    return it as `sim_settings`, `agent_settings`, and
+    `model_params`
+    """
+
+    import os, json
+    def log(msg: str):
+        if verbose:
+            print(msg)
+
+    path = os.getcwd().split("PCNN")[0]
+    path = "".join((path, "/PCNN/src/core/cache"))
+
+    # list all files
+    file_list = os.listdir(path)
+    if len(file_list) == 0:
+        return None, None, None
+
+    log(f">>> files: {file_list}")
+
+    if idx is None:
+        idx = len(file_list) - 1
+    filename = file_list[idx]
+
+    log(f">>> loading file: {filename}")
+
+    # load the file
+    with open(f"{path}/{filename}", "r") as f:
+        data = json.load(f)
+
+    info = data["info"]
+    model_params = data["genome"]
+
+    log(f"date: {info['date']}")
+    log(f"evolution: {info['evolution']}")
+    log(f"evolved: {info['evolved']}")
+    log(f"other: '{info['other']}'")
+    log(f"performance: {info['performance']}")
+
+    sim_settings = info["data"]["sim_settings"]
+    agent_settings = info["data"]["agent_settings"]
+
+    log(f"sim_settings: {sim_settings}")
+    log(f"agent_settings: {agent_settings}")
+    log(f"model_params: {model_params}")
+
+    # make some lists into numpy arrays
+    sim_settings["bounds"] = np.array(sim_settings["bounds"])
+    sim_settings["rw_position"] = np.array(sim_settings["rw_position"])
+    sim_settings["init_position"] = np.array(sim_settings["init_position"])
+
+    return info["data"]["sim_settings"], \
+              info["data"]["agent_settings"], \
+                model_params
+
+
 """ ANALYSIS """
 
 

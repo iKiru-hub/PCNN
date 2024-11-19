@@ -459,7 +459,8 @@ class RewardObj:
         if distance < self._radius:
             if self._fetching == "deterministic":
                 result = 1.0
-            result = np.random.binomial(1, p)
+            else:
+                result = np.random.binomial(1, p)
 
         if result:
             self._count += 1

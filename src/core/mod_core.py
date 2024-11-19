@@ -374,7 +374,8 @@ class Dopamine(Modulation):
             if not simulate:
 
                 # potentiation
-                self.weights += self.eta * v * np.where(u < self.threshold, 0, u)
+                self.weights += self.eta * v * \
+                    np.where(u < self.threshold, 0, u)
 
                 # depression
                 # self.weights -= self.eta * (1 - v) * \
@@ -1087,6 +1088,8 @@ class ExperienceModule(ModuleClass):
         if self.directive["state"] == "keep" and \
             not observation["collision"]:
 
+            # consider action delay
+
             # apply the plan
             self.output["velocity"] = self.rollout["action_sequence"
                             ][self.directive["action_t"]]
@@ -1194,7 +1197,7 @@ class ExperienceModule(ModuleClass):
 
             self.ax.axvline(x=self.directive["action_t"],
                             color="red", linestyle="--")
-            self.ax.set_ylim(-1.3, 1.5)
+            self.ax.set_ylim(-3., 6.)
             self.ax.set_xlabel("Time")
             self.ax.legend(loc="lower right")
             self.ax.grid()
@@ -1398,6 +1401,10 @@ class Brain:
 
         # record
         self.record = {"trajectory": []}
+
+    def __str__(self) -> str:
+        return f"Brain({self.exp_module}, {self.circuits}, " + \
+            f"{self.pcnn2D})"
 
     def __call__(self, observation: dict):
 
