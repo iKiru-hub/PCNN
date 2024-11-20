@@ -22,6 +22,11 @@ FIGSIZE = (4, 4)
 def set_seed(seed: int=0):
     np.random.seed(seed)
 
+logger = utc.setup_logger(name="MOD",
+                          level=-1,
+                          is_debugging=True,
+                          is_warning=False)
+
 def edit_logger(level: int=-1,
                 is_debugging: bool=True,
                 is_warning: bool=False):
