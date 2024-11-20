@@ -208,10 +208,10 @@ if __name__ == "__main__" :
 
     fitness_weights = (1.,)
     NGEN = 20
-    NUM_CORES = 128  # out of 8
+    NUM_CORES = 64  # out of 8
     NPOP = NUM_CORES
     me.USE_TQDM = False
-    VISUALIZE = True
+    VISUALIZE = False
 
     # Ignore runtime warnings
     import warnings
