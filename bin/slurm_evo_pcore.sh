@@ -19,7 +19,7 @@ echo "<Evolution 4 PCNN.CORE>"
 echo "ecl1 activated"
 
 # go to the right directory
-cd ~/lab/PCNN/src/core
+cd ~/lab/PCNN/src/
 echo "directory: $(ls)"
 git checkout main
 echo "[git 'main']"
