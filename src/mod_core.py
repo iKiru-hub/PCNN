@@ -1841,7 +1841,8 @@ class Brain:
             for key, out in exp_output.items():
                 self.state[key] = out
         else:
-            self.state[*exp_output.keys()] = exp_output.values()
+            for key, out in exp_output.items():
+                self.state[key] = out
 
         return exp_output["velocity"]
 
