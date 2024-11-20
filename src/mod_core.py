@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 import utils_core as utc
 
 try:
-    import pclib
+    import libs.pclib as pclib
 except ImportError:
     import warnings
     warnings.warn("pclib [c++] not found, using python version")
