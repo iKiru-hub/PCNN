@@ -1832,7 +1832,8 @@ class Brain:
             for key, out in c_out.items():
                 self.state[key] = out
         else:
-            self.state[*c_out.keys()] = c_out.values()
+            for (key, out) in c_out.items():
+                self.state[key] = out
 
         # --- update experience module
         exp_output = self.exp_module(observation=self.state)
