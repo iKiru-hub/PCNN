@@ -2,6 +2,7 @@ import numpy as np
 import time, os
 import random
 from deap import base, creator, tools, cma
+import argparse
 
 import tools.evolutions as me
 import run_core as rc
@@ -204,14 +205,22 @@ PARAMETERS = {
 
 if __name__ == "__main__" :
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cores", type=int, default=1)
+    parser.add_argument("--ngen", type=int, default=20)
+    parser.add_argument("--npop", type=int, default=1)
+    parser.add_argument("--visualize", action="store_true")
+
+    args = parser.parse_args()
+
     # ---| Setup |---
 
     fitness_weights = (1.,)
-    NGEN = 20
-    NUM_CORES = 64  # out of 8
-    NPOP = NUM_CORES
+    NGEN = args.ngen
+    NUM_CORES = args.cores  # out of 8
+    NPOP = args.npop
     me.USE_TQDM = False
-    VISUALIZE = False
+    VISUALIZE = args.visualize
 
     # Ignore runtime warnings
     import warnings
