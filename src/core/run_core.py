@@ -336,7 +336,8 @@ class Simulation:
 def main(sim_settings=sim_settings,
          agent_settings=agent_settings,
          model_params=model_params,
-         plot: bool=False):
+         plot: bool=False,
+         other_info: dict={}):
 
     """
     meant to be run standalone
@@ -366,7 +367,6 @@ def main(sim_settings=sim_settings,
     else:
         raise ValueError("model_params not recognized")
 
-    other_info = {}
     logger(f"room: {ROOM}")
     logger(f"plot_interval: {PLOT_INTERVAL}")
     logger(f"{duration}")
@@ -476,7 +476,7 @@ def main(sim_settings=sim_settings,
     trajectory = [env.position.tolist()]
     for t in range(duration):
 
-        if t % 1000 == 0:
+        if t % 100 == 0:
             write_configs(num_figs=8,
                           circuits=circuits,
                           t=t,
@@ -641,7 +641,7 @@ def loaded_run(idx: int=None,
     load the settings from a recorded evolutionary search
     """
 
-    sim_settings, agent_settings, model_params = utc.load_model_settings(idx=idx,
+    sim_settings, agent_settings, model_params, _ = utc.load_model_settings(idx=idx,
                                                                          verbose=True)
 
     # --- make simulator
@@ -710,8 +710,9 @@ def loop_main(sim_settings: dict,
 
     if load:
         logger(f"loading idx {idx}")
-        sim_settings, agent_settings, model_params = utc.load_model_settings(idx=idx,
-                                                                       verbose=True)
+        evo_configs = utc.load_model_settings(idx=idx,
+                                              verbose=True)
+        sim_settings, agent_settings, model_params, evo_info = evo_configs
 
         if sim_settings is None:
             load = False
@@ -732,6 +733,7 @@ def loop_main(sim_settings: dict,
             "w11": 0.1,
             "w12": 0.1,
         }
+        evo_info = {}
 
     logger.debug(f"{model_params=}")
 
@@ -754,7 +756,8 @@ def loop_main(sim_settings: dict,
 
         main(sim_settings=sim_settings,
              agent_settings=agent_settings,
-             model_params=model_params)
+             model_params=model_params,
+             other_info=evo_info)
 
         count += 1
 

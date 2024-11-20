@@ -394,9 +394,17 @@ def load_model_settings(idx: int=None, verbose: bool=True) -> tuple:
     sim_settings["rw_position"] = np.array(sim_settings["rw_position"])
     sim_settings["init_position"] = np.array(sim_settings["init_position"])
 
+    evo_info = {
+        "date": info["date"],
+        "evolution": info["evolution"],
+        "evolved": info["evolved"],
+        "other": info["other"],
+        "performance": info["performance"]
+    }
+
     return info["data"]["sim_settings"], \
               info["data"]["agent_settings"], \
-                model_params
+                model_params, evo_info
 
 
 """ ANALYSIS """

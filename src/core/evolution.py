@@ -37,10 +37,10 @@ sim_settings = {
 }
 
 agent_settings = {
-    "N": 150,
+    "N": 100,
     "Nj": 13**2,
-    "sigma": 0.04,
-    "max_depth": 20,
+    "sigma": 0.05,
+    "max_depth": 10,
 }
 
 
