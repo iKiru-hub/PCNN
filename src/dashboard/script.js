@@ -10,7 +10,7 @@ let loadedImages = []; // Array to hold successfully loaded images
 
 
 // log current directory
-console.log(__dirname);
+// console.log(__dirname);
 
 async function loadImages() {
     console.log("Loading images...");

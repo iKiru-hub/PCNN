@@ -920,8 +920,7 @@ class ExperienceModule(ModuleClass):
         self._number2 = number2
         if visualize:
             self.fig, self.ax1 = plt.subplots(figsize=FIGSIZE)
-            if self.using_mlp:
-                self.fig2, self.ax2 = plt.subplots(figsize=FIGSIZE)
+            self.fig2, self.ax2 = plt.subplots(figsize=FIGSIZE)
             logger(f"%visualizing {self.__class__}")
 
         self.record = []
@@ -1209,18 +1208,18 @@ class ExperienceModule(ModuleClass):
                 for i, v in enumerate(self.rollout["values_sequence"].T):
                     self.ax1.scatter(range(length), v, s=30,
                                     alpha=0.8, label=self._mod_names[i])
+                self.ax1.legend(loc="lower right")
 
             self.ax1.axvline(x=self.directive["action_t"],
                             color="red", linestyle="--")
             self.ax1.set_ylim(-3., 6.)
             self.ax1.set_xlabel("Time")
-            # self.ax1.legend(loc="lower right")
             self.ax1.grid()
             self.ax1.set_title(f"Behaviour Score Sequence")
 
             self.fig.canvas.draw()
 
-            # values hidden space
+            # display the values' hidden space
             if self.using_mlp:
                 self.ax2.clear()
                 self.ax2.plot(*self.rollout["values_sequence"].T,
@@ -1235,391 +1234,14 @@ class ExperienceModule(ModuleClass):
                 self.ax2.grid()
                 self.ax2.set_title(f"Values hidden space")
                 self.fig2.canvas.draw()
+            # plot weights
+            else:
+                self.eval_network.render(ax=self.ax2,
+                                         labels=self._mod_names[:-1])
 
             if self._number is not None:
                 self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
-                if self.using_mlp:
-                    self.fig2.savefig(f"{FIGPATH}/fig{self._number2}.png")
-
-            if return_fig:
-                return fig_pp, fig_tm, fig_api, self.fig
-
-        if return_fig:
-            return fig_pp, fig_tm, fig_api
-
-    def reset(self, complete: bool=False):
-        super().reset(complete=complete)
-        if complete:
-            self.record = []
-
-
-class ExperienceModule2(ModuleClass):
-
-    """
-    Input:
-        x: 2D position [array]
-        mode: mode [str] ("current" or "proximal")
-    Output:
-        representation: output [array]
-        current position: [array]
-    """
-
-    def __init__(self, pcnn: object,
-                 circuits: Circuits,
-                 trg_module: object,
-                 pcnn_plotter: object=None,
-                 action_delay: float=2.,
-                 weights: dict=None,
-                 speed: int=0.005,
-                 max_depth: int=10,
-                 visualize: bool=False,
-                 visualize_action: bool=False,
-                 number: int=None,
-                 number2: int=None,
-                 **kwargs):
-
-        super().__init__()
-        self.pcnn = pcnn
-        self.circuits = circuits
-        self.pcnn_plotter = pcnn_plotter
-        self.trg_module = trg_module
-        self._action_smoother = ActionSmoothness()
-        self.output = {
-                "velocity": np.zeros(2),
-                "action_idx": None,
-                "score": None,
-                "depth": action_delay}
-
-        # --- action generation configuration
-        # self.action_policy_main = ActionSampling2D(speed=speed,
-        #                                          visualize=visualize_action,
-        #                                          number=number,
-        #                                          name="SamplingMain")
-        # self.action_policy_int = ActionSampling2D(speed=speed,
-        #                                         visualize=False,
-        #                                         number=None,
-        #                                         name="SamplingInt")
-        self.action_policy_main = ActionSampling2DWrapper(speed=speed,
-                                                 visualize=visualize_action,
-                                                 number=number,
-                                                 name="SamplingMain")
-        self.action_policy_int = ActionSampling2DWrapper(speed=speed,
-                                                visualize=False,
-                                                number=None,
-                                                name="SamplingInt")
-        self.action_space_len = len(self.action_policy_int)
-        self.action_delay = action_delay # ---
-        self.max_depth = max_depth
-        self.weights = weights
-
-        # internal directives
-        self.directive = {
-            "state": "new",
-            "onset": 0,
-            "action_t": 0,
-            "depth": 0,
-        }
-        self.t = 0
-
-        # --- visualization
-        self.visualize = visualize
-        self._number = number2
-        if visualize:
-            self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
-            logger(f"%visualizing {self.__class__}")
-
-        self.record = []
-        self.rollout = {
-            "trajectory": [],
-            "action_sequence": [],
-            "score_sequence": [],
-            "index_sequence": [],
-            "values_sequence": []}
-        self._mod_names = ("Bnd", "dPos", "Pop", "Trg", "Act", "nxP")
-
-    def _logic(self, observation: dict):
-
-        """
-        the level of acetylcholine is determined
-        affects the next weight update
-        """
-
-        # --- get representations
-        # spatial_repr = self.pcnn(x=observation["position"])
-        # observation["u"] = spatial_repr.copy()
-
-        # the target is factored in
-        self.trg_module(observation=observation)
-
-        # --- generate an action
-        # self._generate_action(observation=observation)
-        self._generate_action_from_rollout(observation=observation)
-
-        # --- output & logs
-        self.record += [observation["position"].tolist()]
-        self.t += 1
-
-    def _generate_action(self, observation: dict,
-                         returning: bool=False,
-                         position_list: []=None) -> np.ndarray:
-
-        """
-        generate a new action given an observation
-        """
-
-        self.action_policy_int.reset()
-        done = False # when all actions have been tried
-
-        while True:
-
-            # --- generate a random action
-            action, done, action_idx = self.action_policy_int()
-
-            # --- simulate its effects
-            # new position if the action is taken
-            new_position = observation["position"] + action
-
-            score, values = self._evaluate_action(position=new_position,
-                                          action=action,
-                                          action_idx=action_idx)
-
-            # score = 1 / (1 + np.exp(-score))
-
-            # check that the new position is actually new
-            if position_list is not None:
-                if new_position.tolist() in position_list:
-                    score = -1.
-                    values += [-1.]
-
-            # it is the best available action
-            if done:
-                break
-
-            # try again
-            self.action_policy_int.update(score=score)
-
-        # ---
-        if returning:
-            return action, action_idx, score, values
-
-        self.output["velocity"] = action
-        self.output["action_idx"] = action_idx
-        self.output["score"] = score
-
-    def _evaluate_action(self, position: np.ndarray,
-                         action: np.ndarray,
-                         action_idx: int) -> float:
-
-        # new observation/effects
-        u = self.pcnn.fwd_ext(x=position)
-
-        new_observation = {
-            "u": u,
-            "position": position,
-            "velocity": action,
-            "collision": False,
-            "reward": 0.,
-            "delta_update": 0.}
-
-        modulation = self.circuits(
-                        observation=new_observation,
-                        simulate=True)
-        trg_modulation = self.trg_module.evaluate_direction(
-                        velocity=action)
-
-        # --- evaluate the effects
-        # relevant modulators
-        values = np.array([modulation["Bnd"].item(),
-                           modulation["dPos"].item(),
-                           modulation["Pop"].item() * int(trg_modulation <= 0.),
-                           trg_modulation,
-                           self._action_smoother(action=action)])
-        score = (values @ self.weights.T)# / np.abs(self.weights).sum()
-
-        if action_idx == 4:
-            score = -1.
-
-        return score, np.around(values*self.weights, 3)
-
-    def _action_rollout(self, observation: dict,
-                        action: np.ndarray,
-                        action_idx: int) -> tuple:
-
-        #
-        rollout_scores = []
-        rollout_values = []
-        action_seq = [action]
-        index_seq = [action_idx]
-
-        # first step + evaluate
-        observation["position"] = observation["position"] + action
-        trajectory = [observation["position"]]
-        position_list = [observation["position"].tolist()]
-        score, values = self._evaluate_action(position=observation["position"],
-                                              action=action,
-                                              action_idx=action_idx)
-        rollout_scores += [score]
-        rollout_values += [values.tolist()]
-        rollout_scores[0] = round(rollout_scores[0], 4)
-
-        # action smoothing
-        self._action_smoother.reset()
-        self._action_smoother(action=action)
-
-        # --- simulate its effects over the next steps
-        for t in range(self.max_depth):
-
-            # get the current action
-            action, action_idx, score, values = self._generate_action(
-                                observation=observation,
-                                returning=True,
-                                position_list=position_list)
-
-            # step
-            observation["position"] = observation["position"] + action
-            position_list += [observation["position"].tolist()]
-            self._action_smoother.update(action=action)
-
-            # save the score
-            rollout_scores += [round(score, 4)]
-            trajectory += [observation["position"]]
-            action_seq += [action]
-            index_seq += [action_idx]
-            rollout_values += [values.tolist()]
-
-        return rollout_scores, trajectory, action_seq, index_seq, rollout_values
-
-    def _generate_action_from_rollout(self,
-                        observation: dict) -> np.ndarray:
-
-        """
-        generate a new action given an observation
-        through a rollout over many steps
-        """
-
-        # --- `keep` current directive
-        if self.directive["state"] == "keep" and \
-            not observation["collision"]:
-
-            # consider action delay
-
-            # apply the plan
-            self.output["velocity"] = self.rollout["action_sequence"
-                            ][self.directive["action_t"]]
-            self.output["action_idx"] = self.rollout["index_sequence"
-                            ][self.directive["action_t"]]
-
-            # check whether to keep or renew
-            if self.directive["action_t"] >= self.directive["depth"]:
-                self.directive["state"] = "new"
-            self.directive["action_t"] += 1
-
-            return
-
-        # --- `new` directive
-        self.action_policy_main.reset()
-        done = False
-
-        best_score = -np.inf
-        best_min = -np.inf
-        depth = 0
-        best_rollout = []
-        all_scores = []
-        while True:
-
-            # --- generate random main action
-            action, done, action_idx = self.action_policy_main()
-
-            # --- evaluate action
-            results = self._action_rollout(observation=observation.copy(),
-                                                  action=action,
-                                                  action_idx=action_idx)
-            self.action_policy_main.update()
-
-            rollout_scores = results[0]
-            trajectory = results[1]
-            action_seq = results[2]
-            index_seq = results[3]
-            rollout_values = results[4]
-
-            # evaluate the best action
-            if np.sum(rollout_scores[1:]) > best_score and \
-                np.min(rollout_scores) > best_min:
-
-                best_score = np.sum(rollout_scores[1:])
-                best_min = np.min(rollout_scores[1:])
-                best_rollout = [np.stack(trajectory),
-                                rollout_scores,
-                                action_seq, index_seq,
-                                len(rollout_scores[1:]),
-                                rollout_values]
-
-            if done:
-                break
-            all_scores += [[action, rollout_scores]]
-
-        # --- record result
-        depth = best_rollout[4]
-        self.output["velocity"] = best_rollout[2][0]
-        self.output["action_idx"] = best_rollout[3][0]
-        self.output["score"] = best_rollout[1][0]
-        self.directive["state"] = "keep"
-        self.directive["onset"] = self.t
-        self.directive["depth"] = depth
-        self.directive["action_t"] = 1
-
-        self.rollout["trajectory"] = best_rollout[0][:depth+2]
-        self.rollout["score_sequence"] = best_rollout[1][:depth+2]
-        self.rollout["action_sequence"] = best_rollout[2][:depth+2]
-        self.rollout["index_sequence"] = best_rollout[3][:depth+2]
-        self.rollout["values_sequence"] = np.array(best_rollout[5])
-
-        # logger.debug(f"values:\n{np.around(self.rollout['values_sequence'].T, 3)}")
-
-    def render(self, ax=None, **kwargs):
-
-        return_fig = kwargs.get("return_fig", False)
-
-        fig_api = self.action_policy_int.render(
-                            return_fig=return_fig)
-        fig_tm = self.trg_module.render(return_fig=return_fig)
-
-        if self.pcnn_plotter is not None:
-            title = f"$t=${self.t} | #PCs={len(self.pcnn)}"
-            fig_pp = self.pcnn_plotter.render(ax=None,
-                trajectory=kwargs.get("trajectory", False),
-                rollout=[self.rollout["trajectory"],
-                         self.rollout["score_sequence"]],
-                new_a=1*self.circuits.circuits["DA"].output,
-                return_fig=return_fig,
-                render_elements=True,
-                alpha_nodes=kwargs.get("alpha_nodes", 0.8),
-                alpha_edges=kwargs.get("alpha_edges", 0.5),
-                customize=True,
-                title=title)
-
-        # visualize the score sequence of the current plan
-        if self.visualize:
-            length = len(self.rollout["score_sequence"])
-            self.ax.clear()
-            self.ax.plot(self.rollout["score_sequence"],
-                         '-', color="blue", alpha=0.7, lw=2)
-            for i, v in enumerate(self.rollout["values_sequence"].T):
-                self.ax.scatter(range(length), v, s=30,
-                                alpha=0.8, label=self._mod_names[i])
-
-            self.ax.axvline(x=self.directive["action_t"],
-                            color="red", linestyle="--")
-            self.ax.set_ylim(-3., 6.)
-            self.ax.set_xlabel("Time")
-            self.ax.legend(loc="lower right")
-            self.ax.grid()
-            self.ax.set_title(f"Behaviour Score Sequence")
-
-            self.fig.canvas.draw()
-
-            if self._number is not None:
-                self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+                self.fig2.savefig(f"{FIGPATH}/fig{self._number2}.png")
 
             if return_fig:
                 return fig_pp, fig_tm, fig_api, self.fig
@@ -1962,3 +1584,27 @@ class Perceptron:
         x = np.array(x).reshape(-1, 1)
 
         return (self.weights @ x).item(), (self.weights * x.flatten()).tolist()
+
+    def render(self, ax: plt.Axes,
+               labels: list):
+
+        ax.clear()
+        ax.bar(range(len(self.weights)), self.weights,
+               color="blue", alpha=0.7)
+        ax.set_title("Perceptron Weights")
+        ax.set_xticks(range(len(self.weights)))
+        ax.set_xticklabels(labels)
+        ax.grid()
+
+
+class DensityModulation:
+
+    def __init__(self, theta: float,
+                 weights: np.ndarray):
+
+        self.theta = theta
+        self.weights = weights
+
+    def __call__(self, x: np.ndarray) -> float:
+
+        return self.theta + (self.weights @ x).item()

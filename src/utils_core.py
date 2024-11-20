@@ -360,6 +360,9 @@ def load_model_settings(idx: int=None, verbose: bool=True) -> tuple:
     if len(file_list) == 0:
         return None, None, None
 
+    # order the files based on their name [numbe]
+    file_list = sorted(file_list, key=lambda x: int(x.split("_")[0]))
+
     log(f">>> files: {file_list}")
 
     if idx is None:

@@ -24,7 +24,7 @@ logger = setup_logger(name="EVO", level=0,
 
 sim_settings = {
     "bounds": np.array([0., 1., 0., 1.]),
-    "speed": 0.04,
+    "speed": 0.02,
     "init_position": np.array([0.8, 0.2]),
     "rw_fetching": "probabilistic",
     "rw_behaviour": "dynamic",
@@ -32,7 +32,7 @@ sim_settings = {
     "rw_radius": 0.1,
     "plot_interval": 8,
     "rendering": False,
-    "room": "square",
+    "room": "flat",
     "max_duration": 500,
     "seed": None
 }
@@ -69,7 +69,7 @@ def eval_func_II(agent: object):
 """ ENVIRONMENT """
 
 
-class Model(rc.Simulation):
+class ModelMLP(rc.Simulation):
 
     def __init__(self, threshold: float,
                  rep_threshold: float,
@@ -112,17 +112,53 @@ class Model(rc.Simulation):
                       agent_settings=agent_settings)
 
 
+class Model(rc.Simulation):
+
+    def __init__(self, threshold: float,
+                 bnd_threshold: float,
+                 bnd_tau: float,
+                 rep_threshold: float,
+                 w1: float, w2: float, w3: float,
+                 w4: float, w5: float,
+                 sim_settings: dict=sim_settings,
+                 agent_settings: dict=agent_settings):
+
+        self.model_params = {
+            "bnd_threshold": bnd_threshold,
+            "bnd_tau": bnd_tau,
+            "threshold": threshold,
+            "rep_threshold": rep_threshold,
+            "w1": w1,
+            "w2": w2,
+            "w3": w3,
+            "w4": w4,
+            "w5": w5,
+        }
+
+        super().__init__(sim_settings=sim_settings,
+                         agent_settings=agent_settings,
+                         model_params=self.model_params)
+
+    def reset(self):
+
+        self.reward_obj.reset()
+
+        self.__init__(**self.model_params,
+                      sim_settings=sim_settings,
+                      agent_settings=agent_settings)
+
+
 class Env:
 
     """
     `Nj_set` is not present in this variant
     """
 
-    def __init__(self, n_samples: int=1,
+    def __init__(self, num_samples: int=1,
                  eval_func: callable=eval_func_I):
 
         #
-        self._n_samples = n_samples
+        self._num_samples = num_samples
         self._eval_func = eval_func
 
         # variables
@@ -159,7 +195,7 @@ class Env:
         """
 
         fitness = 0.
-        for i in range(self._n_samples):
+        for i in range(self._num_samples):
 
             # test the agent on the dataset
             agent = self._train(agent=agent)
@@ -167,7 +203,7 @@ class Env:
             # evaluate the agent
             fitness += self._eval_func(agent=agent)
 
-        fitness /= self._n_samples
+        fitness /= self._num_samples
 
         return (fitness,)
 
@@ -179,12 +215,27 @@ class Env:
 # parameters that are not evolved
 # >>> no ftg weight
 FIXED_PARAMETERS = {
-    "w4": 0.
+    "w4": 0.,
+    'rep_threshold': 1.,
 }
 
 
 # Define the genome as a dict of parameters
 PARAMETERS = {
+    'bnd_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
+    'bnd_tau': lambda: random.randint(1, 15),
+    'threshold': lambda: round(random.uniform(0.01, 1.0), 2),
+    'rep_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
+    'w1': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w2': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w3': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w4': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w5': lambda: round(random.uniform(-2.0, 2.0), 2),
+}
+
+PARAMETERS_MLP = {
+    'bnd_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
+    'bnd_tau': lambda: random.randint(1, 15),
     'threshold': lambda: round(random.uniform(0.01, 1.0), 2),
     'rep_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
     'w1': lambda: round(random.uniform(-2.0, 2.0), 2),
@@ -222,6 +273,9 @@ if __name__ == "__main__" :
     me.USE_TQDM = False
     VISUALIZE = args.visualize
 
+    USE_MLP = False
+    num_samples = 2
+
     # Ignore runtime warnings
     import warnings
     warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -229,6 +283,8 @@ if __name__ == "__main__" :
     # ---| CMA-ES |---
 
     # parameters
+    if USE_MLP:
+        PARAMETERS = PARAMETERS_MLP
     N_param = len(PARAMETERS) - len(FIXED_PARAMETERS)  # number of parameters
     MEAN = np.random.rand(N_param)  # Initial mean, could be randomized
     SIGMA = 0.8  # Initial standard deviation
@@ -240,10 +296,9 @@ if __name__ == "__main__" :
                             lambda_=lambda_)
 
     # ---| Game |---
-    model = Model
+    model = ModelMLP if USE_MLP else Model
     # -> see above for the specification of the data settings
-    n_samples = 4
-    env = Env(n_samples=n_samples,
+    env = Env(num_samples=num_samples,
               eval_func=eval_func_I)
 
     # ---| Evolution |---

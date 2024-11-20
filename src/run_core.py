@@ -180,9 +180,9 @@ class Simulation:
 
         # --- CIRCUITS
         circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
-                                                threshold=0.1,
-                                                eta=0.5,
-                                                tau=1.,
+                                                threshold=model_params["bnd_threshold"],
+                                                eta=0.2,
+                                                tau=model_params["bnd_tau"],
                                                 visualize=rendering),
                          "DA": mod.Dopamine(N=N,
                                             threshold=0.15,
@@ -402,9 +402,9 @@ def main(sim_settings=sim_settings,
 
     # --- circuits
     circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
-                                            threshold=0.15,
-                                            eta=0.1,
-                                            tau=1.,
+                                            threshold=model_params["bnd_threshold"],
+                                            eta=0.2,
+                                            tau=model_params["bnd_tau"],
                                             visualize=True,
                                             number=6),
                      "DA": mod.Dopamine(N=N,
@@ -438,8 +438,7 @@ def main(sim_settings=sim_settings,
                                       trg_module=trg_module,
                                       circuits=circuits,
                                       weights=exp_weights,
-                                      action_delay=10,
-                                      max_depth=7,
+                                      max_depth=agent_settings["max_depth"],
                                       speed=SPEED,
                                       visualize=True,
                                       number=2,
@@ -719,6 +718,8 @@ def loop_main(sim_settings: dict,
 
         if sim_settings is None:
             load = False
+        else:
+            evo_info["performance"] = evo_info["performance"]["fitness"]
     else:
         model_params = {
             "threshold": 0.5,
