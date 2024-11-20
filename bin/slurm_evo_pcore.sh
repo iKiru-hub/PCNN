@@ -3,7 +3,7 @@
 #SBATCH -p milanq #ipuq #milanq #armq #milanq #fpgaq #milanq # partition (queue)
 #SBATCH -N 1 # number of nodes
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=64
+#SBATCH --cpus-per-task=128
 ##SBATCH --mem-per-cpu=1GB
 #SBATCH --time=0-18:00
 #SBATCH -o /home/daniekru/slurm.column.%j.%N.out # STDOUT

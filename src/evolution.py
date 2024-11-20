@@ -37,10 +37,10 @@ sim_settings = {
 }
 
 agent_settings = {
-    "N": 100,
+    "N": 150,
     "Nj": 13**2,
-    "sigma": 0.05,
-    "max_depth": 10,
+    "sigma": 0.04,
+    "max_depth": 20,
 }
 
 
@@ -207,9 +207,9 @@ if __name__ == "__main__" :
     # ---| Setup |---
 
     fitness_weights = (1.,)
-    NPOP = int(5*3)
     NGEN = 20
-    NUM_CORES = 5  # out of 8
+    NUM_CORES = 128  # out of 8
+    NPOP = NUM_CORES
     me.USE_TQDM = False
     VISUALIZE = True
 
@@ -233,7 +233,7 @@ if __name__ == "__main__" :
     # ---| Game |---
     model = Model
     # -> see above for the specification of the data settings
-    n_samples = 2
+    n_samples = 4
     env = Env(n_samples=n_samples,
               eval_func=eval_func_I)
 
