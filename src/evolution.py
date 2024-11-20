@@ -24,24 +24,24 @@ logger = setup_logger(name="EVO", level=0,
 
 sim_settings = {
     "bounds": np.array([0., 1., 0., 1.]),
-    "speed": 0.02,
+    "speed": 0.03,
     "init_position": np.array([0.8, 0.2]),
-    "rw_fetching": "probabilistic",
+    "rw_fetching": "deterministic",
     "rw_behaviour": "dynamic",
     "rw_position": np.array([0.5, 0.8]),
     "rw_radius": 0.1,
     "plot_interval": 8,
     "rendering": False,
-    "room": "flat",
+    "room": "square",
     "max_duration": 500,
     "seed": None
 }
 
 agent_settings = {
-    "N": 150,
+    "N": 100,
     "Nj": 13**2,
     "sigma": 0.04,
-    "max_depth": 20,
+    "max_depth": 10,
 }
 
 

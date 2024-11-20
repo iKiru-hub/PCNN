@@ -3,7 +3,7 @@
 #SBATCH -p milanq #ipuq #milanq #armq #milanq #fpgaq #milanq # partition (queue)
 #SBATCH -N 1 # number of nodes
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=5
+#SBATCH --cpus-per-task=6
 ##SBATCH --mem-per-cpu=1GB
 #SBATCH --time=0-18:00
 #SBATCH -o /home/daniekru/slurm.column.%j.%N.out # STDOUT
@@ -26,7 +26,7 @@ echo "[git 'main']"
 
 # --- RUN
 
-srun python3 evolution.py --cores 5 --npop 15 --ngen 20
+srun python3 evolution.py --cores 6 --npop 18 --ngen 200
 
 echo "[finished]"
 
