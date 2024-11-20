@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from numba import jit
 import logging, coloredlogs
+from numba import jit
 
 import os
 
@@ -287,20 +287,6 @@ def cosine_similarity_vec(x: np.ndarray,
     return z.item()
 
 
-def calc_position_from_centers(a: np.ndarray,
-                               centers: np.ndarray) -> np.ndarray:
-
-    """
-    calculate the position of the agent from the
-    activations of the neurons in the layer
-    """
-
-    if a.sum() == 0:
-        return np.array([np.nan, np.nan])
-
-    return (centers * a.reshape(-1, 1)).sum(axis=0) / a.sum()
-
-
 @jit(nopython=True)
 def generalized_sigmoid(x: np.ndarray,
                         alpha: float,
@@ -337,6 +323,21 @@ def generalized_sigmoid(x: np.ndarray,
     x = gamma / (1.0 + np.exp(-beta * (x - alpha)))
 
     return np.where(x < clip_min, 0., x)
+
+
+def calc_position_from_centers(a: np.ndarray,
+                               centers: np.ndarray) -> np.ndarray:
+
+    """
+    calculate the position of the agent from the
+    activations of the neurons in the layer
+    """
+
+    if a.sum() == 0:
+        return np.array([np.nan, np.nan])
+
+    return (centers * a.reshape(-1, 1)).sum(axis=0) / a.sum()
+
 
 
 """ from evolution """

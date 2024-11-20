@@ -7,7 +7,12 @@ import mod_core as mod
 import utils_core as utc
 import envs_core as ev
 
-import pclib
+try:
+    import pclib
+except ImportError:
+    import warnings
+    warnings.warn("pclib [c++] not found, using python version")
+    import libs.pclib1 as pclib
 
 
 """ INITIALIZATION  """

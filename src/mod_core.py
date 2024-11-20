@@ -3,8 +3,13 @@ import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 
 import utils_core as utc
-import pclib
 
+try:
+    import pclib
+except ImportError:
+    import warnings
+    warnings.warn("pclib [c++] not found, using python version")
+    import libs.pclib1 as pclib
 
 
 """ INITIALIZATION """
@@ -16,11 +21,6 @@ FIGSIZE = (4, 4)
 
 def set_seed(seed: int=0):
     np.random.seed(seed)
-
-logger = utc.setup_logger(name="MOD",
-                          level=-1,
-                          is_debugging=True,
-                          is_warning=False)
 
 def edit_logger(level: int=-1,
                 is_debugging: bool=True,
@@ -1834,10 +1834,6 @@ class Brain:
         else:
             for (key, out) in c_out.items():
                 self.state[key] = out
-<<<<<<< HEAD
-
-=======
->>>>>>> 1c5462803946c79593c17a4f06cbf010fb1dad5e
 
         # --- update experience module
         exp_output = self.exp_module(observation=self.state)
