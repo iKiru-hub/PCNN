@@ -78,12 +78,28 @@ agent_settings = {
 model_params = {
     "threshold": 0.5,
     "rep_threshold": 0.5,
-    "w1": -1.,  # bnd
-    "w2": 0.2,  # dpos
-    "w3": -0.5,  # pop
-    "w4": 1.,  # trg
-    "w5": 0.4,  # smooth
+    "w1": -1., 
+    "w2": 0.2,
+    "w3": -0.5,
+    "w4": 1.,
+    "w5": 0.4,
+    "w6": 0.3,
+    "w7": 0.2,
+    "w8": 0.1,
+    "w9": 0.1,
+    "w10": 0.1,
+    "w11": 0.1,
+    "w12": 0.1,
 }
+# model_params = {
+#     "threshold": 0.5,
+#     "rep_threshold": 0.5,
+#     "w1": -1.,  # bnd
+#     "w2": 0.2,  # dpos
+#     "w3": -0.5,  # pop
+#     "w4": 1.,  # trg
+#     "w5": 0.4,  # smooth
+# }
 
 
 class Simulation:
@@ -117,8 +133,21 @@ class Simulation:
         # --- MODEL SETTINGS
         N = agent_settings["N"]
         Nj = agent_settings["Nj"]
-        exp_weights = np.array([w for (k, w) in model_params.items()
-                                if "w" in k.lower()])
+
+        if len([k for k in model_params.keys() if "w" in k.lower()]) == 5:
+            exp_weights = np.array([w for (k, w) in model_params.items()
+                                    if "w" in k.lower()])
+        elif len([k for k in model_params.keys() if "w" in k.lower()]) == 12:
+            exp_weights = {
+                "hidden": np.array([
+                    w for i, (k, w) in enumerate(model_params.items()) if i < 12 and "w" in k.lower()
+                ]).reshape(5, 2),
+                "output": np.array([
+                    w for i, (k, w) in enumerate(model_params.items()) if i >= 12 and "w" in k.lower()
+                ]).reshape(2)
+            }
+        else:
+            raise ValueError("model_params not recognized")
 
         logger(f"{N=}")
         logger(f"{Nj=}")
@@ -322,8 +351,20 @@ def main(sim_settings=sim_settings,
     ROOM = sim_settings["room"]
     BOUNDS = sim_settings["bounds"]
 
-    exp_weights = np.array([w for (k, w) in model_params.items()
-                            if "w" in k.lower()])
+    if len([k for k in model_params.keys() if "w" in k.lower()]) == 5:
+        exp_weights = np.array([w for (k, w) in model_params.items()
+                                if "w" in k.lower()])
+    elif len([k for k in model_params.keys() if "w" in k.lower()]) == 12:
+        exp_weights = {
+            "hidden": np.array([
+                w for i, (k, w) in enumerate(model_params.items()) if i < 12 and "w" in k.lower()
+            ]).reshape(5, 2),
+            "output": np.array([
+                w for i, (k, w) in enumerate(model_params.items()) if i >= 12 and "w" in k.lower()
+            ]).reshape(2)
+        }
+    else:
+        raise ValueError("model_params not recognized")
 
     other_info = {}
     logger(f"room: {ROOM}")
@@ -664,10 +705,12 @@ def loaded_run(idx: int=None,
 def loop_main(sim_settings: dict,
               agent_settings: dict,
               load: bool=False,
-              renew: bool=False):
+              renew: bool=False,
+              idx: int=-1):
 
     if load:
-        sim_settings, agent_settings, model_params = utc.load_model_settings(idx=0,
+        logger(f"loading idx {idx}")
+        sim_settings, agent_settings, model_params = utc.load_model_settings(idx=idx,
                                                                        verbose=True)
 
         if sim_settings is None:
@@ -676,12 +719,22 @@ def loop_main(sim_settings: dict,
         model_params = {
             "threshold": 0.5,
             "rep_threshold": 0.5,
-            "w1": -1.,  # bnd
-            "w2": 0.2,  # dpos
-            "w3": -0.5,  # pop
-            "w4": 1.0,  # trg
-            "w5": 0.3,  # smooth
+            "w1": -1.,
+            "w2": 0.2,
+            "w3": -0.5,
+            "w4": 1.,
+            "w5": 0.4,
+            "w6": 0.3,
+            "w7": 0.2,
+            "w8": 0.1,
+            "w9": 0.1,
+            "w10": 0.1,
+            "w11": 0.1,
+            "w12": 0.1,
         }
+
+    logger.debug(f"{model_params=}")
+
 
     count = 0
     while True:
@@ -698,7 +751,6 @@ def loop_main(sim_settings: dict,
             sim_settings["speed"] = 0.04
 
             agent_settings["max_depth"] = 20
-            agent_settings["exp_weights"] = np.array([-1., 0.2, -1., 0.2, 0.4]),
 
         main(sim_settings=sim_settings,
              agent_settings=agent_settings,
@@ -718,6 +770,7 @@ if __name__ == "__main__":
                         help="random seed: -1 for random seed.")
     parser.add_argument("--plot", action="store_true")
     parser.add_argument("--load", action="store_true")
+    parser.add_argument("--idx", type=int, default=-1)
 
     args = parser.parse_args()
 
@@ -744,7 +797,8 @@ if __name__ == "__main__":
         agent_settings["N"] = args.N
         loop_main(sim_settings=sim_settings,
                   agent_settings=agent_settings,
-                  load=args.load)
+                  load=args.load,
+                  idx=args.idx)
 
     elif args.main == "analysis":
         run_analysis(N=args.N,
@@ -760,7 +814,7 @@ if __name__ == "__main__":
                    render=True)
 
     elif args.main == "loaded":
-        loaded_run(idx=args.N,
+        loaded_run(idx=args.idx,
                    render=True,
                    load=args.load)
 

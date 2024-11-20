@@ -74,6 +74,10 @@ class Model(rc.Simulation):
                  rep_threshold: float,
                  w1: float, w2: float, w3: float,
                  w4: float, w5: float,
+                 w6: float, w7: float,
+                 w8: float, w9: float,
+                 w10: float, w11: float,
+                 w12: float,
                  sim_settings: dict=sim_settings,
                  agent_settings: dict=agent_settings):
 
@@ -85,6 +89,13 @@ class Model(rc.Simulation):
             "w3": w3,
             "w4": w4,
             "w5": w5,
+            "w6": w6,
+            "w7": w7,
+            "w8": w8,
+            "w9": w9,
+            "w10": w10,
+            "w11": w11,
+            "w12": w12
         }
 
         super().__init__(sim_settings=sim_settings,
@@ -175,11 +186,18 @@ FIXED_PARAMETERS = {
 PARAMETERS = {
     'threshold': lambda: round(random.uniform(0.01, 1.0), 2),
     'rep_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
-    'w1': lambda: round(random.uniform(-3.0, 3.0), 1),
-    'w2': lambda: round(random.uniform(-3.0, 3.0), 1),
-    'w3': lambda: round(random.uniform(-3.0, 3.0), 1),
-    'w4': lambda: round(random.uniform(-3.0, 3.0), 1),
-    'w5': lambda: round(random.uniform(-3.0, 3.0), 1),
+    'w1': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w2': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w3': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w4': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w5': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w6': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w7': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w8': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w9': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w10': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w11': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w12': lambda: round(random.uniform(-2.0, 2.0), 2),
 }
 
 
@@ -189,9 +207,9 @@ if __name__ == "__main__" :
     # ---| Setup |---
 
     fitness_weights = (1.,)
-    NPOP = int(6*6)
-    NGEN = 200
-    NUM_CORES = 6  # out of 8
+    NPOP = int(5*3)
+    NGEN = 20
+    NUM_CORES = 5  # out of 8
     me.USE_TQDM = False
     VISUALIZE = True
 

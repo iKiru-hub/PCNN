@@ -364,6 +364,7 @@ def load_model_settings(idx: int=None, verbose: bool=True) -> tuple:
 
     if idx is None:
         idx = len(file_list) - 1
+    log(f">>> idx: {idx}")
     filename = file_list[idx]
 
     log(f">>> loading file: {filename}")
