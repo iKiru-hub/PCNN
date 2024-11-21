@@ -862,7 +862,7 @@ class ExperienceModule(ModuleClass):
                  circuits: Circuits,
                  trg_module: object,
                  pcnn_plotter: object=None,
-                 action_delay: float=2.,
+                 action_delay: float=1.,
                  weights: dict=None,
                  speed: int=0.005,
                  max_depth: int=10,
@@ -1971,6 +1971,7 @@ class Brain:
 
 
 """ policies """
+
 
 class ActionSampling2DWrapper(pclib.ActionSampling2D):
 
