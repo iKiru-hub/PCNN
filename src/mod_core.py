@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
+import time
 
 import utils_core as utc
 
@@ -884,6 +885,485 @@ class ExperienceModule(ModuleClass):
                 "depth": action_delay}
 
         # --- action generation configuration
+        self.speed = speed
+        self.max_depth = max_depth
+        self.action_delay = action_delay # ---
+        self.action_policy_main = ActionSampling2DWrapper(speed=speed * action_delay,
+                                                 visualize=visualize_action,
+                                                 number=None,
+                                                 name="SamplingMain")
+        self.action_policy_int = ActionSampling2DWrapper(speed=speed * action_delay,
+                                                visualize=False,
+                                                number=None,
+                                                name="SamplingInt")
+        self.action_space_len = len(self.action_policy_int)
+
+        if isinstance(weights, dict):
+            self.eval_network = pclib.TwoLayerNetwork(
+                    weights["hidden"].tolist(),
+                    weights["output"].tolist())
+            self.using_mlp = True
+        else:
+            self.eval_network = Perceptron(weights=weights)
+            self.using_mlp = False
+
+        # internal directives
+        self.directive = {
+            "state": "new",
+            "onset": 0,
+            "trg_position": None,
+            "action_t": 0,
+            "depth": 0,
+        }
+        self.t = 0
+
+        # --- visualization
+        self.visualize = visualize
+        self._number = number
+        self._number2 = number2
+        if visualize:
+            self.fig, self.ax1 = plt.subplots(figsize=FIGSIZE)
+            self.fig2, self.ax2 = plt.subplots(figsize=FIGSIZE)
+            logger(f"%visualizing {self.__class__}")
+
+        self.record = []
+        self.rollout = {
+            "trajectory": [],
+            "action_sequence": [],
+            "score_sequence": [],
+            "index_sequence": [],
+            "hidden_sequence": [],
+            "values_sequence": []}
+        self._mod_names = ("Bnd", "dPos", "Pop", "Trg", "Act", "nxP")
+
+    def _logic(self, observation: dict):
+
+        """
+        the level of acetylcholine is determined
+        affects the next weight update
+        """
+
+        # --- get representations
+        # spatial_repr = self.pcnn(x=observation["position"])
+        # observation["u"] = spatial_repr.copy()
+
+        # the target is factored in
+        self.trg_module(observation=observation)
+
+        # --- generate an action
+        # self._generate_action(observation=observation)
+        self._generate_action_from_rollout(observation=observation)
+
+        # --- output & logs
+        self.record += [observation["position"].tolist()]
+        self.t += 1
+
+    def _generate_action(self, observation: dict,
+                         returning: bool=False,
+                         position_list: []=None) -> np.ndarray:
+
+        """
+        generate a new action given an observation
+        """
+
+        self.action_policy_int.reset()
+        done = False # when all actions have been tried
+
+        while True:
+
+            # --- generate a random action
+            action, done, action_idx = self.action_policy_int()
+
+            # --- simulate its effects
+            # new position if the action is taken
+            new_position = observation["position"] + action
+
+            evaluation = self._evaluate_action(position=new_position,
+                                          action=action,
+                                          action_idx=action_idx)
+            score, hidden, values = evaluation
+
+            # score = 1 / (1 + np.exp(-score))
+
+            # check that the new position is actually new
+            if position_list is not None:
+                if new_position.tolist() in position_list:
+                    score = -1.
+                    # values += [-1.]
+
+            # it is the best available action
+            if done:
+                break
+
+            # try again
+            self.action_policy_int.update(score=score)
+
+        # ---
+        if returning:
+            return action, action_idx, score, hidden, values
+
+        self.output["velocity"] = action
+        self.output["action_idx"] = action_idx
+        self.output["score"] = score
+
+    def _evaluate_action(self, position: np.ndarray,
+                         action: np.ndarray,
+                         action_idx: int) -> float:
+
+        # new observation/effects
+        u = self.pcnn.fwd_ext(x=position)
+
+        new_observation = {
+            "u": u,
+            "position": position,
+            "velocity": action,
+            "collision": False,
+            "reward": 0.,
+            "delta_update": 0.}
+
+        modulation = self.circuits(
+                        observation=new_observation,
+                        simulate=True)
+        trg_modulation = self.trg_module.evaluate_direction(
+                        velocity=action)
+
+        # --- evaluate the effects
+        # relevant modulators
+        values = [modulation["Bnd"].item(),
+                  modulation["dPos"].item(),
+                  modulation["Pop"].item() * int(trg_modulation <= 0.),
+                  trg_modulation,
+                  self._action_smoother(action=action)]
+
+        score, hidden = self.eval_network(values)
+
+        if action_idx == 4:
+            score = -100.
+
+        return score, hidden, values
+
+    def _action_rollout(self, observation: dict,
+                        action: np.ndarray,
+                        action_idx: int) -> tuple:
+
+        #
+        action_seq = [action]
+        index_seq = [action_idx]
+
+        # first step + evaluate
+        observation["position"] = observation["position"] + action
+        trajectory = [observation["position"]]
+        position_list = [observation["position"].tolist()]
+        evaluation = self._evaluate_action(position=observation["position"],
+                                              action=action,
+                                              action_idx=action_idx)
+        rollout_scores = [round(evaluation[0], 4)]
+        rollout_hidden = [evaluation[1]]
+        rollout_values = [evaluation[2]]
+        # rollout_scores[0] = round(rollout_scores[0], 4)
+
+        # action smoothing
+        self._action_smoother.reset()
+        self._action_smoother(action=action)
+
+        # --- simulate its effects over the next steps
+        for t in range(self.max_depth):
+
+            # get the current action
+            results = self._generate_action(
+                                observation=observation,
+                                returning=True,
+                                position_list=position_list)
+            action, action_idx, score, hidden, values = results
+
+            # step
+            observation["position"] = observation["position"] + action
+            position_list += [observation["position"].tolist()]
+            self._action_smoother.update(action=action)
+
+            # save the score
+            rollout_scores += [round(score, 4)]
+            trajectory += [observation["position"]]
+            action_seq += [action]
+            index_seq += [action_idx]
+            rollout_hidden += [hidden]
+            rollout_values += [values]
+
+        return rollout_scores, trajectory, action_seq, index_seq, rollout_hidden, rollout_values
+
+    def _generate_action_from_rollout(self,
+                        observation: dict) -> np.ndarray:
+
+        """
+        generate a new action given an observation
+        through a rollout over many steps
+        """
+
+        # --- `keep` current directive
+        if self.directive["state"] == "keep" and \
+            not observation["collision"]:
+
+            # check whether it's time to step to the next action
+            action, completed, valid = self._check_plan_step(observation=observation)
+
+            # exit 1: invalid action
+            if valid:
+
+                # the step is completed
+                if completed:
+
+                    # exit 2: the plan is completed
+                    if self.directive["action_t"] >= self.directive["depth"]:
+                        self.directive["state"] = "new"
+
+                    # go to the next step
+                    else:
+                        self.directive["trg_position"] = self.rollout["trajectory"][self.directive["action_t"]]
+                        action, _ = self._make_action(
+                            position=observation["position"],
+                            target=self.directive["trg_position"])
+                        self.output["velocity"] = action
+                        self.directive["action_t"] += 1
+                        return
+
+                # the step is not completed
+                else:
+                    self.output["velocity"] = action
+                    return
+
+        # --- `new` directive
+        self.action_policy_main.reset()
+        done = False
+
+        best_score = -np.inf
+        best_min = -np.inf
+        depth = 0
+        best_rollout = []
+        all_scores = []
+        while True:
+
+            # --- generate random main action
+            action, done, action_idx = self.action_policy_main()
+
+            # --- evaluate action
+            results = self._action_rollout(observation=observation.copy(),
+                                           action=action,
+                                           action_idx=action_idx)
+            self.action_policy_main.update()
+
+            rollout_scores = results[0]
+            trajectory = results[1]
+            action_seq = results[2]
+            index_seq = results[3]
+            rollout_hidden = results[4]
+            rollout_values = results[5]
+
+            # evaluate the best action
+            if np.sum(rollout_scores[1:]) > best_score and \
+                np.min(rollout_scores) > best_min:
+
+                best_score = np.sum(rollout_scores[1:])
+                best_min = np.min(rollout_scores[1:])
+                best_rollout = [np.stack(trajectory),
+                                rollout_scores,
+                                action_seq, index_seq,
+                                len(rollout_scores[1:]),
+                                rollout_hidden,
+                                rollout_values]
+
+            if done:
+                break
+            all_scores += [[action, rollout_scores]]
+
+        # --- record result
+        depth = best_rollout[4]
+
+        self.rollout["trajectory"] = best_rollout[0][:depth+2]
+        self.rollout["score_sequence"] = best_rollout[1][:depth+2]
+        self.rollout["action_sequence"] = best_rollout[2][:depth+2]
+        self.rollout["index_sequence"] = best_rollout[3][:depth+2]
+        self.rollout["hidden_sequence"] = np.array(best_rollout[5])
+        self.rollout["values_sequence"] = np.array(best_rollout[6])
+
+        self.directive["state"] = "keep"
+        self.directive["onset"] = self.t
+        self.directive["depth"] = depth
+        self.directive["action_t"] = 1
+        self.directive["trg_position"] = self.rollout["trajectory"][0]
+
+        action, _ = self._make_action(
+            position=observation["position"],
+            target=self.directive["trg_position"])
+
+        self.output["velocity"] = action
+        self.output["action_idx"] = self.rollout["index_sequence"][0]
+        self.output["score"] = self.rollout["score_sequence"][0]
+
+
+    def _check_plan_step(self, observation: dict):
+
+        """
+        check if the current plan is still valid
+
+        Returns: (action, complete, validity)
+        """
+
+        # modulation error
+        bnd_err = abs(observation["Bnd"] - \
+                      self.rollout["values_sequence"][self.directive["action_t"]][0])
+        dpos_err = abs(observation["dPos"] - \
+                      self.rollout["values_sequence"][self.directive["action_t"]][1])
+        pop_err = abs(observation["Pop"] - \
+                      self.rollout["values_sequence"][self.directive["action_t"]][2])
+
+        # exit 1: boundary hit
+        if bnd_err > 0.01:
+            return None, None, False
+
+        # distance from next checkpoint
+        action, distance = self._make_action(
+            position=observation["position"],
+            target=self.rollout["trajectory"][self.directive["action_t"]]
+        )
+
+        # exit 2: checkpoint reached
+        if distance < 0.001:
+            return None, True, True
+
+        # exit 3: calculate an action
+        return action, False, True
+
+    def _make_action(self, position: np.ndarray,
+                     target: np.ndarray) -> np.ndarray:
+
+        distance_vector = target - position
+        distance = np.linalg.norm(distance_vector)
+
+        if distance < self.speed:
+            return distance_vector, distance
+
+        return distance_vector / distance * self.speed, distance
+
+    def render(self, ax=None, **kwargs):
+
+        return_fig = kwargs.get("return_fig", False)
+
+        fig_api = self.action_policy_main.render(
+                            return_fig=return_fig)
+        fig_tm = self.trg_module.render(return_fig=return_fig)
+
+        if self.pcnn_plotter is not None:
+            title = f"$t=${self.t} | #PCs={len(self.pcnn)}"
+            fig_pp = self.pcnn_plotter.render(ax=None,
+                trajectory=kwargs.get("trajectory", False),
+                rollout=[self.rollout["trajectory"],
+                         self.rollout["score_sequence"]],
+                new_a=1*self.circuits.circuits["DA"].output,
+                return_fig=return_fig,
+                render_elements=True,
+                alpha_nodes=kwargs.get("alpha_nodes", 0.8),
+                alpha_edges=kwargs.get("alpha_edges", 0.5),
+                customize=True,
+                title=title)
+
+        # visualize the score sequence of the current plan
+        if self.visualize:
+
+            # rollout trajectory
+            length = len(self.rollout["score_sequence"])
+            self.ax1.clear()
+            self.ax1.plot(self.rollout["score_sequence"],
+                         '-', color="blue", alpha=0.7, lw=2)
+
+            if not self.using_mlp:
+                for i, v in enumerate(self.rollout["hidden_sequence"].T):
+                    self.ax1.scatter(range(length), v, s=30,
+                                    alpha=0.8, label=self._mod_names[i])
+                self.ax1.legend(loc="lower right")
+
+            self.ax1.axvline(x=self.directive["action_t"],
+                            color="red", linestyle="--")
+            self.ax1.set_ylim(-3., 6.)
+            self.ax1.set_xlabel("Time")
+            self.ax1.grid()
+            self.ax1.set_title(f"Behaviour Score Sequence")
+
+            self.fig.canvas.draw()
+
+            # display the values' hidden space
+            if self.using_mlp:
+                self.ax2.clear()
+                self.ax2.plot(*self.rollout["hidden_sequence"].T,
+                              '-o', color="blue", alpha=0.7, lw=2)
+                self.ax2.set_ylim(-1.5, 3.5)
+                self.ax2.set_xlim(-1.5, 3.5)
+                # self.ax2.set_yticks([-2., 0., 2.])
+                # self.ax2.set_xticks([-2., 0., 2.])
+                # self.ax2.set_xticklabels(["-2", "0", "2"])
+                # self.ax2.set_yticklabels(["-2", "0", "2"])
+                self.ax2.set_aspect("equal")
+                self.ax2.grid()
+                self.ax2.set_title(f"Values hidden space")
+                self.fig2.canvas.draw()
+            # plot weights
+            else:
+                self.eval_network.render(ax=self.ax2,
+                                         labels=self._mod_names[:-1])
+
+            if self._number is not None:
+                self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
+                self.fig2.savefig(f"{FIGPATH}/fig{self._number2}.png")
+
+            if return_fig:
+                return fig_pp, fig_tm, fig_api, self.fig
+
+        if return_fig:
+            return fig_pp, fig_tm, fig_api
+
+    def reset(self, complete: bool=False):
+        super().reset(complete=complete)
+        if complete:
+            self.record = []
+
+
+class ExperienceModule1(ModuleClass):
+
+    """
+    Input:
+        x: 2D position [array]
+        mode: mode [str] ("current" or "proximal")
+    Output:
+        representation: output [array]
+        current position: [array]
+    """
+
+    def __init__(self, pcnn: object,
+                 circuits: Circuits,
+                 trg_module: object,
+                 pcnn_plotter: object=None,
+                 action_delay: float=2.,
+                 weights: dict=None,
+                 speed: int=0.005,
+                 max_depth: int=10,
+                 visualize: bool=False,
+                 visualize_action: bool=False,
+                 number: int=None,
+                 number2: int=None,
+                 **kwargs):
+
+        super().__init__()
+        self.pcnn = pcnn
+        self.circuits = circuits
+        self.pcnn_plotter = pcnn_plotter
+        self.trg_module = trg_module
+        self._action_smoother = ActionSmoothness()
+        self.output = {
+                "velocity": np.zeros(2),
+                "action_idx": None,
+                "score": None,
+                "depth": action_delay}
+
+        # --- action generation configuration
         self.action_policy_main = ActionSampling2DWrapper(speed=speed,
                                                  visualize=visualize_action,
                                                  number=None,
@@ -1129,8 +1609,8 @@ class ExperienceModule(ModuleClass):
 
             # --- evaluate action
             results = self._action_rollout(observation=observation.copy(),
-                                                  action=action,
-                                                  action_idx=action_idx)
+                                           action=action,
+                                           action_idx=action_idx)
             self.action_policy_main.update()
 
             rollout_scores = results[0]
@@ -1170,8 +1650,6 @@ class ExperienceModule(ModuleClass):
         self.rollout["action_sequence"] = best_rollout[2][:depth+2]
         self.rollout["index_sequence"] = best_rollout[3][:depth+2]
         self.rollout["values_sequence"] = np.array(best_rollout[5])
-
-        # logger.debug(f"values:\n{np.around(self.rollout['values_sequence'].T, 3)}")
 
     def render(self, ax=None, **kwargs):
 
@@ -1559,7 +2037,6 @@ class ActionSampling2DWrapper(pclib.ActionSampling2D):
         self.ax.set_title(f"Action Space")
         self.ax.set_yticks(range(3))
         self.ax.set_xticks(range(3))
-        logger.debug(f"{self.__class__} rendering...{FIGPATH}/fig{self._number}.png")
 
         if self._number is not None:
             self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")

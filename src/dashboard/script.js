@@ -5,7 +5,7 @@ let imageCount = 7;
 let autoUpdate = false;
 let updateInterval = null;
 const MAX_RETRIES = 5; // Maximum number of retries for loading each image
-const REFRESH_INTERVAL = 700; // Interval for auto-refresh in milliseconds
+const REFRESH_INTERVAL = 400; // Interval for auto-refresh in milliseconds
 let loadedImages = []; // Array to hold successfully loaded images
 
 

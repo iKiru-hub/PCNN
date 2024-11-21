@@ -251,6 +251,33 @@ class PlotPCNN:
             return fig
 
 
+
+def make_surface(points: np.ndarray):
+
+    """
+    make a surface from a set of points
+    """
+
+    from scipy.spatial import ConvexHull
+
+    hull = ConvexHull(points)
+
+    # --- PLOT
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # plot points
+    ax.scatter(points[:, 0], points[:, 1], points[:, 2], c='b', marker='o')
+
+    # plot convex hull
+    for simplex in hull.simplices:
+        ax.plot(points[simplex, 0], points[simplex, 1],
+                points[simplex, 2], 'r-')
+
+    plt.show()
+
+
+
 """ FUNCTIONS """
 
 
