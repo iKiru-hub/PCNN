@@ -339,8 +339,8 @@ def calc_position_from_centers(a: np.ndarray,
     return (centers * a.reshape(-1, 1)).sum(axis=0) / a.sum()
 
 
-
 """ from evolution """
+
 
 def load_model_settings(idx: int=None, verbose: bool=True) -> tuple:
 
@@ -379,18 +379,18 @@ def load_model_settings(idx: int=None, verbose: bool=True) -> tuple:
     info = data["info"]
     model_params = data["genome"]
 
-    log(f"date: {info['date']}")
-    log(f"evolution: {info['evolution']}")
-    log(f"evolved: {info['evolved']}")
-    log(f"other: '{info['other']}'")
-    log(f"performance: {info['performance']}")
+    log(f"#date: {info['date']}")
+    log(f"#evolution: {info['evolution']}")
+    log(f"#evolved: {info['evolved']}")
+    log(f"#other: '{info['other']}'")
+    log(f"#performance: {info['performance']}")
 
     sim_settings = info["data"]["sim_settings"]
     agent_settings = info["data"]["agent_settings"]
 
-    log(f"sim_settings: {sim_settings}")
-    log(f"agent_settings: {agent_settings}")
-    log(f"model_params: {model_params}")
+    log(f"#sim_settings: {sim_settings}")
+    log(f"#agent_settings: {agent_settings}")
+    log(f"#model_params: {model_params}")
 
     # make some lists into numpy arrays
     sim_settings["bounds"] = np.array(sim_settings["bounds"])

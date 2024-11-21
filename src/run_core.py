@@ -145,10 +145,12 @@ class Simulation:
         elif len([k for k in model_params.keys() if "w" in k.lower()]) == 12:
             exp_weights = {
                 "hidden": np.array([
-                    w for i, (k, w) in enumerate(model_params.items()) if i < 12 and "w" in k.lower()
+                    w for i, (k, w) in enumerate(model_params.items()) \
+                        if i < 14 and "w" in k.lower()
                 ]).reshape(5, 2),
                 "output": np.array([
-                    w for i, (k, w) in enumerate(model_params.items()) if i >= 12 and "w" in k.lower()
+                    w for i, (k, w) in enumerate(model_params.items()) \
+                        if i >= 14 and "w" in k.lower()
                 ]).reshape(2)
             }
         else:
@@ -242,6 +244,7 @@ class Simulation:
         self.agent.record["trajectory"] += [
                     self.env.position.tolist()]
         self.t = -1
+        self.collision_count = 0
 
         # --- visutalization
         if rendering:
@@ -265,6 +268,7 @@ class Simulation:
         self.observation["position"] = position
         self.observation["collision"] = collision
         self.observation["reward"] = reward
+        self.collision_count += collision
 
         # --- agent
         self.velocity = self.agent(
@@ -302,6 +306,9 @@ class Simulation:
 
     def get_reward_count(self):
         return self.reward_obj.get_count()
+
+    def get_collision_count(self):
+        return self.collision_count
 
     def get_pcnn2D(self):
         return self.agent.exp_module.pcnn
@@ -362,10 +369,12 @@ def main(sim_settings=sim_settings,
     elif len([k for k in model_params.keys() if "w" in k.lower()]) == 12:
         exp_weights = {
             "hidden": np.array([
-                w for i, (k, w) in enumerate(model_params.items()) if i < 12 and "w" in k.lower()
+                w for i, (k, w) in enumerate(model_params.items()) if \
+                    i < 14 and "w" in k.lower()
             ]).reshape(5, 2),
             "output": np.array([
-                w for i, (k, w) in enumerate(model_params.items()) if i >= 12 and "w" in k.lower()
+                w for i, (k, w) in enumerate(model_params.items()) if \
+                    i >= 14 and "w" in k.lower()
             ]).reshape(2)
         }
     else:

@@ -19,7 +19,7 @@ rc.edit_logger(level=-1, is_debugging=False, is_warning=False)
 edit_logger_utc(level=-1, is_debugging=False, is_warning=False)
 edit_logger_mod(level=-1, is_debugging=False, is_warning=False)
 
-logger = setup_logger(name="EVO", level=0,
+logger = setup_logger(name="EVO", level=2,
                       is_debugging=True, is_warning=True)
 
 sim_settings = {
@@ -29,7 +29,7 @@ sim_settings = {
     "rw_fetching": "deterministic",
     "rw_behaviour": "dynamic",
     "rw_position": np.array([0.5, 0.8]),
-    "rw_radius": 0.1,
+    "rw_radius": 0.025,
     "plot_interval": 8,
     "rendering": False,
     "room": "square",
@@ -63,7 +63,7 @@ def eval_func_II(agent: object):
     reward count
     """
 
-    return agent.model.get_reward_count()
+    return agent.model.get_reward_count(), -agent.model.get_collision_count()
 
 
 """ ENVIRONMENT """
@@ -73,6 +73,8 @@ class ModelMLP(rc.Simulation):
 
     def __init__(self, threshold: float,
                  rep_threshold: float,
+                 bnd_threshold: float,
+                 bnd_tau: float,
                  w1: float, w2: float, w3: float,
                  w4: float, w5: float,
                  w6: float, w7: float,
@@ -85,6 +87,8 @@ class ModelMLP(rc.Simulation):
         self.model_params = {
             "threshold": threshold,
             "rep_threshold": rep_threshold,
+            "bnd_threshold": bnd_threshold,
+            "bnd_tau": bnd_tau,
             "w1": w1,
             "w2": w2,
             "w3": w3,
@@ -155,10 +159,12 @@ class Env:
     """
 
     def __init__(self, num_samples: int=1,
+                 fitness_size: int=1,
                  eval_func: callable=eval_func_I):
 
         #
         self._num_samples = num_samples
+        self._fitness_size = fitness_size
         self._eval_func = eval_func
 
         # variables
@@ -194,18 +200,22 @@ class Env:
             The fitness value.
         """
 
-        fitness = 0.
+        fitness = [0.] * self._fitness_size
         for i in range(self._num_samples):
 
             # test the agent on the dataset
             agent = self._train(agent=agent)
 
             # evaluate the agent
-            fitness += self._eval_func(agent=agent)
+            results = self._eval_func(agent=agent)
+            for j in range(self._fitness_size):
+                fitness[j] += results[j]
 
-        fitness /= self._num_samples
+        # average the fitness
+        for j in range(self._fitness_size):
+            fitness[j] /= self._num_samples
 
-        return (fitness,)
+        return tuple(fitness)
 
 
 
@@ -215,8 +225,9 @@ class Env:
 # parameters that are not evolved
 # >>> no ftg weight
 FIXED_PARAMETERS = {
-    "w4": 0.,
+    'w4': 0.,
     'rep_threshold': 1.,
+    'bnd_threshold': 0.2,
 }
 
 
@@ -266,15 +277,16 @@ if __name__ == "__main__" :
 
     # ---| Setup |---
 
-    fitness_weights = (1.,)
+    fitness_weights = (1., 1.)
+    num_samples = 2
+    USE_MLP = False
+    eval_func = eval_func_II
+
     NGEN = args.ngen
     NUM_CORES = args.cores  # out of 8
     NPOP = args.npop
     me.USE_TQDM = False
     VISUALIZE = args.visualize
-
-    USE_MLP = False
-    num_samples = 2
 
     # Ignore runtime warnings
     import warnings
@@ -299,7 +311,11 @@ if __name__ == "__main__" :
     model = ModelMLP if USE_MLP else Model
     # -> see above for the specification of the data settings
     env = Env(num_samples=num_samples,
-              eval_func=eval_func_I)
+              fitness_size=len(fitness_weights),
+              eval_func=eval_func)
+
+    logger(f"Env: {env.__repr__()}")
+    logger(f"eval_func: {eval_func.__name__}")
 
     # ---| Evolution |---
 
