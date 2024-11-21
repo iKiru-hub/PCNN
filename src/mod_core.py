@@ -1199,7 +1199,6 @@ class ExperienceModule(ModuleClass):
         self.output["action_idx"] = self.rollout["index_sequence"][0]
         self.output["score"] = self.rollout["score_sequence"][0]
 
-
     def _check_plan_step(self, observation: dict):
 
         """

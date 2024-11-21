@@ -480,7 +480,7 @@ class RewardObj:
             ])
         self._position = new_position
 
-    def render(self, ax: plt.Axes, alpha: float=0.1):
+    def render(self, ax: plt.Axes, alpha: float=0.25):
 
         ax.add_patch(Circle(self._position, self._radius,
                             fc="green", ec='black',

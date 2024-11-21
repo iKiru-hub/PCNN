@@ -341,7 +341,7 @@ def main(sim_settings=sim_settings,
                             trajectory=trajectory,
                             t=t, velocity=velocity)
 
-    return agent
+    return brain
 
 
 class Simulation:
