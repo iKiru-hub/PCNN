@@ -22,24 +22,26 @@ edit_logger_mod(level=-1, is_debugging=False, is_warning=False)
 logger = setup_logger(name="EVO", level=2,
                       is_debugging=True, is_warning=True)
 
+_bounds = np.array([0., 2., 0., 2.])
 sim_settings = {
-    "bounds": np.array([0., 1., 0., 1.]),
-    "speed": 0.04,
+    "bounds": np.array([0., 2., 0., 2.]),
+    "speed": 0.03,
     "init_position": np.array([0.8, 0.2]),
     "rw_fetching": "deterministic",
     "rw_event": "move reward",
     "rw_position": np.array([0.5, 0.8]),
-    "rw_radius": 0.02,
-    "rw_bounds": np.array([0.2, 0.8, 0.2, 0.8]),
+    "rw_radius": 0.08,
+    "rw_bounds": np.array([_bounds[0]+0.2, _bounds[1]-0.2,
+                           _bounds[2]+0.2, _bounds[3]-0.2]),
     "plot_interval": 8,
     "rendering": False,
     "room": "square",
-    "max_duration": 700,
+    "max_duration": 500,
     "seed": None
 }
 
 agent_settings = {
-    "N": 300,
+    "N": 200,
     "Nj": 13**2,
     "sigma": 0.04,
 }
@@ -238,7 +240,7 @@ FIXED_PARAMETERS = {
 PARAMETERS = {
     'bnd_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
     'bnd_tau': lambda: random.randint(1, 15),
-    'threshold': lambda: round(random.uniform(0.01, 0.4), 2),
+    'threshold': lambda: round(random.uniform(0.01, 0.3), 2),
     'action_delay': lambda : round(random.uniform(1., 10.), 1),
     'max_depth': lambda: random.randint(1, 15),
     'w1': lambda: round(random.uniform(-2.0, 0.0), 2),
