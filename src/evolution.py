@@ -238,7 +238,7 @@ FIXED_PARAMETERS = {
 
 # Define the genome as a dict of parameters
 PARAMETERS = {
-    'bnd_threshold': lambda: round(random.uniform(0.01, 0.2), 2),
+    'bnd_threshold': lambda: round(random.uniform(0.01, 0.3), 2),
     'bnd_tau': lambda: random.randint(1, 15),
     'threshold': lambda: round(random.uniform(0.01, 0.4), 2),
     'action_delay': lambda : round(random.uniform(1., 10.), 1),

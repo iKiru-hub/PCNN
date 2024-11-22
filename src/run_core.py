@@ -212,7 +212,7 @@ def _initialize(sim_settings: dict = sim_settings,
                                       trg_module=trg_module,
                                       circuits=circuits,
                                       weights=exp_weights,
-                                      max_depth=agent_settings["max_depth"],
+                                      max_depth=model_params["max_depth"],
                                       action_delay=model_params["action_delay"],
                                       speed=SPEED,
                                       visualize=rendering,
@@ -408,9 +408,8 @@ class Simulation:
         self.t += 1
 
         # --- env
-        position, collision, truncated = self.env(
+        reward, position, collision, truncated = self.env(
                         velocity=self.velocity)
-        reward = self.reward_obj(position=position)
 
         # --- observation
         self.observation["position"] = position
@@ -501,13 +500,6 @@ def plot_update(fig, ax, agent, env, reward_obj,
     #
     env.render(ax=ax)
     reward_obj.render(ax=ax)
-    # agent.render(use_trajectory=True,
-    #              alpha_nodes=0.2,
-    #              alpha_edges=0.2)
-
-    #
-    # ax.set_title(f"t={t} | v={np.around(velocity, 3)} " + \
-    #     f"p={np.around(env.position, 3)}")
     fig.canvas.draw()
 
     plt.pause(0.001)

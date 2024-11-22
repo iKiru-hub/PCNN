@@ -1,1 +1,1 @@
-{"num_figs": 8, "t": 300, "position": [0.561, 0.694], "Trg_thr": 0.1}
+{"num_figs": 8, "t": 400, "position": [0.81, 0.015], "date": "22/11/2024 at 23:21", "evolution": {"NPOP": 18, "NGEN": 40, "CXPB": 0.6, "MUTPB": 0.7, "NLOG": 1, "TARGET": [1.0], "TARGET_ERROR": 0.0, "NUM_CORES": 6, "USE_TQDM": false}, "evolved": ["bnd_threshold", "bnd_tau", "threshold", "action_delay", "max_depth", "w1", "w2", "w3", "w4", "w5"], "other": "evaluating reward count + collisions", "performance": "[ 12.5 -69. ]", "Trg_thr": 0.1}
