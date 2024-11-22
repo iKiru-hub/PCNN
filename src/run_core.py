@@ -75,16 +75,16 @@ agent_settings = {
     "N": 80,
     "Nj": 13**2,
     "sigma": 0.04,
-    "max_depth": 10
 }
 
 model_params_mlp = {
     "bnd_threshold": 0.2,
-    "bnd_tau": 1., 
+    "bnd_tau": 1.,
     "threshold": 0.5,
     "rep_threshold": 0.5,
     "action_delay": 1.,
-    "w1": -1., 
+    "max_depth": 10,
+    "w1": -1.,
     "w2": 0.2,
     "w3": -0.5,
     "w4": 1.,
@@ -99,10 +99,10 @@ model_params_mlp = {
 }
 model_params = {
     "bnd_threshold": 0.2,
-    "bnd_tau": 1., 
+    "bnd_tau": 1.,
     "threshold": 0.5,
-    "rep_threshold": 0.5,
     "action_delay": 1.,
+    "max_depth": 10,
     "w1": -1.,  # bnd
     "w2": 0.2,  # dpos
     "w3": -0.5,  # pop
@@ -126,21 +126,19 @@ def _initialize(sim_settings: dict = sim_settings,
     PLOT_INTERVAL = sim_settings["plot_interval"]
     ROOM = sim_settings["room"]
     BOUNDS = sim_settings["bounds"]
+    if "rw_bounds" not in sim_settings:
+        sim_settings["rw_bounds"] = np.array([0.2, 0.8, 0.2, 0.8])
     RW_BOUNDS = sim_settings["rw_bounds"]
 
-    if len([k for k in model_params.keys() if "w" in k.lower()]) == 5:
-        exp_weights = np.array([w for (k, w) in model_params.items()
-                                if "w" in k.lower()])
-    elif len([k for k in model_params.keys() if "w" in k.lower()]) == 12:
+    # number weights in the model_params
+    model_weights = [w for (k, w) in model_params.items() if "w" in k.lower()]
+
+    if len(model_weights) == 5:
+        exp_weights = np.array(model_weights)
+    elif len(model_weights) == 12:
         exp_weights = {
-            "hidden": np.array([
-                w for i, (k, w) in enumerate(model_params.items()) if \
-                    i < 14 and "w" in k.lower()
-            ]).reshape(5, 2),
-            "output": np.array([
-                w for i, (k, w) in enumerate(model_params.items()) if \
-                    i >= 14 and "w" in k.lower()
-            ]).reshape(2)
+            "hidden": np.array(model_weights[:10]).reshape(5, 2),
+            "output": np.array(model_weights[10:]).reshape(2)
         }
     else:
         raise ValueError("model_params not recognized")
@@ -163,7 +161,6 @@ def _initialize(sim_settings: dict = sim_settings,
     pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.,
                         clip_min=0.09,
                         threshold=model_params["threshold"],
-                        rep_threshold=model_params["rep_threshold"],
                         rec_threshold=0.01,
                         num_neighbors=8, trace_tau=0.1,
                         xfilter=xfilter, name="2D")
@@ -205,13 +202,18 @@ def _initialize(sim_settings: dict = sim_settings,
                                   visualize=rendering,
                                   number=1)
 
+    if "max_depth" not in model_params:
+        model_params["max_depth"] = 10
+    if "action_delay" not in model_params:
+        model_params["action_delay"] = 1
+
     # [ bnd, dpos, pop, trg, smooth ]
     exp_module = mod.ExperienceModule(pcnn=pcnn2D,
                                       pcnn_plotter=pcnn2D_plotter,
                                       trg_module=trg_module,
                                       circuits=circuits,
                                       weights=exp_weights,
-                                      max_depth=agent_settings["max_depth"],
+                                      max_depth=model_params["max_depth"],
                                       action_delay=model_params["action_delay"],
                                       speed=SPEED,
                                       visualize=rendering,

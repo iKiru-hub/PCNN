@@ -34,7 +34,7 @@ sim_settings = {
     "plot_interval": 8,
     "rendering": False,
     "room": "square",
-    "max_duration": 500,
+    "max_duration": 700,
     "seed": None
 }
 
@@ -42,7 +42,6 @@ agent_settings = {
     "N": 100,
     "Nj": 13**2,
     "sigma": 0.04,
-    "max_depth": 10,
 }
 
 
@@ -73,10 +72,10 @@ def eval_func_II(agent: object):
 class ModelMLP(rc.Simulation):
 
     def __init__(self, threshold: float,
-                 rep_threshold: float,
                  bnd_threshold: float,
                  bnd_tau: float,
                  action_delay: float,
+                 max_depth: int,
                  w1: float, w2: float, w3: float,
                  w4: float, w5: float,
                  w6: float, w7: float,
@@ -88,10 +87,10 @@ class ModelMLP(rc.Simulation):
 
         self.model_params = {
             "threshold": threshold,
-            "rep_threshold": rep_threshold,
             "bnd_threshold": bnd_threshold,
             "bnd_tau": bnd_tau,
             "action_delay": action_delay,  # "action_delay": "random
+            "max_depth": max_depth,
             "w1": w1,
             "w2": w2,
             "w3": w3,
@@ -124,8 +123,8 @@ class Model(rc.Simulation):
     def __init__(self, threshold: float,
                  bnd_threshold: float,
                  bnd_tau: float,
-                 rep_threshold: float,
                  action_delay: float,
+                 max_depth: int,
                  w1: float, w2: float, w3: float,
                  w4: float, w5: float,
                  sim_settings: dict=sim_settings,
@@ -135,8 +134,8 @@ class Model(rc.Simulation):
             "bnd_threshold": bnd_threshold,
             "bnd_tau": bnd_tau,
             "threshold": threshold,
-            "rep_threshold": rep_threshold,
-            "action_delay": action_delay,  # "action_delay": "random
+            "action_delay": action_delay,
+            "max_depth": max_depth,
             "w1": w1,
             "w2": w2,
             "w3": w3,
@@ -231,7 +230,6 @@ class Env:
 # >>> no ftg weight
 FIXED_PARAMETERS = {
     'w4': 0.,
-    'rep_threshold': 1.,
     'bnd_threshold': 0.2,
 }
 
@@ -241,8 +239,8 @@ PARAMETERS = {
     'bnd_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
     'bnd_tau': lambda: random.randint(1, 15),
     'threshold': lambda: round(random.uniform(0.01, 0.3), 2),
-    'rep_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
     'action_delay': lambda : round(random.uniform(1., 10.), 1),
+    'max_depth': lambda: random.randint(1, 15),
     'w1': lambda: round(random.uniform(-2.0, 0.0), 2),
     'w2': lambda: round(random.uniform(-2.0, 2.0), 2),
     'w3': lambda: round(random.uniform(-2.0, 2.0), 2),
@@ -253,21 +251,21 @@ PARAMETERS = {
 PARAMETERS_MLP = {
     'bnd_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
     'bnd_tau': lambda: random.randint(1, 15),
-    'threshold': lambda: round(random.uniform(0.01, 1.0), 2),
-    'rep_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
+    'threshold': lambda: round(random.uniform(0.01, 0.3), 2),
     'action_delay': lambda : round(random.uniform(1., 10.), 1),
-    'w1': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w2': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w3': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w4': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w5': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w6': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w7': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w8': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w9': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w10': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w11': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w12': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'max_depth': lambda: random.randint(1, 15),
+    'w1': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w2': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w3': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w4': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w5': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w6': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w7': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w8': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w9': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w10': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w11': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w12': lambda: round(random.uniform(-2.0, 2.0), 1),
 }
 
 
@@ -286,7 +284,7 @@ if __name__ == "__main__" :
 
     fitness_weights = (1., 1.)
     num_samples = 2
-    USE_MLP = False
+    USE_MLP = True
     eval_func = eval_func_II
 
     NGEN = args.ngen
@@ -345,6 +343,7 @@ if __name__ == "__main__" :
         "TARGET": (1.,),
         "TARGET_ERROR": 0.,
         "NUM_CORES": NUM_CORES,
+        "USE_TQDM": False,
     }
 
     # ---| Visualisation |---
@@ -375,7 +374,8 @@ if __name__ == "__main__" :
         "evolution": settings,
         "evolved": [key for key in PARAMETERS.keys() if key not in FIXED_PARAMETERS.keys()],
         "data": {"sim_settings": sim_settings.copy(),
-                 "agent_settings": agent_settings.copy()},
+                 "agent_settings": agent_settings.copy(),
+                 "USE_MLP": USE_MLP},
         "other": "evaluating reward count | ftg weight=0.",
     }
 

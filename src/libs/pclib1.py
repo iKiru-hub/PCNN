@@ -716,6 +716,26 @@ class TwoLayerNetwork:
         return (self.w_output @ h).item(), h.flatten().tolist()
 
 
+class OneLayerNetwork:
+
+    def __init__(self, weights: list):
+
+        self.weights = np.array(weights)
+
+    def __str__(self):
+        return "OneLayerNetwork"
+
+    def __call__(self, x: np.ndarray) -> float:
+
+        x = np.array(x).reshape(-1, 1)
+
+        return (self.weights @ x).item(), (self.weights * x.flatten()).tolist()
+
+    def get_weights(self):
+        return self.weights
+
+
+
 """ FUNCTIONS """
 
 

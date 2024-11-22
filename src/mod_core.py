@@ -904,7 +904,7 @@ class ExperienceModule(ModuleClass):
                     weights["output"].tolist())
             self.using_mlp = True
         else:
-            self.eval_network = Perceptron(weights=weights)
+            self.eval_network = OneLayerNetworkWrapper(weights=weights.tolist())
             self.using_mlp = False
 
         # internal directives
@@ -2050,26 +2050,20 @@ class ActionSampling2DWrapper(pclib.ActionSampling2D):
 
 """ local utils """
 
-class Perceptron:
+class OneLayerNetworkWrapper(pclib.OneLayerNetwork):
 
-    def __init__(self, weights: np.ndarray):
+    def __init__(self, weights: list):
 
-        self.weights = weights
-
-    def __call__(self, x: np.ndarray) -> float:
-
-        x = np.array(x).reshape(-1, 1)
-
-        return (self.weights @ x).item(), (self.weights * x.flatten()).tolist()
+        super().__init__(weights=weights)
 
     def render(self, ax: plt.Axes,
                labels: list):
 
         ax.clear()
-        ax.bar(range(len(self.weights)), self.weights,
+        ax.bar(range(5), self.get_weights(),
                color="blue", alpha=0.7)
         ax.set_title("Perceptron Weights")
-        ax.set_xticks(range(len(self.weights)))
+        ax.set_xticks(range(5))
         ax.set_xticklabels(labels)
         ax.grid()
 
