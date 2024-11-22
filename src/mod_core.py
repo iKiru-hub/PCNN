@@ -233,7 +233,7 @@ class Modulation(ABC):
                             alpha_nodes=0.8,
                             cmap="Greens",
                             customize=True,
-                            title=f"{self.leaky_var.name}")
+                            title=f"{self.leaky_var.name} | $w_{{max}}=${self.weights.max():.3f}")
 
         # if bounds is not None:
         #     self.ax.set_xlim(bounds[0], bounds[1]*1.2)
@@ -1303,7 +1303,7 @@ class ExperienceModule(ModuleClass):
             self.record = []
 
 
-class ExperienceModule1(ModuleClass):
+class ExperienceModule2(ModuleClass):
 
     """
     Input:
@@ -1359,7 +1359,7 @@ class ExperienceModule1(ModuleClass):
                     weights["output"].tolist())
             self.using_mlp = True
         else:
-            self.eval_network = Perceptron(weights=weights)
+            self.eval_network = OneLayerNetworkWrapper(weights=weights.tolist())
             self.using_mlp = False
 
         # internal directives

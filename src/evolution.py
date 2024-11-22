@@ -22,15 +22,15 @@ edit_logger_mod(level=-1, is_debugging=False, is_warning=False)
 logger = setup_logger(name="EVO", level=2,
                       is_debugging=True, is_warning=True)
 
-_bounds = np.array([0., 2., 0., 2.])
+_bounds = np.array([0., 1., 0., 1.])
 sim_settings = {
-    "bounds": np.array([0., 2., 0., 2.]),
-    "speed": 0.03,
-    "init_position": np.array([0.8, 0.2]),
+    "bounds": _bounds,
+    "speed": 0.01,
+    "init_position": None,
     "rw_fetching": "deterministic",
-    "rw_event": "move reward",
-    "rw_position": np.array([0.5, 0.8]),
-    "rw_radius": 0.08,
+    "rw_event": "move agent",
+    "rw_position": None,
+    "rw_radius": 0.03,
     "rw_bounds": np.array([_bounds[0]+0.2, _bounds[1]-0.2,
                            _bounds[2]+0.2, _bounds[3]-0.2]),
     "plot_interval": 8,
@@ -232,22 +232,22 @@ class Env:
 # >>> no ftg weight
 FIXED_PARAMETERS = {
     # 'w4': 0.,
-    'bnd_threshold': 0.2,
+    # 'bnd_threshold': 0.2,
 }
 
 
 # Define the genome as a dict of parameters
 PARAMETERS = {
-    'bnd_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
+    'bnd_threshold': lambda: round(random.uniform(0.01, 0.2), 2),
     'bnd_tau': lambda: random.randint(1, 15),
-    'threshold': lambda: round(random.uniform(0.01, 0.3), 2),
+    'threshold': lambda: round(random.uniform(0.01, 0.4), 2),
     'action_delay': lambda : round(random.uniform(1., 10.), 1),
     'max_depth': lambda: random.randint(1, 15),
-    'w1': lambda: round(random.uniform(-2.0, 0.0), 2),
-    'w2': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w3': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w4': lambda: round(random.uniform(-2.0, 2.0), 2),
-    'w5': lambda: round(random.uniform(-2.0, 2.0), 2),
+    'w1': lambda: round(random.uniform(-3.0, 0.0), 1),
+    'w2': lambda: round(random.uniform(-3.0, 2.0), 1),
+    'w3': lambda: round(random.uniform(-3.0, 2.0), 1),
+    'w4': lambda: round(random.uniform(-3.0, 2.0), 1),
+    'w5': lambda: round(random.uniform(-3.0, 2.0), 1),
 }
 
 PARAMETERS_MLP = {
@@ -284,7 +284,7 @@ if __name__ == "__main__" :
 
     # ---| Setup |---
 
-    fitness_weights = (1., 1.)
+    fitness_weights = (1., 0.3)
     num_samples = 2
     USE_MLP = False
     eval_func = eval_func_II

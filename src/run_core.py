@@ -166,7 +166,8 @@ def _initialize(sim_settings: dict = sim_settings,
                         clip_min=0.09,
                         threshold=model_params["threshold"],
                         rec_threshold=0.01,
-                        num_neighbors=8, trace_tau=0.1,
+                        num_neighbors=8,
+                        trace_tau=0.1,
                         xfilter=xfilter, name="2D")
 
     # plotter
@@ -202,7 +203,7 @@ def _initialize(sim_settings: dict = sim_settings,
     trg_module = mod.TargetModule(pcnn=pcnn2D,
                                   circuits=circuits,
                                   speed=SPEED,
-                                  threshold=0.1,
+                                  threshold=0.01,
                                   visualize=rendering,
                                   number=1)
 
@@ -232,7 +233,7 @@ def _initialize(sim_settings: dict = sim_settings,
     room = ev.make_room(name=ROOM, thickness=4.,
                         bounds=BOUNDS,
                         visualize=rendering)
-    pcnn2D_plotter.add_element(element=room)
+    # pcnn2D_plotter.add_element(element=room)
 
     agent_body = ev.AgentBody(
                     position=sim_settings["init_position"],
@@ -249,7 +250,7 @@ def _initialize(sim_settings: dict = sim_settings,
                          rw_event=sim_settings["rw_event"],
                          visualize=False)
 
-    pcnn2D_plotter.add_element(element=reward_obj)
+    pcnn2D_plotter.add_element(element=env)
 
     velocity = np.zeros(2)
     observation = {
@@ -353,6 +354,19 @@ def main(sim_settings=sim_settings,
                             t=t, velocity=velocity)
 
     return brain
+
+
+def plot_update(fig, ax, env, reward_obj,
+                trajectory, t, velocity):
+
+    ax.clear()
+
+    #
+    env.render(ax=ax)
+    reward_obj.render(ax=ax)
+    fig.canvas.draw()
+
+    plt.pause(0.001)
 
 
 class Simulation:
@@ -497,19 +511,6 @@ class Simulation:
         self.__init__(sim_settings=self.sim_settings,
                       agent_settings=self.agent_settings)
         logger(f"%% reset [seed={seed}] %%")
-
-
-def plot_update(fig, ax, env, reward_obj,
-                trajectory, t, velocity):
-
-    ax.clear()
-
-    #
-    env.render(ax=ax)
-    reward_obj.render(ax=ax)
-    fig.canvas.draw()
-
-    plt.pause(0.001)
 
 
 def run_analysis(N: int=5, duration: int=1000):
@@ -683,8 +684,9 @@ def loop_main(sim_settings: dict,
         model_params = {
             "bnd_threshold": 0.2,
             "bnd_tau": 1.,
-            "threshold": 0.5,
-            "rep_threshold": 0.5,
+            "threshold": 0.2,
+            'action_delay': 2,
+            'max_depth': 10,
             "w1": -1.,
             "w2": 0.2,
             "w3": -0.5,

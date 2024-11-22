@@ -300,9 +300,18 @@ def make_room(name: str="square", thickness: float=1.,
 class AgentBody:
 
     def __init__(self, position: np.ndarray = None,
+                 bounds: list=[0, 1, 0, 1],
                  **kwargs):
+
+        self.bounds = bounds
         self.radius = kwargs.get("radius", 0.05)
-        self.position = position if position is not None else self._random_position()
+
+        self._position = None
+        if np.all(position != None):
+            self.position = position
+        else:
+            self.set_position()
+
         self.prev_position = self.position.copy()
         self.velocity = np.zeros(2).astype(float)
         self.bounds = kwargs.get("bounds", [0, 1, 0, 1])
@@ -311,7 +320,7 @@ class AgentBody:
         self.verbose = kwargs.get("verbose", False)
         self.bounce_coefficient = kwargs.get("bounce_coefficient", 0.5)
 
-        self.visualize = kwargs.get("visualize", False)
+        self.trajectory = [[]]
 
     def __call__(self, velocity: np.ndarray,
                  collision: bool=False):
@@ -326,9 +335,7 @@ class AgentBody:
                             self.bounce_coefficient * \
                             1 * collision)
 
-        # truncated = not self._room.check_bounds(
-        #                         position=self.position,
-        #                         radius=self.radius*0.2)
+        self.trajectory[-1] += [self.position.copy()]
 
         return self.position.copy()#, collision, truncated
 
@@ -354,9 +361,10 @@ class AgentBody:
             ])
         self.position = position
 
+    def reset(self):
+        self.trajectory += [[]]
 
-    def render(self, ax: plt.Axes=None,
-               velocity: np.ndarray=None):
+    def render(self, ax: plt.Axes=None):
 
         """
         Plot the agent in the room
@@ -371,22 +379,24 @@ class AgentBody:
             Default is None.
         """
 
-        if not self.visualize:
-            return
+        # trajectory
+        for traj in self.trajectory:
+            if len(traj) < 2:
+                continue
+            traj = np.array(traj)
+            ax.plot(traj[:, 0], traj[:, 1], "r-",
+                    alpha=0.2, lw=2)
 
-        # ax, fig = self._room.render(ax=ax, returning=ax is None)
-
+        # agent body
         ax.add_patch(Circle(self.prev_position, self.radius,
                             fc=self.color, ec='black'))
 
+        # velocity arrow
         displacement = self.position - self.prev_position
         ax.arrow(self.prev_position[0], self.prev_position[1],
                  displacement[0], displacement[1],
                  head_width=0.02, head_length=0.02,
                  fc='black', ec='black')
-
-        if fig is not None:
-            fig.canvas.draw()
 
 
 class Zombie:
@@ -436,10 +446,16 @@ class RewardObj:
                  radius: float=0.05,
                  fetching: str="probabilistic"):
 
-        self._position = position
         self._radius = radius
         self._fetching = fetching
         self._bounds = bounds
+
+        self._position = None
+        if np.all(position != None):
+            self._position = position
+        else:
+            self.set_position()
+
         self._count = 0
 
     def __repr__(self):
@@ -540,6 +556,7 @@ class Environment:
             self.reward_obj.set_position()
         elif self.rw_event == "move agent":
             self.agent.set_position()
+            self.agent.reset()
         elif self.rw_event == "move both":
             self.agent.set_position()
             self.reward_obj.set_position()
@@ -555,15 +572,15 @@ class Environment:
 
     def render(self, ax: plt.Axes=None):
 
-        if not self.visualize:
-            return
+        # if not self.visualize:
+        #     return
 
-        ax, fig = self.room.render(ax=ax, returning=ax is None)
+        self.room.render(ax=ax, returning=ax is None)
         self.agent.render(ax=ax)
         self.reward_obj.render(ax=ax)
 
-        if fig is not None:
-            fig.canvas.draw()
+        # if fig is not None:
+        #     fig.canvas.draw()
 
 
 """ UTILS """
