@@ -376,7 +376,7 @@ if __name__ == "__main__" :
         "data": {"sim_settings": sim_settings.copy(),
                  "agent_settings": agent_settings.copy(),
                  "USE_MLP": USE_MLP},
-        "other": "evaluating reward count | ftg weight=0.",
+        "other": "evaluating reward count + collisions",
     }
 
     # ---| Run |---
