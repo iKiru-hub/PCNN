@@ -294,32 +294,30 @@ def make_room(name: str="square", thickness: float=1.,
 
 
 
-""" AGENT """
+""" OBJECTS """
 
 
 class AgentBody:
 
-    def __init__(self, room: Room,
-                 position: np.ndarray = None,
+    def __init__(self, position: np.ndarray = None,
                  **kwargs):
         self.radius = kwargs.get("radius", 0.05)
         self.position = position if position is not None else self._random_position()
         self.prev_position = self.position.copy()
         self.velocity = np.zeros(2).astype(float)
+        self.bounds = kwargs.get("bounds", [0, 1, 0, 1])
         self.color = kwargs.get("color", "red")
-        self._room = room
+        # self._room = room
         self.verbose = kwargs.get("verbose", False)
         self.bounce_coefficient = kwargs.get("bounce_coefficient", 0.5)
 
         self.visualize = kwargs.get("visualize", False)
 
-    def _random_position(self):
-        return np.random.rand(2)
-
-    def __call__(self, velocity: np.ndarray):
+    def __call__(self, velocity: np.ndarray,
+                 collision: bool=False):
 
         self.velocity = velocity
-        self.velocity, collision = self._handle_collisions()
+        # self.velocity, collision = self._handle_collisions()
 
         # update position
         # + considering a possible collision
@@ -328,31 +326,34 @@ class AgentBody:
                             self.bounce_coefficient * \
                             1 * collision)
 
-        # if collision:
-        #     logger.debug(f"new velocity: {np.around(self.velocity, 3)}")
-        #     logger.debug(f"new position: {np.around(self.position, 3)}")
+        # truncated = not self._room.check_bounds(
+        #                         position=self.position,
+        #                         radius=self.radius*0.2)
 
-        truncated = not self._room.check_bounds(
-                                position=self.position,
-                                radius=self.radius*0.2)
+        return self.position.copy()#, collision, truncated
 
-        return self.position.copy(), collision, truncated
+    # def _handle_collisions(self) -> tuple:
 
-    def _handle_collisions(self) -> tuple:
-        new_velocity, _, collision = self._room.handle_collision(
-            self.position, self.velocity, self.radius)
-        if collision:
-            self.velocity = new_velocity
-            # Move the agent slightly after collision to prevent sticking
-            self._room.nb_collisions += 1
+    #     new_velocity, _, collision = self._room.handle_collision(
+    #         self.position, self.velocity, self.radius)
+    #     if collision:
+    #         self.velocity = new_velocity
 
-            if self.verbose:
-                logger.debug("%collision detected%")
+    #         if self.verbose:
+    #             logger.debug("%collision detected%")
 
-        return new_velocity, collision
+    #     return new_velocity, collision
 
-    def set_position(self, position: np.ndarray):
+    def set_position(self, position: np.ndarray=None):
+        if position is None:
+            position = np.array([
+                np.random.uniform(self.bounds[0],
+                                  self.bounds[1]),
+                np.random.uniform(self.bounds[2],
+                                  self.bounds[3])
+            ])
         self.position = position
+
 
     def render(self, ax: plt.Axes=None,
                velocity: np.ndarray=None):
@@ -373,7 +374,7 @@ class AgentBody:
         if not self.visualize:
             return
 
-        ax, fig = self._room.render(ax=ax, returning=ax is None)
+        # ax, fig = self._room.render(ax=ax, returning=ax is None)
 
         ax.add_patch(Circle(self.prev_position, self.radius,
                             fc=self.color, ec='black'))
@@ -431,15 +432,13 @@ class Zombie:
 class RewardObj:
 
     def __init__(self, position: np.ndarray,
+                 bounds: list=[0, 1, 0, 1],
                  radius: float=0.05,
-                 fetching: str="probabilistic",
-                 behaviour: str="static",
-                 bounds: list=[0, 1, 0, 1]):
+                 fetching: str="probabilistic"):
 
         self._position = position
         self._radius = radius
         self._fetching = fetching
-        self._behaviour = behaviour
         self._bounds = bounds
         self._count = 0
 
@@ -464,28 +463,107 @@ class RewardObj:
 
         if result:
             self._count += 1
-            if self._behaviour == "dynamic":
-                self.reset()
 
         return result
 
     def get_count(self):
         return self._count
 
-    def reset(self, new_position: np.ndarray=None):
-        if new_position is None:
-            new_position = np.array([
-                np.random.uniform(self._bounds[0], self._bounds[1]),
-                np.random.uniform(self._bounds[2], self._bounds[3])
-            ])
-        self._position = new_position
+    def set_position(self, position: np.ndarray=None):
 
-    def render(self, ax: plt.Axes, alpha: float=0.25):
+        if position is None:
+            position = np.array([
+                np.random.uniform(self._bounds[0],
+                                  self._bounds[1]),
+                np.random.uniform(self._bounds[2],
+                                  self._bounds[3])
+            ])
+        self._position = position
+
+    def reset(self):
+        self._count = 0
+
+    def render(self, ax: plt.Axes, alpha: float=0.45):
 
         ax.add_patch(Circle(self._position, self._radius,
                             fc="green", ec='black',
                             alpha=alpha))
 
+
+""" ENV object """
+
+
+class Environment:
+
+    def __init__(self, room: Room,
+                 agent: AgentBody,
+                 reward_obj: RewardObj,
+                 rw_event: str="move reward",
+                 **kwargs):
+
+        self.room = room
+        self.agent = agent
+        self.reward_obj = reward_obj
+        self.rw_event = rw_event
+
+        self.visualize = kwargs.get("visualize", False)
+
+    def __call__(self, velocity: np.ndarray) -> tuple:
+
+        # --- check collisions
+        new_velocity, _, collision = self.room.handle_collision(
+            self.agent.position, velocity, self.agent.radius)
+        velocity = new_velocity if collision else velocity
+
+        # --- check truncation
+        truncated = not self.room.check_bounds(
+            position=self.agent.position,
+            radius=self.agent.radius)
+
+        # --- move the agent
+        position = self.agent(velocity=velocity,
+                              collision=collision)
+
+        # --- check reward
+        reward = self.reward_obj(position=position)
+        if reward:
+            self._reward_event()
+
+        return reward, position, collision, truncated
+
+    def _reward_event(self):
+        """
+        logic for when the reward is collected
+        """
+
+        if self.rw_event == "move reward":
+            self.reward_obj.set_position()
+        elif self.rw_event == "move agent":
+            self.agent.set_position()
+        elif self.rw_event == "move both":
+            self.agent.set_position()
+            self.reward_obj.set_position()
+        elif self.rw_event == "nothing":
+            pass
+        else:
+            raise ValueError(f"Unknown reward " + \
+                f"event: {self.rw_event}")
+
+    @property
+    def position(self):
+        return self.agent.position.copy()
+
+    def render(self, ax: plt.Axes=None):
+
+        if not self.visualize:
+            return
+
+        ax, fig = self.room.render(ax=ax, returning=ax is None)
+        self.agent.render(ax=ax)
+        self.reward_obj.render(ax=ax)
+
+        if fig is not None:
+            fig.canvas.draw()
 
 
 """ UTILS """

@@ -400,28 +400,6 @@ class Dopamine(Modulation):
 
         return out
 
-    # def render(self, return_fig: bool=False):
-
-    #     if not self._visualize:
-    #         return
-
-    #     self.ax.clear()
-    #     self.ax.imshow(self.weights.reshape(1, -1),
-    #                        aspect="auto", cmap="Greens_r",
-    #                        vmin=0., vmax=4.)
-    #     self.ax.set_title(f"Dopamine Modulation | " + \
-    #         f"max:{self.weights.max():.2f} [{np.argmax(self.weights)}]")
-    #     self.ax.set_yticks([])
-
-    #     if self._number is not None:
-    #         self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
-    #         return
-
-    #     self.fig.canvas.draw()
-
-    #     if return_fig:
-    #         return self.fig
-
 
 class Acetylcholine(Modulation):
 

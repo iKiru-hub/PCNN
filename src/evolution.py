@@ -27,7 +27,7 @@ sim_settings = {
     "speed": 0.04,
     "init_position": np.array([0.8, 0.2]),
     "rw_fetching": "deterministic",
-    "rw_behaviour": "dynamic",
+    "rw_event": "move reward",
     "rw_position": np.array([0.5, 0.8]),
     "rw_radius": 0.02,
     "rw_bounds": np.array([0.2, 0.8, 0.2, 0.8]),
@@ -39,7 +39,7 @@ sim_settings = {
 }
 
 agent_settings = {
-    "N": 100,
+    "N": 300,
     "Nj": 13**2,
     "sigma": 0.04,
 }
@@ -229,7 +229,7 @@ class Env:
 # parameters that are not evolved
 # >>> no ftg weight
 FIXED_PARAMETERS = {
-    'w4': 0.,
+    # 'w4': 0.,
     'bnd_threshold': 0.2,
 }
 
@@ -238,7 +238,7 @@ FIXED_PARAMETERS = {
 PARAMETERS = {
     'bnd_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
     'bnd_tau': lambda: random.randint(1, 15),
-    'threshold': lambda: round(random.uniform(0.01, 0.3), 2),
+    'threshold': lambda: round(random.uniform(0.01, 0.4), 2),
     'action_delay': lambda : round(random.uniform(1., 10.), 1),
     'max_depth': lambda: random.randint(1, 15),
     'w1': lambda: round(random.uniform(-2.0, 0.0), 2),
@@ -284,7 +284,7 @@ if __name__ == "__main__" :
 
     fitness_weights = (1., 1.)
     num_samples = 2
-    USE_MLP = True
+    USE_MLP = False
     eval_func = eval_func_II
 
     NGEN = args.ngen

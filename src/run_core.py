@@ -55,15 +55,18 @@ def write_configs(num_figs: int,
 
 """ SETTINGS """
 
+_bounds = np.array([0., 2., 0., 2.])
+
 sim_settings = {
-    "bounds": np.array([0., 1., 0., 1.]),
+    "bounds": _bounds,
     "speed": 0.03,
     "init_position": np.array([0.8, 0.2]),
     "rw_fetching": "probabilistic",
-    "rw_behaviour": "static",
+    "rw_event": "move reward",
     "rw_position": np.array([0.5, 0.8]),
     "rw_radius": 0.1,
-    "rw_bounds": np.array([0.2, 0.8, 0.2, 0.8]),
+    "rw_bounds": np.array([_bounds[0]+0.2, _bounds[1]-0.2,
+                           _bounds[2]+0.2, _bounds[3]-0.2]),
     "plot_interval": 1,
     "rendering": True,
     "room": "square",
@@ -97,6 +100,7 @@ model_params_mlp = {
     "w11": 0.1,
     "w12": 0.1,
 }
+
 model_params = {
     "bnd_threshold": 0.2,
     "bnd_tau": 1.,
@@ -219,24 +223,32 @@ def _initialize(sim_settings: dict = sim_settings,
                                       visualize=rendering,
                                       number=2,
                                       number2=3)
+
     brain = mod.Brain(exp_module=exp_module,
                       circuits=circuits,
                       pcnn2D=pcnn2D)
 
     # --- agent & env
-    env = ev.make_room(name=ROOM, thickness=4.,
-                       bounds=BOUNDS,
-                       visualize=rendering)
-    pcnn2D_plotter.add_element(element=env)
+    room = ev.make_room(name=ROOM, thickness=4.,
+                        bounds=BOUNDS,
+                        visualize=rendering)
+    pcnn2D_plotter.add_element(element=room)
 
-    env = ev.AgentBody(room=env,
-                       position=sim_settings["init_position"])
+    agent_body = ev.AgentBody(
+                    position=sim_settings["init_position"],
+                    bounds=BOUNDS)
+
     reward_obj = ev.RewardObj(position=trg_position,
-                              radius=trg_radius,
-                              fetching=sim_settings["rw_fetching"],
-                              behaviour=sim_settings["rw_behaviour"],
-                              bounds=BOUNDS)
+                    radius=trg_radius,
+                    fetching=sim_settings["rw_fetching"],
+                    bounds=sim_settings["rw_bounds"])
     logger(reward_obj)
+
+    env = ev.Environment(room=room, agent=agent_body,
+                         reward_obj=reward_obj,
+                         rw_event=sim_settings["rw_event"],
+                         visualize=False)
+
     pcnn2D_plotter.add_element(element=reward_obj)
 
     velocity = np.zeros(2)
@@ -283,7 +295,6 @@ def main(sim_settings=sim_settings,
     duration = sim_settings["max_duration"]
     PLOT_INTERVAL = sim_settings["plot_interval"]
 
-
     # --- visualization
     if plot:
         fig, ax = plt.subplots(figsize=(5, 5))
@@ -304,9 +315,8 @@ def main(sim_settings=sim_settings,
                           other=other_info)
 
         # --- env
-        position, collision, truncated = env(
+        reward, position, collision, truncated = env(
                     velocity=velocity)
-        reward = reward_obj(position=position)
         trajectory += [position.tolist()]
         reward_count += reward
 
@@ -332,12 +342,11 @@ def main(sim_settings=sim_settings,
         if t % PLOT_INTERVAL == 0:
             if not plot:
                 brain.render(use_trajectory=True,
-                             alpha_nodes=0.1,
+                             alpha_nodes=0.25,
                              alpha_edges=0.06)
 
             if plot:
                 plot_update(fig=fig, ax=ax,
-                            agent=brain,
                             env=env,
                             reward_obj=reward_obj,
                             trajectory=trajectory,
@@ -406,9 +415,8 @@ class Simulation:
         self.t += 1
 
         # --- env
-        position, collision, truncated = self.env(
+        reward, position, collision, truncated = self.env(
                         velocity=self.velocity)
-        reward = self.reward_obj(position=position)
 
         # --- observation
         self.observation["position"] = position
@@ -491,7 +499,7 @@ class Simulation:
         logger(f"%% reset [seed={seed}] %%")
 
 
-def plot_update(fig, ax, agent, env, reward_obj,
+def plot_update(fig, ax, env, reward_obj,
                 trajectory, t, velocity):
 
     ax.clear()
@@ -499,13 +507,6 @@ def plot_update(fig, ax, agent, env, reward_obj,
     #
     env.render(ax=ax)
     reward_obj.render(ax=ax)
-    # agent.render(use_trajectory=True,
-    #              alpha_nodes=0.2,
-    #              alpha_edges=0.2)
-
-    #
-    # ax.set_title(f"t={t} | v={np.around(velocity, 3)} " + \
-    #     f"p={np.around(env.position, 3)}")
     fig.canvas.draw()
 
     plt.pause(0.001)
