@@ -129,22 +129,18 @@ def _initialize(sim_settings: dict = sim_settings,
     BOUNDS = sim_settings["bounds"]
     RW_BOUNDS = sim_settings["rw_bounds"]
 
-    if len([k for k in model_params.keys() if "w" in k.lower()]) == 5:
-        exp_weights = np.array([w for (k, w) in model_params.items()
-                                if "w" in k.lower()])
-    elif len([k for k in model_params.keys() if "w" in k.lower()]) == 12:
-        exp_weights = {
-            "hidden": np.array([
-                w for i, (k, w) in enumerate(model_params.items()) if \
-                    i < 14 and "w" in k.lower()
-            ]).reshape(5, 2),
-            "output": np.array([
-                w for i, (k, w) in enumerate(model_params.items()) if \
-                    i >= 14 and "w" in k.lower()
-            ]).reshape(2)
-        }
+    _weights = [w for (k, w) in model_params.items() if "w" in k.lower()]
+    _num_weights = len(_weights)
+
+    if _num_weights == 5:
+        exp_weights = np.array(_weights)
     else:
-        raise ValueError("model_params not recognized")
+        exp_weights = {
+            "hidden": np.array(_weights[:10]).reshape(5, 2),
+            "output": np.array(_weights[10:]).reshape(2)
+        }
+    # else:
+    #     raise ValueError("model_params not recognized")
 
     logger(f"room: {ROOM}")
     logger(f"plot_interval: {PLOT_INTERVAL}")

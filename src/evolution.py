@@ -22,13 +22,13 @@ edit_logger_mod(level=-1, is_debugging=False, is_warning=False)
 logger = setup_logger(name="EVO", level=2,
                       is_debugging=True, is_warning=True)
 
-_bounds = np.array([0., 1., 0., 1.])
+_bounds = np.array([0., 2., 0., 2.])
 sim_settings = {
     "bounds": _bounds,
-    "speed": 0.01,
+    "speed": 0.04,
     "init_position": None,
     "rw_fetching": "deterministic",
-    "rw_event": "move agent",
+    "rw_event": "move reward",
     "rw_position": None,
     "rw_radius": 0.03,
     "rw_bounds": np.array([_bounds[0]+0.2, _bounds[1]-0.2,
@@ -240,7 +240,7 @@ FIXED_PARAMETERS = {
 PARAMETERS = {
     'bnd_threshold': lambda: round(random.uniform(0.01, 0.3), 2),
     'bnd_tau': lambda: random.randint(1, 15),
-    'threshold': lambda: round(random.uniform(0.01, 0.4), 2),
+    'threshold': lambda: round(random.uniform(0.01, 0.8), 2),
     'action_delay': lambda : round(random.uniform(1., 10.), 1),
     'max_depth': lambda: random.randint(1, 15),
     'w1': lambda: round(random.uniform(-3.0, 0.0), 1),
@@ -285,7 +285,7 @@ if __name__ == "__main__" :
     # ---| Setup |---
 
     fitness_weights = (1., 0.3)
-    num_samples = 2
+    num_samples = 4
     USE_MLP = False
     eval_func = eval_func_II
 
