@@ -942,11 +942,54 @@ class ExperienceModule(ModuleClass):
 
         # --- generate an action
         # self._generate_action(observation=observation)
-        self._generate_action_from_rollout(observation=observation)
+        self._planning(observation=observation)
 
         # --- output & logs
         self.record += [observation["position"].tolist()]
         self.t += 1
+
+    def _planning(self, observation):
+
+
+        """
+        generate a new action given an observation
+        through a rollout over many steps
+        """
+
+        # --- `keep` current directive
+        if self.directive["state"] == "keep" and \
+            not observation["collision"]:
+
+            # check whether it's time to step to the next action
+            action, completed, valid = self._check_plan_step(observation=observation)
+
+            # exit 1: invalid action
+            if valid:
+
+                # the step is completed
+                if completed:
+
+                    # exit 2: the plan is completed
+                    if self.directive["action_t"] >= self.directive["depth"]:
+                        self.directive["state"] = "new"
+
+                    # go to the next step
+                    else:
+                        self.directive["trg_position"] = self.rollout["trajectory"][self.directive["action_t"]]
+                        action, _ = self._make_action(
+                            position=observation["position"],
+                            target=self.directive["trg_position"])
+                        self.output["velocity"] = action
+                        self.directive["action_t"] += 1
+                        return
+
+                # the step is not completed
+                else:
+                    self.output["velocity"] = action
+                    return
+
+       # --- `new` directive 
+        self._generate_action_from_rollout(observation=observation)
 
     def _generate_action(self, observation: dict,
                          returning: bool=False,
@@ -1000,6 +1043,10 @@ class ExperienceModule(ModuleClass):
                          action: np.ndarray,
                          action_idx: int) -> float:
 
+        if action_idx == 4:
+            # assuming no MLP
+            return -np.inf, np.zeros(5), [0., 0., 0., 0., 0.]
+
         # new observation/effects
         u = self.pcnn.fwd_ext(x=position)
 
@@ -1026,9 +1073,6 @@ class ExperienceModule(ModuleClass):
                   self._action_smoother(action=action)]
 
         score, hidden = self.eval_network(values)
-
-        if action_idx == 4:
-            score = -100.
 
         return score, hidden, values
 
@@ -1088,38 +1132,6 @@ class ExperienceModule(ModuleClass):
         generate a new action given an observation
         through a rollout over many steps
         """
-
-        # --- `keep` current directive
-        if self.directive["state"] == "keep" and \
-            not observation["collision"]:
-
-            # check whether it's time to step to the next action
-            action, completed, valid = self._check_plan_step(observation=observation)
-
-            # exit 1: invalid action
-            if valid:
-
-                # the step is completed
-                if completed:
-
-                    # exit 2: the plan is completed
-                    if self.directive["action_t"] >= self.directive["depth"]:
-                        self.directive["state"] = "new"
-
-                    # go to the next step
-                    else:
-                        self.directive["trg_position"] = self.rollout["trajectory"][self.directive["action_t"]]
-                        action, _ = self._make_action(
-                            position=observation["position"],
-                            target=self.directive["trg_position"])
-                        self.output["velocity"] = action
-                        self.directive["action_t"] += 1
-                        return
-
-                # the step is not completed
-                else:
-                    self.output["velocity"] = action
-                    return
 
         # --- `new` directive
         self.action_policy_main.reset()
