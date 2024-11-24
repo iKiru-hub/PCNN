@@ -493,9 +493,9 @@ class BoundaryMod(Modulation):
 
         out = self.weights.reshape(1, -1) @ u.reshape(-1, 1)
         out = utc.generalized_sigmoid(x=out, alpha=0.05,
-                                      beta=200., clip_min=0.001)
-        self.output = out[0]
-        self.value = out[0]
+                                      beta=200., clip_min=0.001).item()
+        self.output = out
+        self.value = out
         self.var = u.copy()
         return out
 
@@ -559,7 +559,7 @@ class PositionTrace(Modulation):
 
         out = [res.sum(),
                self.get_leaky_v()]
-        self.output = out[0] * (out[0] > 0.25)
+        self.output = out[0] * (out[0] > 0.25).item()
         self.value = out[0]
         return out
 
@@ -745,6 +745,7 @@ class TargetProg(Program):
 class Circuits:
 
     def __init__(self, circuits_dict: dict,
+                 other_circuits: dict=None,
                  visualize: bool=False,
                  number: int=None):
 
@@ -754,6 +755,11 @@ class Circuits:
         self.output = {name: circuits_dict[name].output \
             for name in self.names}
         self.values = np.zeros(len(self.names))
+
+        # other circuits
+        self.other_circuits = other_circuits
+        if other_circuits is not None:
+            self.names = self.names + tuple(other_circuits.keys())
 
         self._number = number
         self.visualize = visualize
@@ -779,7 +785,7 @@ class Circuits:
             self.output[name] = circuit.output
             self.values[i] = circuit.value
 
-        return self.output
+        return self.output, self.values
 
     def render(self, pcnn_plotter: object=None,
                bounds: np.ndarray=None,
@@ -800,12 +806,18 @@ class Circuits:
         # render dashboard
         if self.visualize:
 
+            if self.other_circuits is not None:
+                values = self.values.tolist() + \
+                    [obj.get_value() for obj in self.other_circuits.values()]
+            else:
+                values = self.values
+
             self.ax.clear()
-            self.ax.bar(range(len(self.names)), self.values,
+            self.ax.bar(range(len(self.names)), values,
                          color="purple")
             self.ax.set_xticks(range(len(self.names)))
             self.ax.set_xticklabels([f"{n}\n{v:.2f}" for n, v \
-                in zip(self.names, self.values)])
+                in zip(self.names, values)])
             self.ax.set_title("Circuits")
             self.ax.set_ylim(0., 2.)
             self.ax.grid()
@@ -999,7 +1011,7 @@ class ExperienceModule(ModuleClass):
             "reward": 0.,
             "delta_update": 0.}
 
-        modulation = self.circuits(
+        modulation, _ = self.circuits(
                         observation=new_observation,
                         simulate=True)
         trg_modulation = self.trg_module.evaluate_direction(
@@ -1007,9 +1019,9 @@ class ExperienceModule(ModuleClass):
 
         # --- evaluate the effects
         # relevant modulators
-        values = [modulation["Bnd"].item(),
-                  modulation["dPos"].item(),
-                  modulation["Pop"].item() * int(trg_modulation <= 0.),
+        values = [modulation["Bnd"],
+                  modulation["dPos"],
+                  modulation["Pop"] * int(trg_modulation <= 0.),
                   trg_modulation,
                   self._action_smoother(action=action)]
 
@@ -1457,11 +1469,13 @@ class Brain:
 
     def __init__(self, exp_module: ExperienceModule,
                  circuits: Circuits,
-                 pcnn2D: object):
+                 pcnn2D: object,
+                 densitymod: object=None):
 
         self.exp_module = exp_module
         self.circuits = circuits
         self.pcnn2D = pcnn2D
+        self.densitymod = densitymod
 
         self.state = {
             "position": np.zeros(2),
@@ -1491,31 +1505,33 @@ class Brain:
 
     def __call__(self, observation: dict):
 
+        """
+        forward the observation through the brain
+        """
+
         self.t += 1
         self.record["trajectory"] += [observation["position"].tolist()]
         self.state["position"] = observation["position"]
         self.state["collision"] = observation["collision"]
         self.state["reward"] = observation["reward"]
 
-        # forward current position
+        # >> forward current position
         self.state["u"] = self.pcnn2D(x=observation["position"])
         self.state["delta_update"] = self.pcnn2D.get_delta_update()
 
         # --- update modulation
-        c_out = self.circuits(observation=self.state)
-        # if self.t == 0:
-        #     for key, out in c_out.items():
-        #         self.state[key] = out
-        # else:
-        for (key, out) in c_out.items():
+        c_out, c_val = self.circuits(observation=self.state)
+        for i, (key, out) in enumerate(c_out.items()):
             self.state[key] = out
+
+        ach = self.densitymod(x=c_val)
+
+        # >> update the pcnn model
+        self.pcnn2D.ach_modulation(ach=ach)
+        self.pcnn2D.update()
 
         # --- update experience module
         exp_output = self.exp_module(observation=self.state)
-        # if self.t == 0:
-        #     for key, out in exp_output.items():
-        #         self.state[key] = out
-        # else:
         for (key, out) in exp_output.items():
             self.state[key] = out
 

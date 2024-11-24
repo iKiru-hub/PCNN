@@ -79,28 +79,9 @@ agent_settings = {
     "max_depth": 10
 }
 
-model_params_mlp = {
-    "bnd_threshold": 0.2,
-    "bnd_tau": 1., 
-    "threshold": 0.5,
-    "rep_threshold": 0.5,
-    "action_delay": 1.,
-    "w1": -1., 
-    "w2": 0.2,
-    "w3": -0.5,
-    "w4": 1.,
-    "w5": 0.4,
-    "w6": 0.3,
-    "w7": 0.2,
-    "w8": 0.1,
-    "w9": 0.1,
-    "w10": 0.1,
-    "w11": 0.1,
-    "w12": 0.1,
-}
 model_params = {
     "bnd_threshold": 0.2,
-    "bnd_tau": 1., 
+    "bnd_tau": 1.,
     "threshold": 0.5,
     "rep_threshold": 0.5,
     "action_delay": 1.,
@@ -109,6 +90,22 @@ model_params = {
     "w3": -0.5,  # pop
     "w4": 1.,  # trg
     "w5": 0.4,  # smooth
+
+    "w6": 0.,
+    "w7": 0.,
+    "w8": 0.,
+    "w9": 0.,
+    "w10": 0.,
+}
+
+model_params_mlp = model_params | {
+    "w6": 0.3,
+    "w7": 0.2,
+    "w8": 0.1,
+    "w9": 0.1,
+    "w10": 0.1,
+    "w11": 0.1,
+    "w12": 0.1,
 }
 
 
@@ -132,13 +129,18 @@ def _initialize(sim_settings: dict = sim_settings,
     _weights = [w for (k, w) in model_params.items() if "w" in k.lower()]
     _num_weights = len(_weights)
 
-    if _num_weights == 5:
-        exp_weights = np.array(_weights)
-    else:
-        exp_weights = {
-            "hidden": np.array(_weights[:10]).reshape(5, 2),
-            "output": np.array(_weights[10:]).reshape(2)
-        }
+    exp_weights = np.array(_weights[:5])
+    ach_weights = np.array(_weights[5:])
+
+    # if _num_weights == 5:
+        # exp_weights = np.array(_weights[:5])
+        # ach_weights = np.array(_weights[5:])
+    # else:
+    #     raise ImplementationError("<<under construction>> :)")
+    #     exp_weights = {
+    #         "hidden": np.array(_weights[:10]).reshape(5, 2),
+    #         "output": np.array(_weights[10:]).reshape(2)
+    #     }
     # else:
     #     raise ValueError("model_params not recognized")
 
@@ -188,8 +190,13 @@ def _initialize(sim_settings: dict = sim_settings,
                                                   number=None),
                      "Ftg": mod.FatigueMod(tau=300)}
 
+    # --- other circuits
+    densitymod = pclib.DensityMod(weights=ach_weights,
+                                  theta=1.)
+
     # object
     circuits = mod.Circuits(circuits_dict=circuits_dict,
+                            other_circuits={"ACh": densitymod},
                             visualize=rendering,
                             number=4)
 
@@ -214,9 +221,11 @@ def _initialize(sim_settings: dict = sim_settings,
                                       visualize=rendering,
                                       number=2,
                                       number2=3)
+
     brain = mod.Brain(exp_module=exp_module,
                       circuits=circuits,
-                      pcnn2D=pcnn2D)
+                      pcnn2D=pcnn2D,
+                      densitymod=densitymod)
 
     # --- agent & env
     room = ev.make_room(name=ROOM, thickness=4.,
@@ -330,7 +339,7 @@ def main(sim_settings=sim_settings,
         if t % PLOT_INTERVAL == 0:
             if not plot:
                 brain.render(use_trajectory=True,
-                             alpha_nodes=0.1,
+                             alpha_nodes=0.2,
                              alpha_edges=0.06)
 
             if plot:

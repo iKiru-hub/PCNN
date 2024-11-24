@@ -41,9 +41,9 @@ sim_settings = {
 }
 
 agent_settings = {
-    "N": 200,
+    "N": 50,
     "Nj": 13**2,
-    "sigma": 0.04,
+    "sigma": 0.04 * _bounds[1],
 }
 
 
@@ -129,6 +129,9 @@ class Model(rc.Simulation):
                  max_depth: int,
                  w1: float, w2: float, w3: float,
                  w4: float, w5: float,
+                 w6: float, w7: float,
+                 w8: float, w9: float,
+                 w10: float,
                  sim_settings: dict=sim_settings,
                  agent_settings: dict=agent_settings):
 
@@ -143,6 +146,11 @@ class Model(rc.Simulation):
             "w3": w3,
             "w4": w4,
             "w5": w5,
+            "w6": w6,
+            "w7": w7,
+            "w8": w8,
+            "w9": w9,
+            "w10": w10,
         }
 
         super().__init__(sim_settings=sim_settings,
@@ -232,7 +240,8 @@ class Env:
 # >>> no ftg weight
 FIXED_PARAMETERS = {
     # 'w4': 0.,
-    # 'bnd_threshold': 0.2,
+    'bnd_threshold': 0.1,
+    'bnd_tau': 2,
 }
 
 
@@ -248,6 +257,11 @@ PARAMETERS = {
     'w3': lambda: round(random.uniform(-3.0, 2.0), 1),
     'w4': lambda: round(random.uniform(-3.0, 2.0), 1),
     'w5': lambda: round(random.uniform(-3.0, 2.0), 1),
+    'w6': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w7': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w8': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w9': lambda: round(random.uniform(-2.0, 2.0), 1),
+    'w10': lambda: round(random.uniform(-2.0, 2.0), 1),
 }
 
 PARAMETERS_MLP = {
@@ -378,7 +392,7 @@ if __name__ == "__main__" :
         "data": {"sim_settings": sim_settings.copy(),
                  "agent_settings": agent_settings.copy(),
                  "USE_MLP": USE_MLP},
-        "other": "evaluating reward count + collisions",
+        "other": "evaluating reward count + collisions, %ach weights",
     }
 
     # ---| Run |---
