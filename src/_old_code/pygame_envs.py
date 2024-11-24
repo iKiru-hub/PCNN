@@ -2,6 +2,9 @@ import pygame
 import numpy as np
 import graphics as grph
 import matplotlib.pyplot as plt
+
+import sys
+sys.path.append("../")
 from utils_core import setup_logger
 
 
@@ -102,9 +105,11 @@ class Room:
             if wall.rect.collidepoint(x + velocity[0], y):
                 velocity[0] *= - 1
                 collision = True
+                logger.debug(f"Collision x {velocity[0]}")
             if wall.rect.collidepoint(x, y + velocity[1]):
                 velocity[1] *= - 1
                 collision = True
+                logger.debug(f"Collision y {velocity[1]}")
 
         return velocity, collision
 
@@ -139,7 +144,7 @@ class AgentBody:
 
         self.radius = radius
         self.color = color
-        self.velocity = np.array([2, 3])
+        self.velocity = np.array([1, 2])
         self.collision = False
 
         self.brain = brain
@@ -426,7 +431,7 @@ def main(agent: AgentBody, room_name: str=None,
     clock = pygame.time.Clock()
 
     room = make_room(name=room_name,
-                      bounce_coeff=2.0)
+                      bounce_coeff=20.0)
     pygame.display.set_caption(f"{room}     {agent}")
 
 

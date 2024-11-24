@@ -988,7 +988,7 @@ class ExperienceModule(ModuleClass):
                     self.output["velocity"] = action
                     return
 
-       # --- `new` directive 
+       # --- `new` directive
         self._generate_action_from_rollout(observation=observation)
 
     def _generate_action(self, observation: dict,
