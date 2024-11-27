@@ -15,6 +15,7 @@ class AgentBody:
     def __init__(self, x: int, y: int,
                  width: int = 20, height: int = 20,
                  color: Tuple[int, int, int] = (255, 0, 0),
+                 bounds: Tuple[int, int, int, int] = (0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
                  max_speed: float = 5.0,
                  random_brain=None):
 
@@ -23,6 +24,7 @@ class AgentBody:
         self.initial_pos = (x, y)
         self.width = width
         self.height = height
+        self.bounds = bounds
         # self.max_speed = max_speed
         self.position = np.array([float(x), float(y)])
         self.random_brain = random_brain
@@ -121,6 +123,17 @@ class AgentBody:
 
         return velocity, False
 
+    def set_position(self, position: np.ndarray=None):
+
+        if position is None:
+            position = np.array([
+                np.random.uniform(self.bounds[0],
+                                  self.bounds[1]),
+                np.random.uniform(self.bounds[2],
+                                  self.bounds[3])
+            ])
+        self.position = position
+
     def render(self, screen: pygame.Surface):
         pygame.draw.rect(screen, self.color, self.rect)
 
@@ -154,33 +167,32 @@ class Reward:
 
     def __init__(self, x: int, y: int,
                  radius: int = 10,
+                 bounds: Tuple[int, int, int, int] = (0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
                  color: Tuple[int, int, int] = (25, 255, 0)):
         self.x = x
         self.y = y
         self.radius = radius
         self.color = color
         self.collected = False
+        self._bounds = bounds
 
     def __str__(self) -> str:
         return f"Reward({self.x}, {self.y})"
 
     def __call__(self, agent_pos: Tuple[int, int]) -> bool:
-        # if self.collected:
-        #     return False
 
         dist = np.sqrt((self.x - agent_pos[0])**2 +
                       (self.y - agent_pos[1])**2)
-        if dist < self.radius * 2:
-            self.collected = True
-            # self.x = -10
-            # Randomize position
-            self.x = np.random.randint(200, SCREEN_WIDTH-200)
-            self.y = np.random.randint(200, SCREEN_HEIGHT-200)
-            return True
-        return False
+        return dist < self.radius * 2
 
-    def reset(self):
-        self.collected = False
+    def set_position(self, position: np.ndarray=None):
+
+        if position is None:
+            self.x = np.random.uniform(self._bounds[0],
+                                       self._bounds[1])
+            self.y = np.random.uniform(self._bounds[2],
+                                       self._bounds[3])
+        self._position = position
 
     def render(self, screen: pygame.Surface):
         pygame.draw.circle(screen, self.color,
