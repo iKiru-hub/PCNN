@@ -41,7 +41,7 @@ sim_settings = {
 }
 
 agent_settings = {
-    "N": 50,
+    "N": 200,
     "Nj": 13**2,
     "sigma": 0.04 * _bounds[1],
 }
