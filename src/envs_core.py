@@ -301,6 +301,7 @@ class AgentBody:
 
     def __init__(self, position: np.ndarray = None,
                  bounds: list=[0, 1, 0, 1],
+                 possible_positions: list=None,
                  **kwargs):
 
         self.bounds = bounds
@@ -312,6 +313,7 @@ class AgentBody:
         else:
             self.set_position()
 
+        self._possible_positions = possible_positions
         self.prev_position = self.position.copy()
         self.velocity = np.zeros(2).astype(float)
         self.bounds = kwargs.get("bounds", [0, 1, 0, 1])
@@ -353,12 +355,17 @@ class AgentBody:
 
     def set_position(self, position: np.ndarray=None):
         if position is None:
-            position = np.array([
-                np.random.uniform(self.bounds[0],
-                                  self.bounds[1]),
-                np.random.uniform(self.bounds[2],
-                                  self.bounds[3])
-            ])
+            if self._possible_positions is not None:
+                position = self._possible_positions[
+                        np.random.randint(len(self._possible_positions))
+            ]
+            else:
+                position = np.array([
+                    np.random.uniform(self.bounds[0],
+                                      self.bounds[1]),
+                    np.random.uniform(self.bounds[2],
+                                      self.bounds[3])
+                ])
         self.position = position
 
     def reset(self):

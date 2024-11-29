@@ -183,11 +183,11 @@ class PlotPCNN:
                 element.render(ax=ax)
 
         # --- trajectory
-        if trajectory is not None:
+        if trajectory is not None and len(trajectory) > 0:
             ax.plot(trajectory[:, 0], trajectory[:, 1], 'r-',
                           lw=0.5, alpha=0.5 if new_a is not None else 0.9)
-            ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
-                        c='k', s=150, marker='x')
+            # ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
+            #             c='k', s=150, marker='x')
 
         # --- rollout
         if rollout is not None and len(rollout[0]) > 0:

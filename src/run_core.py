@@ -63,10 +63,10 @@ GAME_SCALE = games.SCREEN_WIDTH
 
 sim_settings = {
     "bounds": np.array([0., 1., 0., 1.]) * GAME_SCALE,
-    "speed": 0.03 * GAME_SCALE,
+    "speed": 0.04 * GAME_SCALE,
     "init_position": np.array([0.5, 0.5]) * GAME_SCALE,
-    "rw_fetching": "probabilistic",
-    "rw_event": "move reward",
+    "rw_fetching": "deterministic",
+    "rw_event": "move agent",
     "rw_position": np.array([0.5, 0.8]) * GAME_SCALE,
     "rw_radius": 0.1 * GAME_SCALE,
     "rw_bounds": np.array([0.2, 0.8, 0.2, 0.8]) * GAME_SCALE,
@@ -83,30 +83,46 @@ sim_settings = {
 agent_settings = {
     "N": 80,
     "Nj": 13**2,
-    "sigma": 0.04 * GAME_SCALE,
-    "max_depth": 10,
-    "trg_threshold": 10
+    "sigma": 0.03 * GAME_SCALE,
+    "max_depth": 20,
+    "trg_threshold": 0.0
 }
 
+possible_positions = np.array([
+    [0.2, 0.2], [0.2, 0.8],
+    [0.8, 0.2], [0.8, 0.8],
+    [0.8, 0.3], [0.8, 0.8],
+    [0.3, 0.8], [0.3, 0.8],
+]) * GAME_SCALE
+
+# model_params = {
+#     "bnd_threshold": 0.2,
+#     "bnd_tau": 1.,
+#     "threshold": 0.5,
+#     "rep_threshold": 0.8,
+#     "action_delay": 2.,
+#     "max_depth": 10,
+#     "w1": -1.,  # bnd
+#     "w2": 0.2,  # dpos
+#     "w3": -0.5,  # pop
+#     "w4": 1.,  # trg
+#     "w5": 0.4,  # smooth
+
+#     "w6": -0.,
+#     "w7": 0.,
+#     "w8": 0.,
+#     "w9": 0.,
+#     "w10": 0.,
+# }
 model_params = {
     "bnd_threshold": 0.2,
-    "bnd_tau": 1.,
-    "threshold": 0.5,
-    "rep_threshold": 0.8,
-    "action_delay": 2.,
-    "max_depth": 10,
-    "w1": -1.,  # bnd
-    "w2": 0.2,  # dpos
-    "w3": -0.5,  # pop
-    "w4": 1.,  # trg
-    "w5": 0.4,  # smooth
+    "bnd_tau": 1,
+    "threshold": 0.3,
+    "rep_threshold": 0.5,
+    "action_delay": 7,
+    "max_depth": 20,
 
-    "w6": -0.,
-    "w7": 0.,
-    "w8": 0.,
-    "w9": 0.,
-    "w10": 0.,
-}
+    "w1": -0.6, "w2": 0.0, "w3": -3.0, "w4": 0.4, "w5": 1.4, "w6": -1.8, "w7": 0.2, "w8": -2.0, "w9": 1.4, "w10": -1.6}
 
 model_params_mlp = model_params | {
     "w6": 0.3,
@@ -206,7 +222,7 @@ def _initialize(sim_settings: dict = sim_settings,
                                             eta=0.2,
                                             tau=model_params["bnd_tau"],
                             pcnn_plotter2d=pcnn2D_plotter,
-                                            visualize=rendering or True,
+                                            visualize=rendering,
                                             number=6,
                             fig_standalone=True),
                      "dPos": mod.PositionTrace(visualize=False),
@@ -259,13 +275,14 @@ def _initialize(sim_settings: dict = sim_settings,
     if USE_GAME:
 
         # --- room
-        room = games.make_room(name=ROOM, thickness=1.)
+        room = games.make_room(name=ROOM, thickness=5.)
         room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
                        room.bounds[1]+10, room.bounds[3]-10]
 
         # --- objects
         body = games.objects.AgentBody(position=sim_settings["init_position"],
-                               bounds=room_bounds)
+                                       possible_positions=possible_positions,
+                                       bounds=room_bounds)
         reward_obj = games.objects.RewardObj(position=trg_position,
                                      radius=trg_radius,
                                      fetching=sim_settings["rw_fetching"],
@@ -566,10 +583,9 @@ def main_game(sim_settings=sim_settings,
 
     # --- settings
     sim_settings["rendering"] = False
-    sim_settings["init_position"] = np.array([300, 300])
-    sim_settings["rw_position"] = np.array([150, 450])
-    sim_settings["rw_radius"] = 10
-    sim_settings["room"] = "Square.v0"
+    sim_settings["init_position"] = np.array([120, 440])
+    sim_settings["rw_position"] = np.array([130, 450])
+    sim_settings["rw_radius"] = 30
     sim_settings["use_game"] = True
     sim_settings["render_game"] = True
 
@@ -859,6 +875,7 @@ if __name__ == "__main__":
     parser.add_argument("--load", action="store_true")
     parser.add_argument("--idx", type=int, default=-1)
     parser.add_argument("--game", action="store_true")
+    parser.add_argument("--room", type=str, default="Square.v0")
 
     args = parser.parse_args()
 
@@ -878,6 +895,8 @@ if __name__ == "__main__":
         sim_settings["init_position"] = np.array([200, 200])
         sim_settings["use_game"] = args.game
         agent_settings["N"] = args.N
+        if args.game:
+            sim_settings["room"] = args.room
         main(use_game=args.game)
 
     elif args.main == "loop":
@@ -895,8 +914,9 @@ if __name__ == "__main__":
         sim_settings["seed"] = args.seed
         sim_settings["max_duration"] = args.duration
         sim_settings["rendering"] = not args.plot
-        agent_settings["N"] = args.N
+        sim_settings["room"] = args.room
         sim_settings["use_game"] = True
+
         agent_settings["N"] = args.N
         main_game(sim_settings=sim_settings,
                   agent_settings=agent_settings,

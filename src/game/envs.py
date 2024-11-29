@@ -244,8 +244,10 @@ def make_room(name: str="square", thickness: float=20.,
         ]
     elif name == "Square.v2":
         walls_extra += [
-            Wall(SCREEN_WIDTH//2, SCREEN_HEIGHT//2-OFFSET,
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//2-OFFSET,
                  thickness, SCREEN_HEIGHT//2),
+            Wall(2*SCREEN_WIDTH//3, OFFSET,
+                    thickness, SCREEN_HEIGHT//2)
         ]
     elif name == "flat":
         raise NotImplementedError

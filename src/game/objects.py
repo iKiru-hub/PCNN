@@ -25,6 +25,7 @@ class AgentBody:
                  color: Tuple[int, int, int] = (255, 0, 0),
                  bounds: Tuple[int, int, int, int] = (0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
                  max_speed: float = 5.0,
+                 possible_positions: List[Tuple[int, int]] = None,
                  random_brain=None):
 
         self.bounds = bounds
@@ -40,7 +41,8 @@ class AgentBody:
         self.radius = max((width, height))
         # self.max_speed = max_speed
         self.random_brain = random_brain
-        self.trajectory = []
+        self.trajectory = [self.position.tolist()]
+        self._possible_positions = possible_positions
 
     def __str__(self) -> str:
         return f"AgentBody{tuple(self.position.tolist())}"
@@ -141,20 +143,29 @@ class AgentBody:
     def set_position(self, position: np.ndarray=None):
 
         if position is None:
-            position = np.array([
-                np.random.uniform(self.bounds[0],
-                                  self.bounds[1]),
-                np.random.uniform(self.bounds[2],
-                                  self.bounds[3])
-            ])
+            if self._possible_positions is not None:
+                position = self._possible_positions[
+                        np.random.randint(len(self._possible_positions))
+            ]
+            else:
+                raise ValueError("No possible positions provided")
+                position = np.array([
+                    np.random.uniform(self.bounds[0],
+                                      self.bounds[1]),
+                    np.random.uniform(self.bounds[2],
+                                      self.bounds[3])
+                ])
         self.position = position
 
     def render(self, screen: pygame.Surface):
         pygame.draw.rect(screen, self.color, self.rect)
 
-    def reset(self):
-        self.position = np.array(self.initial_pos, dtype=float)
-        self.rect.x, self.rect.y = self.initial_pos
+    def reset(self, starting_position: bool=False):
+        if starting_position:
+            self.position = np.array(self.initial_pos, dtype=float)
+        else:
+            self.set_position()
+        self.rect.x, self.rect.y = self.position
         self.trajectory = []
 
 

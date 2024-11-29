@@ -18,7 +18,9 @@ The results below are obtained from a simulation where the agent walked a trajec
 
 ![roaming](media/goods/roaming_222509.gif)
 
-![navigation](media/nav_recording.mov)
+![navigation](media/nav_recording.gif)
+
+![games](media/games_a.png)
 
 ### Branches 
 - **main** 
