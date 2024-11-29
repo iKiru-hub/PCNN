@@ -18,6 +18,8 @@ The results below are obtained from a simulation where the agent walked a trajec
 
 ![roaming](media/goods/roaming_222509.gif)
 
+![navigation](media/nav_recording.mov)
+
 ### Branches 
 - **main** 
 - **cold** study of how to implement learning of non-hot encoded representations. _NB: only visible in the original repository for now_

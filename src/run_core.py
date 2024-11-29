@@ -8,6 +8,8 @@ import mod_core as mod
 import utils_core as utc
 import envs_core as ev
 
+import game.envs as games
+
 try:
     import libs.pclib as pclib
 except ImportError:
@@ -22,7 +24,7 @@ except ImportError:
 CONFIGPATH = "dashboard/cache/configs.json"
 
 logger = utc.setup_logger(name="RUN",
-                          level=0,
+                          level=2,
                           is_debugging=True,
                           is_warning=False)
 
@@ -56,18 +58,24 @@ def write_configs(num_figs: int,
 
 """ SETTINGS """
 
+GAME_SCALE = games.SCREEN_WIDTH
+
+
 sim_settings = {
-    "bounds": np.array([0., 1., 0., 1.]),
-    "speed": 0.03,
-    "init_position": np.array([0.8, 0.2]),
+    "bounds": np.array([0., 1., 0., 1.]) * GAME_SCALE,
+    "speed": 0.03 * GAME_SCALE,
+    "init_position": np.array([0.5, 0.5]) * GAME_SCALE,
     "rw_fetching": "probabilistic",
     "rw_event": "move reward",
-    "rw_position": np.array([0.5, 0.8]),
-    "rw_radius": 0.1,
-    "rw_bounds": np.array([0.2, 0.8, 0.2, 0.8]),
+    "rw_position": np.array([0.5, 0.8]) * GAME_SCALE,
+    "rw_radius": 0.1 * GAME_SCALE,
+    "rw_bounds": np.array([0.2, 0.8, 0.2, 0.8]) * GAME_SCALE,
     "plot_interval": 1,
     "rendering": True,
+    "rendering_pcnn": True,
+    "render_game": True,
     "room": "square",
+    "use_game": False,
     "max_duration": None,
     "seed": None
 }
@@ -75,23 +83,25 @@ sim_settings = {
 agent_settings = {
     "N": 80,
     "Nj": 13**2,
-    "sigma": 0.04,
-    "max_depth": 10
+    "sigma": 0.04 * GAME_SCALE,
+    "max_depth": 10,
+    "trg_threshold": 10
 }
 
 model_params = {
     "bnd_threshold": 0.2,
     "bnd_tau": 1.,
     "threshold": 0.5,
-    "rep_threshold": 0.5,
-    "action_delay": 1.,
+    "rep_threshold": 0.8,
+    "action_delay": 2.,
+    "max_depth": 10,
     "w1": -1.,  # bnd
     "w2": 0.2,  # dpos
     "w3": -0.5,  # pop
     "w4": 1.,  # trg
     "w5": 0.4,  # smooth
 
-    "w6": 0.,
+    "w6": -0.,
     "w7": 0.,
     "w8": 0.,
     "w9": 0.,
@@ -115,9 +125,11 @@ model_params_mlp = model_params | {
 def _initialize(sim_settings: dict = sim_settings,
                 agent_settings: dict = agent_settings,
                 model_params: dict = model_params):
+
     # --- settings
     duration = sim_settings["max_duration"]
     rendering = sim_settings["rendering"]
+    rendering_pcnn = sim_settings["rendering_pcnn"]
     trg_position = sim_settings["rw_position"]
     trg_radius = sim_settings["rw_radius"]
     SPEED = sim_settings["speed"]
@@ -125,12 +137,15 @@ def _initialize(sim_settings: dict = sim_settings,
     ROOM = sim_settings["room"]
     BOUNDS = sim_settings["bounds"]
     RW_BOUNDS = sim_settings["rw_bounds"]
+    USE_GAME = sim_settings["use_game"]
 
     _weights = [w for (k, w) in model_params.items() if "w" in k.lower()]
     _num_weights = len(_weights)
 
     exp_weights = np.array(_weights[:5])
     ach_weights = np.array(_weights[5:])
+
+    logger.debug(f"{rendering_pcnn=}")
 
     # if _num_weights == 5:
         # exp_weights = np.array(_weights[:5])
@@ -152,38 +167,48 @@ def _initialize(sim_settings: dict = sim_settings,
     N = agent_settings["N"]
     Nj = agent_settings["Nj"]
     sigma = agent_settings["sigma"]
+    trg_threshold = agent_settings["trg_threshold"]
 
     logger(f"{N=}")
     logger(f"{Nj=}")
+    logger(f"{sigma=}")
+    logger(f"{trg_threshold=}")
 
     xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, BOUNDS)
+
+
 
     # definition
     pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.,
                         clip_min=0.09,
                         threshold=model_params["threshold"],
-                        rep_threshold=0.3,
-                        rec_threshold=0.01,
+                        rep_threshold=model_params["rep_threshold"],
+                        rec_threshold=0.1,
                         num_neighbors=8, trace_tau=0.1,
                         xfilter=xfilter, name="2D")
 
     # plotter
     pcnn2D_plotter = utc.PlotPCNN(model=pcnn2D,
                                   bounds=BOUNDS,
-                                  visualize=rendering,
+                                  visualize=rendering_pcnn,
                                   number=0)
 
     # --- circuits
-    circuits_dict = {"Bnd": mod.BoundaryMod(N=N,
-                                            threshold=model_params["bnd_threshold"],
-                                            eta=0.2,
-                                            tau=model_params["bnd_tau"],
-                                            visualize=rendering,
-                                            number=6),
+    circuits_dict = {
                      "DA": mod.Dopamine(N=N,
                                         threshold=0.15,
-                                        visualize=rendering,
-                                        number=5),
+                            visualize=rendering,
+                            pcnn_plotter2d=pcnn2D_plotter,
+                                        number=5,
+                            fig_standalone=True),
+                     "Bnd": mod.BoundaryMod(N=N,
+                                threshold=model_params["bnd_threshold"],
+                                            eta=0.2,
+                                            tau=model_params["bnd_tau"],
+                            pcnn_plotter2d=pcnn2D_plotter,
+                                            visualize=rendering or True,
+                                            number=6,
+                            fig_standalone=True),
                      "dPos": mod.PositionTrace(visualize=False),
                      "Pop": mod.PopulationProgMax(N=N,
                                                   visualize=False,
@@ -191,12 +216,13 @@ def _initialize(sim_settings: dict = sim_settings,
                      "Ftg": mod.FatigueMod(tau=300)}
 
     # --- other circuits
-    densitymod = pclib.DensityMod(weights=ach_weights,
-                                  theta=1.)
+    # densitymod = pclib.DensityMod(weights=ach_weights,
+    #                               theta=1.)
+    densitymod = None
 
     # object
     circuits = mod.Circuits(circuits_dict=circuits_dict,
-                            other_circuits={"ACh": densitymod},
+                            # other_circuits={"ACh": densitymod},
                             visualize=rendering,
                             number=4)
 
@@ -205,9 +231,10 @@ def _initialize(sim_settings: dict = sim_settings,
     trg_module = mod.TargetModule(pcnn=pcnn2D,
                                   circuits=circuits,
                                   speed=SPEED,
-                                  threshold=0.1,
+                                  threshold=trg_threshold,
                                   visualize=rendering,
                                   number=1)
+    logger(trg_module)
 
     # [ bnd, dpos, pop, trg, smooth ]
     exp_module = mod.ExperienceModule(pcnn=pcnn2D,
@@ -227,25 +254,53 @@ def _initialize(sim_settings: dict = sim_settings,
                       pcnn2D=pcnn2D,
                       densitymod=densitymod)
 
-    # --- agent & env
-    room = ev.make_room(name=ROOM, thickness=4.,
-                        bounds=BOUNDS,
-                        visualize=rendering)
+    # --- agent & reward
 
-    body = ev.AgentBody(position=sim_settings["init_position"],
-                        bounds=BOUNDS)
-    reward_obj = ev.RewardObj(position=trg_position,
-                              radius=trg_radius,
-                              fetching=sim_settings["rw_fetching"],
-                              bounds=sim_settings["rw_bounds"])
-    logger(reward_obj)
+    if USE_GAME:
 
-    env = ev.Environment(room=room,
-                         agent=body,
-                         reward_obj=reward_obj,
-                         rw_event=sim_settings["rw_event"])
+        # --- room
+        room = games.make_room(name=ROOM, thickness=1.)
+        room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
+                       room.bounds[1]+10, room.bounds[3]-10]
 
-    pcnn2D_plotter.add_element(element=env)
+        # --- objects
+        body = games.objects.AgentBody(position=sim_settings["init_position"],
+                               bounds=room_bounds)
+        reward_obj = games.objects.RewardObj(position=trg_position,
+                                     radius=trg_radius,
+                                     fetching=sim_settings["rw_fetching"],
+                                     bounds=room_bounds)
+        logger(reward_obj)
+
+        # --- env
+        env = games.Environment(room=room,
+                                agent=body,
+                                reward_obj=reward_obj,
+                                scale=1,
+                                rw_event=sim_settings["rw_event"],
+                                verbose=False,
+                                visualize=sim_settings["render_game"])
+        logger(env)
+    else:
+        # --- objects
+        body = ev.AgentBody(position=sim_settings["init_position"],
+                            bounds=BOUNDS)
+        reward_obj = ev.RewardObj(position=trg_position,
+                                  radius=trg_radius,
+                                  fetching=sim_settings["rw_fetching"],
+                                  bounds=sim_settings["rw_bounds"])
+        logger(reward_obj)
+
+        # --- env
+        room = ev.make_room(name=ROOM, thickness=4.,
+                            bounds=BOUNDS,
+                            visualize=rendering)
+
+        env = ev.Environment(room=room,
+                             agent=body,
+                             reward_obj=reward_obj,
+                             rw_event=sim_settings["rw_event"])
+        pcnn2D_plotter.add_element(element=env)
 
     velocity = np.zeros(2)
     observation = {
@@ -269,7 +324,8 @@ def main(sim_settings=sim_settings,
          agent_settings=agent_settings,
          model_params=model_params,
          plot: bool=False,
-         other_info: dict={}):
+         other_info: dict={},
+         use_game: bool=False):
 
     """
     meant to be run standalone
@@ -277,10 +333,11 @@ def main(sim_settings=sim_settings,
 
     # --- settings
     sim_settings["rendering"] = True
+    sim_settings["rendering_pcnn"] = True
     configuration = _initialize(
         sim_settings=sim_settings,
         agent_settings=agent_settings,
-        model_params=model_params
+        model_params=model_params,
     )
 
     brain = configuration["brain"]
@@ -290,7 +347,6 @@ def main(sim_settings=sim_settings,
 
     duration = sim_settings["max_duration"]
     PLOT_INTERVAL = sim_settings["plot_interval"]
-
 
     # --- visualization
     if plot:
@@ -329,7 +385,7 @@ def main(sim_settings=sim_settings,
         if truncated:
             plot_update(fig=fig, ax=ax,
                         agent=agent,
-                        env=env, trajectory=trajectory,
+                        env=env, trajectory=np.array(trajectory),
                         t=t, velocity=velocity)
             logger.warning(f"truncated at t={t}")
             input()
@@ -347,7 +403,7 @@ def main(sim_settings=sim_settings,
                             agent=brain,
                             env=env,
                             reward_obj=reward_obj,
-                            trajectory=trajectory,
+                            trajectory=np.array(trajectory),
                             t=t, velocity=velocity)
 
     return brain
@@ -426,13 +482,16 @@ class Simulation:
         # --- agent
         self.velocity = self.brain(
                     observation=self.observation)
+
         # --- plot
         if self.rendering:
             self._render()
-            return [fig if fig is not None else plt.figure() for fig in self.figures]
+            return [fig if fig is not None \
+                else plt.figure() for fig in self.figures]
 
         # --- exit
-        if self.max_duration is not None and self.t >= self.max_duration:
+        if self.max_duration is not None and \
+            self.t >= self.max_duration:
             logger.warning(f"truncated at t={self.t}")
             return True
 
@@ -497,6 +556,51 @@ class Simulation:
         logger(f"%% reset [seed={seed}] %%")
 
 
+def main_game(sim_settings=sim_settings,
+              agent_settings=agent_settings,
+              model_params=model_params):
+
+    """
+    meant to be run standalone
+    """
+
+    # --- settings
+    sim_settings["rendering"] = False
+    sim_settings["init_position"] = np.array([300, 300])
+    sim_settings["rw_position"] = np.array([150, 450])
+    sim_settings["rw_radius"] = 10
+    sim_settings["room"] = "Square.v0"
+    sim_settings["use_game"] = True
+    sim_settings["render_game"] = True
+
+    configuration = _initialize(
+        sim_settings=sim_settings,
+        agent_settings=agent_settings,
+        model_params=model_params,
+    )
+
+    brain = configuration["brain"]
+    env = configuration["env"]
+    reward_obj = configuration["reward_obj"]
+    observation = configuration["observation"]
+    pcnn2D_plotter = configuration["pcnn2D_plotter"]
+
+    duration = sim_settings["max_duration"]
+    PLOT_INTERVAL = sim_settings["plot_interval"]
+
+    # --- record
+    reward_count = 0
+    trajectory = [env.position.tolist()]
+    velocity = np.zeros(2)
+
+    # -- run
+    games.run_game(env=env,
+                   brain=brain,
+                   pcnn_plotter=pcnn2D_plotter,
+                   element=brain.circuits,
+                   fps=30)
+
+
 def plot_update(fig, ax, agent, env, reward_obj,
                 trajectory, t, velocity):
 
@@ -543,6 +647,7 @@ def simple_run(sim_settings: dict,
 
     # --- make simulator
     sim_settings["rendering"] = False
+    sim_settings["render_game"] = False
     simulator = Simulation(sim_settings=sim_settings,
                            agent_settings=agent_settings,
                            model_params=model_params)
@@ -665,7 +770,8 @@ def loop_main(sim_settings: dict,
               agent_settings: dict,
               load: bool=False,
               renew: bool=False,
-              idx: int=-1):
+              idx: int=-1,
+              use_game: bool=False):
 
     if load:
         logger(f"loading idx {idx}")
@@ -702,6 +808,17 @@ def loop_main(sim_settings: dict,
 
     logger.debug(f"{model_params=}")
 
+    sim_settings["rw_event"] = "move agent"
+    sim_settings["rw_radius"] = 0.1
+    sim_settings["rendering_pcnn"] = True
+    sim_settings["render_game"] = True
+    sim_settings["use_game"] = use_game
+
+    if "trg_threshold" not in agent_settings:
+        agent_settings["trg_threshold"] = 10.
+
+    if "rep_threshold" not in model_params:
+        model_params["rep_threshold"] = 0.4
 
     count = 0
     while True:
@@ -723,7 +840,8 @@ def loop_main(sim_settings: dict,
         main(sim_settings=sim_settings,
              agent_settings=agent_settings,
              model_params=model_params,
-             other_info=evo_info)
+             other_info=evo_info,
+             use_game=use_game)
 
         count += 1
 
@@ -740,6 +858,7 @@ if __name__ == "__main__":
     parser.add_argument("--plot", action="store_true")
     parser.add_argument("--load", action="store_true")
     parser.add_argument("--idx", type=int, default=-1)
+    parser.add_argument("--game", action="store_true")
 
     args = parser.parse_args()
 
@@ -756,8 +875,10 @@ if __name__ == "__main__":
         sim_settings["seed"] = args.seed
         sim_settings["max_duration"] = args.duration
         sim_settings["rendering"] = not args.plot
+        sim_settings["init_position"] = np.array([200, 200])
+        sim_settings["use_game"] = args.game
         agent_settings["N"] = args.N
-        main()
+        main(use_game=args.game)
 
     elif args.main == "loop":
         sim_settings["seed"] = args.seed
@@ -767,7 +888,19 @@ if __name__ == "__main__":
         loop_main(sim_settings=sim_settings,
                   agent_settings=agent_settings,
                   load=args.load,
-                  idx=args.idx)
+                  idx=args.idx,
+                  use_game=args.game)
+
+    elif args.main == "game":
+        sim_settings["seed"] = args.seed
+        sim_settings["max_duration"] = args.duration
+        sim_settings["rendering"] = not args.plot
+        agent_settings["N"] = args.N
+        sim_settings["use_game"] = True
+        agent_settings["N"] = args.N
+        main_game(sim_settings=sim_settings,
+                  agent_settings=agent_settings,
+                  model_params=model_params)
 
     elif args.main == "analysis":
         run_analysis(N=args.N,
@@ -776,6 +909,7 @@ if __name__ == "__main__":
     elif args.main == "simple":
         sim_settings["seed"] = args.seed
         sim_settings["max_duration"] = args.duration
+        sim_settings["use_game"] = args.game
         agent_settings["N"] = args.N
         simple_run(sim_settings=sim_settings,
                    agent_settings=agent_settings,

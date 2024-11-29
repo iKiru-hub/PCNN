@@ -22,21 +22,40 @@ edit_logger_mod(level=-1, is_debugging=False, is_warning=False)
 logger = setup_logger(name="EVO", level=2,
                       is_debugging=True, is_warning=True)
 
-_bounds = np.array([0., 2., 0., 2.])
+_bounds = np.array([0., 1., 0., 1.])
+# sim_settings = {
+#     "bounds": _bounds,
+#     "speed": 0.04,
+#     "init_position": None,
+#     "rw_fetching": "deterministic",
+#     "rw_event": "move reward",
+#     "rw_position": None,
+#     "rw_radius": 0.03,
+#     "rw_bounds": np.array([_bounds[0]+0.2, _bounds[1]-0.2,
+#                            _bounds[2]+0.2, _bounds[3]-0.2]),
+#     "plot_interval": 8,
+#     "rendering": False,
+#     "room": "square",
+#     "max_duration": 500,
+#     "seed": None
+# }
+
 sim_settings = {
-    "bounds": _bounds,
-    "speed": 0.04,
-    "init_position": None,
-    "rw_fetching": "deterministic",
+    "bounds": np.array([0., 1., 0., 1.]),
+    "speed": 0.03,
+    "init_position": np.array([0.8, 0.2]),
+    "rw_fetching": "probabilistic",
     "rw_event": "move reward",
-    "rw_position": None,
-    "rw_radius": 0.03,
-    "rw_bounds": np.array([_bounds[0]+0.2, _bounds[1]-0.2,
-                           _bounds[2]+0.2, _bounds[3]-0.2]),
-    "plot_interval": 8,
-    "rendering": False,
+    "rw_position": np.array([0.5, 0.8]),
+    "rw_radius": 0.1,
+    "rw_bounds": np.array([0.2, 0.8, 0.2, 0.8]),
+    "plot_interval": 1,
+    "rendering": True,
+    "rendering_pcnn": True,
+    "render_game": True,
     "room": "square",
-    "max_duration": 500,
+    "use_game": False,
+    "max_duration": None,
     "seed": None
 }
 

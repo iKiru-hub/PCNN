@@ -1,12 +1,21 @@
 import pygame
 import numpy as np
 from typing import Tuple, List
-import logging
+from matplotlib.pyplot import pause
 
-logger = logging.getLogger(__name__)
+import os, sys
+sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
+from game.constants import *
+import game.objects as objects
+from game.objects import logger
 
-from constants import *
-import objects
+# try:
+#     from constants import *
+#     import objects
+# except ImportError:
+#     from game.constants import *
+#     from game import objects
+
 
 
 
@@ -50,8 +59,19 @@ class Wall:
         return False
 
     def render(self, screen: pygame.Surface):
+
+        """
+        plot the `self.rect` such as the y-axis
+        is inverted
+        """
+
         pygame.draw.rect(screen, self.color,
-                        self.rect, self.thickness)
+                         self.rect, self.thickness)
+
+
+
+        # pygame.draw.rect(screen, self.color,
+        #                 self.rect, self.thickness)
 
 
 class Room:
@@ -161,7 +181,8 @@ class Room:
                     if velocity[1] != 0:
                         new_y = y + (velocity[1] * 0.1)
                     new_pos = (new_x, new_y)
-                    logger.debug(f"Collision detected: pos={new_pos}, vel={velocity}")
+                    logger.debug(f"Collision detected: pos={new_pos}," + \
+                        f" vel={velocity}")
                     break
 
         return velocity, collision, new_pos
@@ -252,9 +273,11 @@ def make_room(name: str="square", thickness: float=20.,
 class Environment:
 
     def __init__(self, room: Room, agent: objects.AgentBody,
-                 reward_obj: objects.Reward,
+                 reward_obj: objects.RewardObj,
                  rw_event: str = "nothing",
                  duration: int=np.inf,
+                 scale: float=1.0,
+                 verbose: bool=False,
                  visualize: bool=False):
 
         # Environment components
@@ -265,20 +288,28 @@ class Environment:
         # Reward event
         self.rw_event = rw_event
         self.duration = duration
+        self.scale = scale
         self.t = 0
 
         # rendering
         self.visualize = visualize
+        self.verbose = verbose
         if visualize:
             pygame.init()
             self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
             pygame.display.set_caption("Simple Pygame Game")
 
-    def __call__(self, velocity: np.ndarray) -> Tuple[float, np.ndarray, bool, bool]:
+    def __str__(self):
+        return f"Environment({self.room}, verbose={self.verbose})"
 
-        # # Update agent position with improved collision handling
-        _, collision = self.agent(velocity,
-                                              self.room)
+    def __call__(self, velocity: np.ndarray) -> \
+        Tuple[float, np.ndarray, bool, bool]:
+
+        # scale velocity
+        velocity *= self.scale
+
+        # Update agent position with improved collision handling
+        _, collision = self.agent(velocity, self.room)
 
         # Check reward collisions
         reward = self.reward_obj(self.agent.rect.center)
@@ -287,7 +318,15 @@ class Environment:
 
         self.t += 1
 
-        return reward, self.agent.position.copy(), collision, self.t >= self.duration
+        if self.verbose:
+            if reward:
+                logger.info(f"[t={self.t}] +reward")
+            if collision:
+                logger.info(f"[t={self.t}] -collision")
+
+        position = self.agent.position.copy() / self.scale
+
+        return reward, position, collision, self.t >= self.duration
 
     def _reward_event(self):
 
@@ -313,10 +352,7 @@ class Environment:
     def position(self):
         return self.agent.position.copy()
 
-    def render(self):
-
-        if not self.visualize:
-            return
+    def render(self, **kargs):
 
         self.screen.fill(WHITE)
 
@@ -333,12 +369,18 @@ class Environment:
         pygame.display.flip()
 
 
-
-def run_env(env: Environment,
-            brain: object,
-            fps: int = 30):
+def run_game(env: Environment,
+             brain: object,
+             pcnn_plotter: object = None,
+             element: object = None,
+             fps: int = 30):
 
     clock = pygame.time.Clock()
+    observation = {
+        "position": env.position,
+        "collision": False,
+        "reward": False
+    }
 
     running = True
     while running:
@@ -349,19 +391,40 @@ def run_env(env: Environment,
                 if event.type == pygame.QUIT:
                     running = False
 
-        # update
-        velocity = brain()
+        # step
+        velocity = brain(observation)
+        next_observation = env(velocity=velocity)
 
-        obs = env(velocity=velocity)
+        # update observation
+        observation["position"] = next_observation[1]
+        observation["collision"] = next_observation[2]
+        observation["reward"] = next_observation[0]
 
-        reward, position, collision, done = obs
-
-        env.render()
-
+        # render
         if env.visualize:
+            env.render()
+
+            if env.t % 50 == 0:
+                if pcnn_plotter is not None:
+                    pcnn_plotter.render(np.array(
+                        env.agent.trajectory) /\
+                        env.scale,
+                                    customize=True,
+                                    draw_fig=True,
+                                    alpha_nodes=0.5,
+                                    alpha_edges=0.2)
+
+                if element is not None:
+                    # element.render_circuits()
+                    element.circuits["DA"].render_field()
+                    element.circuits["Bnd"].render_field()
+
+                pause(0.001)
+
             clock.tick(FPS)
 
-        if done:
+        # exit 1
+        if next_observation[3]:
             running = False
 
     pygame.quit()
@@ -378,24 +441,27 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
+    SCALE = 100.0
+    brain = objects.RandomAgent(scale=SCALE)
 
-    brain = objects.RandomAgent()
     room = make_room(name="Square.v0")
-    room_bounds = [room.bounds[0], room.bounds[2],
-                   room.bounds[1], room.bounds[3]]
-    agent = objects.AgentBody(110, 110,
+    room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
+                   room.bounds[1]+10, room.bounds[3]-10]
+
+    agent = objects.AgentBody(position=np.array([110, 110]),
                               width=25, height=25,
                               bounds=room_bounds,
                               max_speed=4.0)
-    reward_obj = objects.Reward(x=150, y=150,
+    reward_obj = objects.RewardObj(position=np.array([150, 150]),
                                 bounds=room_bounds)
 
     env = Environment(room=room, agent=agent,
                       reward_obj=reward_obj,
                       rw_event="move both",
                       duration=args.duration,
+                      scale=SCALE,
                       visualize=args.visual)
 
-    run_env(env, brain, fps=100)
+    run_game(env, brain, fps=100)
 
 

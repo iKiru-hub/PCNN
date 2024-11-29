@@ -21,13 +21,14 @@ def make_surface(points: np.ndarray, h: np.ndarray):
     ax = fig.add_subplot(111, projection='3d')
 
     # plot points
-    ax.scatter(points[:, 0], points[:, 1], points[:, 2], c='b', marker='o')
+    ax.scatter(points[:, 0], points[:, 1], points[:, 2],
+               c='b', marker='o', alpha=0.4, s=30)
 
     # plot wireframe
     ax.plot_trisurf(points[:, 0], points[:, 1], points[:, 2],
-                    triangles=tri.simplices, linewidth=1.,
+                    triangles=tri.simplices, linewidth=0.3,
                     edgecolor='k',
-                    antialiased=True, alpha=0.2)
+                    antialiased=True, alpha=0.1)
 
     ax.set_xlim([0, 1])
     ax.set_ylim([0, 1])

@@ -165,6 +165,7 @@ class PlotPCNN:
                return_fig: bool=False,
                render_elements: bool=False,
                customize: bool=False,
+               draw_fig: bool=False,
                title: str=None):
 
         new_ax = True
@@ -172,7 +173,7 @@ class PlotPCNN:
             # fig, ax = plt.subplots(figsize=(6, 6))
             fig, ax = self._fig, self._ax
             ax.clear()
-            new_ax = False
+            new_ax = draw_fig
 
         # new_a = new_a if new_a is not None else self._model.u
 
@@ -182,11 +183,11 @@ class PlotPCNN:
                 element.render(ax=ax)
 
         # --- trajectory
-        # if trajectory is not None:
-        #     ax.plot(trajectory[:, 0], trajectory[:, 1], 'r-',
-        #                   lw=0.5, alpha=0.5 if new_a is not None else 0.9)
-        #     ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
-        #                 c='k', s=150, marker='x')
+        if trajectory is not None:
+            ax.plot(trajectory[:, 0], trajectory[:, 1], 'r-',
+                          lw=0.5, alpha=0.5 if new_a is not None else 0.9)
+            ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
+                        c='k', s=150, marker='x')
 
         # --- rollout
         if rollout is not None and len(rollout[0]) > 0:
@@ -206,7 +207,7 @@ class PlotPCNN:
                    centers[:, 1],
                    c=new_a if new_a is not None else None,
                    s=40, cmap=cmap,
-                   vmin=0, vmax=0.04,
+                   # vmin=0, vmax=0.04,
                    alpha=alpha_nodes)
 
         if edges and new_a is not None:
@@ -227,6 +228,7 @@ class PlotPCNN:
             ax.set_ylim(self._bounds[2], self._bounds[3])
             ax.set_xticks(())
             ax.set_yticks(())
+            ax.set_aspect('auto')
 
         if title is None:
             title = f"PCNN | N={len(self._model)}"
@@ -242,6 +244,9 @@ class PlotPCNN:
             return
 
         if not new_ax:
+            fig.canvas.draw()
+
+        if draw_fig:
             fig.canvas.draw()
 
         # if ax == self._ax:

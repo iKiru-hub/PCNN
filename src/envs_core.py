@@ -459,7 +459,7 @@ class RewardObj:
         self._count = 0
 
     def __repr__(self):
-        return f"Reward({self._fetching}, {self._behaviour})"
+        return f"Reward({self._fetching})"
 
     def __call__(self, position: np.ndarray):
 

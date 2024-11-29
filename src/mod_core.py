@@ -196,11 +196,15 @@ class Modulation(ABC):
         self.value = None
         self._visualize = kwargs.get("visualize", False)
         self._number = kwargs.get("number", None)
+        self._fig_standalone = kwargs.get("fig_standalone", False)
         self.mod_weight = kwargs.get("mod_weight", 1.)
+        self._pcnn_plotter2d = kwargs.get("pcnn_plotter2d", None)
 
         if self._visualize:
             self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
             logger(f"%visualizing {self.__class__}")
+
+            logger.debug(f"{self.__class__.__name__} ax={self.ax}")
 
     def __repr__(self):
         return f"Mod.{self.leaky_var.name}"
@@ -221,19 +225,36 @@ class Modulation(ABC):
     def render(self, return_fig: bool=False):
         self.leaky_var.render(return_fig=return_fig)
 
-    def render_field(self, pcnn_plotter: object,
-                     bounds: np.ndarray=None,
-                     return_fig: bool=False):
+    def render_field(self, pcnn_plotter: object=None,
+                     return_fig: bool=False, **kwargs):
+
+        if not self._visualize:
+            return
 
         self.ax.clear()
-        pcnn_plotter.render(ax=self.ax,
-                            trajectory=None,
-                            new_a=self.weights,
-                            edges=False,
-                            alpha_nodes=0.8,
-                            cmap="Greens",
-                            customize=True,
-                            title=f"{self.leaky_var.name} | $w_{{max}}=${self.weights.max():.3f}")
+
+        if self._pcnn_plotter2d is not None:
+            self._pcnn_plotter2d.render(ax=self.ax,
+                                trajectory=None,
+                                new_a=self.weights,
+                                edges=False,
+                                alpha_nodes=0.8,
+                                cmap="Greens",
+                                customize=True,
+                                title=f"{self.leaky_var.name} |" + \
+                    f" $w_{{max}}=${self.weights.max():.3f}")
+
+
+        elif pcnn_plotter is not None:
+            pcnn_plotter.render(ax=self.ax,
+                                trajectory=None,
+                                new_a=self.weights,
+                                edges=False,
+                                alpha_nodes=0.8,
+                                cmap="Greens",
+                                customize=True,
+                                title=f"{self.leaky_var.name} |" + \
+                    f" $w_{{max}}=${self.weights.max():.3f}")
 
         # if bounds is not None:
         #     self.ax.set_xlim(bounds[0], bounds[1]*1.2)
@@ -244,7 +265,8 @@ class Modulation(ABC):
         # self.ax.set_xticklabels([f"{bounds[0]:.2f}", f"{bounds[1]:.2f}"])
         # self.ax.set_yticklabels([f"{bounds[2]:.2f}", f"{bounds[3]:.2f}"])
 
-        self.fig.canvas.draw()
+        if self._fig_standalone:
+            self.fig.canvas.draw()
 
         if self._number is not None:
             self.fig.savefig(f"{FIGPATH}/fig{self._number}.png")
@@ -787,21 +809,29 @@ class Circuits:
 
         return self.output, self.values
 
+    def render_circuits(self, pcnn_plotter: object=None,
+                      return_fig: bool=False):
+
+        # render singular circuit
+        cir_figs = []
+        for _, circuit in self.circuits.items():
+            if hasattr(circuit, "weights"):# or \
+                # pcnn_plotter is not None:
+                cir_figs += [circuit.render_field(
+                            pcnn_plotter=pcnn_plotter,
+                            return_fig=return_fig)]
+            else:
+                cir_figs += [circuit.render(return_fig=return_fig)]
+
+        return cir_figs
+
     def render(self, pcnn_plotter: object=None,
                bounds: np.ndarray=None,
                return_fig: bool=False):
 
         # render singular circuit
-        cir_figs = []
-        for _, circuit in self.circuits.items():
-            if hasattr(circuit, "weights") and \
-                pcnn_plotter is not None:
-                cir_figs += [circuit.render_field(
-                            pcnn_plotter=pcnn_plotter,
-                            bounds=bounds,
-                            return_fig=return_fig)]
-            else:
-                cir_figs += [circuit.render(return_fig=return_fig)]
+        cir_figs = self.render_circuits(pcnn_plotter=pcnn_plotter,
+                           return_fig=return_fig)
 
         # render dashboard
         if self.visualize:
@@ -1365,6 +1395,9 @@ class TargetModule(ModuleClass):
             self.fig, self.ax = plt.subplots(figsize=FIGSIZE)
             logger(f"%visualizing {self.__class__}")
 
+    def __str__(self) -> str:
+        return f"TargetModule(threshold={self.threshold})"
+
     def _logic(self, observation: dict):
 
         # --- modulation
@@ -1536,9 +1569,10 @@ class Brain:
         for i, (key, out) in enumerate(c_out.items()):
             self.state[key] = out
 
-        ach = self.densitymod(x=c_val)
+        ach = self.densitymod(x=c_val) if self.densitymod is not None else 1.
 
-        # >> update the pcnn model
+
+
         self.pcnn2D.ach_modulation(ach=ach)
         self.pcnn2D.update()
 
