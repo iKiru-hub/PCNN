@@ -701,7 +701,7 @@ class ActionSmoothness:
 
     def __call__(self, action: np.ndarray):
 
-        if self.prev_action is None:
+        if np.all(self.prev_action) == None:
             self.prev_action = action
             return 0.
 

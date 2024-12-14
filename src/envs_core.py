@@ -354,8 +354,9 @@ class AgentBody:
     #     return new_velocity, collision
 
     def set_position(self, position: np.ndarray=None):
-        if position is None:
-            if self._possible_positions is not None:
+
+        if np.all(position == None):
+            if np.all(self._possible_positions) != None:
                 position = self._possible_positions[
                         np.random.randint(len(self._possible_positions))
             ]
@@ -494,7 +495,7 @@ class RewardObj:
 
     def set_position(self, position: np.ndarray=None):
 
-        if position is None:
+        if np.all(position == None):
             position = np.array([
                 np.random.uniform(self._bounds[0],
                                   self._bounds[1]),
