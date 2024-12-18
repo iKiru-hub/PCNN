@@ -193,7 +193,6 @@ def _initialize(sim_settings: dict = sim_settings,
     xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, BOUNDS)
 
 
-
     # definition
     pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.,
                         clip_min=0.09,

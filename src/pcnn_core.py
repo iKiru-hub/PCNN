@@ -18,9 +18,11 @@ except ImportError:
 class GridLayerWrapper(pclib.GridLayer):
 
     def __init__(self, N: int, sigma: float,
-                 speed: float, kind: str="square"):
+                 speed: float, boundary_type: str="square",
+                 positions_type: str="square"):
 
-        super().__init__(N, sigma, speed, kind)
+        super().__init__(N, sigma, speed,
+                         boundary_type, positions_type)
         self.N = N
 
     def render_tuning(self):
