@@ -1571,8 +1571,6 @@ class Brain:
 
         ach = self.densitymod(x=c_val) if self.densitymod is not None else 1.
 
-
-
         self.pcnn2D.ach_modulation(ach=ach)
         self.pcnn2D.update()
 

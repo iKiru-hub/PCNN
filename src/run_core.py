@@ -95,25 +95,6 @@ possible_positions = np.array([
     [0.3, 0.8], [0.3, 0.8],
 ]) * GAME_SCALE
 
-# model_params = {
-#     "bnd_threshold": 0.2,
-#     "bnd_tau": 1.,
-#     "threshold": 0.5,
-#     "rep_threshold": 0.8,
-#     "action_delay": 2.,
-#     "max_depth": 10,
-#     "w1": -1.,  # bnd
-#     "w2": 0.2,  # dpos
-#     "w3": -0.5,  # pop
-#     "w4": 1.,  # trg
-#     "w5": 0.4,  # smooth
-
-#     "w6": -0.,
-#     "w7": 0.,
-#     "w8": 0.,
-#     "w9": 0.,
-#     "w10": 0.,
-# }
 model_params = {
     "bnd_threshold": 0.2,
     "bnd_tau": 1,
@@ -180,21 +161,33 @@ def _initialize(sim_settings: dict = sim_settings,
     logger(f"{duration}")
 
     # --- brain
+
     N = agent_settings["N"]
-    Nj = agent_settings["Nj"]
+    # Nj = agent_settings["Nj"]
     sigma = agent_settings["sigma"]
     trg_threshold = agent_settings["trg_threshold"]
 
     logger(f"{N=}")
-    logger(f"{Nj=}")
+    # logger(f"{Nj=}")
     logger(f"{sigma=}")
     logger(f"{trg_threshold=}")
 
-    xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, BOUNDS)
-
-
     # definition
-    pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.,
+    # xfilter = pclib.PCLayer(int(np.sqrt(Nj)), sigma, BOUNDS)
+    # pcnn2D = pclib.PCNN(N=N, Nj=Nj, gain=3., offset=1.,
+    #                     clip_min=0.09,
+    #                     threshold=model_params["threshold"],
+    #                     rep_threshold=model_params["rep_threshold"],
+    #                     rec_threshold=0.1,
+    #                     num_neighbors=8, trace_tau=0.1,
+    #                     xfilter=xfilter, name="2D")
+
+    xfilter = pclib.GridNetwork([
+                pclib.GridLayer(25, 0.05, 0.9, "square", "square"),
+                pclib.GridLayer(25, 0.2, 0.7, "square", "random_square"),
+                pclib.GridLayer(25, 0.03, 0.9, "hexagon", "random_circle")])
+    Nj = len(xfilter)
+    pcnn2D = pclib.PCNNgrid(N=N, Nj=Nj, gain=3., offset=1.,
                         clip_min=0.09,
                         threshold=model_params["threshold"],
                         rep_threshold=model_params["rep_threshold"],
