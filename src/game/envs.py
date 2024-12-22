@@ -219,11 +219,10 @@ class Room:
             wall.render(screen)
 
 
-def make_room(name: str="square", thickness: float=20.,
+def make_room(name: str="square", thickness: float=5.,
               bounds: list=[0, 1, 0, 1],
               moving_wall: bool=False,
               visualize: bool=False):
-
 
     walls_bounds = [
         Wall(OFFSET, OFFSET,
@@ -249,14 +248,73 @@ def make_room(name: str="square", thickness: float=20.,
             Wall(2*SCREEN_WIDTH//3, OFFSET,
                     thickness, SCREEN_HEIGHT//2)
         ]
-    elif name == "flat":
-        raise NotImplementedError
-    elif name == "flat2":
-        raise NotImplementedError
     elif name == "Hole.v0":
         walls_extra += [
-            Wall(SCREEN_WIDTH//2.5-OFFSET, SCREEN_HEIGHT//2.5-OFFSET,
+            Wall(SCREEN_WIDTH//2.5-OFFSET,
+                 SCREEN_HEIGHT//2.5-OFFSET,
                  SCREEN_WIDTH//3, SCREEN_HEIGHT//3),
+        ]
+    elif name == "Flat.0000":
+        walls_extra += [
+            Wall(OFFSET, SCREEN_HEIGHT//3,
+                 2*SCREEN_WIDTH//3-OFFSET, thickness),
+        ]
+    elif name == "Flat.0001":
+        walls_extra += [
+            Wall(OFFSET, 2*SCREEN_HEIGHT//3,
+                 2*SCREEN_WIDTH//3-OFFSET, thickness),
+        ]
+    elif name == "Flat.0010":
+        walls_extra += [
+            Wall(OFFSET, SCREEN_HEIGHT//3,
+                 2*SCREEN_WIDTH//3-OFFSET, thickness),
+            Wall(OFFSET, 2*SCREEN_HEIGHT//3,
+                 2*SCREEN_WIDTH//3-OFFSET, thickness),
+        ]
+    elif name == "Flat.0011":
+        walls_extra += [
+            Wall(OFFSET, SCREEN_HEIGHT//3,
+                 2*SCREEN_WIDTH//3-OFFSET, thickness),
+            Wall(SCREEN_WIDTH//3-OFFSET, 2*SCREEN_HEIGHT//3,
+                 2*SCREEN_WIDTH//3-OFFSET, thickness),
+        ]
+    elif name == "Flat.0110":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//3-OFFSET, SCREEN_HEIGHT//3,
+                 2*SCREEN_WIDTH//3-OFFSET, thickness),
+            Wall(OFFSET, 2*SCREEN_HEIGHT//3,
+                 2*SCREEN_WIDTH//3-OFFSET, thickness),
+        ]
+    elif name == "Flat.1000":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//3, OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+        ]
+    elif name == "Flat.1001":
+        walls_extra += [
+            Wall(2*SCREEN_WIDTH//3, OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+        ]
+    elif name == "Flat.1010":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//3, OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+            Wall(2*SCREEN_WIDTH//3, OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+        ]
+    elif name == "Flat.1011":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//3, OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+            Wall(2*SCREEN_WIDTH//3, SCREEN_HEIGHT//3-OFFSET, 
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+        ]
+    elif name == "Flat.1110":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+            Wall(2*SCREEN_WIDTH//3, OFFSET, 
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
     else:
         name = "Square.v0"
@@ -267,6 +325,21 @@ def make_room(name: str="square", thickness: float=20.,
                 name=name)
 
     return room
+
+
+
+def render_room(name: str):
+
+    room = make_room(name=name)
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    room.render(screen)
+    pygame.display.flip()
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
 
 """ Environment class """
@@ -453,6 +526,12 @@ if __name__ == "__main__":
     agent = objects.AgentBody(position=np.array([110, 110]),
                               width=25, height=25,
                               bounds=room_bounds,
+                              possible_positions=[
+                                    np.array([110, 110]),
+                                    np.array([110, 190]),
+                                    np.array([190, 110]),
+                                    np.array([190, 190])
+                              ],
                               max_speed=4.0)
     reward_obj = objects.RewardObj(position=np.array([150, 150]),
                                 bounds=room_bounds)

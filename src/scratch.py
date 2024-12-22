@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+import libs.pclib as pclib
+
 def make_surface(points: np.ndarray, h: np.ndarray):
 
     """

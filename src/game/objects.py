@@ -2,7 +2,6 @@
 import pygame
 import numpy as np
 from typing import Tuple, List
-from game.constants import *
 import os, sys
 
 
@@ -43,6 +42,8 @@ class AgentBody:
         self.random_brain = random_brain
         self.trajectory = [self.position.tolist()]
         self._possible_positions = possible_positions
+        # if possible_positions is None:
+        #     raise ValueError("No possible positions provided")
 
     def __str__(self) -> str:
         return f"AgentBody{tuple(self.position.tolist())}"

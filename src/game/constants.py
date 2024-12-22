@@ -18,3 +18,11 @@ COLOR3 = tuple(random.randint(0, 255) for _ in range(3))
 # Increase for more precision, decrease
 # for better performance
 NUM_STEPS = 10
+
+
+""" rooms """
+
+ROOMS = [
+'Flat.a000', 'Flat.a001', 'Flat.a010', 'Flat.a011',
+'Flat.a110'
+]
