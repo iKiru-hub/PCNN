@@ -109,50 +109,64 @@ class PCNNwrapper:
 def run_pcnn():
 
     #hexagon = pcr.pclib.Hexagon()
-    gc_list = [
-        pclib.GridLayer(40, 0.01, 0.01, [-1., 0., -1., 0.],
-                        "square", "square"),
-        pclib.GridLayer(30, 0.01, 0.05, [0., 1., 0., 1.],
-                        "square", "square"),
-        pclib.GridLayer(30, 0.01, 0.1, [-1., 0., 0., 1.],
-                        "square", "square")
-        # pclib.GridLayer(30, 0.03, 0.5, "square", "random_square"),
-        # pclib.GridLayer(25, 0.02, 0.4, "hexagon", "random_circle"),
-    ]
+    # gc_list = [
+    #     pclib.GridLayer(40, 0.01, 0.01, [-1., 0., -1., 0.],
+    #                     "square", "square"),
+    #     pclib.GridLayer(30, 0.01, 0.05, [0., 1., 0., 1.],
+    #                     "square", "square"),
+    #     pclib.GridLayer(30, 0.01, 0.1, [-1., 0., 0., 1.],
+    #                     "square", "square")
+    #     # pclib.GridLayer(30, 0.03, 0.5, "square", "random_square"),
+    #     # pclib.GridLayer(25, 0.02, 0.4, "hexagon", "random_circle"),
+    # ]
 
 
-    gcn = pclib.GridNetwork([pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[-1, 0, -1, 0],
-                              boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[0, 1, -1, 0],
-                   boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[-1, 0, 0, 1],
-                   boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[0, 1, 0, 1],
-                   boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[-1, 0, -1, 0],
-                              boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[0, 1, -1, 0],
-                  boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[-1, 0, 0, 1],
-                  boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[0, 1, 0, 1],
-                  boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[-1, 0, -1, 0],
-                              boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[0, 1, -1, 0],
-                  boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[-1, 0, 0, 1],
-                  boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[0, 1, 0, 1],
-                              boundary_type="square")])
 
-    pcnn_ = pclib.PCNNgrid(N=25, Nj=len(gcn), gain=7., offset=1.1,
+    # gcn = pclib.GridNetwork([pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[-1, 0, -1, 0],
+    #                           boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[0, 1, -1, 0],
+    #                boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[-1, 0, 0, 1],
+    #                boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[0, 1, 0, 1],
+    #                boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[-1, 0, -1, 0],
+    #                           boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[0, 1, -1, 0],
+    #               boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[-1, 0, 0, 1],
+    #               boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[0, 1, 0, 1],
+    #               boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[-1, 0, -1, 0],
+    #                           boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[0, 1, -1, 0],
+    #               boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[-1, 0, 0, 1],
+    #               boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[0, 1, 0, 1],
+    #                           boundary_type="square")])
+
+    gcn = pclib.GridHexNetwork([pclib.GridHexLayer(sigma=0.04, speed=0.1),
+                        pclib.GridHexLayer(sigma=0.04, speed=0.07),
+                        pclib.GridHexLayer(sigma=0.04, speed=0.03),
+                        pclib.GridHexLayer(sigma=0.04, speed=0.025)])
+
+    pcnn_ = pclib.PCNNgridhex(N=25, Nj=len(gcn), gain=8., offset=1.1,
                            clip_min=0.01,
-                           threshold=0.4,
-                           rep_threshold=0.5,
+                           threshold=0.3,
+                           rep_threshold=0.4,
                            rec_threshold=0.1,
                            num_neighbors=8, trace_tau=0.1,
                            xfilter=gcn, name="2D")
+
+    # pcnn_ = pclib.PCNNgrid(N=25, Nj=len(gcn), gain=7., offset=1.1,
+    #                        clip_min=0.01,
+    #                        threshold=0.4,
+    #                        rep_threshold=0.5,
+    #                        rec_threshold=0.1,
+    #                        num_neighbors=8, trace_tau=0.1,
+    #                        xfilter=gcn, name="2D")
  
     pcnn2d = PCNNwrapper(pcnn_,
                          max_iter=100_000)
@@ -169,7 +183,7 @@ def run_pcnn():
     size = 20
     s = np.array([0.005, 0.005])
 
-    for t in range(50_000):
+    for t in range(100_000):
 
         x += s[0]
         y += s[1]
@@ -180,7 +194,7 @@ def run_pcnn():
         x0 = x
         y0 = y
 
-        if t % 50 == 0:
+        if t % 100 == 0:
             s = np.random.uniform(-1, 1, 2)
             s = 0.1 * s / np.abs(s).sum()
 
@@ -193,7 +207,7 @@ def run_pcnn():
             y += s[1]
 
         traj += [[x, y]]
-        if t % 5000 == 0:
+        if t % 10000 == 0:
             pcnn2d.render(traj)
 
 
