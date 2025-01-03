@@ -146,7 +146,7 @@ class AgentBody:
         if np.all(position == None):
             if np.all(self._possible_positions) != None:
                 position = self._possible_positions[
-                        np.random.randint(len(self._possible_positions))
+                    np.random.randint(len(self._possible_positions))
             ]
             else:
                 raise ValueError("No possible positions provided")
@@ -174,7 +174,9 @@ class RewardObj:
 
     def __init__(self, position: np.ndarray,
                  radius: int = 10,
-                 bounds: Tuple[int, int, int, int] = (0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
+                 bounds: Tuple[int, int, int, int] = \
+                    (100, SCREEN_WIDTH-100,
+                     100, SCREEN_HEIGHT-100),
                  fetching: str="probabilistic",
                  color: Tuple[int, int, int] = (25, 255, 0)):
 

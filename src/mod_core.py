@@ -514,7 +514,7 @@ class BoundaryMod(Modulation):
             v = self.leaky_var(x=0, simulate=simulate)
 
         out = self.weights.reshape(1, -1) @ u.reshape(-1, 1)
-        out = utc.generalized_sigmoid(x=out, alpha=0.05,
+        out = utc.generalized_sigmoid(x=out, alpha=0.5,
                                       beta=200., clip_min=0.001).item()
         self.output = out
         self.value = out
@@ -953,7 +953,9 @@ class ExperienceModule(ModuleClass):
             "score_sequence": [],
             "index_sequence": [],
             "hidden_sequence": [],
-            "values_sequence": []}
+            "values_sequence": [],
+            "score": 0.0,
+        }
         self._mod_names = ("Bnd", "dPos", "Pop", "Trg", "Act", "nxP")
 
     def _logic(self, observation: dict):
@@ -1016,6 +1018,7 @@ class ExperienceModule(ModuleClass):
                 # the step is not completed
                 else:
                     self.output["velocity"] = action
+                    self.directive["state"] = "keep"
                     return
 
        # --- `new` directive
@@ -1041,9 +1044,10 @@ class ExperienceModule(ModuleClass):
             # new position if the action is taken
             new_position = observation["position"] + action
 
-            evaluation = self._evaluate_action(position=new_position,
-                                          action=action,
-                                          action_idx=action_idx)
+            evaluation = self._evaluate_action(
+                            position=new_position,
+                            action=action,
+                            action_idx=action_idx)
             score, hidden, values = evaluation
 
             # score = 1 / (1 + np.exp(-score))
@@ -1119,8 +1123,8 @@ class ExperienceModule(ModuleClass):
         trajectory = [observation["position"]]
         position_list = [observation["position"].tolist()]
         evaluation = self._evaluate_action(position=observation["position"],
-                                              action=action,
-                                              action_idx=action_idx)
+                                           action=action,
+                                           action_idx=action_idx)
         rollout_scores = [round(evaluation[0], 4)]
         rollout_hidden = [evaluation[1]]
         rollout_values = [evaluation[2]]
@@ -1216,6 +1220,7 @@ class ExperienceModule(ModuleClass):
         self.rollout["index_sequence"] = best_rollout[3][:depth+2]
         self.rollout["hidden_sequence"] = np.array(best_rollout[5])
         self.rollout["values_sequence"] = np.array(best_rollout[6])
+        self.rollout["score"] = best_score
 
         self.directive["state"] = "keep"
         self.directive["onset"] = self.t
@@ -1230,6 +1235,7 @@ class ExperienceModule(ModuleClass):
         self.output["velocity"] = action
         self.output["action_idx"] = self.rollout["index_sequence"][0]
         self.output["score"] = self.rollout["score_sequence"][0]
+        self.output["depth"] = depth
 
     def _check_plan_step(self, observation: dict):
 
@@ -1276,6 +1282,18 @@ class ExperienceModule(ModuleClass):
         return distance_vector / distance * self.speed, distance
 
     def render(self, ax=None, **kwargs):
+
+        if ax is not None:
+
+            ax.plot(self.rollout["trajectory"][:, 0],
+                   self.rollout["trajectory"][:, 1],
+                    '-', color="blue", alpha=0.5, lw=2)
+            ax.scatter(self.rollout["trajectory"][:, 0],
+                       self.rollout["trajectory"][:, 1],
+                       c=np.array(self.rollout["score_sequence"])/10,
+                       cmap="hot",
+                       s=30)
+            return
 
         return_fig = kwargs.get("return_fig", False)
 
@@ -1404,8 +1422,8 @@ class TargetModule(ModuleClass):
         modulation = self.circuits.circuits["DA"].weights
 
         # --- get representations
-        curr_repr = self.pcnn.fwd_ext(
-                            x=observation["position"])
+        # curr_repr = self.pcnn.fwd_ext(
+        #                     x=observation["position"])
         curr_pos = observation["position"]
 
         trg_repr, flag = self._converge_to_location(
@@ -1561,7 +1579,14 @@ class Brain:
         self.state["reward"] = observation["reward"]
 
         # >> forward current position
-        self.state["u"] = self.pcnn2D(x=observation["position"])
+        # self.state["u"] = self.pcnn2D(x=observation["position"])
+        # u, _ = self.pcnn2D(v=observation["position"])
+        logger.debug(f"{self.pcnn2D}")
+        logger.debug(f"velocity: {self.state['velocity']}")
+        u, y = self.pcnn2D(self.state["velocity"])
+        logger.debug(f"GCN:\n{np.around(self.pcnn2D.get_activation_gcn(), 2)}")
+        self.pcnn2D.update(*observation["position"])
+        self.state["u"] = np.array(u)
         self.state["delta_update"] = self.pcnn2D.get_delta_update()
 
         # --- update modulation
@@ -1571,8 +1596,8 @@ class Brain:
 
         ach = self.densitymod(x=c_val) if self.densitymod is not None else 1.
 
-        self.pcnn2D.ach_modulation(ach=ach)
-        self.pcnn2D.update()
+        # self.pcnn2D.ach_modulation(ach=ach)
+        # self.pcnn2D.update(*observation["position"])
 
         # --- update experience module
         exp_output = self.exp_module(observation=self.state)
@@ -1580,6 +1605,9 @@ class Brain:
             self.state[key] = out
 
         return exp_output["velocity"]
+
+    def reset(self, position: list):
+        self.pcnn2D.reset_gcn(position)
 
     def render(self, **kwargs):
 
@@ -1598,6 +1626,73 @@ class Brain:
 
         if kwargs.get("return_fig", False):
             return list(fig_exp) + fig_cir
+
+
+class randBrain:
+
+    def __init__(self, speed: float,
+                 pcnn2D: object):
+
+        self.speed = speed
+        self.pcnn2D = pcnn2D
+        self.circuits = None
+
+        self.state = {
+            "position": np.zeros(2),
+            "collision": False,
+            "reward": 0.,
+            "u": np.zeros(pcnn2D.get_size()),
+            "delta_update": 0.,
+            "velocity": np.zeros(2),
+            "action_idx": 0,
+            "depth": 0,
+            "score": 0,
+        }
+
+        # self.state = self.observation_ext | self.observation_int
+
+        self.directive = "new"
+        self._elapsed_time = 0
+        self.t = -1
+
+        # record
+        self.record = {"trajectory": []}
+
+    def __str__(self) -> str:
+        return f"Brain({self.pcnn2D})"
+
+    def __call__(self, observation: dict):
+
+        """
+        forward the observation through the brain
+        """
+
+        if observation["collision"]:
+            self.state["velocity"] *= -1
+
+        self.t += 1
+        if self.t % 100 == 0:
+            self.state["velocity"] = np.random.uniform(
+                -self.speed, self.speed, 2)
+            self.state["velocity"] = self.state["velocity"]/\
+                np.linalg.norm(self.state["velocity"]) * \
+                self.speed
+
+        # >> forward current position
+        u, y = self.pcnn2D(self.state["velocity"])
+        self.pcnn2D.update(*observation["position"])
+
+        # logger.debug(f"[{self.t}] y: {np.around(y, 2)}")
+
+        return self.state["velocity"]
+
+    def reset(self, position: list):
+        self.pcnn2D.reset_gcn(position)
+        # pass
+
+    def render(self, **kwargs):
+
+        pass
 
 
 """ policies """

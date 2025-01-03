@@ -83,7 +83,7 @@ agent_settings = {
     "N": 80,
     "Nj": 13**2,
     "sigma": 0.03 * GAME_SCALE,
-    "max_depth": 20,
+    "max_depth": 10,
     "trg_threshold": 0.0
 }
 
@@ -95,12 +95,12 @@ possible_positions = np.array([
 ]) * GAME_SCALE
 
 model_params = {
-    "bnd_threshold": 0.2,
+    "bnd_threshold": 0.5,
     "bnd_tau": 1,
     "threshold": 0.3,
     "rep_threshold": 0.5,
-    "action_delay": 7,
-    "max_depth": 20,
+    "action_delay": 3,
+    "max_depth": 6,
 
     "w1": -0.6, "w2": 0.0, "w3": -3.0, "w4": 0.4, "w5": 1.4, "w6": -1.8, "w7": 0.2, "w8": -2.0, "w9": 1.4, "w10": -1.6}
 
@@ -182,9 +182,12 @@ def _initialize(sim_settings: dict = sim_settings,
     #                     xfilter=xfilter, name="2D")
 
     xfilter = pclib.GridNetwork([
-                pclib.GridLayer(25, 0.05, 0.9, "square", "square"),
-                pclib.GridLayer(25, 0.2, 0.7, "square", "random_square"),
-                pclib.GridLayer(25, 0.03, 0.9, "hexagon", "random_circle")])
+                pclib.GridLayer(N=25, sigma=0.05, speed=0.9, init_bounds=[-1., 1., -1., 1.],
+                                boundary_type="square", basis_type="square"),
+                pclib.GridLayer(N=25, sigma=0.2, speed=0.7, init_bounds=[-1., 1., -1., 1.],
+                                boundary_type="square", basis_type="random_square"),
+                pclib.GridLayer(N=25, sigma=0.03, speed=0.9, init_bounds=[-1., 1., -1., 1.],
+                                boundary_type="hexagon", basis_type="random_circle")])
     Nj = len(xfilter)
     pcnn2D = pclib.PCNNgrid(N=N, Nj=Nj, gain=3., offset=1.,
                         clip_min=0.09,
@@ -289,6 +292,9 @@ def _initialize(sim_settings: dict = sim_settings,
                                 verbose=False,
                                 visualize=sim_settings["render_game"])
         logger(env)
+
+        pcnn2D_plotter.add_element(element=exp_module)
+
     else:
         # --- objects
         body = ev.AgentBody(position=sim_settings["init_position"],
@@ -600,12 +606,14 @@ def main_game(sim_settings=sim_settings,
     trajectory = [env.position.tolist()]
     velocity = np.zeros(2)
 
+    logger.debug(f"PCNN plotter: {pcnn2D_plotter}")
+
     # -- run
     games.run_game(env=env,
                    brain=brain,
                    pcnn_plotter=pcnn2D_plotter,
                    element=brain.circuits,
-                   fps=30)
+                   fps=5)
 
 
 def plot_update(fig, ax, agent, env, reward_obj,

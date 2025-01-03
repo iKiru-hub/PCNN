@@ -115,7 +115,7 @@ def setup_logger(name: str="MAIN",
 
 
 logger = setup_logger(name="UTILS", colored=True,
-                      level=0, is_debugging=False,
+                      level=0, is_debugging=True,
                       is_warning=False)
 
 
@@ -147,6 +147,8 @@ class PlotPCNN:
         self.visualize = visualize
         if visualize:
             self._fig, self._ax = plt.subplots(figsize=(6, 6))
+            self._fig2, self._ax2 = plt.subplots(
+                2, 1, figsize=(6, 6))
         # else:
         #     self._fig, self._ax = None, None
 
@@ -169,6 +171,7 @@ class PlotPCNN:
                title: str=None):
 
         new_ax = True
+
         if ax is None:
             # fig, ax = plt.subplots(figsize=(6, 6))
             fig, ax = self._fig, self._ax
@@ -206,7 +209,7 @@ class PlotPCNN:
         ax.scatter(centers[:, 0],
                    centers[:, 1],
                    c=new_a if new_a is not None else None,
-                   s=40, cmap=cmap,
+                   s=40,# cmap=cmap,
                    # vmin=0, vmax=0.04,
                    alpha=alpha_nodes)
 
@@ -251,6 +254,24 @@ class PlotPCNN:
 
         # if ax == self._ax:
         #     self._fig.canvas.draw()
+
+        # second axis
+        self._ax2[0].clear()
+        self._ax2[0].imshow(
+            self._model.get_activation().reshape(1, -1),
+            aspect="auto", cmap="plasma", alpha=0.8,
+        vmin=0., vmax=0.4)
+        self._ax2[0].set_title(f"PCNN | max={self._model.get_activation().max():.3f}")
+
+        self._ax2[1].clear()
+        self._ax2[1].imshow(
+            self._model.get_activation_gcn().reshape(1, -1),
+            aspect="auto", cmap="plasma", alpha=0.8,
+        vmin=0., vmax=0.99)
+        self._ax2[1].set_title("GCN")
+
+
+        plt.pause(0.001)
 
         if return_fig:
             return fig

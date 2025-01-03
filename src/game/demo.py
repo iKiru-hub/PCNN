@@ -2,7 +2,7 @@ import pygame
 import numpy as np
 import logging
 from objects import AgentBody, RewardObj, RandomAgent
-from envs import make_room
+from envs import make_room, ROOM_LIST
 from constants import *
 
 # Initialize logging
@@ -10,9 +10,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+
 class Game:
 
-    def __init__(self):
+    def __init__(self, tot: int = 10):
+
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH,
                                                SCREEN_HEIGHT))
@@ -20,12 +22,13 @@ class Game:
         self.clock = pygame.time.Clock()
 
         # Create game objects
-        self.setup_game()
+        self.setup_game(total_agents=tot)
 
-    def setup_game(self):
+    def setup_game(self, total_agents: int):
 
+        self.room_name = np.random.choice(ROOM_LIST)
         # self.room = make_room(name="Hole.v0")
-        self.room = make_room(name="Flat.a")
+        self.room = make_room(name=self.room_name)
 
         # Create agent with slower max speed
         pos = np.array([SCREEN_WIDTH//2, SCREEN_HEIGHT//2])
@@ -34,13 +37,21 @@ class Game:
                                max_speed=4.0)
 
         self.agent_list = []
-        for _ in range(10):
+        self.scores = np.zeros(total_agents)
+        self.names = []
+        for _ in range(total_agents):
             pos = np.array([np.random.randint(200, SCREEN_WIDTH-200),
                    np.random.randint(200, SCREEN_HEIGHT-200)])
             self.agent_list += [AgentBody(pos, max_speed=4.0,
                     random_brain=RandomAgent(
                         change_interval=30, max_speed=3.0),
                 color=tuple(random.randint(0, 255) for _ in range(3)))]
+            self.names += ["".join([np.random.choice([
+                'red', 'car', 'dog', 'cat', 'bird', 'fish',
+                'thr', 'bob', 'jim', 'tim', 'sam', 'tom',
+                'jane', 'sue', 'liz', 'lou', 'ann', 'eve',
+                'lucy', 'mary', 'sara', 'jill', 'june',
+            ]), str(np.random.randint(0, 99))])]
 
         # Create rewards
         self.rewards = [
@@ -48,7 +59,6 @@ class Game:
             RewardObj(position=np.array([200, 400])),
             RewardObj(position=np.array([500, 300])),
         ]
-
 
         # Game state
         self.velocity = np.array([0.0, 0.0])
@@ -84,18 +94,22 @@ class Game:
         for reward in self.rewards:
             if reward(self.agent.rect.center):
                 self.score += 1
-                logger.info(f"Score: {self.score}")
+                reward.set_position()
 
         # Update agent list
-        for agent in self.agent_list:
+        for i, agent in enumerate(self.agent_list):
             agent(None, self.room)
             for reward in self.rewards:
-                reward(agent.rect.center)
+                if reward(agent.rect.center):
+                    reward.set_position()
+                    self.scores[i] += 1
 
         self.t += 1
 
         if self.t % 100 == 0:
-            self.room.move_wall()
+            self.room_name = np.random.choice(ROOM_LIST)
+            self.room = make_room(name=self.room_name)
+
 
     def render(self):
         self.screen.fill(WHITE)
@@ -111,7 +125,11 @@ class Game:
 
         # Render score
         font = pygame.font.Font(None, 36)
-        score_text = font.render(f'Score: {self.score}', True, BLACK)
+        name = f"[{self.room_name}] | "
+        name += f"user: {self.score} | "
+        name += f"{self.names[self.scores.argmax()]}:"
+        name += f" {self.scores.max()}"
+        score_text = font.render(name, True, BLACK)
         self.screen.blit(score_text, (10, 10))
 
         pygame.display.flip()
@@ -130,7 +148,6 @@ class Game:
             self.clock.tick(FPS)
 
         pygame.quit()
-
 
 
 class GameSingle:
@@ -199,7 +216,6 @@ class GameSingle:
         for reward in self.rewards:
             if reward(self.agent.rect.center):
                 self.score += 1
-                logger.info(f"Score: {self.score}")
 
         self.agent(None, self.room)
         for reward in self.rewards:
@@ -245,18 +261,20 @@ class GameSingle:
         pygame.quit()
 
 
+
 if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--room", type=str, default="Flat.a")
     parser.add_argument("--single", action="store_true")
+    parser.add_argument("--total", type=int, default=10)
 
     args = parser.parse_args()
 
     if args.single:
         game = GameSingle(args.room)
     else:
-        game = Game()
+        game = Game(tot=args.total)
 
     game.run()

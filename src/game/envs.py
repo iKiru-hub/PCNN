@@ -327,6 +327,12 @@ def make_room(name: str="square", thickness: float=5.,
     return room
 
 
+ROOM_LIST = ["Square.v0", "Square.v1", "Square.v2",
+             "Hole.v0", "Flat.0000", "Flat.0001",
+             "Flat.0010", "Flat.0011", "Flat.0110",
+             "Flat.1000", "Flat.1001", "Flat.1010",
+             "Flat.1011", "Flat.1110"]
+
 
 def render_room(name: str):
 
@@ -388,8 +394,9 @@ class Environment:
 
         # Check reward collisions
         reward = self.reward_obj(self.agent.rect.center)
+        terminated = False
         if reward:
-            self._reward_event()
+            terminated = self._reward_event()
 
         self.t += 1
 
@@ -401,7 +408,7 @@ class Environment:
 
         position = self.agent.position.copy() / self.scale
 
-        return reward, position, collision, self.t >= self.duration
+        return reward, position, collision, self.t >= self.duration, terminated
 
     def _reward_event(self):
 
@@ -411,14 +418,17 @@ class Environment:
 
         if self.rw_event == "move reward":
             self.reward_obj.set_position()
+            return False
         elif self.rw_event == "move agent":
             self.agent.set_position()
             self.agent.reset()
+            return True
         elif self.rw_event == "move both":
             self.agent.set_position()
             self.reward_obj.set_position()
+            return True
         elif self.rw_event == "nothing":
-            pass
+            return False
         else:
             raise ValueError(f"Unknown reward " + \
                 f"event: {self.rw_event}")
@@ -448,7 +458,8 @@ def run_game(env: Environment,
              brain: object,
              pcnn_plotter: object = None,
              element: object = None,
-             fps: int = 30):
+             fps: int = 30,
+             plotter_int: int = 100):
 
     clock = pygame.time.Clock()
     observation = {
@@ -467,8 +478,13 @@ def run_game(env: Environment,
                     running = False
 
         # step
-        velocity = brain(observation)
+        velocity = brain(observation)# * SCREEN_WIDTH
         next_observation = env(velocity=velocity)
+
+        # reset agent's brain
+        if next_observation[4]:
+            logger.info(">> Game reset <<")
+            brain.reset(position=env.agent.position)
 
         # update observation
         observation["position"] = next_observation[1]
@@ -478,16 +494,25 @@ def run_game(env: Environment,
         # render
         if env.visualize:
             env.render()
+            # pcnn_plotter.render(np.array(
+            #     env.agent.trajectory) /\
+            #     env.scale,
+            #     customize=True,
+            #     draw_fig=True,
+            #     render_elements=True, 
+            #     alpha_nodes=0.5,
+            #     alpha_edges=0.2)
 
-            if env.t % 50 == 0:
+            if env.t % plotter_int == 0:
                 if pcnn_plotter is not None:
                     pcnn_plotter.render(np.array(
                         env.agent.trajectory) /\
                         env.scale,
-                                    customize=True,
-                                    draw_fig=True,
-                                    alpha_nodes=0.5,
-                                    alpha_edges=0.2)
+                        customize=True,
+                        draw_fig=True,
+                        render_elements=True, 
+                        alpha_nodes=0.5,
+                        alpha_edges=0.2)
 
                 if element is not None:
                     # element.render_circuits()
