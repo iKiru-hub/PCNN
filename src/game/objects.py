@@ -63,6 +63,9 @@ class AgentBody:
 
         if self.random_brain is not None:
             velocity = self.random_brain()
+            logger.debug("random??")
+
+        logger.debug(f"Velocity: {velocity}")
 
         # Clamp velocity to max speed
         # speed = np.linalg.norm(velocity)
@@ -138,6 +141,7 @@ class AgentBody:
                 self.position = next_pos
 
         self.trajectory.append(self.position.tolist())
+        logger.debug(f"Position: {self.position}")
 
         return velocity, False
 

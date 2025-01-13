@@ -148,7 +148,7 @@ class PlotPCNN:
         if visualize:
             self._fig, self._ax = plt.subplots(figsize=(6, 6))
             self._fig2, self._ax2 = plt.subplots(
-                2, 1, figsize=(6, 6))
+                3, 1, figsize=(6, 6))
         # else:
         #     self._fig, self._ax = None, None
 
@@ -188,7 +188,8 @@ class PlotPCNN:
         # --- trajectory
         if trajectory is not None and len(trajectory) > 0:
             ax.plot(trajectory[:, 0], trajectory[:, 1], 'r-',
-                          lw=0.5, alpha=0.5 if new_a is not None else 0.9)
+                    lw=0.5,
+                    alpha=0.5 if new_a is not None else 0.9)
             # ax.scatter(trajectory[-1, 0], trajectory[-1, 1],
             #             c='k', s=150, marker='x')
 
@@ -270,6 +271,10 @@ class PlotPCNN:
         vmin=0., vmax=0.99)
         self._ax2[1].set_title("GCN")
 
+        self._ax2[2].clear()
+        self._ax2[2].imshow(
+            self._model.get_wff(),
+                aspect="auto", cmap="plasma", alpha=0.8)
 
         plt.pause(0.001)
 

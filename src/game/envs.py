@@ -406,9 +406,9 @@ class Environment:
             if collision:
                 logger.info(f"[t={self.t}] -collision")
 
-        position = self.agent.position.copy() / self.scale
+        # position = self.agent.position.copy() / self.scale
 
-        return reward, position, collision, self.t >= self.duration, terminated
+        return self.agent.position.copy(), velocity, reward, float(collision), float(self.t >= self.duration), terminated
 
     def _reward_event(self):
 
@@ -462,11 +462,16 @@ def run_game(env: Environment,
              plotter_int: int = 100):
 
     clock = pygame.time.Clock()
-    observation = {
-        "position": env.position,
-        "collision": False,
-        "reward": False
-    }
+    last_position = np.zeros(2)
+
+    # [position, velocity, collision, reward, done, terminated]
+    observation = [env.position, np.array([0., 0.]), 0., 0.,
+                   False, False]
+    # observation = {
+    #     "position": env.position,
+    #     "collision": 0.,
+    #     "reward": 0.
+    # }
 
     running = True
     while running:
@@ -478,36 +483,39 @@ def run_game(env: Environment,
                     running = False
 
         # step
-        velocity = brain(observation)# * SCREEN_WIDTH
-        next_observation = env(velocity=velocity)
+        # velocity = brain(observation)# * SCREEN_WIDTH
+        # obs = [(observation["position"]-last_position).astype(np.float32).reshape(-1, 1),
+        #        observation["collision"],
+        #        observation["reward"]]
+        velocity = brain(observation[1],
+                         observation[2],
+                         observation[3],
+                         observation[0])
+        if not isinstance(velocity, np.ndarray):
+            velocity = np.array(velocity)
+
+        observation = env(velocity=velocity)
 
         # reset agent's brain
-        if next_observation[4]:
+        if observation[4]:
             logger.info(">> Game reset <<")
             brain.reset(position=env.agent.position)
 
         # update observation
-        observation["position"] = next_observation[1]
-        observation["collision"] = next_observation[2]
-        observation["reward"] = next_observation[0]
+        # observation["position"] = next_observation[1]
+        # observation["collision"] = next_observation[2]
+        # observation["reward"] = next_observation[0]
+        # last_position = observation[0]
 
         # render
         if env.visualize:
             env.render()
-            # pcnn_plotter.render(np.array(
-            #     env.agent.trajectory) /\
-            #     env.scale,
-            #     customize=True,
-            #     draw_fig=True,
-            #     render_elements=True, 
-            #     alpha_nodes=0.5,
-            #     alpha_edges=0.2)
 
             if env.t % plotter_int == 0:
                 if pcnn_plotter is not None:
                     pcnn_plotter.render(np.array(
-                        env.agent.trajectory) /\
-                        env.scale,
+                        env.agent.trajectory),# /\
+                        # env.scale,
                         customize=True,
                         draw_fig=True,
                         render_elements=True, 
@@ -524,15 +532,13 @@ def run_game(env: Environment,
             clock.tick(FPS)
 
         # exit 1
-        if next_observation[3]:
+        if observation[4]:
             running = False
 
     pygame.quit()
 
 
-
 if __name__ == "__main__":
-
 
     import argparse
     parser = argparse.ArgumentParser()

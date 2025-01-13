@@ -1418,6 +1418,13 @@ class TargetModule(ModuleClass):
 
     def _logic(self, observation: dict):
 
+        """
+        trg_repr <- converge(modulation)
+        enabled
+        --
+        value <- compare velocities()
+        """
+
         # --- modulation
         modulation = self.circuits.circuits["DA"].weights
 
@@ -1581,10 +1588,10 @@ class Brain:
         # >> forward current position
         # self.state["u"] = self.pcnn2D(x=observation["position"])
         # u, _ = self.pcnn2D(v=observation["position"])
-        logger.debug(f"{self.pcnn2D}")
-        logger.debug(f"velocity: {self.state['velocity']}")
+        # logger.debug(f"{self.pcnn2D}")
+        # logger.debug(f"velocity: {self.state['velocity']}")
         u, y = self.pcnn2D(self.state["velocity"])
-        logger.debug(f"GCN:\n{np.around(self.pcnn2D.get_activation_gcn(), 2)}")
+        # logger.debug(f"GCN:\n{np.around(self.pcnn2D.get_activation_gcn(), 2)}")
         self.pcnn2D.update(*observation["position"])
         self.state["u"] = np.array(u)
         self.state["delta_update"] = self.pcnn2D.get_delta_update()
@@ -1661,13 +1668,15 @@ class randBrain:
     def __str__(self) -> str:
         return f"Brain({self.pcnn2D})"
 
-    def __call__(self, observation: dict):
+    # def __call__(self, observation: dict):
+    def __call__(self, v: list, collision: float,
+                 reward: float=0.0, position: list=[-1.0, -1.0]):
 
         """
         forward the observation through the brain
         """
 
-        if observation["collision"]:
+        if collision:
             self.state["velocity"] *= -1
 
         self.t += 1
@@ -1680,7 +1689,7 @@ class randBrain:
 
         # >> forward current position
         u, y = self.pcnn2D(self.state["velocity"])
-        self.pcnn2D.update(*observation["position"])
+        self.pcnn2D.update(*position)
 
         # logger.debug(f"[{self.t}] y: {np.around(y, 2)}")
 

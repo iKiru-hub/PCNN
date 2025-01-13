@@ -126,8 +126,6 @@ def run_pcnn():
     #     # pclib.GridLayer(25, 0.02, 0.4, "hexagon", "random_circle"),
     # ]
 
-
-
     gcn = pclib.GridNetwork([pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[-1, 0, -1, 0],
                               boundary_type="square"),
                pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[0, 1, -1, 0],
@@ -569,7 +567,7 @@ if __name__ == '__main__':
 
     np.random.seed(0)
 
-    # run_pcnn()
-    run_pcnn_hex(duration=args.duration)
+    run_pcnn()
+    # run_pcnn_hex(duration=args.duration)
     # run_gcn_hex()
     # run_gcn()
