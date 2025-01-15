@@ -36,7 +36,7 @@ int main() {
 
     /* pcl::test_trgp(); */
     /* pcl::test_brain(); */
-    pcl::test_brain_2();
+    /* pcl::test_brain_2(); */
 
     return 0;
 }

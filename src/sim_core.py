@@ -3,14 +3,15 @@ import matplotlib.pyplot as plt
 import argparse, json
 from tqdm import tqdm
 
-import mod_core as mod
+# import mod_core as mod
 import utils_core as utc
-import envs_core as ev
+# import envs_core as ev
 
 import game.envs as games
 
 try:
-    import libs.pclib as pclib
+    # import libs.pclib as pclib
+    import core.build.pclib as pclib
 except ImportError:
     import warnings
     warnings.warn("pclib [c++] not found, using python version")
@@ -790,8 +791,6 @@ def main_game_rand_2(room_name: str="Square.v0"):
         "seed": None
     }
 
-    N = 100
-
     # brain
     # gcn = pclib.GridHexNetwork([
     #             pclib.GridHexLayer(sigma=0.04, speed=0.2),
@@ -812,43 +811,67 @@ def main_game_rand_2(room_name: str="Square.v0"):
     #                           xfilter=gcn, name="2D")
 
 
-    gcn = pclib.GridNetwork([pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[-1, 0, -1, 0],
-                              boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[0, 1, -1, 0],
-                   boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[-1, 0, 0, 1],
-                   boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[0, 1, 0, 1],
-                   boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[-1, 0, -1, 0],
-                              boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[0, 1, -1, 0],
-                  boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[-1, 0, 0, 1],
-                  boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[0, 1, 0, 1],
-                  boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[-1, 0, -1, 0],
-                              boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[0, 1, -1, 0],
-                  boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[-1, 0, 0, 1],
-                  boundary_type="square"),
-               pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[0, 1, 0, 1],
-                              boundary_type="square")])
+    # gcn = pclib.GridNetwork([pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[-1, 0, -1, 0],
+    #                           boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[0, 1, -1, 0],
+    #                boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[-1, 0, 0, 1],
+    #                boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.1, init_bounds=[0, 1, 0, 1],
+    #                boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[-1, 0, -1, 0],
+    #                           boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[0, 1, -1, 0],
+    #               boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[-1, 0, 0, 1],
+    #               boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.05, init_bounds=[0, 1, 0, 1],
+    #               boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[-1, 0, -1, 0],
+    #                           boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[0, 1, -1, 0],
+    #               boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[-1, 0, 0, 1],
+    #               boundary_type="square"),
+    #            pclib.GridLayer(N=9, sigma=0.04, speed=0.025, init_bounds=[0, 1, 0, 1],
+    #                           boundary_type="square")])
 
-    pcnn_ = pclib.PCNNgrid(N=N, Nj=len(gcn), gain=7., offset=1.1,
-                           clip_min=0.01,
-                           threshold=0.4,
-                           rep_threshold=0.5,
-                           rec_threshold=0.1,
-                           num_neighbors=8, trace_tau=0.1,
-                           xfilter=gcn, name="2D")
+    # pcnn_ = pclib.PCNNgrid(N=N, Nj=len(gcn), gain=7., offset=1.1,
+    #                        clip_min=0.01,
+    #                        threshold=0.4,
+    #                        rep_threshold=0.5,
+    #                        rec_threshold=0.1,
+    #                        num_neighbors=8, trace_tau=0.1,
+    #                        xfilter=gcn, name="2D")
 
-    pcnn2D_plotter = utc.PlotPCNN(model=pcnn_,
-                    bounds=sim_settings["bounds"],
-                    visualize=sim_settings["rendering_pcnn"],
-                    number=0)
+    """ PCNN """
+    N = 150
+
+    # --- Square PCNN
+    # gcn = pclib.GridNetworkSq([pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1., 1.-1/6]),
+    #                            pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1+1/6., 1.]),
+    #                            pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1., 1.-1/6]),
+    #                            pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1.+1/6, 1.]),
+    #                            pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1., 1.-1/6]),
+    #                            pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1.+1/6, 1.]),])
+
+    # space = pclib.PCNNsq(N=N, Nj=len(gcn), gain=7., offset=1.1,
+    #                        clip_min=0.01,
+    #                        threshold=0.4,
+    #                        rep_threshold=0.5,
+    #                        rec_threshold=0.1,
+    #                        num_neighbors=8, trace_tau=0.1,
+    #                        xfilter=gcn, name="2D")
+
+    # --- hard-coded PCNN
+    gcn = pclib.GridNetworkSq([pclib.GridLayerSq(sigma=0.04,
+                                                 speed=0.1,
+                                                 bounds=[-1., 1.-1/6])])
+    space = pclib.PCNNbase(N, len(gcn), 5, 0.1, 0.01, 0.7, 0.1,
+                        0.1, GAME_SCALE, 0.1, gcn, 20, "pcnn")
+
+    """ remaining components """
+
     da = pclib.BaseModulation(name="DA", size=N, min_v=0.01, lr=0.1,
                               offset=0.01, gain=50.0)
     bnd = pclib.BaseModulation(name="BND", size=N, min_v=0.01,
@@ -856,17 +879,21 @@ def main_game_rand_2(room_name: str="Square.v0"):
                                gain=50.0)
     circuit = pclib.Circuits(da, bnd)
 
-    wrec = pcnn_.get_wrec()
+    wrec = space.get_wrec()
     trgp = pclib.TargetProgram(0., wrec,
                                da, 20, 0.)
 
-    eval_net = pclib.OneLayerNetwork([0.1, 0.1, 0.1, 0.1])
+    eval_net = pclib.OneLayerNetwork([-0.5, 1., -1.1, 1.])
     expmd = pclib.ExperienceModule(sim_settings["speed"],
                                    circuit,
-                                   trgp, pcnn_, eval_net)
+                                   trgp, space, eval_net)
 
-    brain = pclib.Brain(circuit, pcnn_, trgp, expmd)
+    brain = pclib.Brain(circuit, space, trgp, expmd)
 
+    pcnn2D_plotter = utc.PlotPCNN(model=space,
+                    bounds=sim_settings["bounds"],
+                    visualize=sim_settings["rendering_pcnn"],
+                    number=0)
     # --- room
     room = games.make_room(name=room_name, thickness=5.)
     room_bounds = [room.bounds[0]+10, room.bounds[2]-10,

@@ -473,6 +473,8 @@ def run_game(env: Environment,
     #     "reward": 0.
     # }
 
+    expmd = brain.get_expmd()
+
     running = True
     while running:
 
@@ -493,6 +495,8 @@ def run_game(env: Environment,
                          observation[0])
         if not isinstance(velocity, np.ndarray):
             velocity = np.array(velocity)
+
+        logger.debug("plan: " + str(expmd.get_plan()[0]))
 
         observation = env(velocity=velocity)
 

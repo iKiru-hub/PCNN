@@ -512,14 +512,16 @@ Eigen::VectorXf vector_to_eigen(const std::vector<float>& vec) {
 }
 
 // @brief: generate a lattice of points
-Eigen::MatrixXf generate_lattice(int N) {
+Eigen::MatrixXf generate_lattice(int N, int length) {
     // Determine the number of points along each axis
     int grid_size = static_cast<int>(std::sqrt(N));
     if (grid_size * grid_size < N) {
         grid_size += 1; // Ensure we have at least N points
     }
-
-    double step = 10.0 / (grid_size - 1); // Step size between points
+    float grid_size_f = static_cast<float>(grid_size);
+    float length_f = static_cast<float>(length);
+    // Step size between points
+    float step = length_f / (grid_size_f - 1);
 
     // Initialize a matrix to store the points
     Eigen::MatrixXf points(N, 2);

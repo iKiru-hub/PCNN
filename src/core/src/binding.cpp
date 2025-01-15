@@ -6,7 +6,8 @@
 #include <iostream>
 #include <Eigen/Dense>
 
-#define PCNN_REF PCNNsq
+#define PCNN_REF PCNNbase
+#define CIRCUIT_SIZE 3
 
 namespace py = pybind11;
 
@@ -19,9 +20,10 @@ PYBIND11_MODULE(pclib, m) {
     /* PCNN MODEL */
     // (InputFilter) Grid Layer
     py::class_<GridLayerSq>(m, "GridLayerSq")
-        .def(py::init<float, float>(),
+        .def(py::init<float, float, std::array<float, 2>>(),
              py::arg("sigma"),
-             py::arg("speed"))
+             py::arg("speed"),
+             py::arg("bounds") = std::array<float, 2>({0.0f, 1.0f}))
         .def("__call__", &GridLayerSq::call,
              py::arg("v"))
         .def("__str__", &GridLayerSq::str)
@@ -48,45 +50,6 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_centers", &GridNetworkSq::get_centers)
         .def("get_num_layers", &GridNetworkSq::get_num_layers)
         .def("get_positions", &GridNetworkSq::get_positions);
-
-    // (InputFilter) Grid Layer
-    py::class_<GridLayer>(m, "GridLayer")
-        .def(py::init<int, float, float,
-             std::array<float, 4>,
-             std::string,
-             std::string>(),
-             py::arg("N"),
-             py::arg("sigma"),
-             py::arg("speed"),
-             py::arg("init_bounds"),
-             py::arg("boundary_type") = "square",
-             py::arg("basis_type") = "square")
-        .def("__call__", &GridLayer::call,
-             py::arg("v"))
-        .def("__str__", &GridLayer::str)
-        .def("__repr__", &GridLayer::repr)
-        .def("__len__", &GridLayer::len)
-        .def("get_centers", &GridLayer::get_centers)
-        .def("get_activation", &GridLayer::get_activation)
-        .def("get_positions", &GridLayer::get_positions)
-        .def("reset", &GridLayer::reset,
-             py::arg("v"));
-
-    // Grid Layer Network
-    py::class_<GridNetwork>(m, "GridNetwork")
-        .def(py::init<std::vector<GridLayer>>(),
-             py::arg("layers"))
-        .def("__call__", &GridNetwork::call,
-                py::arg("x"))
-        .def("__str__", &GridNetwork::str)
-        .def("__repr__", &GridNetwork::repr)
-        .def("__len__", &GridNetwork::len)
-        .def("fwd_position", &GridNetwork::fwd_position,
-                py::arg("v"))
-        .def("get_activation", &GridNetwork::get_activation)
-        .def("get_centers", &GridNetwork::get_centers)
-        .def("get_num_layers", &GridNetwork::get_num_layers)
-        .def("get_positions", &GridNetwork::get_positions);
 
     // Grid layer with pre-defined hexagon layer
     py::class_<GridHexLayer>(m, "GridHexLayer")
@@ -174,105 +137,6 @@ PYBIND11_MODULE(pclib, m) {
         .def("reset_gcn", &PCNNgridhex::reset_gcn,
              py::arg("v"));
 
-
-    // PCNN network model [Grid]
-    py::class_<PCNNgrid>(m, "PCNNgrid")
-        .def(py::init<int, int, float, float,
-             float, float, float, float, \
-             int, float, GridNetwork, std::string>(),
-             py::arg("N"),
-             py::arg("Nj"),
-             py::arg("gain"),
-             py::arg("offset"),
-             py::arg("clip_min"),
-             py::arg("threshold"),
-             py::arg("rep_threshold"),
-             py::arg("rec_threshold"),
-             py::arg("num_neighbors"),
-             py::arg("trace_tau"),
-             py::arg("xfilter"),
-             py::arg("name"))
-        .def("__call__", &PCNNgrid::call,
-             py::arg("v"),
-             py::arg("frozen") = false,
-             py::arg("traced") = true)
-        .def("__str__", &PCNNgrid::str)
-        .def("__len__", &PCNNgrid::len)
-        .def("__repr__", &PCNNgrid::repr)
-        .def("update", &PCNNgrid::update,
-             py::arg("x") = -1.0,
-             py::arg("y") = -1.0)
-        .def("get_activation", &PCNNgrid::get_activation)
-        .def("get_activation_gcn",
-             &PCNNgrid::get_activation_gcn)
-        .def("ach_modulation", &PCNNgrid::ach_modulation,
-             py::arg("ach"))
-        .def("get_size", &PCNNgrid::get_size)
-        .def("get_trace", &PCNNgrid::get_trace)
-        .def("get_wff", &PCNNgrid::get_wff)
-        .def("get_wrec", &PCNNgrid::get_wrec)
-        .def("get_connectivity", &PCNNgrid::get_connectivity)
-        .def("get_centers", &PCNNgrid::get_centers,
-             py::arg("nonzero") = false)
-        .def("get_delta_update", &PCNNgrid::get_delta_update)
-        .def("fwd_ext", &PCNNgrid::fwd_ext,
-             py::arg("x"))
-        .def("fwd_int", &PCNNgrid::fwd_int,
-             py::arg("a"))
-        .def("reset_gcn", &PCNNgrid::reset_gcn,
-             py::arg("v"));
-
-    // (InputFilter) Random Layer
-    py::class_<RandLayer>(m, "RandLayer")
-        .def(py::init<int>(),
-             py::arg("N"))
-        .def("__call__", &RandLayer::call,
-             py::arg("x"))
-        .def("__str__", &RandLayer::str)
-        .def("__len__", &RandLayer::len)
-        .def("__repr__", &RandLayer::repr)
-        .def("get_centers", &RandLayer::get_centers)
-        .def("get_activation", &RandLayer::get_activation);
-
-    // PCNN network model [Rand]
-    py::class_<PCNNrand>(m, "PCNNrand")
-        .def(py::init<int, int, float, float,
-             float, float, float, float, \
-             int, float, RandLayer, std::string>(),
-             py::arg("N"),
-             py::arg("Nj"),
-             py::arg("gain"),
-             py::arg("offset"),
-             py::arg("clip_min"),
-             py::arg("threshold"),
-             py::arg("rep_threshold"),
-             py::arg("rec_threshold"),
-             py::arg("num_neighbors"),
-             py::arg("trace_tau"),
-             py::arg("xfilter"),
-             py::arg("name"))
-        .def("__call__", &PCNNrand::call,
-             py::arg("x"),
-             py::arg("frozen") = false,
-             py::arg("traced") = true)
-        .def("__str__", &PCNNrand::str)
-        .def("__len__", &PCNNrand::len)
-        .def("__repr__", &PCNNrand::repr)
-        .def("update", &PCNNrand::update)
-        .def("ach_modulation", &PCNNrand::ach_modulation,
-             py::arg("ach"))
-        .def("get_size", &PCNNrand::get_size)
-        .def("get_trace", &PCNNrand::get_trace)
-        .def("get_wff", &PCNNrand::get_wff)
-        .def("get_wrec", &PCNNrand::get_wrec)
-        .def("get_connectivity", &PCNNrand::get_connectivity)
-        .def("get_delta_update", &PCNNrand::get_delta_update)
-        .def("get_centers", &PCNNrand::get_centers)
-        .def("fwd_ext", &PCNNrand::fwd_ext,
-             py::arg("x"))
-        .def("fwd_int", &PCNNrand::fwd_int,
-             py::arg("a"));
-
     // PCNN network model [GridSq]
     py::class_<PCNNsq>(m, "PCNNsq")
         .def(py::init<int, int, float, float,
@@ -320,59 +184,54 @@ PYBIND11_MODULE(pclib, m) {
         .def("reset_gcn", &PCNNsq::reset_gcn,
              py::arg("v"));
 
-    // (InputFilter) Place Cell Layer
-    py::class_<PCLayer>(m, "PCLayer")
-        .def(py::init<int, float, std::array<float, 4>>(),
-             py::arg("n"),
-             py::arg("sigma"),
-             py::arg("bounds"))
-        .def("__call__", &PCLayer::call,
-             py::arg("x"))
-        .def("__str__", &PCLayer::str)
-        .def("__len__", &PCLayer::len)
-        .def("__repr__", &PCLayer::repr)
-        .def("get_centers", &PCLayer::get_centers)
-        .def("get_activation", &RandLayer::get_activation);
-
-    // PCNN network model
-    py::class_<PCNN>(m, "PCNN")
+    // PCNN network model [GridSq]
+    py::class_<PCNNbase>(m, "PCNNbase")
         .def(py::init<int, int, float, float,
              float, float, float, float, \
-             int, float, PCLayer, std::string>(),
+             int, float, GridNetworkSq&, int, std::string>(),
              py::arg("N"),
              py::arg("Nj"),
-             py::arg("gain"),
-             py::arg("offset"),
-             py::arg("clip_min"),
-             py::arg("threshold"),
-             py::arg("rep_threshold"),
-             py::arg("rec_threshold"),
-             py::arg("num_neighbors"),
-             py::arg("trace_tau"),
+             py::arg("gain") = 10.0f,
+             py::arg("offset") = 0.5f,
+             py::arg("clip_min") = 0.001f,
+             py::arg("threshold") = 0.5f,
+             py::arg("rep_threshold") = 0.5f,
+             py::arg("rec_threshold") = 0.5f,
+             py::arg("num_neighbors") = 8,
+             py::arg("trace_tau") = 5.0f,
              py::arg("xfilter"),
-             py::arg("name"))
-        .def("__call__", &PCNN::call,
-             py::arg("x"),
+             py::arg("length"),
+             py::arg("name") = "PCNNbase")
+        .def("__call__", &PCNNbase::call,
+             py::arg("v"),
              py::arg("frozen") = false,
              py::arg("traced") = true)
-        .def("__str__", &PCNN::str)
-        .def("__len__", &PCNN::len)
-        .def("__repr__", &PCNN::repr)
-        .def("update", &PCNN::update)
-        .def("ach_modulation", &PCNN::ach_modulation,
+        .def("__str__", &PCNNbase::str)
+        .def("__len__", &PCNNbase::len)
+        .def("__repr__", &PCNNbase::repr)
+        .def("update", &PCNNbase::update,
+             py::arg("x") = -1.0,
+             py::arg("y") = -1.0)
+        .def("get_activation", &PCNNbase::get_activation)
+        .def("get_activation_gcn",
+             &PCNNbase::get_activation_gcn)
+        .def("ach_modulation", &PCNNbase::ach_modulation,
              py::arg("ach"))
-        .def("get_size", &PCNN::get_size)
-        .def("get_trace", &PCNN::get_trace)
-        .def("get_wff", &PCNN::get_wff)
-        .def("get_wrec", &PCNN::get_wrec)
-        .def("get_connectivity", &PCNN::get_connectivity)
-        .def("get_delta_update", &PCNN::get_delta_update)
-        .def("get_centers", &PCNN::get_centers)
-        .def("fwd_ext", &PCNN::fwd_ext,
+        .def("get_size", &PCNNbase::get_size)
+        .def("get_trace", &PCNNbase::get_trace)
+        .def("get_wff", &PCNNbase::get_wff)
+        .def("get_wrec", &PCNNbase::get_wrec)
+        .def("get_connectivity", &PCNNbase::get_connectivity)
+        .def("get_centers", &PCNNbase::get_centers,
+             py::arg("nonzero") = false)
+        .def("get_basis", &PCNNbase::get_basis)
+        .def("get_delta_update", &PCNNbase::get_delta_update)
+        .def("fwd_ext", &PCNNbase::fwd_ext,
              py::arg("x"))
-        .def("fwd_int", &PCNN::fwd_int,
-             py::arg("a"));
-
+        .def("fwd_int", &PCNNbase::fwd_int,
+             py::arg("a"))
+        .def("reset_gcn", &PCNNbase::reset_gcn,
+             py::arg("v"));
 
     /* MODULATION MODULES */
 
@@ -427,6 +286,15 @@ PYBIND11_MODULE(pclib, m) {
         .def("__call__", &DensityMod::call,
              py::arg("x"))
         .def("get_value", &DensityMod::get_value);
+
+    py::class_<PopulationMaxProgram>(m, "PopulationMaxProgram")
+        .def(py::init<>())
+        .def("__str__", &PopulationMaxProgram::str)
+        .def("__repr__", &PopulationMaxProgram::repr)
+        .def("__call__", &PopulationMaxProgram::call,
+             py::arg("u"))
+        .def("len", &PopulationMaxProgram::len)
+        .def("get_value", &PopulationMaxProgram::get_value);
 
     /* MODULATION */
     py::class_<BaseModulation>(m, "BaseModulation")
@@ -496,18 +364,22 @@ PYBIND11_MODULE(pclib, m) {
     // 2 layer network
     py::class_<ExperienceModule>(m, "ExperienceModule")
         .def(py::init<float, Circuits&, TargetProgram&,
-             PCNN_REF&, OneLayerNetwork&>(),
+             PCNN_REF&, OneLayerNetwork&, int>(),
              py::arg("speed"),
              py::arg("circuits"),
              py::arg("trgp"),
              py::arg("space"),
-             py::arg("eval_network"))
+             py::arg("eval_network"),
+             py::arg("action_delay") = 1)
         .def("__call__", &ExperienceModule::call,
-             py::arg("directive"))
+             py::arg("directive"),
+             py::arg("position"))
         .def("__str__", &ExperienceModule::str)
         .def("__repr__", &ExperienceModule::repr)
         .def("get_action_seq", &ExperienceModule::get_action_seq)
-        .def("get_plan", &ExperienceModule::get_plan);
+        .def("get_plan", &ExperienceModule::get_plan)
+        .def_readonly("new_plan", &ExperienceModule::new_plan)
+        .def("get_values", &ExperienceModule::get_values);
 
     /* ACTION SAMPLING MODULE */
 
@@ -542,7 +414,7 @@ PYBIND11_MODULE(pclib, m) {
 
     // 1 layer network
     py::class_<OneLayerNetwork>(m, "OneLayerNetwork")
-        .def(py::init<std::vector<float>>(),
+        .def(py::init<std::array<float, CIRCUIT_SIZE+1>>(),
              py::arg("weights"))
         .def("__call__", &OneLayerNetwork::call,
              py::arg("x"))
@@ -578,8 +450,10 @@ PYBIND11_MODULE(pclib, m) {
              &Brain::get_representation)
         .def("get_trg_representation",
              &Brain::get_trg_representation)
+        .def("get_directive", &Brain::get_directive)
         .def("__str__", &Brain::str)
-        .def("__repr__", &Brain::repr);
+        .def("__repr__", &Brain::repr)
+        .def("get_expmd", &Brain::get_expmd);
 
     // Brain Hex
     py::class_<BrainHex>(m, "BrainHex")
