@@ -6,6 +6,7 @@ from tqdm import tqdm
 # import mod_core as mod
 import utils_core as utc
 # import envs_core as ev
+from pcnn_core import PCNNplotter
 
 import game.envs as games
 
@@ -845,15 +846,12 @@ def main_game_rand_2(room_name: str="Square.v0"):
     #                        xfilter=gcn, name="2D")
 
     """ PCNN """
-    N = 150
+    N = 144
 
     # --- Square PCNN
-    # gcn = pclib.GridNetworkSq([pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1., 1.-1/6]),
-    #                            pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1+1/6., 1.]),
-    #                            pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1., 1.-1/6]),
-    #                            pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1.+1/6, 1.]),
-    #                            pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1., 1.-1/6]),
-    #                            pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1.+1/6, 1.]),])
+    gcn = pclib.GridNetworkSq([pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1., 1., -1., 1.]),
+                               pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1., 1., -1., 1.]),
+                               pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1., 1., -1., 1.]),])
 
     # space = pclib.PCNNsq(N=N, Nj=len(gcn), gain=7., offset=1.1,
     #                        clip_min=0.01,
@@ -863,19 +861,75 @@ def main_game_rand_2(room_name: str="Square.v0"):
     #                        num_neighbors=8, trace_tau=0.1,
     #                        xfilter=gcn, name="2D")
 
+    # gcn = pclib.GridNetworkSq([
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1, 0, -1, 0]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[0, 1, -1, 0]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1, 0, 0, 1]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[0, 1, 0, 1]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1, 0, -1, 0]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[0, 1, -1, 0]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1, 0, 0, 1]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[0, 1, 0, 1]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1, 0, -1, 0]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[0, 1, -1, 0]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1, 0, 0, 1]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[0, 1, 0, 1]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.015, bounds=[-1, 0, -1, 0]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.015, bounds=[0, 1, -1, 0]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.015, bounds=[-1, 0, 0, 1]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.015, bounds=[0, 1, 0, 1]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.005, bounds=[-1, 0, -1, 0]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.005, bounds=[0, 1, -1, 0]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.005, bounds=[-1, 0, 0, 1]),
+    #            pclib.GridLayerSq(sigma=0.04, speed=0.005, bounds=[0, 1, 0, 1])
+    # ])
+
+    space = pclib.PCNNsq(N=N, Nj=len(gcn), gain=7., offset=1.4,
+                           clip_min=0.01,
+                           threshold=0.5,
+                           rep_threshold=0.85,
+                           rec_threshold=0.1,
+                           num_neighbors=8, trace_tau=0.1,
+                           xfilter=gcn, name="2D")
+ 
+    pcnn2d = PCNNplotter(space,
+                         max_iter=100_000)
+
     # --- hard-coded PCNN
-    gcn = pclib.GridNetworkSq([pclib.GridLayerSq(sigma=0.04,
-                                                 speed=0.1,
-                                                 bounds=[-1., 1.-1/6])])
-    space = pclib.PCNNbase(N, len(gcn), 5, 0.1, 0.01, 0.7, 0.1,
-                        0.1, GAME_SCALE, 0.1, gcn, 20, "pcnn")
+    # gcn = pclib.GridNetworkSq([pclib.GridLayerSq(sigma=0.04,
+    #                                              speed=0.1,
+    #                                              bounds=[-1., 1.-1/6])])
+    # space = pclib.PCNNbase(N, len(gcn), 5, 0.1, 0.01, 0.7, 0.1,
+    #                     0.1, GAME_SCALE, 0.1, gcn, 20, "pcnn")
 
-    """ remaining components """
+    # """ remaining components """
 
-    da = pclib.BaseModulation(name="DA", size=N, min_v=0.01, lr=0.1,
-                              offset=0.01, gain=50.0)
-    bnd = pclib.BaseModulation(name="BND", size=N, min_v=0.01,
-                               tau=1, lr=0.2, offset=0.01,
+    # da = pclib.BaseModulation(name="DA", size=N, min_v=0.01, lr=0.1,
+    #                           offset=0.01, gain=50.0)
+    # bnd = pclib.BaseModulation(name="BND", size=N, min_v=0.01,
+    #                            tau=1, lr=0.2, offset=0.01,
+    #                            gain=50.0)
+    # circuit = pclib.Circuits(da, bnd)
+
+    # wrec = space.get_wrec()
+    # trgp = pclib.TargetProgram(0., wrec,
+    #                            da, 20, 0.)
+
+    # eval_net = pclib.OneLayerNetwork([-0.5, 1., -1.1, 1.])
+    # expmd = pclib.ExperienceModule(sim_settings["speed"],
+    #                                circuit,
+    #                                trgp, space, eval_net)
+
+    # brain = pclib.Brain(circuit, space, trgp, expmd)
+
+    # ---
+    # gcn = pclib.GridNetworkSq([pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1., 1.-1/6, -1., -1.])])
+    # space = pclib.PCNNbase(N, len(gcn), 20, 0.9, 0.1, 0.7, 0.1, 0.1, 10, 0.1, gcn, 1, "pcnn")
+
+    da = pclib.BaseModulation(name="DA", size=N, min_v=0.1, lr=0.1, tau=1, clip=0.05,
+                              offset=0.1, gain=50.0)
+    bnd = pclib.BaseModulation(name="BND", size=N, min_v=0.9, clip=0.1,
+                               tau=1, lr=0.2, offset=0.9,
                                gain=50.0)
     circuit = pclib.Circuits(da, bnd)
 
@@ -883,10 +937,11 @@ def main_game_rand_2(room_name: str="Square.v0"):
     trgp = pclib.TargetProgram(0., wrec,
                                da, 20, 0.)
 
-    eval_net = pclib.OneLayerNetwork([-0.5, 1., -1.1, 1.])
-    expmd = pclib.ExperienceModule(sim_settings["speed"],
-                                   circuit,
-                                   trgp, space, eval_net)
+    eval_net = pclib.OneLayerNetwork([-1., 1., 1., 2.])
+    expmd = pclib.ExperienceModule(speed=sim_settings["speed"],
+                                   circuits=circuit,
+                                   trgp=trgp, space=space, eval_network=eval_net,
+                                   max_depth=20, action_delay=1.0)
 
     brain = pclib.Brain(circuit, space, trgp, expmd)
 
@@ -932,12 +987,31 @@ def main_game_rand_2(room_name: str="Square.v0"):
     trajectory = [env.position.tolist()]
     velocity = np.zeros(2)
 
+    # --- rendered
+    class Renderer:
+        def __init__(self, element, space, color="Greens"):
+            self.element = element
+            self.space = space
+            self.color = color
+            self.fig, self.ax = plt.subplots()
+
+        def render(self):
+            self.ax.clear()
+            plt.scatter(*np.array(self.space.get_centers()).T,
+                        c=self.element.get_weights(),
+                        cmap=self.color, s=50)
+            plt.pause(0.01)
+
+    renderer_da = Renderer(element=da, space=space)
+
+
     # -- run
     games.run_game(env=env,
                    brain=brain,
                    pcnn_plotter=pcnn2D_plotter,
-                   plotter_int=30,
-                   fps=50)
+                   plotter_int=50,
+                   pcnn2d=pcnn2d,
+                   fps=50, renderer_da=renderer_da)
 
 
 

@@ -16,7 +16,7 @@ def test_sampling():
 
     sm = pclib.ActionSampling2D("default", 10)
 
-    assert len(sm) == 9, "Size of the sampling module " + \
+    assert len(sm) == 8, "Size of the sampling module " + \
         f"is not correct {len(sm)}"
 
     sm.reset()
@@ -178,7 +178,7 @@ def test_gridlayer():
 
     sigma = 0.1
     speed = 0.1
-    init_bounds = [-1, 1]
+    init_bounds = [-1., 1., -1., 1.]
 
     # defintion
     layer = pclib.GridLayerSq(sigma, speed, init_bounds)
@@ -289,11 +289,11 @@ def test_one_layer_network():
     input 5, hidden 2 and output 1
     """
 
-    Wh = np.random.randn(5).tolist()
+    Wh = np.random.randn(4).tolist()
 
     model = pclib.OneLayerNetwork(Wh)
 
-    x = np.random.randn(5).tolist()
+    x = np.random.randn(4).tolist()
     h, y = model(x)
     wh = model.get_weights()
 
@@ -301,7 +301,7 @@ def test_one_layer_network():
         f"correct {type(y)}"
     # assert len(h) == 5, f"Hidden layer output is not correct " + \
     #     f"{len(h)}"
-    assert len(wh) == 5, f"Hidden layer weights are not " \
+    assert len(wh) == 4, f"Hidden layer weights are not " \
         f"correct {len(wh)}"
 
 
@@ -369,13 +369,13 @@ def test_brain():
     #                            init_bounds=[-1, 0, -1, 0],
     #                            boundary_type="square")])
     xfilter = pclib.GridNetworkSq([
-        pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1., 1.-1/6]),
-        pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1+1/6., 1.]),
-        pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1., 1.-1/6]),
-        pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1.+1/6, 1.]),
-        pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1., 1.-1/6]),
+        pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1., 1.-1/6, -1., 1.]),
+        pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1+1/6., 1., -1., 1.]),
+        pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1., 1.-1/6, -1., 1.]),
+        pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1.+1/6, 1., -1., 1.]),
+        pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1., 1.-1/6, -1., 1.]),
         pclib.GridLayerSq(sigma=0.04, speed=0.03,
-                          bounds=[-1.+1/6, 1.])])
+                          bounds=[-1.+1/6, 1., -1., 1.])])
     space = pclib.PCNNsq(50, len(xfilter),
                               7, 1.5, 0.01, 0.1, 0.8, 0.1,
                               8, 0.1, xfilter, "2D")
@@ -385,11 +385,13 @@ def test_brain():
     trgp = pclib.TargetProgram(0., wrec, da, 20, 0.8)
 
     expmd = pclib.ExperienceModule(
-        2.0,
-        circuits,
-        trgp,
-        space,
-        eval_network
+        speed=1.0,
+        circuits=circuits,
+        trgp=trgp,
+        space=space,
+        eval_network=eval_network,
+        max_depth=20,
+        action_delay=1.0
     )
 
     brain = pclib.Brain(circuits, space, trgp, expmd)

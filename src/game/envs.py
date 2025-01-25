@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 from typing import Tuple, List
 from matplotlib.pyplot import pause
+import matplotlib.pyplot as plt
 
 import os, sys
 sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
@@ -459,7 +460,9 @@ def run_game(env: Environment,
              pcnn_plotter: object = None,
              element: object = None,
              fps: int = 30,
-             plotter_int: int = 100):
+             pcnn2d: object = None,
+             plotter_int: int = 100,
+             **kwargs):
 
     clock = pygame.time.Clock()
     last_position = np.zeros(2)
@@ -472,6 +475,8 @@ def run_game(env: Environment,
     #     "collision": 0.,
     #     "reward": 0.
     # }
+
+    renderer_da = kwargs.get("renderer_da", None)
 
     expmd = brain.get_expmd()
 
@@ -496,9 +501,12 @@ def run_game(env: Environment,
         if not isinstance(velocity, np.ndarray):
             velocity = np.array(velocity)
 
-        logger.debug("plan: " + str(expmd.get_plan()[0]))
+        # logger.debug("plan: " + str(expmd.get_plan()[0]))
 
         observation = env(velocity=velocity)
+
+        pcnn2d(brain.get_representation(),
+               observation[0] / env.scale)
 
         # reset agent's brain
         if observation[4]:
@@ -513,27 +521,32 @@ def run_game(env: Environment,
 
         # render
         if env.visualize:
-            env.render()
+            # env.render()
 
             if env.t % plotter_int == 0:
-                if pcnn_plotter is not None:
-                    pcnn_plotter.render(np.array(
-                        env.agent.trajectory),# /\
-                        # env.scale,
-                        customize=True,
-                        draw_fig=True,
-                        render_elements=True, 
-                        alpha_nodes=0.5,
-                        alpha_edges=0.2)
+                # if pcnn_plotter is not None:
+                #     pcnn_plotter.render(np.array(
+                #         env.agent.trajectory),# /\
+                #         # env.scale,
+                #         customize=True,
+                #         draw_fig=True,
+                #         render_elements=True, 
+                #         alpha_nodes=0.5,
+                #         alpha_edges=0.2)
 
-                if element is not None:
-                    # element.render_circuits()
-                    element.circuits["DA"].render_field()
-                    element.circuits["Bnd"].render_field()
+                # if element is not None:
+                #     # element.render_circuits()
+                #     element.circuits["DA"].render_field()
+                #     element.circuits["Bnd"].render_field()
 
-                pause(0.001)
+                # #
+                # if renderer_da:
+                #     renderer_da.render()
 
-            clock.tick(FPS)
+                if pcnn2d:
+                    pcnn2d.render()
+
+            # clock.tick(FPS)
 
         # exit 1
         if observation[4]:

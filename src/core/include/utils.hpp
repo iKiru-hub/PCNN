@@ -5,6 +5,7 @@
 #include <array>
 #include <ctime>
 #include <cmath>
+#include <queue>
 #include <numeric>
 #include <algorithm>
 #include <iterator>
@@ -262,6 +263,18 @@ float generalized_tanh(float x, float offset = 0.0f,
     return std::tanh(gain * (x - offset));
 }
 
+// @brief softmax function
+Eigen::VectorXf softmax_eigen(const Eigen::VectorXf& x, float beta) {
+    // Calculate the exponential of the input vector
+    Eigen::VectorXf exp_x = (beta * x.array()).exp();
+
+    // Calculate the sum of the exponentials
+    float sum_exp_x = exp_x.sum();
+
+    // Calculate the softmax
+    return exp_x / sum_exp_x;
+}
+
 
 /* ========================================== */
 /* =========== VECTOR FUNCTIONS ============= */
@@ -480,7 +493,6 @@ std::vector<float> linspace_vec(float start, float end, int num,
 
     return linspaced;
 }
-
 
 // @brief threshold a vector
 std::vector<float> threshold_vector(const std::vector<float>& vec,
@@ -822,7 +834,6 @@ int get_segments_intersection(float p0_x, float p0_y,
     return 1;
 }
 
-
 // @brief: reflect a point over a line
 std::array<float, 2> reflect_point_over_segment(
                     float x, float y, float x1,
@@ -873,6 +884,51 @@ std::array<float, 2> reflect_point_over_segment(
     /* printf("xr: %f, yr: %f\n", xr, yr); */
 
     return {xr, yr};
+}
+
+// @brief: calculate the shortest path between two nodes in a graph
+std::vector<int> shortest_path_bfs(const Eigen::MatrixXf connectivity_matrix,
+                                   int start_node, int end_node) {
+
+    int num_nodes = connectivity_matrix.rows();
+    std::vector<bool> visited(num_nodes, false);
+    std::vector<int> parent(num_nodes, -1);
+    std::queue<int> queue;
+
+    queue.push(start_node);
+    visited[start_node] = true;
+
+    while (!queue.empty()) {
+        int current_node = queue.front();
+        queue.pop();
+
+        if (current_node == end_node) break;
+
+        for (int neighbor = 0; neighbor < num_nodes; ++neighbor) {
+            if (connectivity_matrix(current_node, neighbor) == 1 && !visited[neighbor]) {
+                visited[neighbor] = true;
+                parent[neighbor] = current_node;
+                queue.push(neighbor);
+            }
+        }
+    }
+
+    // Reconstruct the path
+    std::vector<int> path;
+    int current = end_node;
+    while (current != -1) {
+        path.push_back(current);
+        current = parent[current];
+    }
+    std::reverse(path.begin(), path.end());
+
+    // Check if path exists
+    if (path.empty() || path[0] != start_node) {
+        return {};
+    }
+
+
+    return path;
 }
 
 /* ========================================== */
