@@ -29,6 +29,9 @@ PYBIND11_MODULE(pclib, m) {
         .def("__str__", &GridLayerSq::str)
         .def("__repr__", &GridLayerSq::repr)
         .def("__len__", &GridLayerSq::len)
+        .def("simulate", &GridLayerSq::simulate,
+             py::arg("v"),
+             py::arg("sim_gc_positions"))
         .def("get_centers", &GridLayerSq::get_centers)
         .def("get_activation", &GridLayerSq::get_activation)
         .def("get_positions", &GridLayerSq::get_positions)
@@ -44,8 +47,9 @@ PYBIND11_MODULE(pclib, m) {
         .def("__str__", &GridNetworkSq::str)
         .def("__repr__", &GridNetworkSq::repr)
         .def("__len__", &GridNetworkSq::len)
-        .def("fwd_position", &GridNetworkSq::fwd_position,
-                py::arg("v"))
+        .def("simulate", &GridNetworkSq::simulate,
+             py::arg("v"),
+             py::arg("sim_gc_positions"))
         .def("get_activation", &GridNetworkSq::get_activation)
         .def("get_centers", &GridNetworkSq::get_centers)
         .def("get_num_layers", &GridNetworkSq::get_num_layers)
@@ -217,8 +221,6 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_centers", &PCNNsq::get_centers,
              py::arg("nonzero") = false)
         .def("get_delta_update", &PCNNsq::get_delta_update)
-        .def("fwd_ext", &PCNNsq::fwd_ext,
-             py::arg("x"))
         .def("fwd_int", &PCNNsq::fwd_int,
              py::arg("a"))
         .def("reset_gcn", &PCNNsq::reset_gcn,
@@ -340,9 +342,7 @@ PYBIND11_MODULE(pclib, m) {
         .def("__str__", &PCNNsqv2::str)
         .def("__len__", &PCNNsqv2::len)
         .def("__repr__", &PCNNsqv2::repr)
-        .def("update", &PCNNsqv2::update,
-             py::arg("x") = -1.0,
-             py::arg("y") = -1.0)
+        .def("update", &PCNNsqv2::update)
         .def("get_activation", &PCNNsqv2::get_activation)
         .def("get_activation_gcn",
              &PCNNsqv2::get_activation_gcn)
@@ -357,8 +357,9 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_centers", &PCNNsqv2::get_centers,
              py::arg("nonzero") = false)
         .def("get_delta_update", &PCNNsqv2::get_delta_update)
-        .def("fwd_ext", &PCNNsqv2::fwd_ext,
-             py::arg("x"))
+        .def("simulate", &PCNNsqv2::simulate,
+             py::arg("v"),
+             py::arg("sim_gc_positions"))
         .def("fwd_int", &PCNNsqv2::fwd_int,
              py::arg("a"))
         .def("reset_gcn", &PCNNsqv2::reset_gcn,
@@ -469,7 +470,7 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_leaky_v", &Circuits::get_leaky_v);
 
     /* MODULES */
-    py::class_<TargetProgram>(m, "TargetProgram")
+    py::class_<TargetProgramV0>(m, "TargetProgramV0")
         .def(py::init<float,
              Eigen::MatrixXf,
              Eigen::MatrixXf,
@@ -480,20 +481,20 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("modulator"),
              py::arg("max_depth") = 20,
              py::arg("threshold2") = 0.8f)
-        .def("__len__", &TargetProgram::len)
-        .def("__str__", &TargetProgram::str)
-        .def("__repr__", &TargetProgram::repr)
-        .def("is_active", &TargetProgram::is_active)
-        .def("update", &TargetProgram::update,
+        .def("__len__", &TargetProgramV0::len)
+        .def("__str__", &TargetProgramV0::str)
+        .def("__repr__", &TargetProgramV0::repr)
+        .def("is_active", &TargetProgramV0::is_active)
+        .def("update", &TargetProgramV0::update,
              py::arg("activation"))
-        .def("evaluate", &TargetProgram::evaluate,
+        .def("evaluate", &TargetProgramV0::evaluate,
              py::arg("next_representation"))
-        .def("set_wrec", &TargetProgram::set_wrec,
+        .def("set_wrec", &TargetProgramV0::set_wrec,
              py::arg("wrec"))
         .def("get_trg_representation",
-             &TargetProgram::get_trg_representation);
+             &TargetProgramV0::get_trg_representation);
 
-    py::class_<TargetProgram2>(m, "TargetProgram2")
+    py::class_<TargetProgram>(m, "TargetProgram")
         .def(py::init<Eigen::MatrixXf,
              Eigen::MatrixXf,
              Eigen::VectorXf, float>(),
@@ -501,47 +502,47 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("centers"),
              py::arg("da_weights"),
              py::arg("speed"))
-        .def("__len__", &TargetProgram2::len)
-        .def("__str__", &TargetProgram2::str)
-        .def("__repr__", &TargetProgram2::repr)
-        .def("is_active", &TargetProgram2::is_active)
-        .def("update", &TargetProgram2::update,
+        .def("__len__", &TargetProgram::len)
+        .def("__str__", &TargetProgram::str)
+        .def("__repr__", &TargetProgram::repr)
+        .def("is_active", &TargetProgram::is_active)
+        .def("update", &TargetProgram::update,
              py::arg("curr_representation"),
              py::arg("trigger") = true)
-        .def("step_plan", &TargetProgram2::step_plan)
-        .def("make_shortest_path", &TargetProgram2::make_shortest_path,
+        .def("step_plan", &TargetProgram::step_plan)
+        .def("make_shortest_path", &TargetProgram::make_shortest_path,
              py::arg("wrec"),
              py::arg("start_idx"),
              py::arg("end_idx"))
-        .def("set_da_weights", &TargetProgram2::set_da_weights,
+        .def("set_da_weights", &TargetProgram::set_da_weights,
              py::arg("da_weights"))
-        .def("set_wrec", &TargetProgram2::set_wrec,
+        .def("set_wrec", &TargetProgram::set_wrec,
              py::arg("wrec"))
         .def("get_trg_representation",
-             &TargetProgram2::get_trg_representation)
-        .def("get_plan", &TargetProgram2::get_plan);
+             &TargetProgram::get_trg_representation)
+        .def("get_plan", &TargetProgram::get_plan);
 
     // 2 layer network
     py::class_<ExperienceModule>(m, "ExperienceModule")
-        .def(py::init<float, Circuits&, TargetProgram&,
+        .def(py::init<float, Circuits&,
              PCNN_REF&, OneLayerNetwork&, int, float>(),
              py::arg("speed"),
              py::arg("circuits"),
-             py::arg("trgp"),
              py::arg("space"),
              py::arg("eval_network"),
              py::arg("max_depth") = 10,
              py::arg("action_delay") = 1.0f)
         .def("__call__", &ExperienceModule::call,
-             py::arg("directive"),
-             py::arg("position"))
+             py::arg("directive"))
         .def("__str__", &ExperienceModule::str)
         .def("__repr__", &ExperienceModule::repr)
         .def("get_action_seq", &ExperienceModule::get_action_seq)
         .def("get_plan", &ExperienceModule::get_plan)
         .def_readonly("new_plan", &ExperienceModule::new_plan)
         .def("get_values", &ExperienceModule::get_values)
-        .def("get_actions", &ExperienceModule::get_actions);
+        .def("get_actions", &ExperienceModule::get_actions)
+        .def("plan_info", &ExperienceModule::plan_info)
+        .def("is_last", &ExperienceModule::is_last);
 
     /* ACTION SAMPLING MODULE */
 
@@ -576,7 +577,7 @@ PYBIND11_MODULE(pclib, m) {
 
     // 1 layer network
     py::class_<OneLayerNetwork>(m, "OneLayerNetwork")
-        .def(py::init<std::array<float, CIRCUIT_SIZE+1>>(),
+        .def(py::init<std::array<float, CIRCUIT_SIZE>>(),
              py::arg("weights"))
         .def("__call__", &OneLayerNetwork::call,
              py::arg("x"))
@@ -604,10 +605,11 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("trgp"),
              py::arg("expmd"))
         .def("__call__", &Brain::call,
-             py::arg("v"),
+             py::arg("velocity"),
              py::arg("collision") = 0.0f,
              py::arg("reward") = 0.0f,
-             py::arg("position"))
+             py::arg("position") = std::array<float, 2>({0.0f, 0.0f}),
+             py::arg("trigger") = true)
         .def("get_representation",
              &Brain::get_representation)
         .def("get_trg_representation",
@@ -616,7 +618,10 @@ PYBIND11_MODULE(pclib, m) {
         .def("__str__", &Brain::str)
         .def("__repr__", &Brain::repr)
         .def("get_expmd", &Brain::get_expmd)
-        .def("get_space", &Brain::get_space);
+        .def("get_space", &Brain::get_space)
+        .def("get_plan", &Brain::get_plan)
+        .def("set_plan_positions", &Brain::set_plan_positions,
+             py::arg("position"));
 
     // Brain Hex
     py::class_<BrainHex>(m, "BrainHex")

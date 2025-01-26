@@ -718,6 +718,12 @@ Eigen::MatrixXf array_to_eigen_matrix(const std::array<std::array<float, M>, N>&
     return mat;
 }
 
+float euclidean_distance(const std::array<float, 2>& v1,
+                         const std::array<float, 2>& v2) {
+    return std::sqrt(std::pow(v1[0] - v2[0], 2) +
+                     std::pow(v1[1] - v2[1], 2));
+}
+
 
 /* ========================================== */
 /* ============= MISCELLANEOUS ============== */
