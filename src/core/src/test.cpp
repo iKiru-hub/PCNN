@@ -1,15 +1,13 @@
 #include "../include/utils.hpp"
 #include "../include/pcnn.hpp"
-#include <ctime>
-/* #include <Eigen/Dense> */
-#include <unordered_map>
 #include <iostream>
-#include <array>
-#include <cmath>
 
 #define LOG(msg) utils::logging.log(msg, "TEST")
 #define SPACE utils::logging.space
 
+
+
+//
 
 
 // MAIN
@@ -29,17 +27,14 @@ int main() {
     /* LOG(std::to_string(out)); */
 
     /* from pcnn.hpp
-    /* pcl::test_layer(); */
-    /* pcl::test_pcnn(); */
-    /* pcl::test_randlayer(); */
-    /* pcl::test_gridlayer(); */
+    /* pcl::testSampling(); */
 
-    /* pcl::test_trgp(); */
-    /* pcl::test_brain(); */
-    /* pcl::test_brain_2(); */
+    /* pcl::simple_env(); */
+    pcl::test_env();
 
     return 0;
 }
 
-// definitions
+
+// ====================================================================== //
 

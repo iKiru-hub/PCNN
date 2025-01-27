@@ -933,7 +933,6 @@ std::vector<int> shortest_path_bfs(const Eigen::MatrixXf connectivity_matrix,
         return {};
     }
 
-
     return path;
 }
 

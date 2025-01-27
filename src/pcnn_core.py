@@ -62,7 +62,7 @@ class PCNNwrapper:
         self.record_pcnn = []
         self.record_xfl = []
 
-        fig, self.axs = plt.subplots(9, 9, figsize=(9, 9),
+        fig, self.axs = plt.subplots(8, 8, figsize=(9, 9),
                                    sharex=True, sharey=True)
         fig.tight_layout()
         # _, self.axgc = plt.subplots(figsize=(3, 3))
@@ -74,8 +74,8 @@ class PCNNwrapper:
         self.pcnn2D.update(*position)
         self.record_pcnn.append(u.tolist())
         self.record_xfl.append(y.tolist())
-        if len(self.record_pcnn) > self.max_iter:
-            self.record_pcnn.pop(0)
+        # if len(self.record_pcnn) > self.max_iter:
+        #     self.record_pcnn.pop(0)
 
         if len(self.record_xfl) > 200:
             self.record_xfl.pop(0)
@@ -106,7 +106,7 @@ class PCNNwrapper:
             ax.scatter(centers[i, 0], centers[i, 1],
                        c="k", s=15)
             ax.axis("off")
-            # ax.set_title(f"{np.sum(record[-1, i]):.3f}")
+            # ax.set_title(f"{i}")
             ax.set_xlim(0, 20)
             ax.set_ylim(0, 20)
 
@@ -164,7 +164,6 @@ class PCNNplotter:
             ax.set_ylim(0, 20)
 
         # plt.pause(0.001)
-
 
 
 def run_pcnn(duration=100000):
@@ -319,19 +318,20 @@ def run_pcnn(duration=100000):
 def run_pcnn_hex(duration: int=100_000):
 
     gcn = pclib.GridHexNetwork([
-                pclib.GridHexLayer(sigma=0.03, speed=0.1),
-                pclib.GridHexLayer(sigma=0.05, speed=0.09),
+                pclib.GridHexLayer(sigma=0.04, speed=0.1),
+                pclib.GridHexLayer(sigma=0.04, speed=0.09),
                 pclib.GridHexLayer(sigma=0.04, speed=0.08),
-                pclib.GridHexLayer(sigma=0.03, speed=0.07),
-                pclib.GridHexLayer(sigma=0.04, speed=0.06)])
+                pclib.GridHexLayer(sigma=0.04, speed=0.07),
+                pclib.GridHexLayer(sigma=0.04, speed=0.06),
+                pclib.GridHexLayer(sigma=0.04, speed=0.04)])
 
-    pcnn_ = pclib.PCNNgridhex(N=200,
+    pcnn_ = pclib.PCNNgridhex(N=100,
                               Nj=len(gcn),
-                              gain=7.,
-                              offset=1.5,
+                              gain=10.,
+                              offset=1.2,
                               clip_min=0.01,
                               threshold=0.1,
-                              rep_threshold=0.8,
+                              rep_threshold=0.7,
                               rec_threshold=0.1,
                               num_neighbors=8, trace_tau=0.1,
                               xfilter=gcn, name="2D")
@@ -347,7 +347,7 @@ def run_pcnn_hex(duration: int=100_000):
     traj = [[x, y]]
     acc = np.zeros((len(gcn), 100))
 
-    size = 20
+    size = 30
     s = np.array([0.005, 0.005])
 
     for t in tqdm(range(duration)):
