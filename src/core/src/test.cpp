@@ -26,11 +26,12 @@ int main() {
     /* float out = utils::generalized_tanh(-1); */
     /* LOG(std::to_string(out)); */
 
-    /* from pcnn.hpp
+    /* /1* from pcnn.hpp */
     /* pcl::testSampling(); */
 
-    /* pcl::simple_env(); */
-    pcl::test_env();
+    pcl::simple_env(10000, 1000, -0.0f);
+    /* pcl::test_env(); */
+    /* pcl::test_bnd(2000); */
 
     return 0;
 }

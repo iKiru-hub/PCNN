@@ -1449,3 +1449,501 @@ public:
 
 
 
+
+struct OneLayerNetwork {
+
+    // circuit size + target program
+    const std::array<float, CIRCUIT_SIZE> weights;
+    float output;
+    int size;
+
+
+    // @brief forward an input through the network
+    // @return tuple(float, array<float, 2>)
+    std::pair<std::array<float, CIRCUIT_SIZE>, float>
+    call(const std::array<float, CIRCUIT_SIZE>& x) {
+
+        output = 0.0f;
+        std::array<float, CIRCUIT_SIZE> z = {0.0f};
+        for (size_t i = 0; i < size; i++) {
+            output += x[i] * weights[i];
+            z[i] = x[i] * weights[i];
+        }
+        return std::make_pair(z, output);
+    }
+
+    OneLayerNetwork(std::array<float, CIRCUIT_SIZE> weights)
+        : weights(weights) {
+        size = weights.size();
+    }
+    ~OneLayerNetwork() {}
+    std::string str() { return "OneLayerNetwork"; }
+};
+
+
+    /* --- !
+    std::tuple<std::vector<std::array<float, 2>>,
+               std::vector<std::array<float, 2>>,
+               std::vector<std::array<float, CIRCUIT_SIZE>>,
+               std::vector<float>,
+               int> \
+        main_rollout_(Eigen::VectorXf curr_representation,
+                     std::array<float, 2>& position) {
+
+        action_space_one.reset();
+
+        std::vector<std::array<float, 2>> new_action_seq_f = {{0.0f}};
+        std::vector<std::array<float, 2>> position_seq_f = {{0.0f}};
+        std::vector<std::array<float, CIRCUIT_SIZE>> values_seq_f = {{0.0f}};
+        std::vector<float> scores_seq_f = {0.0f};  // for each action
+        int depth_f = 0;
+        float best_score = -100000.0f;
+        all_values = {0.0f};
+
+        LOG("best score: " + std::to_string(best_score));
+
+        // outer loop
+        while (!action_space_one.is_done()) {
+
+            // sample the next action
+            std::tuple<std::array<float, 2>, bool, int> action_data = \
+                action_space_one.call();
+
+            // step and evaluate
+            position[0] += std::get<0>(action_data)[0];
+            position[1] += std::get<0>(action_data)[1];
+            Eigen::VectorXf next_representation = \
+                space.fwd_ext(position);
+
+            std::pair<std::array<float, CIRCUIT_SIZE>, float> \
+                evaluation = evaluate_action(curr_representation,
+                                             next_representation);
+
+            // update the provisional plan
+            std::vector<std::array<float, 2>> new_action_seq;
+            std::vector<std::array<float, 2>> position_seq;
+            std::vector<std::array<float, CIRCUIT_SIZE>> values_seq;
+            std::vector<float> scores_seq;  // for each action
+            int depth = 1;
+            new_action_seq.push_back(std::get<0>(action_data));
+            new_action_seq.push_back(position);
+            values_seq.push_back(evaluation.first);
+            scores_seq.push_back(evaluation.second);
+
+            curr_representation = next_representation;
+
+            // inner loop
+            inner_rollout_(curr_representation,
+                          new_action_seq,
+                          position_seq,
+                          values_seq,
+                          scores_seq,
+                          depth,
+                          position);
+
+            // print all actions
+
+            // check if the average score is the best
+            float avg_score = std::accumulate(
+                scores_seq.begin(), scores_seq.end(), 0.0) / \
+                scores_seq.size();
+            all_values[action_space_one.get_idx()] = avg_score;
+            if (avg_score > best_score) {
+                new_action_seq_f = new_action_seq;
+                position_seq_f = position_seq;
+                values_seq_f = values_seq;
+                scores_seq_f = scores_seq;
+                depth_f = depth;
+                best_score = avg_score;
+            }
+        }
+
+        if (depth_f < 1) {
+            std::cout << "Error: depth is -1000.0f" << std::endl;
+            LOG("Error: depth is -1000.0f");
+            LOG("depht: " + std::to_string(depth_f));
+            LOG("Press enter to continue");
+            int ground;
+        } else {
+            LOG("Depth: " + std::to_string(depth_f) + \
+                ", Best score: " + std::to_string(best_score));
+        }
+
+        return {new_action_seq_f, position_seq_f,
+            values_seq_f, scores_seq_f, depth_f};
+    }
+
+    void inner_rollout_(Eigen::VectorXf curr_representation,
+                       std::vector<std::array<float, 2>>& new_action_seq,
+                       std::vector<std::array<float, 2>>& position_seq,
+                       std::vector<std::array<float, CIRCUIT_SIZE>>& values_seq,
+                       std::vector<float>& scores_seq,
+                       int& depth,
+                       std::array<float, 2>& position) {
+
+        action_space_two.reset();
+
+        // loop
+        while (!action_space_two.is_done()) {
+
+            // sample the next action
+            std::tuple<std::array<float, 2>, bool, int> action_data = \
+                action_space_two.call();
+
+            // step
+            position[0] += std::get<0>(action_data)[0];
+            position[1] += std::get<0>(action_data)[1];
+            Eigen::VectorXf next_representation = \
+                space.fwd_ext(position);
+
+            // evaluate
+            std::pair<std::array<float, CIRCUIT_SIZE>, float> \
+                evaluation = evaluate_action(curr_representation,
+                                             next_representation);
+
+            // check 1: max depth
+            if (depth == plan.max_depth) {
+                break;
+            }
+
+            // check 2: boundary sensor too high
+            if (evaluation.first[0] < -0.99) {
+                break;
+            }
+
+            // update the provisional plan
+            new_action_seq.push_back(std::get<0>(action_data));
+            position_seq.push_back(position);
+            values_seq.push_back(evaluation.first);
+            scores_seq.push_back(evaluation.second);
+            curr_representation = next_representation;
+            depth++;
+        }
+    }
+    */
+
+
+
+class LeakyVariableND {
+public:
+
+    LeakyVariableND(std::string name, float eq, float tau,
+                    int ndim, float min_v = 0.0)
+        : name(std::move(name)), tau(1.0f / tau), eq_base(eq),
+        ndim(ndim), min_v(min_v),
+        v(Eigen::VectorXf::Constant(ndim, eq)),
+        eq(Eigen::VectorXf::Constant(ndim, eq)){
+
+        LOG("[+] LeakyVariableND created with name: " + this->name);
+    }
+
+    ~LeakyVariableND() {
+        LOG("[-] LeakyVariableND destroyed with name: " + name);
+    }
+
+    /* @brief Call the LeakyVariableND with a 2D input
+     * @param x A 2D input to the LeakyVariable */
+    Eigen::VectorXf call(const Eigen::VectorXf x,
+                         const bool simulate = false) {
+
+        // simulate
+        if (simulate) {
+            Eigen::VectorXf z = v + (eq - v) * tau + x;
+            for (int i = 0; i < ndim; i++) {
+                if (z(i) < min_v) {
+                    z(i) = min_v;
+                }
+            }
+            return z;
+        }
+
+        // Compute dv and update v
+        v += (eq - v) * tau + x;
+        return v;
+    }
+
+    Eigen::VectorXf get_v() const { return v; }
+    void print_v() const {
+        std::cout << "v: " << v.transpose() << std::endl; }
+    std::string str() const { return "LeakyVariableND." + name; }
+    int len() const { return ndim; }
+    std::string repr() const {
+        return "LeakyVariableND." + name + "(eq=" + \
+            std::to_string(eq_base) + ", tau=" + std::to_string(tau) + \
+            ", ndim=" + std::to_string(ndim) + ")";
+    }
+    std::string get_name() { return name; }
+    void set_eq(const Eigen::VectorXf& eq) { this->eq = eq; }
+    void reset() {
+        for (int i = 0; i < ndim; i++) {
+            v(i) = eq(i);
+        }
+    }
+
+private:
+    const float tau;
+    const int ndim;
+    const float min_v;
+    const float eq_base;
+    std::string name;
+    Eigen::VectorXf v;
+    Eigen::VectorXf eq;
+};
+
+
+
+class ActionSampling2D {
+
+public:
+
+    std::string name;
+
+    ActionSampling2D(std::string name,
+                     float speed) : name(name)
+                {
+        update_actions(speed);
+        /* utils::logging.log("[+] ActionSampling2D." + name); */
+    }
+
+    ~ActionSampling2D() {
+        /* utils::logging.log("[-] ActionSampling2D." + name); */
+    }
+
+    std::array<float, 2> call(bool keep = false) {
+
+        // Keep current state
+        if (keep) {
+            utils::logging.log("-- keep");
+            /* return std::make_tuple(velocity, false, idx); */
+            return velocity;
+        }
+
+        // All samples have been used
+        if (counter == num_samples) {
+
+            // try to sample a zero index
+            int zero_idx = sample_zero_idx();
+
+            if (zero_idx != -1) {
+                idx = zero_idx;
+            } else {
+                // Get the index of the maximum value
+                idx = utils::arr_argmax(values);
+            }
+
+            velocity = samples[idx];
+            /* return std::make_tuple(velocity, true, idx); */
+            return velocity;
+        }
+
+        // Sample a new index
+        idx = sample_idx();
+        available_indexes[idx] = false;
+        velocity = samples[idx];
+
+        /* return std::make_tuple(velocity, false, idx); */
+        return velocity;
+    }
+
+    void update(float score = 0.0f) { values[idx] = score; }
+    bool is_done() { return counter == num_samples; }
+    std::string str() { return "ActionSampling2D." + name; }
+    std::string repr() { return "ActionSampling2D." + name; }
+    int len() const { return num_samples; }
+    const int get_idx() { return idx; }
+    const int get_counter() { return counter; }
+
+    const float get_max_value() {
+        if (counter == 0) { return 0.0; }
+        return values[idx];
+    }
+
+    // @brief get values for the samples
+    const std::array<float, 8> get_values() { return values; }
+
+    // @brief random one-time sampling
+    std::array<float, 2> sample_once() {
+        int idx = utils::random.get_random_int(0, num_samples);
+        return samples[idx];
+    }
+
+    void reset() {
+        idx = -1;
+        for (int i = 0; i < num_samples; i++) {
+            available_indexes[i] = true;
+        }
+        values = { 0.0 };
+        counter = 0;
+    }
+
+    std::array<std::array<float, 2>, 8> get_actions() {
+        return samples;
+    }
+
+private:
+
+    // parameters | trying with only 8 directions (no stop)
+    /* std::array<float, 2> samples[8] = { */
+    std::array<std::array<float, 2>, 8> samples = {{
+        {-0.707f, 0.707f},
+        {0.0f, 1.0f},
+        {0.707f, 0.707f},
+        {-1.0f, 0.0f},
+        {1.0f, 0.0f},
+        {-0.707f, -0.707f},
+        {0.0f, -1.0f},
+        {0.707f, -0.707f}
+    }};
+    const std::array<unsigned int, 8> indexes = { 0, 1, 2, 3, 4,
+                                          5, 6, 7};
+    unsigned int counter = 0;
+    const unsigned int num_samples = 8;
+    std::array<float, 8> values = { 0.0 };
+    std::array<float, 2> velocity = { 0.0 };
+    int idx = -1;
+
+    // @brief variables
+    /* int idx = -1; */
+    std::array<bool, 8> available_indexes = { true, true, true,
+        true, true, true, true, true};
+
+    // @brief sample a random index
+    int sample_idx() {
+
+        int idx = -1;
+        bool found = false;
+        while (!found) {
+            int i = utils::random.get_random_int(0, num_samples);
+
+            // Check if the index is available
+            if (available_indexes[i]) {
+                idx = i;  // Set idx to the found index
+                found = true;  // Mark as found
+            };
+        };
+        counter++;
+        return idx;
+    }
+
+    // @brief make a set of how values equal to zero
+    // and return a random index from it
+    int sample_zero_idx() {
+
+        std::vector<int> zero_indexes;
+        for (size_t i = 0; i < num_samples; i++) {
+            if (values[i] == 0.0) {
+                zero_indexes.push_back(i);
+            }
+        }
+
+        if (zero_indexes.size() > 1) {
+            return utils::random.get_random_element_vec(zero_indexes);
+        }
+
+        return -1;
+    }
+
+    // @brief update the actions given a speed
+    void update_actions(float speed) {
+
+        for (size_t i = 0; i < num_samples; i++) {
+            float dx = samples[i][0];
+            float dy = samples[i][1];
+            float scale = speed / std::sqrt(2.0f);
+            if (dx == 0.0 && dy == 0.0) {
+                continue;
+            } else if (dx == 0.0) {
+                dy *= speed;
+            } else if (dy == 0.0) {
+                dx *= speed;
+            } else {
+                // speed / sqrt(2)
+                dx *= scale;
+                dy *= scale;
+            }
+            samples[i] = {dx, dy};
+        }
+    }
+
+};
+
+
+
+class ActionSampling2Dv2 {
+
+    std::array<std::array<float, 2>, 8> samples = {{
+        {-0.707f, 0.707f},
+        {0.0f, 1.0f},
+        {0.707f, 0.707f},
+        {-1.0f, 0.0f},
+        {1.0f, 0.0f},
+        {-0.707f, -0.707f},
+        {0.0f, -1.0f},
+        {0.707f, -0.707f}
+    }};
+    const std::array<unsigned int, 8> indexes = \
+            { 0, 1, 2, 3, 4, 5, 6, 7};
+    unsigned int counter = 0;
+    int idx = -1;
+    int num_samples = 8;
+    std::array<bool, 8> available_indexes = { true, true, true,
+        true, true, true, true, true};
+
+    // @brief update the actions given a speed
+    void update_actions(float speed) {
+
+        for (size_t i = 0; i < num_samples; i++) {
+            float dx = samples[i][0];
+            float dy = samples[i][1];
+            float scale = speed / std::sqrt(2.0f);
+            if (dx == 0.0 && dy == 0.0) {
+                continue;
+            } else if (dx == 0.0) {
+                dy *= speed;
+            } else if (dy == 0.0) {
+                dx *= speed;
+            } else {
+                // speed / sqrt(2)
+                dx *= scale;
+                dy *= scale;
+            }
+            samples[i] = {dx, dy};
+        }
+    }
+
+public:
+    std::string name;
+
+    std::array<float, 2> call() {
+
+        if (counter == num_samples) {
+            counter = 0;
+            return samples[0];
+        }
+
+        // Sample a new index
+        idx = indexes[counter];
+        available_indexes[idx] = false;
+        counter++;
+        return samples[idx];
+    }
+
+    void reset() {
+        idx = -1;
+        for (int i = 0; i < num_samples; i++) {
+            available_indexes[i] = true;
+        }
+        counter = 0;
+    }
+
+    int get_idx() { return idx; }
+    bool is_done() { return counter == num_samples; }
+    std::array<std::array<float, 2>, 8> get_actions() { return samples; }
+
+    ActionSampling2D(std::string name,
+                     float speed) : name(name)
+    { update_actions(speed); }
+    ~ActionSampling2D() {}
+
+};
+

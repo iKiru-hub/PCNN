@@ -1014,16 +1014,162 @@ def main_game_rand_2(room_name: str="Square.v0"):
                    fps=50, renderer_da=renderer_da)
 
 
+def main_game_rand_3(room_name: str="Square.v0"):
+
+    """
+    meant to be run standalone
+    """
+
+    # --- settings
+    sim_settings = {
+        "bounds": np.array([0.05, 0.95,
+                            0.05, 0.95]) * GAME_SCALE,
+        "speed": 10.,
+        "init_position": np.array([0.5, 0.5]) * GAME_SCALE,
+        "rw_fetching": "deterministic",
+        "rw_event": "nothing",
+        "rw_position": np.array([0.5, 0.8]) * GAME_SCALE,
+        "rw_radius": 0.1 * GAME_SCALE,
+        "rw_bounds": np.array([0.2, 0.8, 0.2, 0.8]) * GAME_SCALE,
+        "plot_interval": 1,
+        "rendering": True,
+        "rendering_pcnn": True,
+        "render_game": True,
+        "room": "square",
+        "use_game": False,
+        "max_duration": None,
+        "seed": None
+    }
+
+    # brain
+
+    """ PCNN """
+    N = 20**2
+
+    # --- Square PCNN
+    gcn = pclib.GridNetworkSq([
+           pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.08, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.05, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.01, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.005, bounds=[-1, 1, -1, 1])])
+
+    space = pclib.PCNNsqv2(N=N, Nj=len(gcn), gain=10., offset=1.4,
+           clip_min=0.01,
+           threshold=0.2,
+           rep_threshold=0.5,
+           rec_threshold=15.0,
+           num_neighbors=5,
+           xfilter=gcn, name="2D")
+ 
+    da = pclib.BaseModulation(name="DA", size=N, lr=0.9, threshold=0., max_w=1.0,
+                              tau_v=3.0, eq_v=0.0, min_v=0.05)
+    bnd = pclib.BaseModulation(name="BND", size=N, lr=0.99, threshold=0., max_w=1.0,
+                               tau_v=2.0, eq_v=0.0, min_v=0.05)
+    circuit = pclib.Circuits(da, bnd)
+
+    trgp = pclib.TargetProgram(space.get_connectivity(), space.get_centers(),
+                               da.get_weights(), sim_settings["speed"])
+
+    expmd = pclib.ExperienceModule(speed=sim_settings["speed"],
+                                   circuits=circuit,
+                                   space=space, weights=[0., 0., 0.],
+                                   max_depth=10, action_delay=5.0)
+    brain = pclib.Brain(circuit, space, trgp, expmd)
+
+    # # ---
+    # pcnn2d = PCNNplotter(space,
+    #                      max_iter=100_000)
+    # pcnn2D_plotter = utc.PlotPCNN(model=space,
+    #                 bounds=sim_settings["bounds"],
+    #                 visualize=sim_settings["rendering_pcnn"],
+    #                 number=0)
+
+    # --- room
+    room = games.make_room(name=room_name, thickness=5.)
+    room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
+                   room.bounds[1]+10, room.bounds[3]-10]
+
+    # --- objects
+    body = games.objects.AgentBody(
+                position=sim_settings["init_position"],
+                possible_positions=None,
+                bounds=room_bounds)
+    reward_obj = games.objects.RewardObj(
+                position=sim_settings["rw_position"],
+                radius=sim_settings["rw_radius"],
+                fetching=sim_settings["rw_fetching"],
+                bounds=room_bounds)
+    logger(reward_obj)
+
+    # --- env
+    env = games.Environment(room=room,
+                            agent=body,
+                            reward_obj=reward_obj,
+                            scale=GAME_SCALE,
+                            rw_event=sim_settings["rw_event"],
+                            verbose=False,
+                            visualize=sim_settings["render_game"])
+    logger(env)
+
+    # --- rendered
+    class Renderer:
+        def __init__(self, elements=[da, bnd], space=space,
+                     colors=["Greens", "Blues"],
+                     names=["DA", "BND"]):
+
+            self.elements = elements
+            self.size = len(elements)
+            self.space = space
+            self.colors = colors
+            self.names = names
+            self.fig, self.axs = plt.subplots(1, self.size,
+                                             figsize=(self.size*4, 4))
+
+        def render(self):
+            for i, element in enumerate(self.elements):
+                self.axs[i].clear()
+                self.axs[i].scatter(*np.array(self.space.get_centers()).T,
+                            c=element.get_weights(),
+                            cmap=self.colors[i],
+                            s=30, vmin=0., vmax=0.1)
+                self.axs[i].set_xlim(-250, 250)
+                self.axs[i].set_ylim(-250, 250)
+                self.axs[i].set_title(self.names[i])
+
+            # plt.axis("equal")
+            plt.pause(0.00001)
+
+
+    renderer = Renderer()
+
+    # -- run
+    games.run_game(env=env,
+                   brain=brain,
+                   plotter_int=1,
+                   fps=1, renderer=renderer)
+    # games.run_game(env=env,
+    #                brain=brain,
+    #                pcnn_plotter=None,
+    #                plotter_int=50,
+    #                pcnn2d=None,
+    #                fps=10, renderer_da=renderer_da)
+
+
+
 """ simple game """
+
 
 def main_simple_game(duration):
 
     """ settings """
 
-    SPEED = 1.3
-    BOUNDS = [0., 70.]
+    SPEED = 1.
+    BOUNDS = [0., 100.]
     N = 30**2
-    action_delay = 2.0
+    action_delay = 4.0
 
     """ initialization """
     gcn = pclib.GridNetworkSq([
@@ -1031,30 +1177,29 @@ def main_simple_game(duration):
            pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1, 1, -1, 1]),
            pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1, 1, -1, 1]),
            pclib.GridLayerSq(sigma=0.04, speed=0.005, bounds=[-1, 1, -1, 1])])
-    space = pclib.PCNNsqv2(N=N, Nj=len(gcn), gain=10., offset=1.2,
-               clip_min=0.01,
-               threshold=0.4,
-               rep_threshold=0.50,
-               rec_threshold=20.0,
-               num_neighbors=5,
-               xfilter=gcn, name="2D")
+
+    space = pclib.PCNNsqv2(N=N, Nj=len(gcn), gain=10., offset=1.4,
+           clip_min=0.01,
+           threshold=0.2,
+           rep_threshold=0.5,
+           rec_threshold=15.0,
+           num_neighbors=5,
+           xfilter=gcn, name="2D")
 
     #
     da = pclib.BaseModulation(name="DA", size=N, lr=0.9, threshold=0., max_w=1.0,
-                              tau_v=3.0, eq_v=0.0, min_v=0.05)
-    bnd = pclib.BaseModulation(name="BND", size=N, lr=0.99, threshold=0.0, max_w=1.0,
-                               tau_v=2.0, eq_v=0.0, min_v=0.05)
+                              tau_v=3.0, eq_v=0.0, min_v=0.01)
+    bnd = pclib.BaseModulation(name="BND", size=N, lr=0.99, threshold=0., max_w=1.0,
+                               tau_v=2.0, eq_v=0.0, min_v=0.01)
     circuit = pclib.Circuits(da, bnd)
 
     trgp = pclib.TargetProgram(space.get_connectivity(), space.get_centers(),
                                da.get_weights(), SPEED)
 
-    eval_net = pclib.OneLayerNetwork([-1., 1., 0.])
     expmd = pclib.ExperienceModule(speed=SPEED,
                                    circuits=circuit,
-                                   space=space, eval_network=eval_net,
+                                   space=space, weights=[-1., 0., 0.],
                                    max_depth=15, action_delay=action_delay)
-
     brain = pclib.Brain(circuit, space, trgp, expmd)
 
     plan_ = []
@@ -1063,16 +1208,12 @@ def main_simple_game(duration):
     s = [SPEED, SPEED]
     points = [[4., 4.5]]
     x, y = points[0]
-    tot = 3_000
-
-    activity = np.zeros((N, tot))
-    var1 = [0.]
 
     tra = []
     color = "Greys"
     collision = 0.
     reward = 0.
-    rx, ry, rs = 15, 20, 5
+    rx, ry, rs = 85, 30, 5
     rt = 0
     rdur = 100
     nb_rw = 0
@@ -1080,6 +1221,8 @@ def main_simple_game(duration):
     tplot = 3
 
     pref = points[0]
+
+    trg_plan = np.zeros(N)
 
     _, axs = plt.subplots(2, 2, figsize=(8, 8))
     ax1, ax2, ax3, ax4 = axs.flatten()
@@ -1112,19 +1255,20 @@ def main_simple_game(duration):
                 delay -= 1
 
         # reward
-        # rd = np.exp(-((x-rx)**2 + (y-ry)**2) / rs)
-        rd = np.sqrt((x-rx)**2 + (y-ry)**2)
+        if rt > 0:
+            rt = max((0, rt-1));
+            trigger = False;
+            reward = 0
+        else: 
+            trigger = True;
 
-        if rt == 0 or nb_rw < 2:
-            trigger = True
-            if rd < rs:
-                reward = 1.#rd*10
-                rt = rdur
-                nb_rw += 1
+        dist = np.sqrt((x-rx)**2 + (y-ry)**2)
+        if dist < rs:
+            rt = rdur
+            nb_rw += 1
+            reward = 1.
         else:
             reward = 0
-            rt = max((rt-1, 0))
-            trigger = False
 
         # record
         points += [[x, y]]
@@ -1135,6 +1279,12 @@ def main_simple_game(duration):
         # fwd
         s = brain(s, collision, reward, trigger)
 
+        # trg directive
+        if brain.get_directive() == "trg":
+            trg_idxs = brain.get_plan()
+            trg_plan *= 0
+            trg_plan[trg_idxs] = 1.
+
         # plot
         if t % tplot == 0:
             plan_ = [pref]
@@ -1143,10 +1293,9 @@ def main_simple_game(duration):
 
             # ---
             ax1.clear()
-            ax1.scatter(rx, ry, alpha=0.9, color='green', s=210, marker="x")
+            ax1.scatter(rx+4, ry+4, alpha=0.9, color='green', s=210, marker="x")
             if brain.get_directive() == "trg":
                 hcolor = "green"
-                ax1.plot(*np.array(points).T[:, -10:], "r-", alpha=0.9)
             else:
                 hcolor = "red"
             # else:
@@ -1158,45 +1307,53 @@ def main_simple_game(duration):
             ax1.set_ylim(BOUNDS[0], BOUNDS[1])
             ax1.set_xticks(())
             ax1.set_yticks(())
-            ax1.set_title(f"Trajectory [{t}] | #:{len(space)} [r.{nb_rw}]")
+            ax1.set_title(f"Trajectory [{t}] | #PCs:{len(space)} [#R={nb_rw}]")
 
             # ---
             ax2.clear()
-            ax2.scatter(*space.get_centers().T+4, cmap=color, alpha=0.3)
+            if brain.get_directive() == "trg":
+                ax2.scatter(*space.get_centers().T+4, color="blue", alpha=0.1)
+                ax2.scatter(*space.get_centers().T+4, c=trg_plan, cmap="Greens", alpha=0.6)
+                ax2.plot(*np.array(points).T[:, -10:], "g-", alpha=0.9)
+            else:
+                ax2.scatter(*space.get_centers().T+4, color="blue", alpha=0.3)
+                ax2.plot(*np.array(points).T, "r-", alpha=0.3)
+
             ax2.scatter(points[-1][0], points[-1][1], alpha=0.9, color='red', s=10)
-            ax2.plot(*np.array(points).T, "r-", alpha=0.3)
 
             ax2.set_xlim(BOUNDS[0], BOUNDS[1])
             ax2.set_ylim(BOUNDS[0], BOUNDS[1])
             ax2.set_xticks(())
             ax2.set_yticks(())
-            ax2.set_title(f"Place Cells | Active: {trgp.is_active()} | {trigger=}")
+            ax2.set_title(f"Map | trg: {trgp.is_active()}, {trigger=}")
 
             # ---
             ax3.clear()
-            ax3.scatter(*space.get_centers().T, c=da.get_weights(), s=100, cmap="Greens", alpha=0.6)
+            ax3.scatter(*space.get_centers().T, c=da.get_weights(), s=100, cmap="Greens", alpha=0.6,
+                        vmin=0., vmax=0.1)
 
             ax3.set_xlim(BOUNDS[0], BOUNDS[1])
             ax3.set_ylim(BOUNDS[0], BOUNDS[1])
             ax3.set_xticks(())
             ax3.set_yticks(())
-            ax3.set_title(f"Velocity={np.around(s, 2)} | maxw={da.get_weights().max():.3f} | rw={reward}")
+            ax3.set_title(f"DA representation | maxw={da.get_weights().max():.1f}")
 
             # ---
             ax4.clear()
             ax4.scatter(*space.get_centers().T, c=bnd.get_weights(), s=100, cmap="Blues", alpha=0.6,
-                        vmin=0.)
+                        vmin=0., vmax=0.1)
             ax4.scatter(points[-1][0], points[-1][1], alpha=0.9, color='red', s=10)
 
             ax4.set_xlim(BOUNDS[0], BOUNDS[1])
             ax4.set_ylim(BOUNDS[0], BOUNDS[1])
             ax4.set_xticks(())
             ax4.set_yticks(())
-            ax4.set_title(f"Boundary representation | {collision} | maxw={bnd.get_weights().max():.3f}")
+            ax4.set_title(f"BND representation | maxw={bnd.get_weights().max():.1f}")
 
             plt.pause(0.0001)
 
     plt.show()
+
 
 
 
@@ -1231,5 +1388,6 @@ if __name__ == "__main__":
 
     # main_game_rand(room_name=args.room)
     # main_game_rand_2(room_name=args.room)
-    main_simple_game(duration=args.duration)
+    main_game_rand_3(room_name=args.room)
+    # main_simple_game(duration=args.duration)
 

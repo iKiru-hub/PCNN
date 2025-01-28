@@ -61,9 +61,9 @@ class AgentBody:
             The room object containing the walls
         """
 
-        if self.random_brain is not None:
-            velocity = self.random_brain()
-            logger.debug("random??")
+        # if self.random_brain is not None:
+        #     velocity = self.random_brain()
+        #     logger.debug("random??")
 
         # Clamp velocity to max speed
         # speed = np.linalg.norm(velocity)
@@ -150,7 +150,7 @@ class AgentBody:
                     np.random.randint(len(self._possible_positions))
             ]
             else:
-                raise ValueError("No possible positions provided")
+                # raise ValueError("No possible positions provided")
                 position = np.array([
                     np.random.uniform(self.bounds[0],
                                       self.bounds[1]),
@@ -193,6 +193,7 @@ class RewardObj:
         self.color = color
         self.collected = False
         self._fetching = fetching
+        self.count = 0
 
     def __str__(self) -> str:
         return f"Reward({self.x}, {self.y})"
@@ -211,6 +212,9 @@ class RewardObj:
                 self.collected = np.random.binomial(1, p)
         else:
             self.collected = 0.
+
+        if self.collected:
+            self.count += 1
 
         return self.collected
 

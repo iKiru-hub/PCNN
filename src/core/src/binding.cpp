@@ -256,26 +256,26 @@ PYBIND11_MODULE(pclib, m) {
         .def("reset", &LeakyVariable1D::reset);
 
     // LeakyVariable ND
-    py::class_<LeakyVariableND>(m, "LeakyVariableND")
-        .def(py::init<std::string, float, float, int,
-             float>(),
-             py::arg("name"),
-             py::arg("eq"),
-             py::arg("tau"),
-             py::arg("ndim"),
-             py::arg("min_v") = 0.0)
-        .def("__call__", &LeakyVariableND::call,
-             py::arg("x"),
-             py::arg("simulate") = false)
-        .def("__str__", &LeakyVariableND::str)
-        .def("__repr__", &LeakyVariableND::repr)
-        .def("__len__", &LeakyVariableND::len)
-        .def("print_v", &LeakyVariableND::print_v)
-        .def("get_v", &LeakyVariableND::get_v)
-        .def("get_name", &LeakyVariableND::get_name)
-        .def("set_eq", &LeakyVariableND::set_eq,
-             py::arg("eq"))
-        .def("reset", &LeakyVariableND::reset);
+    /* py::class_<LeakyVariableND>(m, "LeakyVariableND") */
+    /*     .def(py::init<std::string, float, float, int, */
+    /*          float>(), */
+    /*          py::arg("name"), */
+    /*          py::arg("eq"), */
+    /*          py::arg("tau"), */
+    /*          py::arg("ndim"), */
+    /*          py::arg("min_v") = 0.0) */
+    /*     .def("__call__", &LeakyVariableND::call, */
+    /*          py::arg("x"), */
+    /*          py::arg("simulate") = false) */
+    /*     .def("__str__", &LeakyVariableND::str) */
+    /*     .def("__repr__", &LeakyVariableND::repr) */
+    /*     .def("__len__", &LeakyVariableND::len) */
+    /*     .def("print_v", &LeakyVariableND::print_v) */
+    /*     .def("get_v", &LeakyVariableND::get_v) */
+    /*     .def("get_name", &LeakyVariableND::get_name) */
+    /*     .def("set_eq", &LeakyVariableND::set_eq, */
+    /*          py::arg("eq")) */
+    /*     .def("reset", &LeakyVariableND::reset); */
 
     // Density modulation
     py::class_<DensityMod>(m, "DensityMod")
@@ -367,11 +367,12 @@ PYBIND11_MODULE(pclib, m) {
     // 2 layer network
     py::class_<ExperienceModule>(m, "ExperienceModule")
         .def(py::init<float, Circuits&,
-             PCNN_REF&, OneLayerNetwork&, int, float>(),
+             PCNN_REF&, std::array<float, CIRCUIT_SIZE>,
+             int, float>(),
              py::arg("speed"),
              py::arg("circuits"),
              py::arg("space"),
-             py::arg("eval_network"),
+             py::arg("weights"),
              py::arg("max_depth") = 10,
              py::arg("action_delay") = 1.0f)
         .def("__call__", &ExperienceModule::call,
@@ -389,33 +390,33 @@ PYBIND11_MODULE(pclib, m) {
     /* ACTION SAMPLING MODULE */
 
     // Sampling Module
-    py::class_<ActionSampling2D>(m, "ActionSampling2D")
-        .def(py::init<std::string, float>(),
-             py::arg("name"),
-             py::arg("speed"))
-        .def("__call__", &ActionSampling2D::call,
-             py::arg("keep") = false)
-        .def("update", &ActionSampling2D::update,
-             py::arg("score") = 0.0)
-        .def("__len__", &ActionSampling2D::len)
-        .def("__str__", &ActionSampling2D::str)
-        .def("__repr__", &ActionSampling2D::repr)
-        .def("reset", &ActionSampling2D::reset)
-        .def("sample_once", &ActionSampling2D::sample_once)
-        .def("is_done", &ActionSampling2D::is_done)
-        .def("get_idx", &ActionSampling2D::get_idx)
-        .def("get_counter", &ActionSampling2D::get_counter)
-        .def("get_values", &ActionSampling2D::get_values);
+    /* py::class_<ActionSampling2D>(m, "ActionSampling2D") */
+    /*     .def(py::init<std::string, float>(), */
+    /*          py::arg("name"), */
+    /*          py::arg("speed")) */
+    /*     .def("__call__", &ActionSampling2D::call, */
+    /*          py::arg("keep") = false) */
+    /*     .def("update", &ActionSampling2D::update, */
+    /*          py::arg("score") = 0.0) */
+    /*     .def("__len__", &ActionSampling2D::len) */
+    /*     .def("__str__", &ActionSampling2D::str) */
+    /*     .def("__repr__", &ActionSampling2D::repr) */
+    /*     .def("reset", &ActionSampling2D::reset) */
+    /*     .def("sample_once", &ActionSampling2D::sample_once) */
+    /*     .def("is_done", &ActionSampling2D::is_done) */
+    /*     .def("get_idx", &ActionSampling2D::get_idx) */
+    /*     .def("get_counter", &ActionSampling2D::get_counter) */
+    /*     .def("get_values", &ActionSampling2D::get_values); */
 
     // 1 layer network
-    py::class_<OneLayerNetwork>(m, "OneLayerNetwork")
-        .def(py::init<std::array<float, CIRCUIT_SIZE>>(),
-             py::arg("weights"))
-        .def("__call__", &OneLayerNetwork::call,
-             py::arg("x"))
-        .def("__str__", &OneLayerNetwork::str)
-        .def("len", &OneLayerNetwork::len)
-        .def("get_weights", &OneLayerNetwork::get_weights);
+    /* py::class_<OneLayerNetwork>(m, "OneLayerNetwork") */
+    /*     .def(py::init<std::array<float, CIRCUIT_SIZE>>(), */
+    /*          py::arg("weights")) */
+    /*     .def("__call__", &OneLayerNetwork::call, */
+    /*          py::arg("x")) */
+    /*     .def("__str__", &OneLayerNetwork::str) */
+    /*     .def("len", &OneLayerNetwork::len) */
+    /*     .def("get_weights", &OneLayerNetwork::get_weights); */
 
     // Hexagon
     py::class_<Hexagon>(m, "Hexagon")

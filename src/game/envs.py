@@ -372,6 +372,7 @@ class Environment:
         self.duration = duration
         self.scale = scale
         self.t = 0
+        self.velocity = np.zeros(2)
 
         # rendering
         self.visualize = visualize
@@ -388,10 +389,11 @@ class Environment:
         Tuple[float, np.ndarray, bool, bool]:
 
         # scale velocity
-        velocity *= self.scale
+        # velocity *= self.scale
 
         # Update agent position with improved collision handling
-        _, collision = self.agent(velocity, self.room)
+        velocity, collision = self.agent(velocity, self.room)
+        self.velocity = np.around(velocity, 3)
 
         # Check reward collisions
         reward = self.reward_obj(self.agent.rect.center)
@@ -409,7 +411,8 @@ class Environment:
 
         # position = self.agent.position.copy() / self.scale
 
-        return self.agent.position.copy(), velocity, reward, float(collision), float(self.t >= self.duration), terminated
+        # return self.agent.position.copy(), velocity, reward, float(collision), float(self.t >= self.duration), terminated
+        return velocity, float(collision), reward, float(self.t >= self.duration), terminated
 
     def _reward_event(self):
 
@@ -449,13 +452,13 @@ class Environment:
 
         # write text
         font = pygame.font.Font(None, 36)
-        score_text = font.render(f't: {self.t}', True, BLACK)
+        score_text = font.render(f't: {self.t} | R={self.reward_obj.count} | v={self.velocity}', True, BLACK)
         self.screen.blit(score_text, (10, 10))
 
         pygame.display.flip()
 
 
-def run_game(env: Environment,
+def run_game_2(env: Environment,
              brain: object,
              pcnn_plotter: object = None,
              element: object = None,
@@ -549,6 +552,59 @@ def run_game(env: Environment,
             # clock.tick(FPS)
 
         # exit 1
+        if observation[4]:
+            running = False
+
+    pygame.quit()
+
+
+
+def run_game(env: Environment,
+             brain: object,
+             element: object = None,
+             fps: int = 30,
+             plotter_int: int = 100,
+             **kwargs):
+
+    clock = pygame.time.Clock()
+    last_position = np.zeros(2)
+
+
+    # [position, velocity, collision, reward, done, terminated]
+    observation = [[0., 0.], 0., 0., False, False]
+    renderer = kwargs.get("renderer", None)
+
+    running = True
+    while running:
+
+        # Event handling
+        if env.visualize:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+        # brain step
+        velocity = brain(observation[0],
+                         observation[1],
+                         observation[2],
+                         True)
+
+        # env step
+        observation = env(velocity=np.array(velocity))
+
+        # -check: reset agent's brain
+        if observation[3]:
+            logger.info(">> Game reset <<")
+            brain.reset(position=env.agent.position)
+
+        # -check: render
+        if env.visualize:
+            if env.t % plotter_int == 0:
+                env.render()
+                if renderer:
+                    renderer.render()
+
+        # -check: exit
         if observation[4]:
             running = False
 
