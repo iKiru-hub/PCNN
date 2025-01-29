@@ -373,7 +373,7 @@ PYBIND11_MODULE(pclib, m) {
     // 2 layer network
     py::class_<ExperienceModule>(m, "ExperienceModule")
         .def(py::init<float, Circuits&,
-             PCNN_REF&, std::array<float, CIRCUIT_SIZE>,
+             PCNN_REF&, std::array<float, CIRCUIT_SIZE+2>,
              float>(),
              py::arg("speed"),
              py::arg("circuits"),
@@ -385,6 +385,7 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("curr_representation"))
         .def("__str__", &ExperienceModule::str)
         .def("__repr__", &ExperienceModule::repr)
+        .def("get_memory", &ExperienceModule::get_memory_representation)
         .def("get_actions", &ExperienceModule::get_actions)
         .def("get_plan", &ExperienceModule::get_plan)
         .def("get_all_plan_values", &ExperienceModule::get_all_plan_values)
@@ -457,8 +458,10 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_trg_plan", &Brain::get_trg_plan)
         .def("get_plan_positions", &Brain::get_plan_positions)
         .def("get_plan_score", &Brain::get_plan_score)
+        .def("get_plan_scores", &Brain::get_plan_scores)
         .def("get_plan_values", &Brain::get_plan_values)
         .def("set_plan_positions", &Brain::set_plan_positions,
              py::arg("position"));
 }
+
 

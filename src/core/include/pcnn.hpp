@@ -2363,6 +2363,52 @@ public:
 /* =========== EXPERIENCE MODULE ============ */
 /* ========================================== */
 
+struct MemoryRepresentation {
+
+    Eigen::VectorXf tape;
+    float decay;
+
+    float evaluate(Eigen::VectorXf& representation) {
+
+        // check if the norm is zero
+        if (representation.norm() == 0.0f) {
+            return 0.0f;
+        }
+
+        return tape.dot(representation) / representation.norm();
+    }
+
+    void update(int idx, float activation) {
+
+        // decay the memory
+        this->tape /= decay;
+        this->tape(idx) = activation;
+    }
+
+    MemoryRepresentation(int size, float decay): tape(Eigen::VectorXf::Zero(size)), decay(decay) {}
+    ~MemoryRepresentation() {}
+};
+
+
+struct MemoryAction {
+
+    std::array<float, ACTION_SPACE_SIZE> tape;
+    float decay;
+
+    float evaluate(int idx) { return tape[idx]; }
+
+    void update(int idx) {
+
+        // decay the memory
+        for (int i = 0; i < ACTION_SPACE_SIZE; i++) {
+            tape[i] /= decay;
+        }
+        this->tape[idx] = 1.0f;
+    }
+
+    MemoryAction(float decay): decay(decay) {}
+    ~MemoryAction() {}
+};
 
 
 struct ActionSampler2D {
@@ -2449,6 +2495,7 @@ struct Plan {
     std::array<std::array<float, CIRCUIT_SIZE>, ACTION_SPACE_SIZE> all_values = {{0.0f}};
     std::array<float, ACTION_SPACE_SIZE> all_scores = {0.0f};
     std::vector<std::array<float, 2>> position_seq = {{0.0f}};  // wrt delay
+    std::vector<float> score_seq = {0.0f};  // wrt delay
     int t = 0;
     int action_delay;
 
@@ -2457,8 +2504,11 @@ struct Plan {
 
         // exit: the action have been provided #action_delay times
         if (t == action_delay) {
+            /* LOG("[-] Plan finished"); */
             return std::make_pair(action, true);
         }
+        /* LOG("[+] Plan step: " + std::to_string(t) + ", action: " + \ */
+        /*     std::to_string(action[0]) + ", " + std::to_string(action[1])); */
 
         // provide the action
         this->t++;
@@ -2469,27 +2519,28 @@ struct Plan {
         // calculate the position sequence
 
         this->position_seq = {position};
+        this->score_seq = {score_seq[0]}; // previous score
         for (int j = 0; j < action_delay; j++) {
 
             // step
             position[0] += action[0];
             position[1] += action[1];
             this->position_seq.push_back(position);
-            }
+            this->score_seq.push_back(all_scores[idx]);
+        }
     }
     void reset() {
         this->action = {0.0f, 0.0f};
         this->all_values = {{0.0f}};
         this->all_scores = {0.0f};
         this->position_seq = {{0.0f}};
+        this->score_seq = {0.0f};
         this->idx = 0;
         this->t = 0;
     }
 
-    Plan(float action_delay = 1.0f):
-        action_delay(action_delay) {}
+    Plan(float action_delay = 1.0f): action_delay(action_delay) {}
     ~Plan() {}
-
 };
 
 
@@ -2502,9 +2553,11 @@ class ExperienceModule {
     // internal components
     Plan plan;
     ActionSampler2D action_sampler;
+    MemoryRepresentation memory_representation;
+    MemoryAction memory_action;
 
     // parameters
-    std::array<float, CIRCUIT_SIZE> weights;
+    std::array<float, CIRCUIT_SIZE+2> weights;
     float speed;
     float action_delay;
 
@@ -2515,6 +2568,7 @@ class ExperienceModule {
         action_sampler.reset();
         plan.reset();
         float best_score = -10000.0f;
+        float max_neuron_value = 0.0f;
 
         // loop over the actions
         while (!action_sampler.is_done()) {
@@ -2528,26 +2582,30 @@ class ExperienceModule {
             // evaluate: (values, score)
             std::pair<std::array<float, CIRCUIT_SIZE>, float> \
                 evaluation = evaluate_action(curr_representation,
-                                             next_representation);
+                                             next_representation,
+                                             action_sampler.get_counter());
 
             // check score
             if (evaluation.second > best_score) {
                 best_score = evaluation.second;
-                plan.action = new_action;
-                plan.idx = action_sampler.get_counter();
+                this->plan.action = new_action;
+                this->plan.idx = action_sampler.get_counter();
             }
 
             // record evaluation
-            plan.all_values[action_sampler.get_counter()] = evaluation.first;
-            plan.all_scores[action_sampler.get_counter()] = evaluation.second;
+            this->plan.all_values[action_sampler.get_counter()] = evaluation.first;
+            this->plan.all_scores[action_sampler.get_counter()] = evaluation.second;
         }
+
+        LOG("[+] best action: " + std::to_string(plan.action[0]) + ", " + \
+            std::to_string(plan.action[1]) + " | score: " + std::to_string(best_score));
     }
 
     // evaluate
     std::pair<std::array<float, CIRCUIT_SIZE>, float> \
         evaluate_action(Eigen::VectorXf& curr_representation,
-                        Eigen::VectorXf& next_representation) {
-                        /* Eigen::VectorXf& memory_representation) { */
+                        Eigen::VectorXf& next_representation,
+                        int action_idx) {
 
         // bnd, da, pmax
         std::array<float, 3> values_mod = circuits.call(
@@ -2562,21 +2620,29 @@ class ExperienceModule {
             i++;
         }
 
+        // array
         std::array<float, CIRCUIT_SIZE> z = {weights[0] * values_mod[0],
                                              weights[1] * values_mod[1],
                                              weights[2] * values_mod[2]};
 
+        // sum
         float output = 0.0f;
-        for (auto& v : z) {
-            output += v;
-        }
+        for (auto& v : z) { output += v; }
 
-        // memory evaluation as cosine similarity
-        /* float memory_score = 0.0f; */
-        /* for (int i = 0; i < memory_representation.size(); i++) { */
-        /*     memory_score += memory_representation(i) * next_representation(i); */
-        /* } */
-        /* memory_score /= (memory_representation.norm() * next_representation.norm()); */
+        // memory representation
+        float memory_value = memory_representation.evaluate(next_representation) * weights[3];
+        LOG("[+] memory representation: " + std::to_string(memory_value));
+        output += memory_value;
+
+        // memory action
+        float memory_action_value = memory_action.evaluate(action_idx) * weights[4];
+        output += memory_action_value;
+        LOG("[+] memory action: " + std::to_string(memory_action_value));
+
+        // add a bit of noise
+        output += utils::random.get_random_float(0.0f, 0.01f);
+
+        LOG("[+] output: " + std::to_string(output));
 
         return std::make_pair(z, output);
     }
@@ -2587,13 +2653,15 @@ public:
     ExperienceModule(float speed,
                      Circuits& circuits,
                      PCNN_REF& space,
-                     std::array<float, CIRCUIT_SIZE> weights,
+                     std::array<float, CIRCUIT_SIZE+2> weights,
                      float action_delay = 1.0f):
             action_sampler(ActionSampler2D(speed * action_delay)),
             speed(speed), circuits(circuits),
             space(space), weights(weights),
             plan(Plan(action_delay)),
-            action_delay(action_delay) {}
+            action_delay(action_delay),
+            memory_representation(MemoryRepresentation(space.get_size(), 2.0f)),
+            memory_action(MemoryAction(2.0f)) {}
 
     ~ExperienceModule() {}
 
@@ -2607,8 +2675,20 @@ public:
             this->new_plan = false;
         }
 
+        // update memory representation
+        Eigen::Index maxIndex_curr;
+        curr_representation.maxCoeff(&maxIndex_curr);
+        int max_idx = static_cast<int>(maxIndex_curr);
+        float max_value = curr_representation.maxCoeff();
+        this->memory_representation.update(max_idx, max_value);
+
+        // update memory action
+        this->memory_action.update(plan.idx);
+
         // step the plan | (action, done)
         std::pair<std::array<float, 2>, bool> next_step = plan.call();
+        /* LOG("status: " + std::to_string(next_step.second) + ", action: " + \ */
+        /*     std::to_string(next_step.first[0]) + ", " + std::to_string(next_step.first[1])); */
 
         // check: plan finished -> new plan
         if (next_step.second) {
@@ -2639,6 +2719,8 @@ public:
     std::array<float, CIRCUIT_SIZE> get_plan_values()
         { return plan.all_values[plan.idx]; }
     float get_plan_score() { return plan.all_scores[plan.idx]; }
+    std::vector<float> get_plan_scores() { return plan.score_seq; }
+    Eigen::VectorXf get_memory_representation() { return memory_representation.tape; }
 };
 
 
@@ -2715,6 +2797,11 @@ public:
 
         // check if the trg plan is done
         // :experience module
+        if (collision > 0.0f) {
+            this->directive = "new";
+        } else {
+            this->directive = "continue";
+        }
         return expmd.call(directive, curr_representation);
     }
 
@@ -2738,6 +2825,8 @@ public:
     }
     float get_plan_score()
         { return expmd.get_plan_score(); }
+    std::vector<float> get_plan_scores()
+        { return expmd.get_plan_scores(); }
     std::array<float, CIRCUIT_SIZE>  get_plan_values()
         { return expmd.get_plan_values(); }
 };
