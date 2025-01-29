@@ -370,9 +370,13 @@ class Environment:
         # Reward event
         self.rw_event = rw_event
         self.duration = duration
-        self.scale = scale
+        self.scale = scale * 0.02
         self.t = 0
         self.velocity = np.zeros(2)
+        self.trajectory = []
+        self.traj_color = (255, 0, 0)
+        self._collision = 0
+        self._reward = 0
 
         # rendering
         self.visualize = visualize
@@ -392,7 +396,8 @@ class Environment:
         # velocity *= self.scale
 
         # Update agent position with improved collision handling
-        velocity, collision = self.agent(velocity, self.room)
+        velocity, collision = self.agent(velocity * self.scale,
+                                         self.room)
         self.velocity = np.around(velocity, 3)
 
         # Check reward collisions
@@ -410,9 +415,12 @@ class Environment:
                 logger.info(f"[t={self.t}] -collision")
 
         # position = self.agent.position.copy() / self.scale
+        self.trajectory.append(self.agent.position.tolist())
+        self._collision = float(collision)
+        self._reward = float(reward)
 
         # return self.agent.position.copy(), velocity, reward, float(collision), float(self.t >= self.duration), terminated
-        return velocity, float(collision), reward, float(self.t >= self.duration), terminated
+        return velocity / self.scale, float(collision), reward, float(self.t >= self.duration), terminated
 
     def _reward_event(self):
 
@@ -450,9 +458,18 @@ class Environment:
         self.agent.render(self.screen)
         self.reward_obj.render(self.screen)
 
+        # plot trajectory
+        if len(self.trajectory) > 1:
+            pygame.draw.lines(self.screen, self.traj_color, False, self.trajectory, 2)
+
         # write text
         font = pygame.font.Font(None, 36)
-        score_text = font.render(f't: {self.t} | R={self.reward_obj.count} | v={self.velocity}', True, BLACK)
+        text = f"t: {self.t:04d} | "
+        text += f"#R={self.reward_obj.count} | "
+        text += f"R={self._reward} | "
+        text += f"C={self._collision} |"
+        text += f"v={np.around(self.velocity, 2)}"
+        score_text = font.render(text, True, BLACK)
         self.screen.blit(score_text, (10, 10))
 
         pygame.display.flip()
@@ -574,6 +591,8 @@ def run_game(env: Environment,
     observation = [[0., 0.], 0., 0., False, False]
     renderer = kwargs.get("renderer", None)
 
+    position = env.position
+
     running = True
     while running:
 
@@ -584,10 +603,15 @@ def run_game(env: Environment,
                     running = False
 
         # brain step
-        velocity = brain(observation[0],
+        velocity = brain([(env.position[0] - position[0]) / env.scale,
+                          (env.position[1] - position[1]) / env.scale],
                          observation[1],
                          observation[2],
                          True)
+
+        # logger.debug("velocity: " + str(velocity))
+
+        position = env.position
 
         # env step
         observation = env(velocity=np.array(velocity))
@@ -607,6 +631,9 @@ def run_game(env: Environment,
         # -check: exit
         if observation[4]:
             running = False
+
+        # pause
+        # pygame.time.wait(100)
 
     pygame.quit()
 

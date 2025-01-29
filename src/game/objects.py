@@ -38,109 +38,65 @@ class AgentBody:
         self.color = color
         self.initial_pos = tuple(self.position)
         self.radius = max((width, height))
-        # self.max_speed = max_speed
         self.random_brain = random_brain
         self.trajectory = [self.position.tolist()]
         self._possible_positions = possible_positions
-        # if possible_positions is None:
-        #     raise ValueError("No possible positions provided")
 
     def __str__(self) -> str:
         return f"AgentBody{tuple(self.position.tolist())}"
 
-    def __call__(self, velocity: np.ndarray,
-                 room: object) -> Tuple[float, float]:
+    def __call__(self, velocity: np.ndarray, room: object) -> Tuple[np.ndarray, bool]:
         """
-        Move with very small steps, checking collisions at each step
-
+        Move the agent and handle bouncing collisions with walls
+        
         Parameters
         ----------
         velocity : np.ndarray
             The velocity vector to move the agent
         room : object
             The room object containing the walls
+            
+        Returns
+        -------
+        Tuple[np.ndarray, bool]
+            The potentially modified velocity vector and whether a collision occurred
         """
-
-        # if self.random_brain is not None:
-        #     velocity = self.random_brain()
-        #     logger.debug("random??")
-
-        # Clamp velocity to max speed
-        # speed = np.linalg.norm(velocity)
-        # if speed > self.max_speed:
-        #     velocity = velocity * (self.max_speed /\
-        #         speed)
-
-        # Use very small steps for movement
-        step_velocity = velocity / NUM_STEPS
-
-        for _ in range(NUM_STEPS):
-            # Store previous position
-            prev_pos = self.position.copy()
-
-            # Try to move
-            next_pos = self.position + step_velocity
-
-            # Check for collisions at the new position
-            self.rect.x = int(next_pos[0])
-            self.rect.y = int(next_pos[1])
-
-            collision = False
-
-            # First check boundaries
-            if room.is_out_of_bounds(self.rect.x,
-                                     self.rect.y):
-                collision = True
-            else:
-                # Then check wall collisions
-                for wall in room.walls:
-                    if self.rect.colliderect(wall.rect):
-                        collision = True
-                        break
-
-            if collision:
-                # Revert to previous position
-                self.position = prev_pos
-                self.rect.x = int(prev_pos[0])
-                self.rect.y = int(prev_pos[1])
-
-                # Try moving in x direction only
-                test_pos = prev_pos.copy()
-                test_pos[0] += step_velocity[0]
-                self.rect.x = int(test_pos[0])
-                x_ok = not any(self.rect.colliderect(
-                    wall.rect) for wall in room.walls)
-
-                # Try moving in y direction only
-                test_pos = prev_pos.copy()
-                test_pos[1] += step_velocity[1]
-                self.rect.y = int(test_pos[1])
-                y_ok = not any(self.rect.colliderect(
-                    wall.rect) for wall in room.walls)
-
-                # Apply valid movements
-                if x_ok:
-                    self.position[0] += step_velocity[0]
-                if y_ok:
-                    self.position[1] += step_velocity[1]
-
-                # Update rect to final position
-                self.rect.x = int(self.position[0])
-                self.rect.y = int(self.position[1])
-
-                # Modify velocity based on collision
-                if not x_ok:
-                    velocity[0] *= -1
-                if not y_ok:
-                    velocity[1] *= -1
-
-                return velocity, True
-            else:
-                self.position = next_pos
-
-        self.trajectory.append(self.position.tolist())
-
-        return velocity, False
+        # Store previous position
+        prev_pos = self.position.copy()
+        
+        # Try to move
+        next_pos = self.position + velocity
+        self.rect.x = int(next_pos[0])
+        self.rect.y = int(next_pos[1])
+        
+        # Check for collisions
+        collision = False
+        
+        # First check boundaries
+        if room.is_out_of_bounds(self.rect.x, self.rect.y):
+            collision = True
+        else:
+            # Then check wall collisions
+            for wall in room.walls:
+                if self.rect.colliderect(wall.rect):
+                    collision = True
+                    break
+        
+        if collision:
+            # Revert to previous position
+            self.position = prev_pos
+            self.rect.x = int(prev_pos[0])
+            self.rect.y = int(prev_pos[1])
+            
+            # Simple bounce: reverse velocity components
+            bounce_factor = 0.8  # Adjust this to control bounce strength
+            velocity *= -bounce_factor
+            
+            return velocity, True
+        else:
+            # No collision, update position
+            self.position = next_pos
+            return velocity, False
 
     def set_position(self, position: np.ndarray=None):
 
@@ -207,7 +163,7 @@ class RewardObj:
 
             if self._fetching == "deterministic":
                 self.collected = 1.0
-            else:
+            elif self._fetching == "probabilistic":
                 p = np.exp(-distance / (2 * self.radius**2))
                 self.collected = np.random.binomial(1, p)
         else:

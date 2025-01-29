@@ -220,7 +220,6 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_wff", &PCNNsqv2::get_wff)
         .def("get_wrec", &PCNNsqv2::get_wrec)
         .def("make_edges", &PCNNsqv2::make_edges)
-        .def("get_trajectory", &PCNNsqv2::get_trajectory)
         .def("get_connectivity", &PCNNsqv2::get_connectivity)
         .def("get_centers", &PCNNsqv2::get_centers,
              py::arg("nonzero") = false)
@@ -368,13 +367,13 @@ PYBIND11_MODULE(pclib, m) {
     py::class_<ExperienceModule>(m, "ExperienceModule")
         .def(py::init<float, Circuits&,
              PCNN_REF&, std::array<float, CIRCUIT_SIZE>,
-             int, float>(),
+             int, int>(),
              py::arg("speed"),
              py::arg("circuits"),
              py::arg("space"),
              py::arg("weights"),
              py::arg("max_depth") = 10,
-             py::arg("action_delay") = 1.0f)
+             py::arg("action_delay") = 1)
         .def("__call__", &ExperienceModule::call,
              py::arg("directive"))
         .def("__str__", &ExperienceModule::str)
@@ -451,7 +450,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("__repr__", &Brain::repr)
         .def("get_expmd", &Brain::get_expmd)
         .def("get_space", &Brain::get_space)
-        .def("get_plan", &Brain::get_plan)
+        .def("get_plan_positions", &Brain::get_plan_positions)
+        .def("get_plan_scores", &Brain::get_plan_scores)
         .def("set_plan_positions", &Brain::set_plan_positions,
              py::arg("position"));
 
