@@ -6,6 +6,7 @@
 #include <array>
 #include <algorithm>
 #include <cstdio>
+#include <cmath>
 #include <tuple>
 #include <cassert>
 
@@ -19,6 +20,7 @@
 #define PCNN_REF PCNNsqv2
 #define GCN_REF GridNetworkSq
 #define CIRCUIT_SIZE 3
+#define ACTION_SPACE_SIZE 8
 
 /* ========================================== */
 
@@ -737,7 +739,31 @@ public:
                 speed * v[0];
             new_positions[i][1] = sim_gc_positions[i][1] + \
                 speed * v[1];
-                speed * (v[1] - sim_gc_positions[i][1]);
+        }
+
+        boundary_conditions(new_positions);
+
+        // compute the activation
+        std::array<float, GCL_SIZE> yfwd = {0.0f};
+        float dist_squared;
+        for (int i = 0; i < GCL_SIZE; i++) {
+            dist_squared = std::pow(new_positions[i][0],
+                                    2) + \
+                std::pow(new_positions[i][1], 2);
+            yfwd[i] = std::exp(-dist_squared / sigma);
+        }
+
+        return yfwd;
+    }
+
+    // SIMULATE
+    std::array<float, GCL_SIZE> simulate_one_step(
+        const std::array<float, 2>& v) {
+
+        std::array<std::array<float, 2>, GCL_SIZE> new_positions;
+        for (int i = 0; i < GCL_SIZE; i++) {
+            new_positions[i][0] = positions[i][0] + speed * v[0];
+            new_positions[i][1] = positions[i][1] + speed * v[1];
         }
 
         boundary_conditions(new_positions);
@@ -830,6 +856,25 @@ public:
                     /* layers[i].fwd_position(v).data(), */
                     layers[i].simulate(v, sim_gc_positions[i]).data(),
                     GCL_SIZE);
+
+            // Assign the converted vector to
+            // the corresponding segment of y
+            yfwd.segment(i * GCL_SIZE, GCL_SIZE) = layer_output;
+        }
+
+        return yfwd;
+    }
+
+    Eigen::VectorXf simulate_one_step(const std::array<float, 2>& v) {
+
+        Eigen::VectorXf yfwd = Eigen::VectorXf::Zero(N);
+        for (int i = 0; i < num_layers; i++) {
+
+            // Convert the output of layers[i].call(x) to
+            // an Eigen::VectorXf
+            Eigen::VectorXf layer_output = \
+                Eigen::Map<const Eigen::VectorXf>(
+                    layers[i].simulate_one_step(v).data(), GCL_SIZE);
 
             // Assign the converted vector to
             // the corresponding segment of y
@@ -1715,6 +1760,24 @@ public:
         return std::make_pair(u, xfilter.get_positions_vec());
     }
 
+    Eigen::VectorXf simulate_one_step(const std::array<float, 2>& v) {
+
+        // pass the input through the filter layer
+        x_filtered = xfilter.simulate_one_step(v);
+
+        // forward it to the network by doing a dot product
+        // with the feedforward weights
+        u = utils::cosine_similarity_vector_matrix(
+                x_filtered, Wff);
+
+        Eigen::VectorXf sigma = Eigen::VectorXf::Constant(u.size(), 0.01);
+
+        // maybe use cosine similarity?
+        u = utils::generalized_sigmoid_vec(u, offset,
+                                           gain, clip_min);
+        return u;
+    }
+
    Eigen::VectorXf fwd_int(const Eigen::VectorXf& a) {
         return Wrec * a;
     }
@@ -2302,163 +2365,44 @@ public:
 
 
 
-class ActionSampling2D {
+struct ActionSampler2D {
 
-public:
+    std::array<std::array<float, 2>, ACTION_SPACE_SIZE> action_set = {{0.0f}};
+    int counter = 0;
 
-    std::string name;
+    // CALL
+    std::array<float, 2> call() {
 
-    ActionSampling2D(std::string name,
-                     float speed) : name(name)
-                {
-        update_actions(speed);
-        /* utils::logging.log("[+] ActionSampling2D." + name); */
-    }
-
-    ~ActionSampling2D() {
-        /* utils::logging.log("[-] ActionSampling2D." + name); */
-    }
-
-    std::array<float, 2> call(bool keep = false) {
-
-        // Keep current state
-        if (keep) {
-            utils::logging.log("-- keep");
-            /* return std::make_tuple(velocity, false, idx); */
-            return velocity;
-        }
-
-        // All samples have been used
-        if (counter == num_samples) {
-
-            // try to sample a zero index
-            int zero_idx = sample_zero_idx();
-
-            if (zero_idx != -1) {
-                idx = zero_idx;
-            } else {
-                // Get the index of the maximum value
-                idx = utils::arr_argmax(values);
-            }
-
-            velocity = samples[idx];
-            /* return std::make_tuple(velocity, true, idx); */
-            return velocity;
+        if (counter == ACTION_SPACE_SIZE) {
+            counter = ACTION_SPACE_SIZE - 1;
+           std::cerr << ">>> ! Action space complete, using the last action" << std::endl;
         }
 
         // Sample a new index
-        idx = sample_idx();
-        available_indexes[idx] = false;
-        velocity = samples[idx];
+        std::array<float, 2> velocity = action_set[counter];
+        counter++;
 
-        /* return std::make_tuple(velocity, false, idx); */
         return velocity;
     }
 
-    void update(float score = 0.0f) { values[idx] = score; }
-    bool is_done() { return counter == num_samples; }
-    std::string str() { return "ActionSampling2D." + name; }
-    std::string repr() { return "ActionSampling2D." + name; }
-    int len() const { return num_samples; }
-    const int get_idx() { return idx; }
-    const int get_counter() { return counter; }
+    int get_counter() { return counter; }
+    bool is_done() { return counter == ACTION_SPACE_SIZE; }
+    void reset() { this->counter = 0; }
 
-    const float get_max_value() {
-        if (counter == 0) { return 0.0; }
-        return values[idx];
+    ActionSampler2D(float speed) {
+        update_actions(speed);
+        make_action_space();
     }
-
-    // @brief get values for the samples
-    const std::array<float, 8> get_values() { return values; }
-
-    // @brief random one-time sampling
-    std::array<float, 2> sample_once() {
-        int idx = utils::random.get_random_int(0, num_samples);
-        return samples[idx];
-    }
-
-    void reset() {
-        idx = -1;
-        for (int i = 0; i < num_samples; i++) {
-            available_indexes[i] = true;
-        }
-        values = { 0.0 };
-        counter = 0;
-    }
-
-    std::array<std::array<float, 2>, 8> get_actions() {
-        return samples;
-    }
+    ~ActionSampler2D() {}
 
 private:
-
-    // parameters | trying with only 8 directions (no stop)
-    /* std::array<float, 2> samples[8] = { */
-    std::array<std::array<float, 2>, 8> samples = {{
-        {-0.707f, 0.707f},
-        {0.0f, 1.0f},
-        {0.707f, 0.707f},
-        {-1.0f, 0.0f},
-        {1.0f, 0.0f},
-        {-0.707f, -0.707f},
-        {0.0f, -1.0f},
-        {0.707f, -0.707f}
-    }};
-    const std::array<unsigned int, 8> indexes = { 0, 1, 2, 3, 4,
-                                          5, 6, 7};
-    unsigned int counter = 0;
-    const unsigned int num_samples = 8;
-    std::array<float, 8> values = { 0.0 };
-    std::array<float, 2> velocity = { 0.0 };
-    int idx = -1;
-
-    // @brief variables
-    /* int idx = -1; */
-    std::array<bool, 8> available_indexes = { true, true, true,
-        true, true, true, true, true};
-
-    // @brief sample a random index
-    int sample_idx() {
-
-        int idx = -1;
-        bool found = false;
-        while (!found) {
-            int i = utils::random.get_random_int(0, num_samples);
-
-            // Check if the index is available
-            if (available_indexes[i]) {
-                idx = i;  // Set idx to the found index
-                found = true;  // Mark as found
-            };
-        };
-        counter++;
-        return idx;
-    }
-
-    // @brief make a set of how values equal to zero
-    // and return a random index from it
-    int sample_zero_idx() {
-
-        std::vector<int> zero_indexes;
-        for (size_t i = 0; i < num_samples; i++) {
-            if (values[i] == 0.0) {
-                zero_indexes.push_back(i);
-            }
-        }
-
-        if (zero_indexes.size() > 1) {
-            return utils::random.get_random_element_vec(zero_indexes);
-        }
-
-        return -1;
-    }
 
     // @brief update the actions given a speed
     void update_actions(float speed) {
 
-        for (size_t i = 0; i < num_samples; i++) {
-            float dx = samples[i][0];
-            float dy = samples[i][1];
+        for (size_t i = 0; i < ACTION_SPACE_SIZE; i++) {
+            float dx = action_set[i][0];
+            float dy = action_set[i][1];
             float scale = speed / std::sqrt(2.0f);
             if (dx == 0.0 && dy == 0.0) {
                 continue;
@@ -2471,7 +2415,27 @@ private:
                 dx *= scale;
                 dy *= scale;
             }
-            samples[i] = {dx, dy};
+            action_set[i] = {dx, dy};
+        }
+    }
+
+    // @brief divide the circle into #ACTION_SPACE_SIZE actions
+    void make_action_space() {
+        // Calculate angle increment based on ACTION_SPACE_SIZE
+        float angle_increment = 2.0f * M_PI / ACTION_SPACE_SIZE;
+
+        // Generate points around the circle
+        for (size_t i = 0; i < ACTION_SPACE_SIZE; i++) {
+            // Calculate angle for current action
+            float angle = i * angle_increment;
+
+            // Convert polar coordinates to Cartesian coordinates
+            // Using unit circle (radius = 1.0)
+            float dx = std::cos(angle);
+            float dy = std::sin(angle);
+
+            // Store the normalized direction vector
+            action_set[i] = {dx, dy};
         }
     }
 
@@ -2479,301 +2443,104 @@ private:
 
 
 struct Plan {
-    std::array<float, 2> action;
-    std::vector<std::array<float, 2>> action_seq;
-    std::vector<std::array<float, 2>> position_seq;
-    std::vector<std::array<float, CIRCUIT_SIZE>> values_seq;
-    std::vector<float> scores_seq;
-    const int max_depth;
-    int depth;
+
+    std::array<float, 2> action = {0.0f, 0.0f};
+    int idx = 0;
+    std::array<std::array<float, CIRCUIT_SIZE>, ACTION_SPACE_SIZE> all_values = {{0.0f}};
+    std::array<float, ACTION_SPACE_SIZE> all_scores = {0.0f};
+    std::vector<std::array<float, 2>> position_seq = {{0.0f}};  // wrt delay
+    int t = 0;
     int action_delay;
-    int t;
-    int counter;
 
-    bool is_done() {
-        return t == depth;
-    }
-    bool is_last() {
-        /* bool value = t >= (depth-1); */
-        /* LOG("[+] is last? t: " + std::to_string(t) + ", depth: " + std::to_string(depth) + ", not last=" + std::to_string(!value)); */
-        return t > (action_delay * (depth-1));
-    }
+    // CALL
+    std::pair<std::array<float, 2>, bool> call() {
 
-    // STEP
-    std::array<float, 2> step() {
+        // exit: the action have been provided #action_delay times
+        if (t == action_delay) {
+            return std::make_pair(action, true);
+        }
 
-        this->action = action_seq[t / action_delay];
+        // provide the action
         this->t++;
-        /* LOG("[+] t: " + std::to_string(t) + ", depth: " + std::to_string(depth) + ", action=" + std::to_string(action[0]) + ", " + std::to_string(action[1])); */
-
-        return action;
-    }
-
-    void renew(std::tuple<std::vector<std::array<float, 2>>,
-               std::vector<std::array<float, CIRCUIT_SIZE>>,
-               std::vector<float>,
-              int> data) {
-        this->action_seq = std::get<0>(data);
-        this->values_seq = std::get<1>(data);
-        this->scores_seq = std::get<2>(data);
-        this->depth = std::get<3>(data);
-        this->t = 0;
-
-        /* LOG("[+] Plan created"); */
-        /* log_plan(); */
-        /* log_action_plan(); */
-    }
-
-    void set_action_delay(float action_delay) {
-        this->action_delay = static_cast<int>(action_delay);
+        return std::make_pair(action, false);
     }
 
     void make_plan_positions(std::array<float, 2> position) {
+        // calculate the position sequence
+
         this->position_seq = {position};
-        this->scores_seq = {0.0f};
-        /* this->position_seq.push_back(position); */
-        for (int i = 0; i < depth; i++) {
+        for (int j = 0; j < action_delay; j++) {
 
-            std::array<float, 2> action_ = action_seq[i];
-            float score_ = scores_seq[i];
-
-            for (int j = 0; j < action_delay; j++) {
-
-                // step
-                position[0] += action_[0];
-                position[1] += action_[1];
-                this->position_seq.push_back(position);
-                this->scores_seq.push_back(score_);
+            // step
+            position[0] += action[0];
+            position[1] += action[1];
+            this->position_seq.push_back(position);
             }
-        }
+    }
+    void reset() {
+        this->action = {0.0f, 0.0f};
+        this->all_values = {{0.0f}};
+        this->all_scores = {0.0f};
+        this->position_seq = {{0.0f}};
+        this->idx = 0;
+        this->t = 0;
     }
 
-    Plan(const int max_depth = 10,
-         float action_delay = 1.0f):
-        max_depth(max_depth) {
-        this->t = 0;
-        this->counter = 0;
-        this->action_delay = static_cast<int>(action_delay);;
-        this->action = {0.0f, 0.0f};
-        this->action_seq = {{0.0f}};
-        this->values_seq = {{0.0f}};
-        this->position_seq = {{0.0f}};
-        this->scores_seq = {};
-        this->depth = 0;
-    }
+    Plan(float action_delay = 1.0f):
+        action_delay(action_delay) {}
     ~Plan() {}
 
-    void log_plan() {
-        LOG("Plan: ");
-        for (int i = 0; i < depth; i++) {
-            LOG("action: " + std::to_string(action_seq[i][0]) + ", " + \
-                std::to_string(action_seq[i][1]));
-            LOG("values: " + std::to_string(values_seq[i][0]) + ", " + \
-                std::to_string(values_seq[i][1]) + ", " + \
-                std::to_string(values_seq[i][2]));
-            LOG("scores: " + std::to_string(scores_seq[i]));
-
-            if (values_seq[i][0] < 0.0f) {
-                LOG("[!] <---------------- boundary sensor");
-            }
-        }
-    }
-
-    void log_action_plan() {
-        LOG("[Action plan]");
-        for (int i = 0; i < depth; i++) {
-            LOG("a[" + std::to_string(i) + "] " + std::to_string(action_seq[i][0]) + ", " + \
-                std::to_string(action_seq[i][1]));
-        }
-        LOG("---");
-    }
 };
 
 
 class ExperienceModule {
 
-    // components
-    ActionSampling2D action_space_one;
-    ActionSampling2D action_space_two;
+    // external components
     Circuits& circuits;
     PCNN_REF& space;
-    /* OneLayerNetwork& eval_network; */
-    std::array<float, CIRCUIT_SIZE> weights;
-    const float speed;
-    int action_delay;
-    float action_delay_float;
 
-    // variables
+    // internal components
     Plan plan;
+    ActionSampler2D action_sampler;
 
-    // main rollout
-    std::tuple<std::vector<std::array<float, 2>>,
-               std::vector<std::array<float, CIRCUIT_SIZE>>,
-               std::vector<float>, int> \
-        main_rollout(Eigen::VectorXf curr_representation) {
+    // parameters
+    std::array<float, CIRCUIT_SIZE> weights;
+    float speed;
+    float action_delay;
 
-        action_space_one.reset();
+    // one rollout
+    void one_step_look_ahead(Eigen::VectorXf& curr_representation) {
 
-        // plan
-        std::vector<std::array<float, 2>> new_action_seq_f = {{0.0f}};
-        std::vector<std::array<float, CIRCUIT_SIZE>> values_seq_f = \
-                                            {{0.0f}};
-        std::vector<float> scores_seq_f = {0.0f};  // for each action
-        int depth_f = 0;
-        float best_score = -100000.0f;
-        all_values = {0.0f};
+        // initialize the plan
+        action_sampler.reset();
+        plan.reset();
+        float best_score = -10000.0f;
 
-        // initial gc positions
-        std::vector<std::array<std::array<float, 2>, GCL_SIZE>> \
-            gc_positions_zero = space.get_gc_positions_vec();
-        std::vector<std::array<std::array<float, 2>, GCL_SIZE>> \
-            gc_positions_next = space.get_gc_positions_vec();
+        // loop over the actions
+        while (!action_sampler.is_done()) {
 
-        // outer loop
-        while (!action_space_one.is_done()) {
+            // sample the one action | (action, done)
+            std::array<float, 2> new_action = action_sampler.call();
 
-            // sample the next action
-            std::array<float, 2> new_action = \
-                action_space_one.call();
-
-            // step | <pc_representation, gc_positions>
-            std::pair<Eigen::VectorXf, std::vector<std::array<std::array<float, 2>, GCL_SIZE>>> \
-                sim_results = space.simulate(new_action, gc_positions_zero);
+            // obtain pc representation
+            Eigen::VectorXf next_representation = space.simulate_one_step(new_action);
 
             // evaluate: (values, score)
             std::pair<std::array<float, CIRCUIT_SIZE>, float> \
                 evaluation = evaluate_action(curr_representation,
-                                             sim_results.first);
+                                             next_representation);
 
-            // make the provisional plan
-            std::vector<std::array<float, 2>> new_action_seq;
-            std::vector<std::array<float, 2>> position_seq;
-            std::vector<std::array<float, CIRCUIT_SIZE>> values_seq;
-            std::vector<float> scores_seq;  // for each action
-            int depth = 1;
-
-            // memory | sum of previous representations
-            Eigen::VectorXf memory_representation = sim_results.first;
-
-            // update the provisional plan
-            new_action_seq.push_back({new_action[0] / action_delay_float,
-                                      new_action[1] / action_delay_float});
-            /* position_seq.push_back(position); */
-            values_seq.push_back(evaluation.first);
-            scores_seq.push_back(evaluation.second);
-
-            // update the current representation with the new one
-            curr_representation = sim_results.first;
-            gc_positions_next = sim_results.second;
-
-            // inner loop | explore the next steps
-            for (int i = 0; i < plan.max_depth; i++) {
-                 std::tuple<std::array<float, CIRCUIT_SIZE>,
-                 float, std::array<float, 2>, \
-                 Eigen::VectorXf, \
-                 std::vector<std::array<std::array<float, 2>, GCL_SIZE>>> \
-                    inner_data = inner_rollout(curr_representation,
-                                               gc_positions_next);
-
-                curr_representation = std::get<3>(inner_data);
-                gc_positions_next = std::get<4>(inner_data);
-
-                // record : action, position, values, score
-                values_seq.push_back(std::get<0>(inner_data));
-                scores_seq.push_back(std::get<1>(inner_data));
-                /* new_action_seq.push_back(std::get<2>(inner_data)); */
-                new_action_seq.push_back({
-                    std::get<2>(inner_data)[0] / action_delay_float,
-                    std::get<2>(inner_data)[1] / action_delay_float
-                });
-                depth++;
-            }
-
-            // check if the average score is the best
-            float avg_score = std::accumulate(
-                scores_seq.begin(), scores_seq.end(), 0.0) / \
-                scores_seq.size();
-            all_values[action_space_one.get_idx()] = avg_score;
-
-            if (avg_score > best_score) {
-                new_action_seq_f = new_action_seq;
-                /* position_seq_f = position_seq; */
-                values_seq_f = values_seq;
-                scores_seq_f = scores_seq;
-                depth_f = depth;
-                best_score = avg_score;
-            }
-        }
-
-        /* LOG("best_score: " + std::to_string(best_score)); */
-
-        if (depth_f < 1) {
-            LOG("Error: depth is -1000.0f");
-            LOG("depth: " + std::to_string(depth_f));
-            LOG("scores: " + std::to_string(best_score));
-
-            std::cout << "Scores: ";
-            for (auto& v : all_values) {
-                std::cout << (std::to_string(v)) << "; ";
-            }
-        }
-
-        return {new_action_seq_f, values_seq_f, scores_seq_f, depth_f};
-    }
-
-    // inner rollout | evaluate all action from a given state/representation/position
-    std::tuple<std::array<float, CIRCUIT_SIZE>,
-    float, std::array<float, 2>,
-    Eigen::VectorXf,
-    std::vector<std::array<std::array<float, 2>, GCL_SIZE>>> \
-        inner_rollout(Eigen::VectorXf& curr_representation,
-                      std::vector<std::array<std::array<float, 2>, GCL_SIZE>> curr_gc_positions) {
-
-        action_space_two.reset();
-
-        std::array<float, CIRCUIT_SIZE> values = {0.0f};
-        float best_score = -1000.0f;
-        std::array<float, 2> proposed_action = {0.0f, 0.0f};
-        std::vector<std::array<std::array<float, 2>, GCL_SIZE>> \
-            gc_positions_next = curr_gc_positions;
-        Eigen::VectorXf next_representation = curr_representation;
-
-        // loop
-        while (!action_space_two.is_done()) {
-
-            // sample the next action
-            std::array<float, 2> new_action = \
-                action_space_two.call();
-
-            // simulate a step
-            std::pair<Eigen::VectorXf, std::vector<std::array<std::array<float,
-                                    2>, GCL_SIZE>>> \
-                sim_results = space.simulate(new_action, curr_gc_positions);
-
-            // evaluate: (values, score)
-            std::pair<std::array<float, CIRCUIT_SIZE>, float> \
-                evaluation = evaluate_action(curr_representation,
-                                             sim_results.first);
-
-            // check 2: boundary sensor too high
-            /* if (evaluation.first[0] < -0.99) { */
-            /*     continue; */
-            /* } */
-            /* curr_representation = next_representation; */
-
-            // compare
+            // check score
             if (evaluation.second > best_score) {
-                values = evaluation.first;
                 best_score = evaluation.second;
-                proposed_action = new_action;
-                next_representation = sim_results.first;
-                gc_positions_next = sim_results.second;
+                plan.action = new_action;
+                plan.idx = action_sampler.get_counter();
             }
-        }
 
-        return std::make_tuple(values, best_score, proposed_action,
-                               next_representation,
-                               gc_positions_next);
+            // record evaluation
+            plan.all_values[action_sampler.get_counter()] = evaluation.first;
+            plan.all_scores[action_sampler.get_counter()] = evaluation.second;
+        }
     }
 
     // evaluate
@@ -2815,86 +2582,63 @@ class ExperienceModule {
     }
 
 public:
-    bool new_plan;
-    std::array<float, 8> all_values;
+    bool new_plan = true;
 
     ExperienceModule(float speed,
                      Circuits& circuits,
                      PCNN_REF& space,
                      std::array<float, CIRCUIT_SIZE> weights,
-                     int max_depth = 10,
-                     int action_delay = 1):
-            action_space_one(ActionSampling2D("action_space_one",
-                                              speed * action_delay)),
-            action_space_two(ActionSampling2D("action_space_two",
-                                              speed * action_delay)),
+                     float action_delay = 1.0f):
+            action_sampler(ActionSampler2D(speed * action_delay)),
             speed(speed), circuits(circuits),
             space(space), weights(weights),
-            plan(Plan(max_depth, action_delay)),
-            action_delay(action_delay),
-            new_plan(true), all_values({0.0f}) {
-        this->action_delay_float = (float)(action_delay);
-    }
+            plan(Plan(action_delay)),
+            action_delay(action_delay) {}
 
     ~ExperienceModule() {}
 
     // CALL
-    std::array<float, 2> \
-    call(std::string directive) {
-
-        /* LOG("Directive: " + directive); */
+    std::array<float, 2> call(std::string directive, Eigen::VectorXf& curr_representation) {
 
         if (directive == "new") {
-            std::tuple<std::vector<std::array<float, 2>>,
-                       std::vector<std::array<float, CIRCUIT_SIZE>>,
-                       std::vector<float>,
-                       int> rollout_data = main_rollout(
-                            space.get_activation());
-            plan.renew(rollout_data);
-            new_plan = true;
+            one_step_look_ahead(curr_representation);
+            this->new_plan = true;
         } else {
-            new_plan = false;
+            this->new_plan = false;
         }
 
-        // return the next action and whether the plan is done
-        std::array<float, 2> next_action = plan.step();
-        return next_action;
+        // step the plan | (action, done)
+        std::pair<std::array<float, 2>, bool> next_step = plan.call();
+
+        // check: plan finished -> new plan
+        if (next_step.second) {
+            one_step_look_ahead(curr_representation);
+            this->new_plan = true;
+            std::pair<std::array<float, 2>, bool> next_step = plan.call();
+            return next_step.first;
+        }
+
+        // return the next action
+        return next_step.first;
     }
 
     std::string str() { return "ExperienceModule"; }
     std::string repr() { return "ExperienceModule"; }
-    std::vector<std::array<float, 2>> get_action_seq() {
-        return plan.action_seq;
-    }
-    std::array<float, 8> get_values() {
-        return all_values;
-    }
-    bool is_last() { return plan.is_last(); }
-    std::tuple<std::vector<std::array<float, 2>>,
-               std::vector<std::array<float, CIRCUIT_SIZE>>,
-               std::vector<float>, int,
-               std::vector<std::array<float, 2>>> get_plan() {
-        return {plan.action_seq, plan.values_seq,
-                plan.scores_seq, plan.depth, plan.position_seq};
-    }
-    std::array<std::array<float, 2>, 8> get_actions() {
-        return action_space_one.get_actions();
-    }
-    void set_plan_positions(std::array<float, 2> position) {
-        plan.make_plan_positions(position);
-    }
-    void plan_info() {
-        LOG("Plan info: ");
-        LOG("Depth: " + std::to_string(plan.depth));
-        LOG("t: " + std::to_string(plan.t));
-    }
-
-    std::vector<std::array<float, 2>> get_plan_positions() {
-        return plan.position_seq;
-    }
-    std::vector<float> get_plan_scores() {
-        return plan.scores_seq;
-    }
+    std::array<std::array<float, 2>, ACTION_SPACE_SIZE> get_actions()
+        { return action_sampler.action_set; }
+    void set_plan_positions(std::array<float, 2> position)
+        { plan.make_plan_positions(position); }
+    std::vector<std::array<float, 2>> get_plan_positions()
+        { return plan.position_seq; }
+    std::array<float, ACTION_SPACE_SIZE> get_all_plan_scores()
+        { return plan.all_scores; }
+    std::array<std::array<float, CIRCUIT_SIZE>, ACTION_SPACE_SIZE> get_all_plan_values()
+        { return plan.all_values; }
+    std::pair<std::array<float, CIRCUIT_SIZE>, float> get_plan()
+        { return {plan.all_values[plan.idx], plan.all_scores[plan.idx]}; }
+    std::array<float, CIRCUIT_SIZE> get_plan_values()
+        { return plan.all_values[plan.idx]; }
+    float get_plan_score() { return plan.all_scores[plan.idx]; }
 };
 
 
@@ -2905,17 +2649,15 @@ public:
 
 class Brain {
 
-    /* BaseModulation& modulator; */
+    // external components
     Circuits& circuits;
     PCNN_REF& space;
     TargetProgram& trgp;
     ExperienceModule& expmd;
-    Eigen::VectorXf curr_representation;
-    std::pair<std::array<float, 2>, bool> action_data = \
-        {{0.0, 0.0}, false};
 
+    // variables
+    Eigen::VectorXf curr_representation;
     std::string directive;
-    bool plan_just_made = false;
 
 public:
 
@@ -2923,11 +2665,9 @@ public:
           PCNN_REF& space,
           TargetProgram& trgp,
           ExperienceModule& expmd):
-        circuits(circuits),
-        space(space),
-        trgp(trgp),
-        expmd(expmd),
-        directive("new"){}
+        circuits(circuits), space(space),
+        trgp(trgp), expmd(expmd),
+        directive("new") {}
 
     ~Brain() {}
 
@@ -2942,10 +2682,7 @@ public:
         auto [u, _] = space.call(velocity);
         space.update();
 
-        /* LOG("velocity: " + std::to_string(velocity[0]) + ", " + std::to_string(velocity[1])); */
-
         this->curr_representation = u;
-        this->plan_just_made = false;
 
         // :circuits
         std::array<float, 3> state_int = \
@@ -2956,7 +2693,7 @@ public:
         trgp.set_centers(space.get_centers());
         trgp.set_da_weights(circuits.get_da_weights());
 
-        // === trg plan ===
+        // === TRG PLAN ===
         if (trgp.is_active() && !trgp.is_plan_finished()) {
             /* LOG("Continue trg plan..."); */
             this->directive = "trg";
@@ -2974,52 +2711,35 @@ public:
             }
         }
 
-        // === drift plan ===
+        // === DRIFT PLAN ===
 
         // check if the trg plan is done
         // :experience module
-        if (!expmd.is_last() && collision < 0.01f) {
-            /* LOG("\n.continue plan..."); */
-            this->directive = "continue";
-            return expmd.call("continue");
-        } else if (collision > 0.01f) {
-            /* LOG("[-] collision detected, new plan"); */
-            this->directive = "new";
-            this->plan_just_made = true;
-            return expmd.call("new");
-        } else {
-            // new plan
-            /* LOG("\n[+] plan end, New plan..."); */
-            this->directive = "new";
-            this->plan_just_made = true;
-            return expmd.call("new");
-        }
+        return expmd.call(directive, curr_representation);
     }
 
     std::string str() { return "Brain"; }
     std::string repr() { return "Brain"; }
-    Eigen::VectorXf get_trg_representation() {
-        return trgp.get_trg_representation();
-    }
-    Eigen::VectorXf get_representation() {
-        return curr_representation;
-    }
-    std::string get_directive() { return directive; }
+    Eigen::VectorXf get_trg_representation()
+        { return trgp.get_trg_representation(); }
+    Eigen::VectorXf get_representation()
+        { return curr_representation; }
+    ExperienceModule& get_expmd() { return expmd; }
     PCNN_REF& get_space() { return space; }
 
-    ExperienceModule& get_expmd() { return expmd; }
-    void set_plan_positions(std::array<float, 2> position) {
-        expmd.set_plan_positions(position);
-    }
-    std::vector<int> get_plan() { return trgp.get_plan(); }
-    std::array<float, 2> get_position() { return space.get_position(); }
+    std::string get_directive() { return directive; }
+    std::vector<int> get_trg_plan() { return trgp.get_plan(); }
+    std::array<float, 2> get_space_position() { return space.get_position(); }
+    void set_plan_positions(std::array<float, 2> position)
+        { expmd.set_plan_positions(position); }
     std::vector<std::array<float, 2>> get_plan_positions(std::array<float, 2> position) {
-        if (plan_just_made) { expmd.set_plan_positions(position); }
+        if (expmd.new_plan) { expmd.set_plan_positions(position); }
         return expmd.get_plan_positions();
     }
-    std::vector<float> get_plan_scores() {
-        return expmd.get_plan_scores();
-    }
+    float get_plan_score()
+        { return expmd.get_plan_score(); }
+    std::array<float, CIRCUIT_SIZE>  get_plan_values()
+        { return expmd.get_plan_values(); }
 };
 
 
@@ -3031,19 +2751,22 @@ namespace pcl {
 
 void testSampling() {
 
-    ActionSampling2D sm = ActionSampling2D("Test", 10);
+    ActionSampler2D sm = ActionSampler2D(2.0f);
 
-    /* sm.str(); */
-    LOG("Sampling test..." + sm.name);
+    LOG("[Sampling test]");
 
-    bool keep = false;
+    sm.reset();
+    std::array<float, 2> action = {0.0f, 0.0f};
     for (int i = 0; i < 28; i++) {
-        sm.call();
+        action = sm.call();
 
         if (i == (8 + 3)) {
             LOG("resetting...");
             sm.reset();
         };
+
+        LOG("[" + std::to_string(sm.get_counter()) + "] " + \
+            std::to_string(action[0]) + ", " + std::to_string(action[1]));
     };
 };
 
@@ -3094,7 +2817,7 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     std::array<float, 2> BOUNDS = {0.0f, 50.0f};
     int N = std::pow(25, 2);
 
-    // initialization
+    // SPACE
     std::vector<GridLayerSq> gcn_layers;
     gcn_layers.push_back(GridLayerSq(0.04, 0.1, {-1.0f, 1.0f, -1.0f, 1.0f}));
     gcn_layers.push_back(GridLayerSq(0.04, 0.07, {-1.0f, 1.0f, -1.0f, 1.0f}));
@@ -3102,14 +2825,18 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     gcn_layers.push_back(GridLayerSq(0.04, 0.005, {-1.0f, 1.0f, -1.0f, 1.0f}));
     GridNetworkSq gcn = GridNetworkSq(gcn_layers);
     PCNNsqv2 space = PCNNsqv2(N, gcn.len(), 10.0f, 1.4f, 0.01f, 0.2f, 0.7f, 5.0f, 5, gcn, "2D");
+
+    // MODULATION
     // name size lr threshold maxw tauv eqv minv
     BaseModulation da = BaseModulation("DA", N, 0.5f, 0.0f, 1.0f, 2.0f, 0.0f, 0.0f);
     BaseModulation bnd = BaseModulation("BND", N, 0.9f, 0.0f, 1.0f, 2.0f, 0.0f, 0.0f);
     Circuits circuits = Circuits(da, bnd);
+
+    // TARGET PROGRAM
     TargetProgram trgp = TargetProgram(space.get_connectivity(), space.get_centers(),
                                        da.get_weights(), SPEED);
-    /* OneLayerNetwork eval_network = OneLayerNetwork({-1.0f, 1.0f, 0.0f}); */
-    ExperienceModule expmd = ExperienceModule(SPEED, circuits, space, {bnd_w, 0.0f, 0.0f}, 10, 1.0f);
+    // EXPERIENCE MODULE & BRAIN
+    ExperienceModule expmd = ExperienceModule(SPEED, circuits, space, {bnd_w, 0.0f, 0.0f}, 1.0f);
     Brain brain = Brain(circuits, space, trgp, expmd);
 
     // simulation settigns

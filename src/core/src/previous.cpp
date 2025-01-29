@@ -1947,3 +1947,474 @@ public:
 
 };
 
+
+
+class ActionSampling2Dv0 {
+
+public:
+
+    std::string name;
+
+    ActionSampling2D(std::string name,
+                     float speed) : name(name)
+                {
+        update_actions(speed);
+        /* utils::logging.log("[+] ActionSampling2D." + name); */
+    }
+
+    ~ActionSampling2D() {
+        /* utils::logging.log("[-] ActionSampling2D." + name); */
+    }
+
+    std::array<float, 2> call(bool keep = false) {
+
+        // Keep current state
+        if (keep) {
+            utils::logging.log("-- keep");
+            /* return std::make_tuple(velocity, false, idx); */
+            return velocity;
+        }
+
+        // All samples have been used
+        if (counter == num_samples) {
+
+            // try to sample a zero index
+            int zero_idx = sample_zero_idx();
+
+            if (zero_idx != -1) {
+                idx = zero_idx;
+            } else {
+                // Get the index of the maximum value
+                idx = utils::arr_argmax(values);
+            }
+
+            velocity = samples[idx];
+            /* return std::make_tuple(velocity, true, idx); */
+            return velocity;
+        }
+
+        // Sample a new index
+        idx = sample_idx();
+        available_indexes[idx] = false;
+        velocity = samples[idx];
+
+        /* return std::make_tuple(velocity, false, idx); */
+        return velocity;
+    }
+
+    void update(float score = 0.0f) { values[idx] = score; }
+    bool is_done() { return counter == num_samples; }
+    std::string str() { return "ActionSampling2D." + name; }
+    std::string repr() { return "ActionSampling2D." + name; }
+    int len() const { return num_samples; }
+    const int get_idx() { return idx; }
+    const int get_counter() { return counter; }
+
+    const float get_max_value() {
+        if (counter == 0) { return 0.0; }
+        return values[idx];
+    }
+
+    // @brief get values for the samples
+    const std::array<float, 8> get_values() { return values; }
+
+    // @brief random one-time sampling
+    std::array<float, 2> sample_once() {
+        int idx = utils::random.get_random_int(0, num_samples);
+        return samples[idx];
+    }
+
+    void reset() {
+        idx = -1;
+        for (int i = 0; i < num_samples; i++) {
+            available_indexes[i] = true;
+        }
+        values = { 0.0 };
+        counter = 0;
+    }
+
+    std::array<std::array<float, 2>, 8> get_actions() {
+        return samples;
+    }
+
+private:
+
+    // parameters | trying with only 8 directions (no stop)
+    /* std::array<float, 2> samples[8] = { */
+    std::array<std::array<float, 2>, 8> samples = {{
+        {-0.707f, 0.707f},
+        {0.0f, 1.0f},
+        {0.707f, 0.707f},
+        {-1.0f, 0.0f},
+        {1.0f, 0.0f},
+        {-0.707f, -0.707f},
+        {0.0f, -1.0f},
+        {0.707f, -0.707f}
+    }};
+    const std::array<unsigned int, 8> indexes = { 0, 1, 2, 3, 4,
+                                          5, 6, 7};
+    unsigned int counter = 0;
+    const unsigned int num_samples = 8;
+    std::array<float, 8> values = { 0.0 };
+    std::array<float, 2> velocity = { 0.0 };
+    int idx = -1;
+
+    // @brief variables
+    /* int idx = -1; */
+    std::array<bool, 8> available_indexes = { true, true, true,
+        true, true, true, true, true};
+
+    // @brief sample a random index
+    int sample_idx() {
+
+        int idx = -1;
+        bool found = false;
+        while (!found) {
+            int i = utils::random.get_random_int(0, num_samples);
+
+            // Check if the index is available
+            if (available_indexes[i]) {
+                idx = i;  // Set idx to the found index
+                found = true;  // Mark as found
+            };
+        };
+        counter++;
+        return idx;
+    }
+
+    // @brief make a set of how values equal to zero
+    // and return a random index from it
+    int sample_zero_idx() {
+
+        std::vector<int> zero_indexes;
+        for (size_t i = 0; i < num_samples; i++) {
+            if (values[i] == 0.0) {
+                zero_indexes.push_back(i);
+            }
+        }
+
+        if (zero_indexes.size() > 1) {
+            return utils::random.get_random_element_vec(zero_indexes);
+        }
+
+        return -1;
+    }
+
+    // @brief update the actions given a speed
+    void update_actions(float speed) {
+
+        for (size_t i = 0; i < num_samples; i++) {
+            float dx = samples[i][0];
+            float dy = samples[i][1];
+            float scale = speed / std::sqrt(2.0f);
+            if (dx == 0.0 && dy == 0.0) {
+                continue;
+            } else if (dx == 0.0) {
+                dy *= speed;
+            } else if (dy == 0.0) {
+                dx *= speed;
+            } else {
+                // speed / sqrt(2)
+                dx *= scale;
+                dy *= scale;
+            }
+            samples[i] = {dx, dy};
+        }
+    }
+
+};
+
+
+
+struct Planv0 {
+    std::array<float, 2> action;
+    std::vector<std::array<float, 2>> action_seq;
+    std::vector<std::array<float, 2>> position_seq;
+    std::vector<std::array<float, CIRCUIT_SIZE>> values_seq;
+    std::vector<float> scores_seq;
+    const int max_depth;
+    int depth;
+    int action_delay;
+    int t;
+    int counter;
+
+    bool is_done() {
+        return t == depth;
+    }
+    bool is_last() {
+        /* bool value = t >= (depth-1); */
+        /* LOG("[+] is last? t: " + std::to_string(t) + ", depth: " + std::to_string(depth) + ", not last=" + std::to_string(!value)); */
+        return t > (action_delay * (depth-1));
+    }
+
+    // STEP
+    std::array<float, 2> step() {
+
+        this->action = action_seq[t / action_delay];
+        this->t++;
+        /* LOG("[+] t: " + std::to_string(t) + ", depth: " + std::to_string(depth) + ", action=" + std::to_string(action[0]) + ", " + std::to_string(action[1])); */
+
+        return action;
+    }
+
+    void renew(std::tuple<std::vector<std::array<float, 2>>,
+               std::vector<std::array<float, CIRCUIT_SIZE>>,
+               std::vector<float>,
+              int> data) {
+        this->action_seq = std::get<0>(data);
+        this->values_seq = std::get<1>(data);
+        this->scores_seq = std::get<2>(data);
+        this->depth = std::get<3>(data);
+        this->t = 0;
+
+        /* LOG("[+] Plan created"); */
+        /* log_plan(); */
+        /* log_action_plan(); */
+    }
+
+    void set_action_delay(float action_delay) {
+        this->action_delay = static_cast<int>(action_delay);
+    }
+
+    void make_plan_positions(std::array<float, 2> position) {
+        this->position_seq = {position};
+        this->scores_seq = {0.0f};
+        /* this->position_seq.push_back(position); */
+        for (int i = 0; i < depth; i++) {
+
+            std::array<float, 2> action_ = action_seq[i];
+            float score_ = scores_seq[i];
+
+            for (int j = 0; j < action_delay; j++) {
+
+                // step
+                position[0] += action_[0];
+                position[1] += action_[1];
+                this->position_seq.push_back(position);
+                this->scores_seq.push_back(score_);
+            }
+        }
+    }
+
+    Plan(const int max_depth = 10,
+         float action_delay = 1.0f):
+        max_depth(max_depth) {
+        this->t = 0;
+        this->counter = 0;
+        this->action_delay = static_cast<int>(action_delay);;
+        this->action = {0.0f, 0.0f};
+        this->action_seq = {{0.0f}};
+        this->values_seq = {{0.0f}};
+        this->position_seq = {{0.0f}};
+        this->scores_seq = {};
+        this->depth = 0;
+    }
+    ~Plan() {}
+
+    void log_plan() {
+        LOG("Plan: ");
+        for (int i = 0; i < depth; i++) {
+            LOG("action: " + std::to_string(action_seq[i][0]) + ", " + \
+                std::to_string(action_seq[i][1]));
+            LOG("values: " + std::to_string(values_seq[i][0]) + ", " + \
+                std::to_string(values_seq[i][1]) + ", " + \
+                std::to_string(values_seq[i][2]));
+            LOG("scores: " + std::to_string(scores_seq[i]));
+
+            if (values_seq[i][0] < 0.0f) {
+                LOG("[!] <---------------- boundary sensor");
+            }
+        }
+    }
+
+    void log_action_plan() {
+        LOG("[Action plan]");
+        for (int i = 0; i < depth; i++) {
+            LOG("a[" + std::to_string(i) + "] " + std::to_string(action_seq[i][0]) + ", " + \
+                std::to_string(action_seq[i][1]));
+        }
+        LOG("---");
+    }
+};
+
+
+
+
+
+// ExperienceModule
+
+
+/*     // !main rollout */
+/*     std::tuple<std::vector<std::array<float, 2>>, */
+/*                std::vector<std::array<float, CIRCUIT_SIZE>>, */
+/*                std::vector<float>, int> \ */
+/*         main_rollout(Eigen::VectorXf curr_representation) { */
+
+/*         action_space_one.reset(); */
+
+/*         // initialize the plan */
+/*         std::vector<std::array<float, 2>> new_action_seq_f = {{0.0f}}; */
+/*         std::vector<std::array<float, CIRCUIT_SIZE>> values_seq_f = \ */
+/*                                             {{0.0f}}; */
+/*         std::vector<float> scores_seq_f = {0.0f};  // for each action */
+/*         int depth_f = 0; */
+/*         float best_score = -100000.0f; */
+/*         all_values = {0.0f}; */
+/*         this->all_values_seq_f = {{{0.0f}}}; */
+
+/*         // initial gc positions */
+/*         std::vector<std::array<std::array<float, 2>, GCL_SIZE>> \ */
+/*             gc_positions_zero = space.get_gc_positions_vec(); */
+/*         std::vector<std::array<std::array<float, 2>, GCL_SIZE>> \ */
+/*             gc_positions_next = space.get_gc_positions_vec(); */
+
+/*         // outer loop */
+/*         while (!action_space_one.is_done()) { */
+
+/*             // sample the starting action */
+/*             std::array<float, 2> new_action = \ */
+/*                 action_space_one.call(); */
+
+/*             // step | <pc_representation, gc_positions> */
+/*             std::pair<Eigen::VectorXf, std::vector<std::array<std::array<float, 2>, GCL_SIZE>>> \ */
+/*                 sim_results = space.simulate(new_action, gc_positions_zero); */
+
+/*             // evaluate: (values, score) */
+/*             std::pair<std::array<float, CIRCUIT_SIZE>, float> \ */
+/*                 evaluation = evaluate_action(curr_representation, */
+/*                                              sim_results.first); */
+
+/*             // make the provisional plan */
+/*             std::vector<std::array<float, 2>> new_action_seq; */
+/*             std::vector<std::array<float, 2>> position_seq; */
+/*             std::vector<std::array<float, CIRCUIT_SIZE>> values_seq; */
+/*             std::vector<float> scores_seq;  // for each action */
+/*             int depth = 1; */
+
+/*             // memory | sum of previous representations */
+/*             Eigen::VectorXf memory_representation = sim_results.first; */
+
+/*             // update the provisional plan */
+/*             new_action_seq.push_back({new_action[0] / action_delay_float, */
+/*                                       new_action[1] / action_delay_float}); */
+/*             /1* position_seq.push_back(position); *1/ */
+/*             values_seq.push_back(evaluation.first); */
+/*             scores_seq.push_back(evaluation.second); */
+
+/*             // update the current representation with the new one */
+/*             curr_representation = sim_results.first; */
+/*             gc_positions_next = sim_results.second; */
+
+/*             // inner loop | explore the next steps */
+/*             for (int i = 0; i < plan.max_depth; i++) { */
+/*                  std::tuple<std::array<float, CIRCUIT_SIZE>, */
+/*                  float, std::array<float, 2>, \ */
+/*                  Eigen::VectorXf, \ */
+/*                  std::vector<std::array<std::array<float, 2>, GCL_SIZE>>> \ */
+/*                     inner_data = inner_rollout(curr_representation, */
+/*                                                gc_positions_next); */
+
+/*                 curr_representation = std::get<3>(inner_data); */
+/*                 gc_positions_next = std::get<4>(inner_data); */
+
+/*                 // record : action, position, values, score */
+/*                 values_seq.push_back(std::get<0>(inner_data)); */
+/*                 scores_seq.push_back(std::get<1>(inner_data)); */
+/*                 /1* new_action_seq.push_back(std::get<2>(inner_data)); *1/ */
+/*                 new_action_seq.push_back({ */
+/*                     std::get<2>(inner_data)[0] / action_delay_float, */
+/*                     std::get<2>(inner_data)[1] / action_delay_float */
+/*                 }); */
+/*                 depth++; */
+/*             } */
+
+/*             // check if the average score is the best */
+/*             float avg_score = std::accumulate( */
+/*                 scores_seq.begin(), scores_seq.end(), 0.0) / \ */
+/*                 scores_seq.size(); */
+/*             /1* float avg_score = utils::random.get_random_float(0.0, 1.0); *1/ */
+/*             all_values[action_space_one.get_idx()] = avg_score; */
+
+/*             this->all_values_seq_f.push_back(values_seq); */
+
+/*             if (avg_score > best_score) { */
+/*                 new_action_seq_f = new_action_seq; */
+/*                 /1* position_seq_f = position_seq; *1/ */
+/*                 values_seq_f = values_seq; */
+/*                 scores_seq_f = scores_seq; */
+/*                 depth_f = depth; */
+/*                 best_score = avg_score; */
+/*             } */
+/*         } */
+
+/*         /1* LOG("best_score: " + std::to_string(best_score)); *1/ */
+
+/*         if (depth_f < 1) { */
+/*             LOG("Error: depth is -1000.0f"); */
+/*             LOG("depth: " + std::to_string(depth_f)); */
+/*             LOG("scores: " + std::to_string(best_score)); */
+
+/*             std::cout << "Scores: "; */
+/*             for (auto& v : all_values) { */
+/*                 std::cout << (std::to_string(v)) << "; "; */
+/*             } */
+/*         } */
+
+/*         return {new_action_seq_f, values_seq_f, scores_seq_f, depth_f}; */
+/*     } */
+
+/*     // !inner rollout | evaluate all action from a given state/representation/position */
+/*     std::tuple<std::array<float, CIRCUIT_SIZE>, */
+/*     float, std::array<float, 2>, */
+/*     Eigen::VectorXf, */
+/*     std::vector<std::array<std::array<float, 2>, GCL_SIZE>>> \ */
+/*         inner_rollout(Eigen::VectorXf& curr_representation, */
+/*                       std::vector<std::array<std::array<float, 2>, GCL_SIZE>> curr_gc_positions) { */
+
+/*         action_space_two.reset(); */
+
+/*         std::array<float, CIRCUIT_SIZE> values = {0.0f}; */
+/*         float best_score = -1000.0f; */
+/*         std::array<float, 2> proposed_action = {0.0f, 0.0f}; */
+/*         std::vector<std::array<std::array<float, 2>, GCL_SIZE>> \ */
+/*             gc_positions_next = curr_gc_positions; */
+/*         Eigen::VectorXf next_representation = curr_representation; */
+
+/*         // loop */
+/*         while (!action_space_two.is_done()) { */
+
+/*             // sample the next action */
+/*             std::array<float, 2> new_action = \ */
+/*                 action_space_two.call(); */
+
+/*             // simulate a step */
+/*             std::pair<Eigen::VectorXf, std::vector<std::array<std::array<float, */
+/*                                     2>, GCL_SIZE>>> \ */
+/*                 sim_results = space.simulate(new_action, curr_gc_positions); */
+
+/*             // evaluate: (values, score) */
+/*             std::pair<std::array<float, CIRCUIT_SIZE>, float> \ */
+/*                 evaluation = evaluate_action(curr_representation, */
+/*                                              sim_results.first); */
+
+/*             // check 2: boundary sensor too high */
+/*             /1* if (evaluation.first[0] < -0.99) { *1/ */
+/*             /1*     continue; *1/ */
+/*             /1* } *1/ */
+/*             /1* curr_representation = next_representation; *1/ */
+
+/*             // compare */
+/*             if (evaluation.second > best_score) { */
+/*                 values = evaluation.first; */
+/*                 best_score = evaluation.second; */
+/*                 proposed_action = new_action; */
+/*                 next_representation = sim_results.first; */
+/*                 gc_positions_next = sim_results.second; */
+/*             } */
+/*         } */
+
+/*         return std::make_tuple(values, best_score, proposed_action, */
+/*                                next_representation, */
+/*                                gc_positions_next); */
+/*     } */
+

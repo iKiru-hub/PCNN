@@ -575,7 +575,6 @@ def run_game_2(env: Environment,
     pygame.quit()
 
 
-
 def run_game(env: Environment,
              brain: object,
              element: object = None,

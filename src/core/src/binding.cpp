@@ -32,6 +32,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("simulate", &GridLayerSq::simulate,
              py::arg("v"),
              py::arg("sim_gc_positions"))
+        .def("simulate_one_step", &GridLayerSq::simulate_one_step,
+             py::arg("v"))
         .def("get_centers", &GridLayerSq::get_centers)
         .def("get_activation", &GridLayerSq::get_activation)
         .def("get_positions", &GridLayerSq::get_positions)
@@ -50,6 +52,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("simulate", &GridNetworkSq::simulate,
              py::arg("v"),
              py::arg("sim_gc_positions"))
+        .def("simulate_one_step", &GridNetworkSq::simulate_one_step,
+             py::arg("v"))
         .def("get_activation", &GridNetworkSq::get_activation)
         .def("get_centers", &GridNetworkSq::get_centers)
         .def("get_num_layers", &GridNetworkSq::get_num_layers)
@@ -224,9 +228,12 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_centers", &PCNNsqv2::get_centers,
              py::arg("nonzero") = false)
         .def("get_delta_update", &PCNNsqv2::get_delta_update)
+        .def("get_position", &PCNNsqv2::get_position)
         .def("simulate", &PCNNsqv2::simulate,
              py::arg("v"),
              py::arg("sim_gc_positions"))
+        .def("simulate_one_step", &PCNNsqv2::simulate_one_step,
+             py::arg("v"))
         .def("fwd_int", &PCNNsqv2::fwd_int,
              py::arg("a"))
         .def("reset_gcn", &PCNNsqv2::reset_gcn,
@@ -367,24 +374,21 @@ PYBIND11_MODULE(pclib, m) {
     py::class_<ExperienceModule>(m, "ExperienceModule")
         .def(py::init<float, Circuits&,
              PCNN_REF&, std::array<float, CIRCUIT_SIZE>,
-             int, int>(),
+             float>(),
              py::arg("speed"),
              py::arg("circuits"),
              py::arg("space"),
              py::arg("weights"),
-             py::arg("max_depth") = 10,
-             py::arg("action_delay") = 1)
+             py::arg("action_delay") = 1.0f)
         .def("__call__", &ExperienceModule::call,
-             py::arg("directive"))
+             py::arg("directive"),
+             py::arg("curr_representation"))
         .def("__str__", &ExperienceModule::str)
         .def("__repr__", &ExperienceModule::repr)
-        .def("get_action_seq", &ExperienceModule::get_action_seq)
-        .def("get_plan", &ExperienceModule::get_plan)
-        .def_readonly("new_plan", &ExperienceModule::new_plan)
-        .def("get_values", &ExperienceModule::get_values)
         .def("get_actions", &ExperienceModule::get_actions)
-        .def("plan_info", &ExperienceModule::plan_info)
-        .def("is_last", &ExperienceModule::is_last);
+        .def("get_plan", &ExperienceModule::get_plan)
+        .def("get_all_plan_values", &ExperienceModule::get_all_plan_values)
+        .def("get_all_plan_scores", &ExperienceModule::get_all_plan_scores);
 
     /* ACTION SAMPLING MODULE */
 
@@ -450,11 +454,11 @@ PYBIND11_MODULE(pclib, m) {
         .def("__repr__", &Brain::repr)
         .def("get_expmd", &Brain::get_expmd)
         .def("get_space", &Brain::get_space)
+        .def("get_trg_plan", &Brain::get_trg_plan)
         .def("get_plan_positions", &Brain::get_plan_positions)
-        .def("get_plan_scores", &Brain::get_plan_scores)
+        .def("get_plan_score", &Brain::get_plan_score)
+        .def("get_plan_values", &Brain::get_plan_values)
         .def("set_plan_positions", &Brain::set_plan_positions,
              py::arg("position"));
-
 }
-
 

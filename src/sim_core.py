@@ -1024,7 +1024,7 @@ def main_game_rand_3(room_name: str="Square.v0"):
     sim_settings = {
         "bounds": np.array([0.05, 0.95,
                             0.05, 0.95]) * GAME_SCALE,
-        "speed": 1.,
+        "speed": 1.5,
         "init_position": np.array([0.5, 0.5]) * GAME_SCALE,
         "rw_fetching": "deterministic",
         "rw_event": "nothing",
@@ -1034,7 +1034,7 @@ def main_game_rand_3(room_name: str="Square.v0"):
         "plot_interval": 1,
         "rendering": True,
         "rendering_pcnn": True,
-        "render_game": True,
+    "render_game": True,
         "room": "square",
         "use_game": False,
         "max_duration": None,
@@ -1044,7 +1044,7 @@ def main_game_rand_3(room_name: str="Square.v0"):
     # brain
 
     """ PCNN """
-    N = 30**2
+    N = 25**2
 
     # --- Square PCNN
     gcn = pclib.GridNetworkSq([
@@ -1074,7 +1074,7 @@ def main_game_rand_3(room_name: str="Square.v0"):
 
     expmd = pclib.ExperienceModule(speed=sim_settings["speed"],
                                    circuits=circuit,
-                                   space=space, weights=[0., 0., 1.],
+                                   space=space, weights=[0., 0., -0.],
                                    max_depth=15, action_delay=4)
     brain = pclib.Brain(circuit, space, trgp, expmd)
 
@@ -1163,8 +1163,8 @@ def main_game_rand_3(room_name: str="Square.v0"):
     # -- run
     games.run_game(env=env,
                    brain=brain,
-                   plotter_int=1,
-                   fps=1, renderer=renderer)
+                   plotter_int=2,
+                   fps=10, renderer=renderer)
     # games.run_game(env=env,
     #                brain=brain,
     #                pcnn_plotter=None,
