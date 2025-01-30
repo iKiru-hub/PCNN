@@ -374,12 +374,14 @@ PYBIND11_MODULE(pclib, m) {
     py::class_<ExperienceModule>(m, "ExperienceModule")
         .def(py::init<float, Circuits&,
              PCNN_REF&, std::array<float, CIRCUIT_SIZE+2>,
-             float>(),
+             float, float, float>(),
              py::arg("speed"),
              py::arg("circuits"),
              py::arg("space"),
              py::arg("weights"),
-             py::arg("action_delay") = 1.0f)
+             py::arg("action_delay") = 1.0f,
+             py::arg("mr_decay") = 2.0f,
+             py::arg("ma_decay") = 2.0f)
         .def("__call__", &ExperienceModule::call,
              py::arg("directive"),
              py::arg("curr_representation"))

@@ -2381,8 +2381,8 @@ struct MemoryRepresentation {
     void update(int idx, float activation) {
 
         // decay the memory
-        this->tape /= decay;
-        this->tape(idx) = activation;
+        tape -= tape / decay;
+        tape(idx) = activation;
     }
 
     MemoryRepresentation(int size, float decay): tape(Eigen::VectorXf::Zero(size)), decay(decay) {}
@@ -2401,9 +2401,9 @@ struct MemoryAction {
 
         // decay the memory
         for (int i = 0; i < ACTION_SPACE_SIZE; i++) {
-            tape[i] /= decay;
+            tape[i] -= tape[i] / decay;
         }
-        this->tape[idx] = 1.0f;
+        tape[idx] = 1.0f;
     }
 
     MemoryAction(float decay): decay(decay) {}
@@ -2420,7 +2420,7 @@ struct ActionSampler2D {
     std::array<float, 2> call() {
 
         if (counter == ACTION_SPACE_SIZE) {
-            counter = ACTION_SPACE_SIZE - 1;
+           counter = ACTION_SPACE_SIZE - 1;
            std::cerr << ">>> ! Action space complete, using the last action" << std::endl;
         }
 
@@ -2431,13 +2431,13 @@ struct ActionSampler2D {
         return velocity;
     }
 
-    int get_counter() { return counter; }
+    int get_counter() { return counter-1; }
     bool is_done() { return counter == ACTION_SPACE_SIZE; }
-    void reset() { this->counter = 0; }
+    void reset() { counter = 0; }
 
     ActionSampler2D(float speed) {
-        update_actions(speed);
         make_action_space();
+        update_actions(speed);
     }
     ~ActionSampler2D() {}
 
@@ -2445,6 +2445,9 @@ private:
 
     // @brief update the actions given a speed
     void update_actions(float speed) {
+
+        LOG("[updating actions in ActionSampler2D]");
+        LOG("[+] speed: " + std::to_string(speed));
 
         for (size_t i = 0; i < ACTION_SPACE_SIZE; i++) {
             float dx = action_set[i][0];
@@ -2588,7 +2591,8 @@ class ExperienceModule {
             // check score
             if (evaluation.second > best_score) {
                 best_score = evaluation.second;
-                this->plan.action = new_action;
+                this->plan.action = {new_action[0] / action_delay,
+                                     new_action[1] / action_delay};
                 this->plan.idx = action_sampler.get_counter();
             }
 
@@ -2597,8 +2601,8 @@ class ExperienceModule {
             this->plan.all_scores[action_sampler.get_counter()] = evaluation.second;
         }
 
-        LOG("[+] best action: " + std::to_string(plan.action[0]) + ", " + \
-            std::to_string(plan.action[1]) + " | score: " + std::to_string(best_score));
+        /* LOG("[+] best action: " + std::to_string(plan.action[0]) + ", " + \ */
+        /*     std::to_string(plan.action[1]) + " | score: " + std::to_string(best_score)); */
     }
 
     // evaluate
@@ -2631,18 +2635,18 @@ class ExperienceModule {
 
         // memory representation
         float memory_value = memory_representation.evaluate(next_representation) * weights[3];
-        LOG("[+] memory representation: " + std::to_string(memory_value));
-        output += memory_value;
+        /* LOG("[+] memory representation: " + std::to_string(memory_value)); */
+        /* output += memory_value; */
 
         // memory action
         float memory_action_value = memory_action.evaluate(action_idx) * weights[4];
-        output += memory_action_value;
-        LOG("[+] memory action: " + std::to_string(memory_action_value));
+        /* output += memory_action_value; */
+        /* LOG("[+] memory action: " + std::to_string(memory_action_value)); */
 
         // add a bit of noise
         output += utils::random.get_random_float(0.0f, 0.01f);
 
-        LOG("[+] output: " + std::to_string(output));
+        /* LOG("[+] output: " + std::to_string(output)); */
 
         return std::make_pair(z, output);
     }
@@ -2654,14 +2658,15 @@ public:
                      Circuits& circuits,
                      PCNN_REF& space,
                      std::array<float, CIRCUIT_SIZE+2> weights,
-                     float action_delay = 1.0f):
+                     float action_delay = 1.0f,
+                     float mr_decay = 2.0f, float ma_decay = 2.0f):
             action_sampler(ActionSampler2D(speed * action_delay)),
             speed(speed), circuits(circuits),
             space(space), weights(weights),
             plan(Plan(action_delay)),
             action_delay(action_delay),
-            memory_representation(MemoryRepresentation(space.get_size(), 2.0f)),
-            memory_action(MemoryAction(2.0f)) {}
+            memory_representation(MemoryRepresentation(space.get_size(), mr_decay)),
+            memory_action(MemoryAction(ma_decay)) {}
 
     ~ExperienceModule() {}
 
