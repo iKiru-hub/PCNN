@@ -4,30 +4,21 @@ import numpy as np
 from typing import Tuple, List
 import os, sys
 
-
-sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 from game.constants import *
-from utils_core import setup_logger
-
-# try:
-#     from constants import *
-# except ImportError:
-    # from game.constants import *
-
-logger = setup_logger("GAME", level=2)
 
 
 class AgentBody:
 
     def __init__(self, position: np.ndarray,
+                 room: object,
                  width: int = 20, height: int = 20,
                  color: Tuple[int, int, int] = (255, 0, 0),
                  bounds: Tuple[int, int, int, int] = (0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
-                 max_speed: float = 5.0,
                  possible_positions: List[Tuple[int, int]] = None,
                  random_brain=None):
 
         self.bounds = bounds
+        self.room = room
         if np.all(position != None):
             self.position = position
         else:
@@ -45,17 +36,17 @@ class AgentBody:
     def __str__(self) -> str:
         return f"AgentBody{tuple(self.position.tolist())}"
 
-    def __call__(self, velocity: np.ndarray, room: object) -> Tuple[np.ndarray, bool]:
+    def __call__(self, velocity: np.ndarray) -> Tuple[np.ndarray, bool]:
         """
         Move the agent and handle bouncing collisions with walls
-        
+
         Parameters
         ----------
         velocity : np.ndarray
             The velocity vector to move the agent
         room : object
             The room object containing the walls
-            
+
         Returns
         -------
         Tuple[np.ndarray, bool]
@@ -63,35 +54,35 @@ class AgentBody:
         """
         # Store previous position
         prev_pos = self.position.copy()
-        
+
         # Try to move
         next_pos = self.position + velocity
         self.rect.x = int(next_pos[0])
         self.rect.y = int(next_pos[1])
-        
+
         # Check for collisions
         collision = False
-        
+
         # First check boundaries
-        if room.is_out_of_bounds(self.rect.x, self.rect.y):
+        if self.room.is_out_of_bounds(self.rect.x, self.rect.y):
             collision = True
         else:
             # Then check wall collisions
-            for wall in room.walls:
+            for wall in self.room.walls:
                 if self.rect.colliderect(wall.rect):
                     collision = True
                     break
-        
+
         if collision:
             # Revert to previous position
             self.position = prev_pos
             self.rect.x = int(prev_pos[0])
             self.rect.y = int(prev_pos[1])
-            
+
             # Simple bounce: reverse velocity components
             bounce_factor = 0.8  # Adjust this to control bounce strength
             velocity *= -bounce_factor
-            
+
             return velocity, True
         else:
             # No collision, update position
@@ -135,7 +126,8 @@ class RewardObj:
                     (100, SCREEN_WIDTH-100,
                      100, SCREEN_HEIGHT-100),
                  fetching: str="probabilistic",
-                 color: Tuple[int, int, int] = (25, 255, 0)):
+                 color: Tuple[int, int, int] = (25, 255, 0),
+                 delay: int = 10):
 
         self._bounds = bounds
         if np.all(position != None):
@@ -150,6 +142,11 @@ class RewardObj:
         self.collected = False
         self._fetching = fetching
         self.count = 0
+
+        self.available = True
+        self.t = 0
+        self.t_collected = 0
+        self.delay = delay
 
     def __str__(self) -> str:
         return f"Reward({self.x}, {self.y})"
@@ -171,6 +168,11 @@ class RewardObj:
 
         if self.collected:
             self.count += 1
+            self.t_collected = self.t
+
+        self.available = (self.t - self.t_collected) > self.delay
+
+        self.t += 1
 
         return self.collected
 
@@ -216,5 +218,7 @@ class RandomAgent:
         self.steps += 1
         return self.current_velocity / self.scale
 
+    def reset(self, **kwargs):
+        pass
 
 

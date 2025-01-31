@@ -7,7 +7,7 @@
 #include <Eigen/Dense>
 
 #define PCNN_REF PCNNsqv2
-#define CIRCUIT_SIZE 3
+#define CIRCUIT_SIZE 5
 
 namespace py = pybind11;
 
@@ -261,38 +261,6 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("eq"))
         .def("reset", &LeakyVariable1D::reset);
 
-    // LeakyVariable ND
-    /* py::class_<LeakyVariableND>(m, "LeakyVariableND") */
-    /*     .def(py::init<std::string, float, float, int, */
-    /*          float>(), */
-    /*          py::arg("name"), */
-    /*          py::arg("eq"), */
-    /*          py::arg("tau"), */
-    /*          py::arg("ndim"), */
-    /*          py::arg("min_v") = 0.0) */
-    /*     .def("__call__", &LeakyVariableND::call, */
-    /*          py::arg("x"), */
-    /*          py::arg("simulate") = false) */
-    /*     .def("__str__", &LeakyVariableND::str) */
-    /*     .def("__repr__", &LeakyVariableND::repr) */
-    /*     .def("__len__", &LeakyVariableND::len) */
-    /*     .def("print_v", &LeakyVariableND::print_v) */
-    /*     .def("get_v", &LeakyVariableND::get_v) */
-    /*     .def("get_name", &LeakyVariableND::get_name) */
-    /*     .def("set_eq", &LeakyVariableND::set_eq, */
-    /*          py::arg("eq")) */
-    /*     .def("reset", &LeakyVariableND::reset); */
-
-    // Density modulation
-    py::class_<DensityMod>(m, "DensityMod")
-        .def(py::init<std::array<float, 5>, float>(),
-             py::arg("weights"),
-             py::arg("theta"))
-        .def("__str__", &DensityMod::str)
-        .def("__call__", &DensityMod::call,
-             py::arg("x"))
-        .def("get_value", &DensityMod::get_value);
-
     py::class_<PopulationMaxProgram>(m, "PopulationMaxProgram")
         .def(py::init<>())
         .def("__str__", &PopulationMaxProgram::str)
@@ -301,6 +269,27 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("u"))
         .def("len", &PopulationMaxProgram::len)
         .def("get_value", &PopulationMaxProgram::get_value);
+
+    py::class_<MemoryRepresentation>(m, "MemoryRepresentation")
+        .def(py::init<int, float>(),
+             py::arg("size"),
+             py::arg("decay"))
+        .def("__str__", &MemoryRepresentation::str)
+        .def("__repr__", &MemoryRepresentation::repr)
+        .def("__call__", &MemoryRepresentation::call,
+             py::arg("representation"),
+             py::arg("simulate") = false)
+        .def_readwrite("tape", &MemoryRepresentation::tape);
+
+    py::class_<MemoryAction>(m, "MemoryAction")
+        .def(py::init<float>(),
+             py::arg("decay"))
+        .def("__str__", &MemoryAction::str)
+        .def("__repr__", &MemoryAction::repr)
+        .def("__call__", &MemoryAction::call,
+             py::arg("idx"),
+             py::arg("simulate") = false)
+        .def_readwrite("tape", &MemoryAction::tape);
 
     /* MODULATION */
     py::class_<BaseModulation>(m, "BaseModulation")
@@ -326,9 +315,12 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_weights", &BaseModulation::get_weights);
 
     py::class_<Circuits>(m, "Circuits")
-        .def(py::init<BaseModulation&, BaseModulation&>(),
+        .def(py::init<BaseModulation&, BaseModulation&,
+             MemoryRepresentation&, MemoryAction&>(),
              py::arg("da"),
-             py::arg("bnd"))
+             py::arg("bnd"),
+             py::arg("memrepr"),
+             py::arg("memact"))
         .def("__str__", &Circuits::str)
         .def("__repr__", &Circuits::repr)
         .def("__len__", &Circuits::len)
@@ -336,8 +328,11 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("u"),
              py::arg("collision"),
              py::arg("reward"),
+             py::arg("action_idx") = -1,
              py::arg("simulate") = false)
         .def("get_output", &Circuits::get_output)
+        .def("get_memory_representation", &Circuits::get_memory_representation)
+        .def("get_memory_action", &Circuits::get_memory_action)
         .def("get_leaky_v", &Circuits::get_leaky_v);
 
     /* MODULES */
@@ -372,22 +367,18 @@ PYBIND11_MODULE(pclib, m) {
 
     // 2 layer network
     py::class_<ExperienceModule>(m, "ExperienceModule")
-        .def(py::init<float, Circuits&,
-             PCNN_REF&, std::array<float, CIRCUIT_SIZE+2>,
-             float, float, float>(),
+        .def(py::init<float, Circuits&, PCNN_REF&,
+             std::array<float, CIRCUIT_SIZE>, float>(),
              py::arg("speed"),
              py::arg("circuits"),
              py::arg("space"),
              py::arg("weights"),
-             py::arg("action_delay") = 1.0f,
-             py::arg("mr_decay") = 2.0f,
-             py::arg("ma_decay") = 2.0f)
+             py::arg("action_delay") = 1.0f)
         .def("__call__", &ExperienceModule::call,
              py::arg("directive"),
              py::arg("curr_representation"))
         .def("__str__", &ExperienceModule::str)
         .def("__repr__", &ExperienceModule::repr)
-        .def("get_memory", &ExperienceModule::get_memory_representation)
         .def("get_actions", &ExperienceModule::get_actions)
         .def("get_plan", &ExperienceModule::get_plan)
         .def("get_all_plan_values", &ExperienceModule::get_all_plan_values)

@@ -13,13 +13,12 @@
 
 /* ========================================== */
 
-/* #define LOG(msg) utils::logging.log(msg, "PCLIB") */
 #define SPACE utils::logging.space
 #define GCL_SIZE 36
 #define GCL_SIZE_SQRT 6
 #define PCNN_REF PCNNsqv2
 #define GCN_REF GridNetworkSq
-#define CIRCUIT_SIZE 3
+#define CIRCUIT_SIZE 5
 #define ACTION_SPACE_SIZE 8
 
 /* ========================================== */
@@ -1834,7 +1833,7 @@ public:
 
 
 /* ========================================== */
-/* =========== MODULATION MODULES =========== */
+/* ========= MODULATION & PROGRAMS ========== */
 /* ========================================== */
 
 
@@ -1898,36 +1897,6 @@ private:
     const float tau;
     float v;
     float eq;
-};
-
-
-class DensityMod {
-
-public:
-
-    DensityMod(std::array<float, 5> weights,
-               float theta):
-        weights(weights), theta(theta), baseline(theta) {}
-
-    ~DensityMod() {}
-
-    float call(const std::array<float, 5>& x) {
-        dtheta = 0.0;
-        for (size_t i = 0; i < 5; i++) {
-            dtheta += x[i] * weights[i];
-        }
-        theta = baseline + utils::generalized_tanh(
-            dtheta, 0.0, 1.0);
-        return theta;
-    }
-    std::string str() { return "DensityMod"; }
-    float get_value() { return theta; }
-
-private:
-    std::array<float, 5> weights;
-    float baseline;
-    float theta;
-    float dtheta;
 };
 
 
@@ -2009,8 +1978,83 @@ public:
 };
 
 
-// === Programs ===
+// === Memory ===
 
+struct MemoryRepresentation {
+
+    Eigen::VectorXf tape;
+    float decay;
+
+    // call
+    float call(Eigen::VectorXf& representation, bool simulate = false) {
+
+        // evaluate without updating
+        if (simulate) {
+            // check if the norm is zero
+            if (representation.norm() == 0.0f) { return 0.0f; }
+
+            // dot product
+            return tape.dot(representation) / representation.norm();
+        }
+
+        // update the memory
+        update(representation);
+        return 1.0f;
+    }
+
+    MemoryRepresentation(int size, float decay): tape(Eigen::VectorXf::Zero(size)), decay(decay) {}
+    ~MemoryRepresentation() {}
+    std::string str() { return "MemoryRepresentation"; }
+    std::string repr() { return "MemoryRepresentation"; }
+
+private:
+
+    void update(Eigen::VectorXf& representation) {
+
+        Eigen::Index maxIndex;
+        representation.maxCoeff(&maxIndex);
+        int max_idx = static_cast<int>(maxIndex);
+        float max_value = representation.maxCoeff();
+
+        // decay the memory
+        tape -= tape / decay;
+        tape(maxIndex) = max_value;
+    }
+
+};
+
+
+struct MemoryAction {
+
+    std::array<float, ACTION_SPACE_SIZE> tape;
+    float decay;
+
+    // CALL
+    float call(int idx, bool simulate=false) {
+
+        // evaluate without updating
+        if (simulate) {
+            return tape[idx];
+        }
+
+        // decay the memory
+        for (int i = 0; i < ACTION_SPACE_SIZE; i++) {
+            tape[i] -= tape[i] / decay;
+        }
+
+        // update the action
+        tape[idx] = 1.0f;
+        return tape[idx];
+    }
+
+    MemoryAction(float decay): decay(decay) {}
+    ~MemoryAction() {}
+    std::string str() { return "MemoryAction"; }
+    std::string repr() { return "MemoryAction"; }
+};
+
+
+// === Programs ===
 
 class PopulationMaxProgram {
 
@@ -2324,91 +2368,53 @@ class Circuits {
 
     BaseModulation& da;
     BaseModulation& bnd;
+    MemoryRepresentation& memrepr;
+    MemoryAction& memact;
     PopulationMaxProgram pmax;
 
     std::array<float, CIRCUIT_SIZE> output;
 
 public:
 
-    Circuits(BaseModulation& da, BaseModulation& bnd):
-        da(da), bnd(bnd), pmax(PopulationMaxProgram()) {}
+    Circuits(BaseModulation& da, BaseModulation& bnd,
+             MemoryRepresentation& memrepr,
+             MemoryAction& memact):
+        da(da), bnd(bnd), pmax(PopulationMaxProgram()),
+        memrepr(memrepr), memact(memact) {}
 
     ~Circuits() {}
 
     // CALL
-    std::array<float, 3> call(Eigen::VectorXf& u,
+    std::array<float, CIRCUIT_SIZE> call(Eigen::VectorXf& representation,
                               float collision,
                               float reward,
+                              int action_idx = -1,
                               bool simulate = false) {
 
-        output[0] = bnd.call(u, collision, simulate);
-        output[1] = da.call(u, reward, simulate);
-        output[2] = pmax.call(u);
+        output[0] = bnd.call(representation, collision, simulate);
+        output[1] = da.call(representation, reward, simulate);
+        output[2] = pmax.call(representation);
+        output[3] = memrepr.call(representation, simulate);
+        output[4] = memact.call(action_idx, simulate);
 
         return output;
     }
 
     std::string str() { return "Circuits"; }
     std::string repr() { return "Circuits"; }
-    int len() { return 3; }
-    std::array<float, 3> get_output() { return output; }
+    int len() { return CIRCUIT_SIZE; }
+    std::array<float, CIRCUIT_SIZE> get_output() { return output; }
     std::array<float, 2> get_leaky_v() {
         return {da.get_leaky_v(), bnd.get_leaky_v()}; }
     Eigen::VectorXf get_da_weights() { return da.get_weights(); }
+    Eigen::VectorXf get_memory_representation() { return memrepr.tape; }
+    std::array<float, ACTION_SPACE_SIZE> get_memory_action() { return memact.tape; }
 };
-
 
 
 /* ========================================== */
 /* =========== EXPERIENCE MODULE ============ */
 /* ========================================== */
-
-struct MemoryRepresentation {
-
-    Eigen::VectorXf tape;
-    float decay;
-
-    float evaluate(Eigen::VectorXf& representation) {
-
-        // check if the norm is zero
-        if (representation.norm() == 0.0f) {
-            return 0.0f;
-        }
-
-        return tape.dot(representation) / representation.norm();
-    }
-
-    void update(int idx, float activation) {
-
-        // decay the memory
-        tape -= tape / decay;
-        tape(idx) = activation;
-    }
-
-    MemoryRepresentation(int size, float decay): tape(Eigen::VectorXf::Zero(size)), decay(decay) {}
-    ~MemoryRepresentation() {}
-};
-
-
-struct MemoryAction {
-
-    std::array<float, ACTION_SPACE_SIZE> tape;
-    float decay;
-
-    float evaluate(int idx) { return tape[idx]; }
-
-    void update(int idx) {
-
-        // decay the memory
-        for (int i = 0; i < ACTION_SPACE_SIZE; i++) {
-            tape[i] -= tape[i] / decay;
-        }
-        tape[idx] = 1.0f;
-    }
-
-    MemoryAction(float decay): decay(decay) {}
-    ~MemoryAction() {}
-};
 
 
 struct ActionSampler2D {
@@ -2556,11 +2562,9 @@ class ExperienceModule {
     // internal components
     Plan plan;
     ActionSampler2D action_sampler;
-    MemoryRepresentation memory_representation;
-    MemoryAction memory_action;
 
     // parameters
-    std::array<float, CIRCUIT_SIZE+2> weights;
+    std::array<float, CIRCUIT_SIZE> weights;
     float speed;
     float action_delay;
 
@@ -2612,8 +2616,8 @@ class ExperienceModule {
                         int action_idx) {
 
         // bnd, da, pmax
-        std::array<float, 3> values_mod = circuits.call(
-            next_representation, 0.0, 0.0, true);
+        std::array<float, CIRCUIT_SIZE> values_mod = circuits.call(
+            next_representation, 0.0, 0.0, action_idx, true);
 
         // check for nans
         int i = 0;
@@ -2627,21 +2631,13 @@ class ExperienceModule {
         // array
         std::array<float, CIRCUIT_SIZE> z = {weights[0] * values_mod[0],
                                              weights[1] * values_mod[1],
-                                             weights[2] * values_mod[2]};
+                                             weights[2] * values_mod[2],
+                                             weights[3] * values_mod[3],
+                                             weights[4] * values_mod[4]};
 
         // sum
         float output = 0.0f;
         for (auto& v : z) { output += v; }
-
-        // memory representation
-        float memory_value = memory_representation.evaluate(next_representation) * weights[3];
-        /* LOG("[+] memory representation: " + std::to_string(memory_value)); */
-        /* output += memory_value; */
-
-        // memory action
-        float memory_action_value = memory_action.evaluate(action_idx) * weights[4];
-        /* output += memory_action_value; */
-        /* LOG("[+] memory action: " + std::to_string(memory_action_value)); */
 
         // add a bit of noise
         output += utils::random.get_random_float(0.0f, 0.01f);
@@ -2657,16 +2653,13 @@ public:
     ExperienceModule(float speed,
                      Circuits& circuits,
                      PCNN_REF& space,
-                     std::array<float, CIRCUIT_SIZE+2> weights,
-                     float action_delay = 1.0f,
-                     float mr_decay = 2.0f, float ma_decay = 2.0f):
+                     std::array<float, CIRCUIT_SIZE> weights,
+                     float action_delay = 1.0f):
             action_sampler(ActionSampler2D(speed * action_delay)),
             speed(speed), circuits(circuits),
             space(space), weights(weights),
             plan(Plan(action_delay)),
-            action_delay(action_delay),
-            memory_representation(MemoryRepresentation(space.get_size(), mr_decay)),
-            memory_action(MemoryAction(ma_decay)) {}
+            action_delay(action_delay) {}
 
     ~ExperienceModule() {}
 
@@ -2680,20 +2673,8 @@ public:
             this->new_plan = false;
         }
 
-        // update memory representation
-        Eigen::Index maxIndex_curr;
-        curr_representation.maxCoeff(&maxIndex_curr);
-        int max_idx = static_cast<int>(maxIndex_curr);
-        float max_value = curr_representation.maxCoeff();
-        this->memory_representation.update(max_idx, max_value);
-
-        // update memory action
-        this->memory_action.update(plan.idx);
-
         // step the plan | (action, done)
         std::pair<std::array<float, 2>, bool> next_step = plan.call();
-        /* LOG("status: " + std::to_string(next_step.second) + ", action: " + \ */
-        /*     std::to_string(next_step.first[0]) + ", " + std::to_string(next_step.first[1])); */
 
         // check: plan finished -> new plan
         if (next_step.second) {
@@ -2725,7 +2706,7 @@ public:
         { return plan.all_values[plan.idx]; }
     float get_plan_score() { return plan.all_scores[plan.idx]; }
     std::vector<float> get_plan_scores() { return plan.score_seq; }
-    Eigen::VectorXf get_memory_representation() { return memory_representation.tape; }
+    int get_last_action_idx() { return plan.idx; }
 };
 
 
@@ -2768,12 +2749,12 @@ public:
         // :space
         auto [u, _] = space.call(velocity);
         space.update();
-
         this->curr_representation = u;
 
         // :circuits
-        std::array<float, 3> state_int = \
-            circuits.call(u, collision, reward);
+        std::array<float, CIRCUIT_SIZE> state_int = \
+            circuits.call(u, collision, reward,
+                          expmd.get_last_action_idx(), false);
 
         // :target program
         trgp.set_wrec(space.get_connectivity());
@@ -2924,13 +2905,15 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     // name size lr threshold maxw tauv eqv minv
     BaseModulation da = BaseModulation("DA", N, 0.5f, 0.0f, 1.0f, 2.0f, 0.0f, 0.0f);
     BaseModulation bnd = BaseModulation("BND", N, 0.9f, 0.0f, 1.0f, 2.0f, 0.0f, 0.0f);
-    Circuits circuits = Circuits(da, bnd);
+    MemoryRepresentation memrepr = MemoryRepresentation(N, 2.0f);
+    MemoryAction memact = MemoryAction(2.0f);
+    Circuits circuits = Circuits(da, bnd, memrepr, memact);
 
     // TARGET PROGRAM
     TargetProgram trgp = TargetProgram(space.get_connectivity(), space.get_centers(),
                                        da.get_weights(), SPEED);
     // EXPERIENCE MODULE & BRAIN
-    ExperienceModule expmd = ExperienceModule(SPEED, circuits, space, {bnd_w, 0.0f, 0.0f}, 1.0f);
+    ExperienceModule expmd = ExperienceModule(SPEED, circuits, space, {bnd_w, 0.0f, 0.0f, 0.0f, 0.0f}, 1.0f);
     Brain brain = Brain(circuits, space, trgp, expmd);
 
     // simulation settigns

@@ -22,7 +22,8 @@ NUM_STEPS = 10
 
 """ rooms """
 
-ROOMS = [
-'Flat.a000', 'Flat.a001', 'Flat.a010', 'Flat.a011',
-'Flat.a110'
-]
+ROOMS = ["Square.v0", "Square.v1", "Square.v2",
+         "Hole.v0", "Flat.0000", "Flat.0001",
+         "Flat.0010", "Flat.0011", "Flat.0110",
+         "Flat.1000", "Flat.1001", "Flat.1010",
+         "Flat.1011", "Flat.1110"]
