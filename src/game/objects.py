@@ -156,7 +156,7 @@ class RewardObj:
         distance = np.sqrt((self.x - agent_pos[0])**2 +
                       (self.y - agent_pos[1])**2)
 
-        if distance < self.radius * 2:
+        if distance < self.radius:
 
             if self._fetching == "deterministic":
                 self.collected = 1.0

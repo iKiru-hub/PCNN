@@ -234,8 +234,8 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("sim_gc_positions"))
         .def("simulate_one_step", &PCNNsqv2::simulate_one_step,
              py::arg("v"))
-        .def("fwd_int", &PCNNsqv2::fwd_int,
-             py::arg("a"))
+        /* .def("fwd_int", &PCNNsqv2::fwd_int, */
+        /*      py::arg("a")) */
         .def("reset_gcn", &PCNNsqv2::reset_gcn,
              py::arg("v"));
 
@@ -271,9 +271,10 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_value", &PopulationMaxProgram::get_value);
 
     py::class_<MemoryRepresentation>(m, "MemoryRepresentation")
-        .def(py::init<int, float>(),
+        .def(py::init<int, float, float>(),
              py::arg("size"),
-             py::arg("decay"))
+             py::arg("decay"),
+             py::arg("threshold"))
         .def("__str__", &MemoryRepresentation::str)
         .def("__repr__", &MemoryRepresentation::repr)
         .def("__call__", &MemoryRepresentation::call,
@@ -338,12 +339,12 @@ PYBIND11_MODULE(pclib, m) {
     /* MODULES */
 
     py::class_<TargetProgram>(m, "TargetProgram")
-        .def(py::init<Eigen::MatrixXf,
-             Eigen::MatrixXf,
-             Eigen::VectorXf, float>(),
-             py::arg("wrec"),
-             py::arg("centers"),
+        .def(py::init<Eigen::VectorXf&, PCNN_REF&,
+             float>(),
+             /* py::arg("wrec"), */
+             /* py::arg("centers"), */
              py::arg("da_weights"),
+             py::arg("space"),
              py::arg("speed"))
         .def("__len__", &TargetProgram::len)
         .def("__str__", &TargetProgram::str)
@@ -351,6 +352,7 @@ PYBIND11_MODULE(pclib, m) {
         .def("is_active", &TargetProgram::is_active)
         .def("update", &TargetProgram::update,
              py::arg("curr_representation"),
+             py::arg("space_weights"),
              py::arg("trigger") = true)
         .def("step_plan", &TargetProgram::step_plan)
         .def("make_shortest_path", &TargetProgram::make_shortest_path,
@@ -361,8 +363,8 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("da_weights"))
         .def("set_wrec", &TargetProgram::set_wrec,
              py::arg("wrec"))
-        .def("get_trg_representation",
-             &TargetProgram::get_trg_representation)
+        .def("get_trg_idx",
+             &TargetProgram::get_trg_idx)
         .def("get_plan", &TargetProgram::get_plan);
 
     // 2 layer network
@@ -384,37 +386,6 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_all_plan_values", &ExperienceModule::get_all_plan_values)
         .def("get_all_plan_scores", &ExperienceModule::get_all_plan_scores);
 
-    /* ACTION SAMPLING MODULE */
-
-    // Sampling Module
-    /* py::class_<ActionSampling2D>(m, "ActionSampling2D") */
-    /*     .def(py::init<std::string, float>(), */
-    /*          py::arg("name"), */
-    /*          py::arg("speed")) */
-    /*     .def("__call__", &ActionSampling2D::call, */
-    /*          py::arg("keep") = false) */
-    /*     .def("update", &ActionSampling2D::update, */
-    /*          py::arg("score") = 0.0) */
-    /*     .def("__len__", &ActionSampling2D::len) */
-    /*     .def("__str__", &ActionSampling2D::str) */
-    /*     .def("__repr__", &ActionSampling2D::repr) */
-    /*     .def("reset", &ActionSampling2D::reset) */
-    /*     .def("sample_once", &ActionSampling2D::sample_once) */
-    /*     .def("is_done", &ActionSampling2D::is_done) */
-    /*     .def("get_idx", &ActionSampling2D::get_idx) */
-    /*     .def("get_counter", &ActionSampling2D::get_counter) */
-    /*     .def("get_values", &ActionSampling2D::get_values); */
-
-    // 1 layer network
-    /* py::class_<OneLayerNetwork>(m, "OneLayerNetwork") */
-    /*     .def(py::init<std::array<float, CIRCUIT_SIZE>>(), */
-    /*          py::arg("weights")) */
-    /*     .def("__call__", &OneLayerNetwork::call, */
-    /*          py::arg("x")) */
-    /*     .def("__str__", &OneLayerNetwork::str) */
-    /*     .def("len", &OneLayerNetwork::len) */
-    /*     .def("get_weights", &OneLayerNetwork::get_weights); */
-
     // Hexagon
     py::class_<Hexagon>(m, "Hexagon")
         .def(py::init<>())
@@ -428,17 +399,19 @@ PYBIND11_MODULE(pclib, m) {
     py::class_<Brain>(m, "Brain")
         .def(py::init<Circuits&,
              PCNN_REF&,
-             TargetProgram&,
-             ExperienceModule&>(),
+             /* TargetProgram&, */
+             ExperienceModule&,
+             float>(),
              py::arg("circuits"),
              py::arg("pcnn"),
-             py::arg("trgp"),
-             py::arg("expmd"))
+             /* py::arg("trgp"), */
+             py::arg("expmd"),
+             py::arg("speed"))
         .def("__call__", &Brain::call,
              py::arg("velocity"),
-             py::arg("collision") = 0.0f,
-             py::arg("reward") = 0.0f,
-             py::arg("trigger") = true)
+             py::arg("collision"),
+             py::arg("reward"),
+             py::arg("trigger"))
         .def("get_representation",
              &Brain::get_representation)
         .def("get_trg_representation",
@@ -454,7 +427,9 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_plan_scores", &Brain::get_plan_scores)
         .def("get_plan_values", &Brain::get_plan_values)
         .def("set_plan_positions", &Brain::set_plan_positions,
-             py::arg("position"));
+             py::arg("position"))
+        .def("reset", &Brain::reset);
+
 }
 
 

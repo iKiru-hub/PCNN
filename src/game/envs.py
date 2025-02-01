@@ -361,6 +361,9 @@ class Environment:
         self._collision = 0
         self._reward = 0
 
+        self.rw_duration = 2
+        self.rw_time = 0
+
         # rendering
         self.visualize = visualize
         self.verbose = verbose
@@ -377,6 +380,7 @@ class Environment:
 
         # scale velocity
         # velocity *= self.scale
+        self.t += 1
 
         # Update agent position with improved collision handling
         velocity, collision = self.agent(velocity * self.scale)
@@ -386,10 +390,11 @@ class Environment:
         reward = self.reward_obj(self.agent.rect.center)
         terminated = False
         if reward:
-            # print(f"[t={self.t}] +reward")
-            terminated = self._reward_event(brain=brain)
+            print(f"[t={self.t}] +reward")
+            self.rw_time = self.t
 
-        self.t += 1
+        if (self.t - self.rw_time) == self.rw_duration:
+            terminated = self._reward_event(brain=brain)
 
         if self.verbose:
             if reward:
@@ -411,6 +416,8 @@ class Environment:
         logic for when the reward is collected
         """
 
+        # print("reward event: ", self.rw_event)
+
         if self.rw_event == "move reward":
             self.reward_obj.set_position()
             return False
@@ -431,15 +438,21 @@ class Environment:
 
     def _reset_agent_position(self, brain: object):
 
+        brain.reset()
+
         prev_position = self.agent.position.copy()
 
         self.agent.set_position()
         # self.agent.reset()
 
-        displacement = [(self.agent.position[0] - prev_position[0]) / self.scale,
-                        (self.agent.position[1] - prev_position[1]) / self.scale]
+        displacement = [(self.agent.position[0] - prev_position[0]) / self.scale / self.scale,
+                        (self.agent.position[1] - prev_position[1]) / self.scale / self.scale]
 
+        # input(f"displacement={displacement}")
+        # print("displacement: ", displacement)
         brain(displacement, 0.0, 0.0, False)
+
+        # input()
 
     @property
     def position(self):
@@ -455,24 +468,25 @@ class Environment:
 
         # Render game objects
         self.room.render(self.screen)
-        self.agent.render(self.screen)
         self.reward_obj.render(self.screen)
 
         # plot trajectory
         if len(self.trajectory) > 1:
-            pygame.draw.lines(self.screen, (*self.traj_color, 0.4),
+            pygame.draw.lines(self.screen, (*self.traj_color, 0.2),
                               False, self.trajectory, 1)
 
         # write text
         font = pygame.font.Font(None, 36)
         text = f"t: {self.t:04d} | "
         text += f"#R={self.reward_obj.count} | "
-        text += f"R={self._reward} | "
+        text += f"-R={self.reward_availability} | "
         text += f"C={self._collision} |"
         text += f"v={np.around(self.velocity, 2)}"
         score_text = font.render(text, True, BLACK)
-        self.screen.blit(score_text, (10, 10))
 
+        self.agent.render(self.screen)
+
+        self.screen.blit(score_text, (10, 10))
         pygame.display.flip()
 
 
