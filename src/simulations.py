@@ -39,7 +39,7 @@ reward_settings = {
 
 agent_settings = {
     "speed": 1.5,
-    "init_position": np.array([0.5, 0.5]) * GAME_SCALE,
+    "init_position": np.array([0.4, 0.5]) * GAME_SCALE,
     "agent_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
 }
@@ -72,6 +72,7 @@ possible_positions = np.array([
 
 
 class Renderer:
+
     def __init__(self, elements, space,
                  brain, colors, names):
 
@@ -87,18 +88,29 @@ class Renderer:
 
     def render(self):
         self.axs[0].clear()
-        self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                    color="blue", s=30, alpha=0.4)
+
+        if self.brain.get_directive() == "trg":
+            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
+                        c=self.brain.get_trg_representation(), s=100,
+                                cmap="Greens", alpha=0.5)
+            self.axs[0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
+                f" ({self.brain.get_trg_representation().max():.3f}, " + \
+                f"{self.brain.get_trg_representation().argmax()})")
+
+        else:
+            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
+                        color="blue", s=30, alpha=0.4)
+            for edge in self.space.make_edges():
+                self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
+                                 alpha=0.1, color="black")
+            self.axs[0].set_title(f"Space | #PCs={len(self.space)}")
+
         self.axs[0].scatter(*np.array(self.space.get_position()).T,
-                            color="red", s=80, marker="o")
-        # for edge in self.space.make_edges():
-        #     self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
-        #                 alpha=0.1, color="black")
+                            color="red", s=80, marker="o", alpha=0.8)
         self.axs[0].set_xlim(self.bounds)
         self.axs[0].set_ylim(self.bounds)
         # equal aspect ratio
         self.axs[0].set_aspect('equal', adjustable='box')
-        self.axs[0].set_title(f"Space | #PCs={len(self.space)}")
 
         for i in range(1, 1+self.size):
             self.axs[i].clear()
@@ -122,7 +134,8 @@ class Renderer:
 def run_game(env: games.Environment,
              brain: object,
              renderer: object,
-             plot_interval: int):
+             plot_interval: int,
+             pause: int=-1):
 
     # ===| setup |===
     clock = pygame.time.Clock()
@@ -173,7 +186,8 @@ def run_game(env: games.Environment,
             logger.debug(">> Game terminated <<")
 
         # pause
-        # pygame.time.wait(100)
+        if pause > 0:
+            pygame.time.wait(pause)
 
     pygame.quit()
 
@@ -238,8 +252,8 @@ def main_game(room_name: str="Square.v0"):
                            clip_min=0.01,
                            threshold=0.4,
                            rep_threshold=0.92,
-                           rec_threshold=6.,
-                           num_neighbors=5,
+                           rec_threshold=4.,
+                           num_neighbors=4,
                            xfilter=gcn,
                            name="2D")
 
@@ -262,9 +276,11 @@ def main_game(room_name: str="Square.v0"):
 
     expmd = pclib.ExperienceModule(speed=agent_settings["speed"],
                                    circuits=circuit,
-                                   space=space, weights=[-1., 0., -0.1, -1., -1.],
-                                   action_delay=7)
-    brain = pclib.Brain(circuit, space, expmd, agent_settings["speed"])
+                                   space=space,
+                                   weights=[-1., 0., -0.1, -1., -1.],
+                                   action_delay=5)
+    brain = pclib.Brain(circuit, space, expmd, agent_settings["speed"],
+                        5)
 
 
     """ make game environment """
@@ -309,7 +325,8 @@ def main_game(room_name: str="Square.v0"):
     run_game(env=env,
              brain=brain,
              renderer=renderer,
-             plot_interval=1)
+             plot_interval=5,
+             pause=-1)
 
 
 def main_simple_square(duration: int):

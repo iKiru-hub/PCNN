@@ -977,7 +977,7 @@ std::vector<int> weighted_shortest_path(const Eigen::MatrixXf& connectivity_matr
 
         // Check all neighbors
         for (int neighbor = 0; neighbor < num_nodes; ++neighbor) {
-            if (connectivity_matrix(current_node, neighbor) == 1 && !finalized[neighbor]) {
+            if (connectivity_matrix(current_node, neighbor) > 0.0f && !finalized[neighbor]) {
                 float new_distance = distances[current_node] + node_weights(neighbor);
 
                 // If we've found a better path

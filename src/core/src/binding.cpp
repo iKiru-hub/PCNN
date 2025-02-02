@@ -295,7 +295,7 @@ PYBIND11_MODULE(pclib, m) {
     /* MODULATION */
     py::class_<BaseModulation>(m, "BaseModulation")
         .def(py::init<std::string, int, float, float,
-             float, float, float, float>(),
+             float, float, float, float, float>(),
              py::arg("name"),
              py::arg("size"),
              py::arg("lr") = 0.1f,
@@ -303,7 +303,8 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("max_w") = 1.0f,
              py::arg("tau_v") = 5.0f,
              py::arg("eq_v") = 0.0f,
-             py::arg("min_v") = 0.01f)
+             py::arg("min_v") = 0.01f,
+             py::arg("mask_threshold") = 0.01f)
         .def("__str__", &BaseModulation::str)
         .def("__repr__", &BaseModulation::repr)
         .def("__len__", &BaseModulation::len)
@@ -401,12 +402,13 @@ PYBIND11_MODULE(pclib, m) {
              PCNN_REF&,
              /* TargetProgram&, */
              ExperienceModule&,
-             float>(),
+             float, int>(),
              py::arg("circuits"),
              py::arg("pcnn"),
              /* py::arg("trgp"), */
              py::arg("expmd"),
-             py::arg("speed"))
+             py::arg("speed"),
+             py::arg("max_attempts"))
         .def("__call__", &Brain::call,
              py::arg("velocity"),
              py::arg("collision"),
@@ -421,6 +423,7 @@ PYBIND11_MODULE(pclib, m) {
         .def("__repr__", &Brain::repr)
         .def("get_expmd", &Brain::get_expmd)
         .def("get_space", &Brain::get_space)
+        .def("get_trg_idx", &Brain::get_trg_idx)
         .def("get_trg_plan", &Brain::get_trg_plan)
         .def("get_plan_positions", &Brain::get_plan_positions)
         .def("get_plan_score", &Brain::get_plan_score)

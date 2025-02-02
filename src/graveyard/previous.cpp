@@ -2455,3 +2455,27 @@ struct Planv0 {
 /*                                gc_positions_next); */
 /*     } */
 
+// parth of trg module
+    /* // !unused for now */
+    /* std::array<float, 2> converge_to_location( */
+    /*     Eigen::VectorXf& representation) { */
+
+    /*     // weights for the centers */
+    /*     float cx, cy; */
+    /*     float sum = representation.sum(); */
+    /*     if (sum == 0.0f) { */
+    /*         /1* LOG("[-] sum is zero"); *1/ */
+    /*         return {-1000.0f, 0.0f}; */
+    /*     } */
+
+    /*     for (int i = 0; i < representation.size(); i++) { */
+    /*         cx += representation(i) * centers(i, 0); */
+    /*         cy += representation(i) * centers(i, 1); */
+    /*     } */
+
+    /*     cx /= sum; */
+    /*     cy /= sum; */
+    /*     /1* LOG("[+] cx: " + std::to_string(cx) + ", cy: " + std::to_string(cy)); *1/ */
+
+    /*     return {cx, cy}; */
+    /* } */
