@@ -345,11 +345,12 @@ PYBIND11_MODULE(pclib, m) {
     /* MODULES */
 
     py::class_<TargetProgram>(m, "TargetProgram")
-        .def(py::init<Eigen::VectorXf&, PCNN_REF&,
-             float>(),
+        /* .def(py::init<Eigen::VectorXf&, PCNN_REF&, */
+        /*      float>(), */
+        .def(py::init<PCNN_REF&, float>(),
              /* py::arg("wrec"), */
              /* py::arg("centers"), */
-             py::arg("da_weights"),
+             /* py::arg("da_weights"), */
              py::arg("space"),
              py::arg("speed"))
         .def("__len__", &TargetProgram::len)
@@ -359,18 +360,19 @@ PYBIND11_MODULE(pclib, m) {
         .def("update", &TargetProgram::update,
              py::arg("curr_representation"),
              py::arg("space_weights"),
-             py::arg("trigger") = true)
+             py::arg("tmp_trg_idx") = true)
+             /* py::arg("trigger") = true) */
         .def("step_plan", &TargetProgram::step_plan)
         .def("make_shortest_path", &TargetProgram::make_shortest_path,
              py::arg("wrec"),
              py::arg("start_idx"),
              py::arg("end_idx"))
-        .def("set_da_weights", &TargetProgram::set_da_weights,
-             py::arg("da_weights"))
+        /* .def("set_da_weights", &TargetProgram::set_da_weights, */
+        /*      py::arg("da_weights")) */
         .def("set_wrec", &TargetProgram::set_wrec,
              py::arg("wrec"))
-        .def("get_trg_idx",
-             &TargetProgram::get_trg_idx)
+        /* .def("get_trg_idx", */
+        /*      &TargetProgram::get_trg_idx) */
         .def("get_plan", &TargetProgram::get_plan);
 
     // 2 layer network
