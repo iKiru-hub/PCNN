@@ -30,11 +30,11 @@ GAME_SCALE = games.SCREEN_WIDTH
 
 reward_settings = {
     "rw_fetching": "deterministic",
-    "rw_position": np.array([0.5, 0.5]) * GAME_SCALE,
+    "rw_position": np.array([0.5, 0.2]) * GAME_SCALE,
     "rw_radius": 0.04 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 2,
+    "delay": 10_000,
 }
 
 agent_settings = {
@@ -46,7 +46,7 @@ agent_settings = {
 
 game_settings = {
     "plot_interval": 1,
-    "rw_event": "move agent",
+    "rw_event": "nothing",
     "rendering": True,
     "rendering_pcnn": True,
     "max_duration": None,
@@ -89,7 +89,9 @@ class Renderer:
     def render(self):
         self.axs[0].clear()
 
-        if self.brain.get_directive() == "trg":
+        if self.brain.get_directive() == "trg" or \
+           self.brain.get_directive() == "trg rw" or \
+           self.brain.get_directive() == "trg ob":
             self.axs[0].scatter(*np.array(self.space.get_centers()).T,
                         c=self.brain.get_trg_representation(), s=100,
                                 cmap="Greens", alpha=0.5)
@@ -100,9 +102,9 @@ class Renderer:
         else:
             self.axs[0].scatter(*np.array(self.space.get_centers()).T,
                         color="blue", s=30, alpha=0.4)
-            for edge in self.space.make_edges():
-                self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
-                                 alpha=0.1, color="black")
+            # for edge in self.space.make_edges():
+            #     self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
+            #                      alpha=0.1, color="black")
             self.axs[0].set_title(f"Space | #PCs={len(self.space)}")
 
         self.axs[0].scatter(*np.array(self.space.get_position()).T,
@@ -250,10 +252,10 @@ def main_game(room_name: str="Square.v0"):
                            gain=10.,
                            offset=1.3,
                            clip_min=0.01,
-                           threshold=0.4,
-                           rep_threshold=0.92,
+                           threshold=0.3,
+                           rep_threshold=0.95,
                            rec_threshold=4.,
-                           num_neighbors=4,
+                           num_neighbors=8,
                            xfilter=gcn,
                            name="2D")
 
@@ -277,7 +279,7 @@ def main_game(room_name: str="Square.v0"):
     expmd = pclib.ExperienceModule(speed=agent_settings["speed"],
                                    circuits=circuit,
                                    space=space,
-                                   weights=[-1., 0., -0.1, -1., -1.],
+                                   weights=[-1., 0., 0.0, 0., 0.],
                                    action_delay=5)
     brain = pclib.Brain(circuit, space, expmd, agent_settings["speed"],
                         5)

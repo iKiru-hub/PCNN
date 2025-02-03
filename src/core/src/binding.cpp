@@ -386,7 +386,8 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("action_delay") = 1.0f)
         .def("__call__", &ExperienceModule::call,
              py::arg("directive"),
-             py::arg("curr_representation"))
+             py::arg("curr_representation"),
+             py::arg("rejection"))
         .def("__str__", &ExperienceModule::str)
         .def("__repr__", &ExperienceModule::repr)
         .def("get_actions", &ExperienceModule::get_actions)

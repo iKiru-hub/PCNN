@@ -1078,9 +1078,6 @@ float calculate_angle_gap(int idx, Eigen::MatrixXf& centers,
         neighbor_center(0) -= center(0);
         neighbor_center(1) -= center(1);
 
-        LOG_("Neighbor center: ");
-        LOG_(std::to_string(neighbor_center(0)) + ", " + std::to_string(neighbor_center(1)));
-
         // calculate the angle of the neighbor as arc tangent
         angles.push_back(std::atan2(neighbor_center(1), neighbor_center(0)));
 
@@ -1091,7 +1088,6 @@ float calculate_angle_gap(int idx, Eigen::MatrixXf& centers,
 
         // convert the angle to degrees
         float angle_deg = angles.back() * 180 / M_PI;
-        LOG_("Angle: " + std::to_string(angle_deg) + " [" + std::to_string(angles.back()) + "]");
 
         // check if the distance between the new angle and the previous
         // angle is larger than the current max angle gap
@@ -1104,7 +1100,6 @@ float calculate_angle_gap(int idx, Eigen::MatrixXf& centers,
                 float angle_gap = std::min(angle_gap_1, angle_gap_2);
                 if (angle_gap > max_angle_gap) {
                     max_angle_gap = angle_gap;
-                    LOG_("+Max angle gap: " + std::to_string(max_angle_gap));
                 }
             }
         }
@@ -1112,7 +1107,6 @@ float calculate_angle_gap(int idx, Eigen::MatrixXf& centers,
 
     // return the maximum between `max_angle_gap` its complement
     if (max_angle_gap > (2*M_PI - max_angle_gap)) {
-        LOG_("Max angle gap greater than " + std::to_string(2*M_PI - max_angle_gap));
         return max_angle_gap;
     } else {
         return 2*M_PI - max_angle_gap;
