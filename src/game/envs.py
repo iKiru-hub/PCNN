@@ -210,7 +210,7 @@ class Room:
             wall.render(screen)
 
 
-def make_room(name: str="square", thickness: float=5.,
+def make_room(name: str="square", thickness: float=20.,
               bounds: list=[0, 1, 0, 1],
               moving_wall: bool=False,
               visualize: bool=False):

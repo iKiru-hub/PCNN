@@ -285,7 +285,7 @@ def main_game(room_name: str="Square.v0"):
 
     """ make game environment """
 
-    room = games.make_room(name=room_name, thickness=5.)
+    room = games.make_room(name=room_name, thickness=20.)
     room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
                    room.bounds[1]+10, room.bounds[3]-10]
 

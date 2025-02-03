@@ -233,11 +233,30 @@ struct GSparams {
 };
 
 
-struct VelocitySpace {
+class VelocitySpace {
+
+    void update_node_angles(int idx) {
+
+        // update the neighbors
+        for (int j = 0; j < size; j++) {
+            if ( j == idx ) { continue; }
+            if (connectivity(idx, j) == 1.0) {
+                nodes_max_angle(j) = utils::calculate_angle_gap(
+                    j, centers, connectivity )
+            }
+        }
+
+        // update the node itself
+        nodes_max_angle(idx) = utils::calculate_angle_gap(
+            idx, centers, connectivity );
+    }
+
+public:
 
     Eigen::MatrixXf centers;
     Eigen::MatrixXf connectivity;
     Eigen::MatrixXf weights;
+    Eigen::VectorXf nodes_max_angle;
     std::array<float, 2> position;
     int size;
     /* std::vector<std::array<float, 2>> trajectory; */
@@ -303,6 +322,9 @@ struct VelocitySpace {
                 this->connectivity(j, idx) = 1.0;
             }
         }
+
+        // update the node angles
+        update_node_angles(idx);
     }
 
     void add_blocked_edge(int i, int j) {
@@ -1673,6 +1695,16 @@ class PCNNsqv2 {
         }
     }
 
+    // @brief update the space graph
+    void update_graph() {
+        // record new center
+        vspace.update(idx);
+        // update connections
+        this->Wrec = vspace.get_connections();
+        this->connectivity = vspace.get_connectivity();
+        
+    }
+
 public:
     const float rec_threshold;
 
@@ -1865,35 +1897,34 @@ public:
             std::to_string(num_neighbors) + ")";
     }
     Eigen::VectorXf get_activation() const { return u; }
-    Eigen::VectorXf get_activation_gcn() const {
-        return xfilter.get_activation(); }
+    Eigen::VectorXf get_activation_gcn() const
+        { return xfilter.get_activation(); }
     Eigen::MatrixXf get_wff() const { return Wff; }
     Eigen::MatrixXf& get_wrec() { return Wrec; }
-    std::vector<std::array<std::array<float, 2>, 2>> make_edges() \
-    { return vspace.make_edges(); }
+    std::vector<std::array<std::array<float, 2>, 2>> make_edges()
+        { return vspace.make_edges(); }
     /* std::vector<std::array<float, 2>> get_trajectory() { */
     /*     return vspace.get_trajectory(); } */
     Eigen::MatrixXf& get_connectivity() { return connectivity; }
-    Eigen::MatrixXf& get_centers(bool nonzero = false) {
-        return vspace.get_centers(nonzero); }
+    Eigen::MatrixXf& get_centers(bool nonzero = false)
+        { return vspace.get_centers(nonzero); }
     float get_delta_update() const { return delta_wff; }
-    Eigen::MatrixXf get_positions_gcn() {
-        return xfilter.get_positions();
-    }
-    std::array<float, 2> get_position() {
-        return vspace.get_position();
-    }
-    std::vector<std::array<std::array<float, 2>, GCL_SIZE>> get_gc_positions_vec() {
-        return xfilter.get_positions_vec();
-    }
-    void reset_gcn(std::array<float, 2> v) {
-        xfilter.reset(v);
-    }
+    Eigen::VectorXf& get_nodes_max_angle()
+        {  return vspace.get_nodes_max_angle(); }
+    Eigen::MatrixXf get_positions_gcn()
+        { return xfilter.get_positions(); }
+    std::array<float, 2> get_position()
+        { return vspace.get_position(); }
+    std::vector<std::array<std::array<float, 2>, GCL_SIZE>> get_gc_positions_vec()
+        { return xfilter.get_positions_vec(); }
+    void reset_gcn(std::array<float, 2> v) { xfilter.reset(v); }
 
     // @brief modulate the density of new PCs
-    void ach_modulation(float ach) {
-        this->ach = ach;
-    }
+    void ach_modulation(float ach)
+        { this->ach = ach; }
+    float calculate_angle_gap(int idx, Eigen::MatrixXf& centers,
+                            Eigen::MatrixXf& connectivity)
+        { return utils::calculate_angle_gap(idx, centers, connectivity); }
 
 };
 
@@ -2198,85 +2229,43 @@ struct ConsecutiveLocationsHandler {
 };
 
 
-class TargetProgram {
+struct RewardObject {
 
-    // external variables
-    Eigen::MatrixXf& wrec;
-    Eigen::MatrixXf& connectivity;
-    Eigen::MatrixXf& centers;
-    PCNN_REF& space;
     Eigen::VectorXf& da_weights;
-
-    // internal variables
-    ConsecutiveLocationsHandler conlochandler;
-    float speed;
-    bool active;
-    /* Eigen::VectorXf trg_representation; */
     int trg_idx;
     float trg_value;
-    int curr_idx;
-    std::vector<int> plan_idxs;
-    std::array<float, 2> next_position;
-    std::array<float, 2> curr_position;
-    int depth;
-    int size;
-    int counter;
 
-    bool make_plan(Eigen::VectorXf& curr_representation,
-                   Eigen::VectorXf& space_weights) {
+    int update(Eigen::VectorXf& curr_representation,
+                bool trigger = true) {
 
-        // calculate the current and target nodes
-        /* Eigen::Index maxIndex_trg; */
-        Eigen::Index maxIndex_curr;
-        /* trg_representation.maxCoeff(&maxIndex_trg); */
-        curr_representation.maxCoeff(&maxIndex_curr);
-        curr_idx = static_cast<int>(maxIndex_curr);
-        /* int end_idx = static_cast<int>(maxIndex_trg); */
-
-        // calculate path
-        /* std::vector<int> plan_idxs = \ */
-        /*     utils::shortest_path_bfs(wrec, start_idx, end_idx); */
-        std::vector<int> plan_idxs = \
-            utils::weighted_shortest_path(connectivity,
-                                          space_weights,
-                                          curr_idx, trg_idx);
-
-        /* float max_trg_value = trg_representation.maxCoeff(); */
-        float max_curr_value = curr_representation.maxCoeff();
-
-        // check if the plan is valid, ie size > 1
-        if (plan_idxs.size() < 3) {
-            /* LOG("[-] short plan"); */
-            return false;
-        } else if (max_curr_value < 0.00001f) {
-            return false;
+        // exit: no trigge
+        if (!trigger) {
+            return -1;
         }
 
-        // log plan
-        LOG("\n[new plan]");
-        LOG("start: " + std::to_string(curr_idx) + \
-            " | end: " + std::to_string(trg_idx));
-        for (int i = 0; i < (plan_idxs.size()-1); i++) {
-            LOG(std::to_string(plan_idxs[i]) + "->" + \
-                std::to_string(plan_idxs[i+1]) + " | " + \
-                std::to_string(connectivity(plan_idxs[i], plan_idxs[i+1])));
-        }
-        LOG("#size=" + std::to_string(plan_idxs.size()) + "\n");
+        // --- update the target representation ---
 
-        // define next position as the center corresponding to the
-        // the next index in the plan
-        this->active = true;
-        this->curr_position = {centers(curr_idx, 0),
-                               centers(curr_idx, 1)};
-        this->next_position = {centers(plan_idxs[1], 0),
-                               centers(plan_idxs[1], 1)};
-        this->counter = 1;
-        this->depth = plan_idxs.size();
-        this->plan_idxs = plan_idxs;
+        // method 1: take the argmax of the weights
+        Eigen::Index maxIndex;
+        float maxValue = da_weights.maxCoeff(&maxIndex);
+        this->trg_idx = static_cast<int>(maxIndex);
 
-        conlochandler.set_points(curr_idx, plan_idxs[1]);
-        return true;
+        // method 2: take the center of mass
+        /* trg_idx = converge_to_trg_index(); */
+
+        // exit: no trg index
+        if (trg_idx < 0) { return -1; }
+
+        // exit: low trg value
+        if (da_weights(trg_idx) < 0.00001f) { return -1; }
+
+        // update the target value
+        this->trg_value = da_weights(trg_idx);
+
+        return trg_idx;
     }
+
+private:
 
     int converge_to_trg_index() {
 
@@ -2302,6 +2291,111 @@ class TargetProgram {
 
         return closest_idx;
     }
+};
+
+
+class TargetProgram {
+
+    // external variables
+    Eigen::MatrixXf& wrec;
+    Eigen::MatrixXf& connectivity;
+    Eigen::MatrixXf& centers;
+    PCNN_REF& space;
+    Eigen::VectorXf& da_weights;
+
+    // internal variables
+    ConsecutiveLocationsHandler conlochandler;
+    float speed;
+    bool active;
+    /* Eigen::VectorXf trg_representation; */
+    int trg_idx;
+    float trg_value;
+    int curr_idx;
+    std::vector<int> plan_idxs;
+    std::array<float, 2> next_position;
+    std::array<float, 2> curr_position;
+    int depth;
+    int size;
+    int counter;
+
+    bool make_plan(Eigen::VectorXf& curr_representation,
+                   Eigen::VectorXf& space_weights,
+                   int trg_idx) {
+
+        // calculate the current and target nodes
+        Eigen::Index maxIndex_curr;
+        curr_representation.maxCoeff(&maxIndex_curr);
+        curr_idx = static_cast<int>(maxIndex_curr);
+
+        // calculate path
+        /* std::vector<int> plan_idxs = \ */
+        /*     utils::shortest_path_bfs(wrec, start_idx, end_idx); */
+        std::vector<int> plan_idxs = \
+            utils::weighted_shortest_path(connectivity,
+                                          space_weights,
+                                          curr_idx, trg_idx);
+
+        /* float max_trg_value = trg_representation.maxCoeff(); */
+        float max_curr_value = curr_representation.maxCoeff();
+
+        // check if the plan is valid, ie size > 1
+        if (plan_idxs.size() < 3) {
+            /* LOG("[-] short plan"); */
+            return false;
+        } else if (max_curr_value < 0.00001f) {
+            return false;
+        }
+
+        // log plan
+        /* LOG("\n[new plan]"); */
+        /* LOG("start: " + std::to_string(curr_idx) + \ */
+        /*     " | end: " + std::to_string(trg_idx)); */
+        /* for (int i = 0; i < (plan_idxs.size()-1); i++) { */
+        /*     LOG(std::to_string(plan_idxs[i]) + "->" + \ */
+        /*         std::to_string(plan_idxs[i+1]) + " | " + \ */
+        /*         std::to_string(connectivity(plan_idxs[i], plan_idxs[i+1]))); */
+        /* } */
+        /* LOG("#size=" + std::to_string(plan_idxs.size()) + "\n"); */
+
+        // next position as the center corresponding to the
+        // the next index in the plan
+        this->active = true;
+        this->curr_position = {centers(curr_idx, 0),
+                               centers(curr_idx, 1)};
+        this->next_position = {centers(plan_idxs[1], 0),
+                               centers(plan_idxs[1], 1)};
+        this->counter = 1;
+        this->depth = plan_idxs.size();
+        this->plan_idxs = plan_idxs;
+
+        conlochandler.set_points(curr_idx, plan_idxs[1]);
+        return true;
+    }
+
+    /* int converge_to_trg_index() { */
+
+    /*     // weights for the centers */
+    /*     float cx, cy; */
+    /*     float sum = da_weights.sum(); */
+    /*     if (sum == 0.0f) { */
+    /*         /1* LOG("[-] sum is zero"); *1/ */
+    /*         return -1; */
+    /*     } */
+
+    /*     for (int i = 0; i < da_weights.size(); i++) { */
+    /*         cx += da_weights(i) * centers(i, 0); */
+    /*         cy += da_weights(i) * centers(i, 1); */
+    /*     } */
+
+    /*     // centers of mass */
+    /*     cx /= sum; */
+    /*     cy /= sum; */
+
+    /*     // get closest center */
+    /*     int closest_idx = space.calculate_closest_index({cx, cy}); */
+
+    /*     return closest_idx; */
+    /* } */
 
 public:
 
@@ -2781,6 +2875,34 @@ class ExperienceModule {
     std::array<float, CIRCUIT_SIZE> weights;
     float speed;
     float action_delay;
+    float open_threshold = 1.0f;  // radiants
+
+    // make plan
+    void make_plan(Eigen::VectorXf& curr_representation) {
+
+        // check: the current position is at an open boundary
+        Eigen::Index maxIndex;
+        curr_representation.maxCoeff(&maxIndex);
+        int start_idx = static_cast<int>(maxIndex);
+        float value = is_at_the_oboundary(start_idx, circuits.get_bnd_weights(),
+                                          space.get_nodes_max_angle());
+        if (value > 0.0f) {
+            LOG("[+] at the open boundary");
+            one_step_look_ahead(curr_representation);
+            return;
+        }
+
+        // check: are there are points at the open boundary
+        int open_boundary_idx = get_open_boundary_idx();
+
+        // res: no open boundary -> random walk
+        if (open_boundary_idx < 0) {
+            LOG("[-] no open boundary");
+            one_step_look_ahead(curr_representation);
+            return;
+        }
+
+    }
 
     // one rollout
     void one_step_look_ahead(Eigen::VectorXf& curr_representation) {
@@ -2859,6 +2981,34 @@ class ExperienceModule {
         /* LOG("[+] output: " + std::to_string(output)); */
 
         return std::make_pair(z, output);
+    }
+
+    // check map open-ness
+    int get_open_boundary_idx() {
+
+        Eigen::VectorXf bnd_weights = circuits.get_bnd_weights();
+        Eigen::VectorXf angle_values = space.get_nodes_max_angle;
+
+        // check each neuron
+        int idx = -1;
+        float max_value = 0.0f;
+        for (int i = 0; i < bnd_weights.size(); i++) {
+            float value = index_at_the_oboundary(i, bnd_weights, angle_values);
+            if (value > max_value) {
+                idx = i;
+                max_value = value;
+            }
+        }
+        return idx;
+    }
+
+    float index_at_the_oboundary(int idx, Eigen::VectorXf& bnd_weights,
+                                 Eigen::VectorXf& angle_values) {
+
+        if (bn_weights(idx) > 0.0f || angle_values(idx) < open_threshold) {
+            return -1.0f;
+        }
+        return angle_values(idx);
     }
 
 public:
@@ -2992,16 +3142,16 @@ public:
 
         // === TRG PLAN ===
         if (trgp.is_active() && !trgp.is_plan_finished()) {
-            LOG("continuing trg plan...");
+            /* LOG("continuing trg plan..."); */
             this->directive = "trg";
             return trgp.step_plan(curr_representation);
         } else if (trgp.is_active() && trgp.is_plan_finished()) {
-            LOG("[-] trg plan finished");
+            /* LOG("[-] trg plan finished"); */
             this->directive = "new";
         } else {
             // new trg plan?
             /* Eigen::VectorXf space_weights = Eigen::VectorXf::Ones(space.len()); */
-            LOG("attempting new trg plan...");
+            /* LOG("attempting new trg plan..."); */
             bool valid_plan = trgp.update(curr_representation,
                                           circuits.make_value_mask(),
                                           trigger);

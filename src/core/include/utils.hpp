@@ -559,6 +559,24 @@ Eigen::MatrixXf generate_lattice(int N, int length) {
     return points.topRows(count); // Return only the rows with valid points
 }
 
+// @brief: get the angle between two vectors
+float angle_between_vectors(const Eigen::VectorXf& v1,
+                            const Eigen::VectorXf& v2) {
+    // Calculate the dot product
+    float dot_product = v1.dot(v2);
+
+    // Calculate the norms of the vectors
+    float norm_v1 = v1.norm();
+    float norm_v2 = v2.norm();
+
+    // Calculate the cosine of the angle
+    float cos_theta = dot_product / (norm_v1 * norm_v2);
+
+    // Calculate the angle in radians
+    return std::acos(cos_theta);
+}
+
+
 /* ========================================== */
 /* ============ MATRIX FUNCTIONS ============ */
 /* ========================================== */
@@ -1013,7 +1031,7 @@ std::vector<int> weighted_shortest_path(const Eigen::MatrixXf& connectivity_matr
     return path;
 }
 
-// progress bar
+// @brief: progress bar
 void print_progress(float progress, int barWidth = 70) {
 
     std::cout << "[";
@@ -1025,6 +1043,80 @@ void print_progress(float progress, int barWidth = 70) {
     }
     std::cout << "] " << int(progress * 100.0) << " %\r";
     std::cout.flush();
+}
+
+// brief: given a node, calculate the largest angle gap between
+// the node and its neighbors
+float calculate_angle_gap(int idx, Eigen::MatrixXf& centers,
+                          Eigen::MatrixXf& connectivity) {
+
+    // Get the neighbors and center of the node
+    Eigen::VectorXf neighbors = connectivity.row(idx);
+    Eigen::VectorXf center = centers.row(idx);
+    int num_nodes = centers.rows();
+
+    // Initialize 
+    float max_angle_gap = 0.0f;
+    std::vector<float> angles;
+    int idx_seen = 0;
+
+    // Iterate over the neighbors
+    for (int i = 0; i < num_nodes; i++) {
+
+        // handle self-connection
+        if (i == idx) {
+            idx_seen = 1;
+            continue;
+        }
+
+        if (neighbors(i) <= 0.0f) { continue; }
+
+        // Get the neighbor's center
+        Eigen::VectorXf neighbor_center = centers.row(i); 
+
+        // subtract the center of the node from the neighbor's center
+        neighbor_center(0) -= center(0);
+        neighbor_center(1) -= center(1);
+
+        LOG_("Neighbor center: ");
+        LOG_(std::to_string(neighbor_center(0)) + ", " + std::to_string(neighbor_center(1)));
+
+        // calculate the angle of the neighbor as arc tangent
+        angles.push_back(std::atan2(neighbor_center(1), neighbor_center(0)));
+
+        // normalize the angle in the range [0, 2*pi]
+        if (angles.back() < 0.0f) {
+            angles.back() += 2 * M_PI;
+        }
+
+        // convert the angle to degrees
+        float angle_deg = angles.back() * 180 / M_PI;
+        LOG_("Angle: " + std::to_string(angle_deg) + " [" + std::to_string(angles.back()) + "]");
+
+        // check if the distance between the new angle and the previous
+        // angle is larger than the current max angle gap
+        if (i > 0) {
+
+            // check distance wrt all previous angles
+            for (int j = 0; j < angles.size() - 1; j++) {
+                float angle_gap_1 = std::abs(angles.back() - angles[j]);
+                float angle_gap_2 = 2*M_PI - std::abs(angles.back() - angles[j]);
+                float angle_gap = std::min(angle_gap_1, angle_gap_2);
+                if (angle_gap > max_angle_gap) {
+                    max_angle_gap = angle_gap;
+                    LOG_("+Max angle gap: " + std::to_string(max_angle_gap));
+                }
+            }
+        }
+    }
+
+    // return the maximum between `max_angle_gap` its complement
+    if (max_angle_gap > (2*M_PI - max_angle_gap)) {
+        LOG_("Max angle gap greater than " + std::to_string(2*M_PI - max_angle_gap));
+        return max_angle_gap;
+    } else {
+        return 2*M_PI - max_angle_gap;
+    }
 }
 
 

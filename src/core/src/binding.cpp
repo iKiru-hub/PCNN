@@ -228,12 +228,17 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_centers", &PCNNsqv2::get_centers,
              py::arg("nonzero") = false)
         .def("get_delta_update", &PCNNsqv2::get_delta_update)
+        .def("get_nodes_max_angle", &PCNNsqv2::get_nodes_max_angle)
         .def("get_position", &PCNNsqv2::get_position)
         .def("simulate", &PCNNsqv2::simulate,
              py::arg("v"),
              py::arg("sim_gc_positions"))
         .def("simulate_one_step", &PCNNsqv2::simulate_one_step,
              py::arg("v"))
+        .def("calculate_angle_gap", &PCNNsqv2::calculate_angle_gap,
+             py::arg("idx"),
+             py::arg("centers"),
+             py::arg("connectivity"))
         /* .def("fwd_int", &PCNNsqv2::fwd_int, */
         /*      py::arg("a")) */
         .def("reset_gcn", &PCNNsqv2::reset_gcn,
