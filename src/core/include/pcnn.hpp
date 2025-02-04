@@ -1754,8 +1754,6 @@ public:
         fixed_indexes = {};
     }
 
-    ~PCNNsqv2() {}; //LOG("[-] PCNN destroyed"); }
-
     // CALL
     std::pair<Eigen::VectorXf,
     Eigen::VectorXf> call(const std::array<float, 2>& v) {
@@ -2203,9 +2201,9 @@ struct MemoryConnections {
         // update the value
         v += (reward - v) / tau_rise - v / tau_decay;
 
-        LOG("[+] reward=" + std::to_string(reward));
-        LOG("[+] threshold=" + std::to_string(threshold));
-        LOG("[+] updating memory connections, v=" + std::to_string(v));
+        /* LOG("[+] reward=" + std::to_string(reward)); */
+        /* LOG("[+] threshold=" + std::to_string(threshold)); */
+        /* LOG("[+] updating memory connections, v=" + std::to_string(v)); */
 
         // record the edges between the nodes in the path
         if (v > threshold && path[0] != -1) {
@@ -2214,13 +2212,13 @@ struct MemoryConnections {
                 value_weights(path[i], path[i+1]) += \
                     (1 - value_weights(path[i], path[i+1])) * v;
             }
-            LOG("[+] MemoryConnections: updated | size: " + std::to_string(path.size()));
+            /* LOG("[+] MemoryConnections: updated | size: " + std::to_string(path.size())); */
         }
     }
 
     void set_path(std::vector<int> path) { 
         this->path = path;
-        LOG("## set path, size=" + std::to_string(path.size()));;
+        /* LOG("## set path, size=" + std::to_string(path.size()));; */
     }
     Eigen::MatrixXf& get_value_weights() { return value_weights; }
 
@@ -2446,23 +2444,23 @@ class TargetProgram {
         float max_curr_value = curr_representation.maxCoeff();
 
         // check if the plan is valid, ie size > 1
-        if (plan_idxs.size() < 4) {
-            LOG("[-] short plan");
+        if (plan_idxs.size() < 3) {
+            /* LOG("[-] short plan"); */
             return false;
         } else if (max_curr_value < 0.00001f) {
-            LOG("[-] low max curr value");
+            /* LOG("[-] low max curr value"); */
             return false;
         }
 
         // log plan
-        LOG("\n[new plan]");
-        LOG("start: " + std::to_string(curr_idx) + \
-            " | end: " + std::to_string(tmp_trg_idx));
-        for (int i = 0; i < (plan_idxs.size()-1); i++) {
-            LOG(std::to_string(plan_idxs[i]) + "->" + \
-                std::to_string(plan_idxs[i+1]) + " | " + \
-                std::to_string(connectivity(plan_idxs[i], plan_idxs[i+1])));
-        }
+        /* LOG("\n[new plan]"); */
+        /* LOG("start: " + std::to_string(curr_idx) + \ */
+        /*     " | end: " + std::to_string(tmp_trg_idx)); */
+        /* for (int i = 0; i < (plan_idxs.size()-1); i++) { */
+        /*     LOG(std::to_string(plan_idxs[i]) + "->" + \ */
+        /*         std::to_string(plan_idxs[i+1]) + " | " + \ */
+        /*         std::to_string(connectivity(plan_idxs[i], plan_idxs[i+1]))); */
+        /* } */
         /* LOG("#size=" + std::to_string(plan_idxs.size()) + "\n"); */
 
         // log idx centers
@@ -3359,12 +3357,12 @@ public:
 
         if (rdtrace.call(curr_representation)) {
             /* LOG("[-] memory action max < 0.1f : " + std::to_string(circuits.get_memory_action_max())); */
-            LOG("[-] repr trace > threshold : " + std::to_string(rdtrace.get_v()));
+            /* LOG("[-] repr trace > threshold : " + std::to_string(rdtrace.get_v())); */
             forced_exploration = 0;
             goto explore;
-        } else {
-            LOG("[+] repr trace below: " + std::to_string(rdtrace.get_v()));
-        }
+        } // else {
+            /* LOG("[+] repr trace below: " + std::to_string(rdtrace.get_v())); */
+        /* } */
 
 
         // === GOAL-DIRECTED BEHAVIOUR ====================================
@@ -3394,15 +3392,15 @@ public:
         trg_plan_end++;
 
         // update trg memory in case of reward
-        if (reward > 0.0f && trg_plan_end < 4)
-            {
-            LOG("########### +++++ trg memory " + std::to_string(trg_plan_end) + \
-                " | reward: " + std::to_string(reward));
-        }
-            /* trgp.update_memory_connections(); } */
-        else if (reward) { LOG("########### no trg memory? " + std::to_string(trg_plan_end) + \
-            " | reward: " + std::to_string(reward)); }
-        else { LOG("#### no reward " + std::to_string(reward));}
+        /* if (reward > 0.0f && trg_plan_end < 4) */
+        /*     { */
+        /*     LOG("########### +++++ trg memory " + std::to_string(trg_plan_end) + \ */
+        /*         " | reward: " + std::to_string(reward)); */
+        /* } */
+        /*     /1* trgp.update_memory_connections(); } *1/ */
+        /* else if (reward) { LOG("########### no trg memory? " + std::to_string(trg_plan_end) + \ */
+        /*     " | reward: " + std::to_string(reward)); } */
+        /* else { LOG("#### no reward " + std::to_string(reward));} */
 
         // --- new target plan: REWARD
 
@@ -3488,6 +3486,10 @@ explore:
     int get_trg_idx() { return rwobj.trg_idx; }
     Eigen::VectorXf get_representation()
         { return curr_representation; }
+    std::array<float, 2> get_trg_position() {
+        Eigen::MatrixXf centers = space.get_centers();
+        return {centers(rwobj.trg_idx, 0), centers(rwobj.trg_idx, 1)};
+    }
     ExperienceModule& get_expmd() { return expmd; }
     PCNN_REF& get_space() { return space; }
     Eigen::MatrixXf& get_memory_connections()

@@ -384,23 +384,23 @@ class Environment:
 
         # Update agent position with improved collision handling
         velocity, collision = self.agent(velocity * self.scale)
-        self.velocity = np.around(velocity, 3)
+        # self.velocity = np.around(velocity, 3)
 
         # Check reward collisions
         reward = self.reward_obj(self.agent.rect.center)
         terminated = False
         if reward:
-            print(f"[t={self.t}] +reward")
+            # print(f"[t={self.t}] +reward")
             self.rw_time = self.t
 
         if (self.t - self.rw_time) == self.rw_duration:
             terminated = self._reward_event(brain=brain)
 
-        if self.verbose:
-            if reward:
-                logger.info(f"[t={self.t}] +reward")
-            if collision:
-                logger.info(f"[t={self.t}] -collision")
+        # if self.verbose:
+            # if reward:
+            #     logger.info(f"[t={self.t}] +reward")
+            # if collision:
+            #     logger.info(f"[t={self.t}] -collision")
 
         # position = self.agent.position.copy() / self.scale
         self.trajectory.append(self.agent.position.tolist())
@@ -441,16 +441,22 @@ class Environment:
         brain.reset()
 
         prev_position = self.agent.position.copy()
+        # print(f"Resetting agent position from {prev_position}")
 
         self.agent.set_position()
+        # print(f"New agent position: {self.agent.position}")
         # self.agent.reset()
 
         displacement = [(self.agent.position[0] - prev_position[0]) / self.scale / self.scale,
                         (self.agent.position[1] - prev_position[1]) / self.scale / self.scale]
+        # print(f"Displacement: {displacement}")
 
         # input(f"displacement={displacement}")
         # print("displacement: ", displacement)
         brain(displacement, 0.0, 0.0, False)
+
+        print(f"\n[displacement]\npc position: {brain.get_space_position()}")
+        print(f"trg position: {brain.get_trg_position()}")
 
         # input()
 

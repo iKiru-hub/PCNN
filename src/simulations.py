@@ -30,7 +30,7 @@ GAME_SCALE = games.SCREEN_WIDTH
 
 reward_settings = {
     "rw_fetching": "deterministic",
-    "rw_position": np.array([0.5, 2.3]) * GAME_SCALE,
+    "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.05 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
@@ -63,8 +63,8 @@ model_params = {
 }
 
 possible_positions = np.array([
-    [0.2, 0.2], [0.2, 0.8],
-    [0.8, 0.8], [0.8, 0.2],
+    [0.2, 0.2], [0.2, 0.2],
+    [0.2, 0.2], [0.2, 0.2],
 ]) * GAME_SCALE
 
 
@@ -164,27 +164,25 @@ def run_game(env: games.Environment,
                     running = False
 
         # -reward
-        if observation[3]:
-            logger.debug(f">> Reward << [{observation[3]}]")
+        # if observation[3]:
+        #     logger.debug(f">> Reward << [{observation[3]}]")
             # input()
 
         # -collision
-        if observation[2]:
-            logger.debug(f">!!< Collision << [{observation[2]}]")
+        # if observation[2]:
+        #     logger.debug(f">!!< Collision << [{observation[2]}]")
             # input()
 
         # velocity
         v = [(env.position[0] - prev_position[0]) / env.scale,
              (env.position[1] - prev_position[1]) / env.scale]
 
-        logger.debug(f"inp v: {v}")
-
         # brain step
         velocity = brain(v,
                          observation[1],
                          observation[2],
                          env.reward_availability)
-        logger.debug(f"out v: {velocity}")
+        # logger.debug(f"out v: {velocity}")
 
         # store past position
         prev_position = env.position
@@ -316,6 +314,7 @@ def main_game(room_name: str="Square.v0"):
 
     body = objects.AgentBody(
                 position=agent_settings["init_position"],
+                speed=agent_settings["speed"],
                 possible_positions=possible_positions,
                 bounds=agent_settings["agent_bounds"],
                 room=room,

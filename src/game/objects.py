@@ -11,6 +11,7 @@ class AgentBody:
 
     def __init__(self, position: np.ndarray,
                  room: object,
+                 speed = 1.0,
                  width: int = 20, height: int = 20,
                  color: Tuple[int, int, int] = (255, 0, 0),
                  bounds: Tuple[int, int, int, int] = (0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
@@ -27,6 +28,7 @@ class AgentBody:
         self.rect = pygame.Rect(self.position[0],
                                 self.position[1], width, height)
         self.color = color
+        self.speed = speed
         self.initial_pos = tuple(self.position)
         self.radius = max((width, height))
         self.random_brain = random_brain
