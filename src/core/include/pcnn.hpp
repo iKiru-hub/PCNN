@@ -291,10 +291,6 @@ public:
     std::array<float, 2> call(const std::array<float, 2>& v) {
         position[0] += v[0];
         position[1] += v[1];
-        LOG("[VS] v={"+std::to_string(v[0])+", "+std::to_string(v[1])+"}");
-        LOG("[VS] position: " + std::to_string(position[0]) + ", " + \
-            std::to_string(position[1]));
-        /* trajectory.push_back({position[0], position[1]}); */
     }
 
     void update(int idx) {
@@ -2258,7 +2254,7 @@ struct RepresentationDiffTrace {
         if (std::isnan(cosim)) { cosim = 0.0f; }
         v += (cosim - v) / tau;
         prev_representation = representation;
-        return v < threshold;
+        return v > threshold;
     }
 
     RepresentationDiffTrace(int size, float tau,
@@ -2553,13 +2549,13 @@ public:
         // check: that move has been tried a lot
         if (!conlochandler.is_valid()) {
             /* LOG("[-] max attempts reached <<<<<<<<<<<<<<"); */
-            /* space.add_blocked_edge(conlochandler.start_point, */
-            /*                        conlochandler.end_point); */
-            /* conlochandler.reset(); */
+            space.add_blocked_edge(conlochandler.start_point,
+                                   conlochandler.end_point);
+            conlochandler.reset();
 
             // check edges
-            /* LOG("blocked edges conn: " + std::to_string(connectivity(conlochandler.start_point, */
-            /*                                                     conlochandler.end_point))); */
+            LOG("blocked edges conn: " + std::to_string(connectivity(conlochandler.start_point,
+                                                                conlochandler.end_point)));
             return {0.0f, 0.0f};
         }
 
@@ -3336,7 +3332,7 @@ public:
         circuits(circuits), space(space),
         expmd(expmd),
         rdtrace(RepresentationDiffTrace(space.get_size(),
-                                        rdt_tau, 0.001)),
+                                        rdt_tau, 0.999)),
         trgp(TargetProgram(space, speed, max_attempts)),
         directive("new"), clock(0) {}
 
@@ -3349,10 +3345,6 @@ public:
         clock++;
 
         // === STATE UPDATE ===
-
-        LOG("[brain] v=" + std::to_string(velocity[0]) + ", " + std::to_string(velocity[1]));
-        LOG("        e=" + std::to_string(space.get_position()[0]) + ", " + \
-            std::to_string(space.get_position()[1]));
 
         // :space
         auto [u, _] = space.call(velocity);
@@ -3372,13 +3364,10 @@ public:
             goto explore; }
 
         if (rdtrace.call(curr_representation)) {
-            LOG("[-] %memory action max : " + std::to_string(circuits.get_memory_action_max()));
             /* LOG("[-] repr trace > threshold : " + std::to_string(rdtrace.get_v())); */
             forced_exploration = 0;
             goto explore;
-        }  else {
-            LOG("[+] repr trace below: " + std::to_string(rdtrace.get_v()));
-        }
+        }// else { LOG("[+] repr trace below: " + std::to_string(rdtrace.get_v())); }
 
 
         // === GOAL-DIRECTED BEHAVIOUR ====================================

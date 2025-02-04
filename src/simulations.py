@@ -84,7 +84,7 @@ class Renderer:
         self.names = names
         self.fig, self.axs = plt.subplots(1, self.size+1,
                                          figsize=((1+self.size)*4, 2))
-        self.boundsx = (-200, 250)
+        self.boundsx = (-150, 300)
         self.boundsy = (-200, 250)
 
     def render(self):
@@ -178,9 +178,6 @@ def run_game(env: games.Environment,
         # velocity
         v = [(env.position[0] - prev_position[0]),
              (-env.position[1] + prev_position[1])]
-
-        logger.debug(f"[env] v: {v}")
-        logger.debug(f"[env] p: {env.position}")
 
         # brain step
         velocity = brain(v,
@@ -280,7 +277,7 @@ def main_game(room_name: str="Square.v0"):
                            offset=1.3,
                            clip_min=0.01,
                            threshold=0.3,
-                           rep_threshold=0.8,
+                           rep_threshold=0.85,
                            rec_threshold=30.,
                            num_neighbors=8,
                            xfilter=gcn,
