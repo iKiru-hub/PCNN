@@ -266,7 +266,7 @@ public:
 
     VelocitySpace(int size, float threshold)
         : size(size), threshold(threshold) {
-        centers = Eigen::MatrixXf::Constant(size, 2, -1000.0f);
+        centers = Eigen::MatrixXf::Constant(size, 2, -99.0f);
         connectivity = Eigen::MatrixXf::Zero(size, size);
         weights = Eigen::MatrixXf::Zero(size, size);
         position = {1.9479814f, 0.9479814f};
@@ -384,6 +384,24 @@ public:
                                                           centers(i, 1)},
                                      std::array<float, 2>{centers(j, 0),
                                                           centers(j, 1)}});
+                }
+            }
+        }
+        return edges;  // Add this line to return the edges vector
+    }
+    std::vector<std::array<std::array<float, 2>, 3>> make_edges_value(
+               Eigen::MatrixXf& values) { 
+        // make a list of edges from the connectivity matrix
+        std::vector<std::array<std::array<float, 2>, 3>> edges;
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (connectivity(i, j) == 1.0) {
+                    edges.push_back({std::array<float, 2>{centers(i, 0),
+                                                          centers(i, 1)},
+                                     std::array<float, 2>{centers(j, 0),
+                                                          centers(j, 1)},
+                                     std::array<float, 2>{values(i, j),
+                                                          values(j, i)}});
                 }
             }
         }
@@ -1895,6 +1913,8 @@ public:
     Eigen::MatrixXf& get_wrec() { return Wrec; }
     std::vector<std::array<std::array<float, 2>, 2>> make_edges()
         { return vspace.make_edges(); }
+    std::vector<std::array<std::array<float, 2>, 3>> make_edges_value(
+        Eigen::MatrixXf& values) { return vspace.make_edges_value(values); }
     /* std::vector<std::array<float, 2>> get_trajectory() { */
     /*     return vspace.get_trajectory(); } */
     Eigen::MatrixXf& get_connectivity() { return connectivity; }
@@ -2106,11 +2126,12 @@ struct MemoryRepresentation {
     /*     return mask; */
     /* } */
 
+    float get_max_value() { return tape.maxCoeff(); }
+
     MemoryRepresentation(int size, float decay, float mask_threshold):
         tape(Eigen::VectorXf::Zero(size)), decay(decay),
         mask_threshold(mask_threshold),
         mask(Eigen::VectorXf::Zero(size)) {}
-    ~MemoryRepresentation() {}
     std::string str() { return "MemoryRepresentation"; }
     std::string repr() { return "MemoryRepresentation"; }
 
@@ -2150,14 +2171,44 @@ struct MemoryAction {
         }
 
         // update the action
-        tape[idx] = 1.0f;
+        tape[idx] += (1.0f - tape[idx]) / decay;
+
+
         return tape[idx];
     }
 
+    float get_max_value() {
+        return *std::max_element(tape.begin(), tape.end());
+    }
+
     MemoryAction(float decay): decay(decay) {}
-    ~MemoryAction() {}
     std::string str() { return "MemoryAction"; }
     std::string repr() { return "MemoryAction"; }
+};
+
+
+struct MemoryConnections {
+
+    Eigen::MatrixXf value_weights;
+    float eta;
+
+    void update(std::vector<int>& path) {
+
+        // record the edges between the nodes in the path
+        // one way though
+        for (int i = 0; i < path.size() - 1; i++) {
+            value_weights(path[i], path[i+1]) += \
+                (1 - value_weights(path[i], path[i+1])) * eta;
+        }
+    }
+
+    Eigen::MatrixXf& get_value_weights() { return value_weights; }
+
+    MemoryConnections(int size, float eta = 0.5f):
+        value_weights(Eigen::MatrixXf::Zero(size, size)), eta(eta) {}
+
+    std::string str() { return "MemoryConnections"; }
+    std::string repr() { return "MemoryConnections"; }
 };
 
 
@@ -2195,21 +2246,21 @@ struct ConsecutiveLocationsHandler {
         this->start_point = start_point;
         this->end_point = end_point;
         this->counter = 0;
-        LOG("[+] setting ConsecutiveLocationsHandler: " + \
-            std::to_string(start_point) + " -> " + \
-            std::to_string(end_point));
+        /* LOG("[+] setting ConsecutiveLocationsHandler: " + \ */
+        /*     std::to_string(start_point) + " -> " + \ */
+        /*     std::to_string(end_point)); */
     }
     bool update() {
 
         if (start_point == end_point || start_point < 0 || end_point < 0) {
-            LOG("[-] ConsecutiveLocationsHandler: invalid points or equal points");
+            /* LOG("[-] ConsecutiveLocationsHandler: invalid points or equal points"); */
             return true;
         }
         counter++;
-        LOG("[-] ConsecutiveLocationsHandler: " + \
-            std::to_string(start_point) + " -> " + \
-            std::to_string(end_point) + " [" + \
-            std::to_string(counter) + "]");
+        /* LOG("[-] ConsecutiveLocationsHandler: " + \ */
+        /*     std::to_string(start_point) + " -> " + \ */
+        /*     std::to_string(end_point) + " [" + \ */
+        /*     std::to_string(counter) + "]"); */
         return false;
     }
 
@@ -2258,8 +2309,8 @@ struct RewardObject {
         this->trg_idx = trg_idx;
         this->trg_value = da_weights(trg_idx);
 
-        LOG("[+] RewardObject: trg_idx=" + std::to_string(trg_idx) + \
-            " | trg_value=" + std::to_string(trg_value));
+        /* LOG("[+] RewardObject: trg_idx=" + std::to_string(trg_idx) + \ */
+        /*     " | trg_value=" + std::to_string(trg_value)); */
 
         return trg_idx;
     }
@@ -2307,6 +2358,7 @@ class TargetProgram {
 
     // internal variables
     ConsecutiveLocationsHandler conlochandler;
+    MemoryConnections memory_connections;
     float speed;
     bool active;
     /* Eigen::VectorXf trg_representation; */
@@ -2332,16 +2384,21 @@ class TargetProgram {
         // calculate path
         /* std::vector<int> plan_idxs = \ */
         /*     utils::shortest_path_bfs(wrec, start_idx, end_idx); */
+        /* std::vector<int> plan_idxs = \ */
+        /*     utils::weighted_shortest_path(connectivity, */
+        /*                                   space_weights, */
+        /*                                   curr_idx, tmp_trg_idx); */
         std::vector<int> plan_idxs = \
-            utils::weighted_shortest_path(connectivity,
-                                          space_weights,
-                                          curr_idx, tmp_trg_idx);
+            utils::weighted_en_shortest_path(connectivity,
+                                             memory_connections.get_value_weights(),
+                                             space_weights,
+                                             curr_idx, tmp_trg_idx);
 
         /* float max_trg_value = trg_representation.maxCoeff(); */
         float max_curr_value = curr_representation.maxCoeff();
 
         // check if the plan is valid, ie size > 1
-        if (plan_idxs.size() < 3) {
+        if (plan_idxs.size() < 4) {
             LOG("[-] short plan");
             return false;
         } else if (max_curr_value < 0.00001f) {
@@ -2361,12 +2418,12 @@ class TargetProgram {
         /* LOG("#size=" + std::to_string(plan_idxs.size()) + "\n"); */
 
         // log idx centers
-        LOG("centers:");
-        for (int i = 0; i < plan_idxs.size(); i++) {
-            LOG("[" + std::to_string(i) + "] " + \
-                std::to_string(centers(plan_idxs[i], 0)) + " | " + \
-                std::to_string(centers(plan_idxs[i], 1)));
-        }
+        /* LOG("centers:"); */
+        /* for (int i = 0; i < plan_idxs.size(); i++) { */
+        /*     LOG("[" + std::to_string(i) + "] " + \ */
+        /*         std::to_string(centers(plan_idxs[i], 0)) + " | " + \ */
+        /*         std::to_string(centers(plan_idxs[i], 1))); */
+        /* } */
 
         // next position as the center corresponding to the
         // the next index in the plan
@@ -2389,6 +2446,7 @@ public:
         active(false), space(space), wrec(space.get_wrec()),
         connectivity(space.get_connectivity()),
         centers(space.get_centers()),
+        memory_connections(MemoryConnections(space.get_size())),
         speed(speed), depth(0), conlochandler(max_attempts) {
 
         size = wrec.rows();
@@ -2414,11 +2472,11 @@ public:
         // exit: no plan
         if (!is_valid) {
             active = false;
-            LOG("[-] no plan, it was invalid");
+            /* LOG("[-] no plan, it was invalid"); */
             return false;
         }
 
-        LOG("[+] plan made, active=" + std::to_string(active));
+        /* LOG("[+] plan made, active=" + std::to_string(active)); */
         active = true;
         return true;
     }
@@ -2428,21 +2486,21 @@ public:
 
         // exit: active
         if (!active) {
-            LOG("[-] not active");
+            /* LOG("[-] not active"); */
             return {0.0f, 0.0f}; }
 
         std::array<float, 2> local_velocity;
 
         // check: that move has been tried a lot
         if (!conlochandler.is_valid()) {
-            LOG("[-] max attempts reached <<<<<<<<<<<<<<");
-            space.add_blocked_edge(conlochandler.start_point,
-                                   conlochandler.end_point);
-            conlochandler.reset();
+            /* LOG("[-] max attempts reached <<<<<<<<<<<<<<"); */
+            /* space.add_blocked_edge(conlochandler.start_point, */
+            /*                        conlochandler.end_point); */
+            /* conlochandler.reset(); */
 
             // check edges
-            LOG("blocked edges conn: " + std::to_string(connectivity(conlochandler.start_point,
-                                                                conlochandler.end_point)));
+            /* LOG("blocked edges conn: " + std::to_string(connectivity(conlochandler.start_point, */
+            /*                                                     conlochandler.end_point))); */
             return {0.0f, 0.0f};
         }
 
@@ -2453,14 +2511,14 @@ public:
         this->curr_position = {centers(curr_idx, 0),
                                centers(curr_idx, 1)};
 
-        LOG("[+] curr position: " + std::to_string(curr_idx) + \
-            " at " + std::to_string(curr_position[0]) + " | " + std::to_string(curr_position[1]));
-        LOG("[+] next position: " + std::to_string(plan_idxs[counter]) + \
-            " at " + std::to_string(next_position[0]) + " | " + std::to_string(next_position[1]));
+        /* LOG("[+] curr position: " + std::to_string(curr_idx) + \ */
+        /*     " at " + std::to_string(curr_position[0]) + " | " + std::to_string(curr_position[1])); */
+        /* LOG("[+] next position: " + std::to_string(plan_idxs[counter]) + \ */
+        /*     " at " + std::to_string(next_position[0]) + " | " + std::to_string(next_position[1])); */
 
         // distance netween the current and next position
         float dist = utils::euclidean_distance(curr_position, next_position);
-        LOG("[+] dist: " + std::to_string(dist));
+        /* LOG("[+] dist: " + std::to_string(dist)); */
 
         // check | next position not reached yet
         if (dist > 0.01f && counter > 0) {
@@ -2469,38 +2527,38 @@ public:
 
             // cover the last bit of distance
             if (dist < speed) {
-                LOG("[-] last bit of distance b4 next position");
+                /* LOG("[-] last bit of distance b4 next position"); */
                 local_velocity = {dx, dy};
             } else {
                 float norm = sqrt(dx * dx + dy * dy);
 
-                LOG("[+] next speed, norm: " + std::to_string(norm));
+                /* LOG("[+] next speed, norm: " + std::to_string(norm)); */
                 // return the action vector of length speed
                 local_velocity = {speed * dx / norm, speed * dy / norm};
             }
 
             // step the consecutive locations handler
-            bool is_identitcal = conlochandler.update();
-            if (is_identitcal) {
-                LOG("identical idx in conlochandler, blocking");
-                this->active = false;
-                this->counter = 0;
-                this->depth = 0;
-                conlochandler.reset();
+            /* bool is_identitcal = conlochandler.update(); */
+            /* if (is_identitcal) { */
+            /*     /1* LOG("identical idx in conlochandler, blocking"); *1/ */
+            /*     this->active = false; */
+            /*     this->counter = 0; */
+            /*     this->depth = 0; */
+            /*     conlochandler.reset(); */
 
-                return {0.0f, 0.0f};
-            }
+            /*     return {0.0f, 0.0f}; */
+            /* } */
         } else {
 
-            LOG("[+] next position reached, distance=" + std::to_string(dist) + \
-                " [" + std::to_string(counter) + "]");
+            /* LOG("[+] next position reached, distance=" + std::to_string(dist) + \ */
+            /*     " [" + std::to_string(counter) + "]"); */
 
             if (counter > (plan_idxs.size()-1)) {
                 this->active = false;
                 this->counter = 0;
                 this->depth = 0;
-                LOG("[-] end of plan (hit plan size) ..active=" + std::to_string(active) + \
-                    " [" + std::to_string(counter) + "]");
+                /* LOG("[-] end of plan (hit plan size) ..active=" + std::to_string(active) + \ */
+                /*     " [" + std::to_string(counter) + "]"); */
                 conlochandler.reset();
                 return {0.0f, 0.0f};
             }
@@ -2508,9 +2566,9 @@ public:
             // next position reached, move to the next
             this->next_position = {centers(plan_idxs[counter], 0),
                                    centers(plan_idxs[counter], 1)};
-            LOG("[+] moving to the next position: " + std::to_string(plan_idxs[counter]) + \
-                " at " + std::to_string(next_position[0]) + " | " + \
-                std::to_string(next_position[1]));
+            /* LOG("[+] moving to the next position: " + std::to_string(plan_idxs[counter]) + \ */
+            /*     " at " + std::to_string(next_position[0]) + " | " + \ */
+                /* std::to_string(next_position[1])); */
 
             float dx = next_position[0] - curr_position[0];
             float dy = next_position[1] - curr_position[1];
@@ -2539,9 +2597,16 @@ public:
         this->curr_position = {curr_position[0] + local_velocity[0],
                                curr_position[1] + local_velocity[1]};
 
-        LOG("out velocity: " + std::to_string(local_velocity[0]) + \
-            " | " + std::to_string(local_velocity[1]));
+        /* LOG("out velocity: " + std::to_string(local_velocity[0]) + \ */
+        /*     " | " + std::to_string(local_velocity[1])); */
         return local_velocity;
+    }
+
+    void update_memory_connections() {
+        LOG("[+] updating memory connections");
+        for (int i = 0; i < plan_idxs.size() - 1; i++)
+            { std::cout << plan_idxs[i] << ", "; }
+        memory_connections.update(plan_idxs); 
     }
 
     std::vector<int> make_shortest_path(Eigen::MatrixXf wrec,
@@ -2557,6 +2622,8 @@ public:
     void set_wrec(Eigen::MatrixXf wrec) { this->wrec = wrec; }
     void set_centers(Eigen::MatrixXf centers) { this->centers = centers; }
     std::vector<int> get_plan() { return plan_idxs; }
+    Eigen::MatrixXf& get_memory_connections()
+        { return memory_connections.get_value_weights(); }
     void reset() {
         /* LOG("[-] resetting TargetProgram"); */
         active = false;
@@ -2628,6 +2695,8 @@ public:
     /* Eigen::VectorXf get_memory_mask() { return memrepr.make_mask(); } */
     Eigen::VectorXf get_bnd_mask() { return bnd.make_mask(); }
     Eigen::VectorXf get_memory_representation() { return memrepr.tape; }
+    float get_memory_representation_max() { return memrepr.get_max_value(); }
+    float get_memory_action_max() { return memact.get_max_value(); }
     std::array<float, ACTION_SPACE_SIZE> get_memory_action() { return memact.tape; }
     void reset() {
         da.reset();
@@ -2845,6 +2914,9 @@ class ExperienceModule {
     // make new plan
     int make_plan(Eigen::VectorXf& curr_representation,
                   int rejected_idx) {
+
+        one_step_look_ahead(curr_representation);
+        return -1;
 
         // check: the current position is at an open boundary
         Eigen::Index maxIndex;
@@ -3131,6 +3203,9 @@ class Brain {
     Eigen::VectorXf curr_representation;
     Eigen::VectorXf value_representation;
     std::string directive;
+    int clock;
+    int trg_plan_end = 0;
+    int forced_exploration = -1;
 
     std::array<float, 2> attempt_boundary_plan(int idx) {
 
@@ -3186,7 +3261,7 @@ public:
         circuits(circuits), space(space),
         expmd(expmd),
         trgp(TargetProgram(space, speed, max_attempts)),
-        directive("new") {}
+        directive("new"), clock(0) {}
 
     // CALL
     std::array<float, 2> call(
@@ -3194,8 +3269,7 @@ public:
             float collision, float reward,
             bool trigger) {
 
-        LOG("\n[Brain]");
-
+        clock++;
 
         // === STATE UPDATE ===
 
@@ -3203,11 +3277,25 @@ public:
         auto [u, _] = space.call(velocity);
         space.update();
         this->curr_representation = u;
+        int tmp_trg_idx = -1;
 
         // :circuits
         std::array<float, CIRCUIT_SIZE> state_int = \
             circuits.call(u, collision, reward,
                           expmd.get_last_action_idx(), false);
+
+        // check still-ness
+        if (forced_exploration < 5) {
+            forced_exploration++;
+            goto explore; }
+
+        if (circuits.get_memory_action_max() > 0.5f) {
+            /* LOG("[-] memory action max < 0.1f : " + std::to_string(circuits.get_memory_action_max())); */
+            forced_exploration = 0;
+            goto explore;
+        }// else {
+            /* LOG("[+] memory action max = " + std::to_string(circuits.get_memory_action_max())); */
+        /* } */
 
 
         // === GOAL-DIRECTED BEHAVIOUR ====================================
@@ -3222,36 +3310,46 @@ public:
         // check: current trg plan
         /* if (trgp.is_active() && !trgp.is_plan_finished()) { */
         if (trgp.is_active()) {
-            LOG("continuing trg plan...");
+            /* LOG("continuing trg plan..."); */
             /* this->directive = "trg"; */
+            trg_plan_end = 0;
             return trgp.step_plan(curr_representation);
-        } else if (!trgp.is_active()) {
-            LOG("[-] trg plan finished");
-            this->directive = "new";
-        } else { LOG("[-] trg plan not active");}
+        } //else if (!trgp.is_active()) {
+            /* LOG("[-] trg plan finished"); */
+            /* this->directive = "new"; */
+        /* } //else { LOG("[-] trg plan not active");} */
         /* this->directive = "new"; */
+
+        // time since the last trg plan ended
+        trg_plan_end++;
+
+        // update trg memory in case of reward
+        if (reward > 0.0f && trg_plan_end < 2)
+            {
+            LOG("########### +++++ trg memory " + std::to_string(trg_plan_end) + \
+                " | reward: " + std::to_string(reward));
+            trgp.update_memory_connections(); }
+        else if (reward) { LOG("########### no trg memory? " + std::to_string(trg_plan_end) + \
+            " | reward: " + std::to_string(reward)); }
 
         // --- new target plan: REWARD
 
         // :reward object | new reward trg index
-        int tmp_trg_idx = rwobj.update(circuits.get_da_weights(),
+        tmp_trg_idx = rwobj.update(circuits.get_da_weights(),
                                        space, trigger);
 
         if (tmp_trg_idx > -1) {
-            LOG("[+] new reward trg index: " + std::to_string(tmp_trg_idx));
+
+            /* LOG("[+] new reward trg index: " + std::to_string(tmp_trg_idx)); */
 
             // trg position
             Eigen::VectorXf trg_position = space.get_centers().row(tmp_trg_idx);
-            LOG("[+] trg position: " + std::to_string(trg_position[0]) + ", " + \
-                std::to_string(trg_position[1]) + " | idx: " + std::to_string(tmp_trg_idx));
 
             // argmax of the current representation
             Eigen::Index maxIndex;
             curr_representation.maxCoeff(&maxIndex);
             int curr_idx = static_cast<int>(maxIndex);
             Eigen::VectorXf curr_position = space.get_centers().row(curr_idx);
-            LOG("current position: " + std::to_string(curr_position[0]) + ", " + \
-                std::to_string(curr_position[1]) + " | idx: " + std::to_string(curr_idx));
 
             // check new reward trg plan
             bool valid_plan = trgp.update(curr_representation,
@@ -3261,14 +3359,13 @@ public:
             // [+] reward trg plan
             if (valid_plan) {
                 /* LOG("New trg plan..." + std::to_string(valid_plan)); */
-                this->directive = "trg rw";
+                this->directive = "trg";
                 return trgp.step_plan(curr_representation);
             }
-        } else {
-            LOG("[-] no new reward trg index");
         }
 
         // === EXPLORATIVE BEHAVIOUR =======================================
+explore:
 
         // check: collision
         if (collision > 0.0f) {
@@ -3282,7 +3379,7 @@ public:
         std::pair<std::array<float, 2>, int> expmd_res = expmd.call(directive, curr_representation);
 
         // check: plan to go to the open boundary
-        if (expmd_res.second > -1) { return attempt_boundary_plan(expmd_res.second); }
+        /* if (expmd_res.second > -1) { return attempt_boundary_plan(expmd_res.second); } */
             /* LOG("[+] new plan to the open boundary"); */
             /* trgp.reset(); */
             /* bool valid_plan = trgp.update(curr_representation, */
@@ -3303,7 +3400,7 @@ public:
         /* } */
 
         // --- continue the plan/random walk
-        LOG("[+] continue the plan/random walk");
+        /* LOG("[+] continue the plan/random walk"); */
         return expmd_res.first;
     }
 
@@ -3321,6 +3418,10 @@ public:
         { return curr_representation; }
     ExperienceModule& get_expmd() { return expmd; }
     PCNN_REF& get_space() { return space; }
+    Eigen::MatrixXf& get_memory_connections()
+        { return trgp.get_memory_connections(); }
+    std::vector<std::array<std::array<float, 2>, 3>> make_edges_value()
+        { return space.make_edges_value(trgp.get_memory_connections()); }
     std::string get_directive() { return directive; }
     std::vector<int> get_trg_plan() { return trgp.get_plan(); }
     std::array<float, 2> get_space_position() { return space.get_position(); }

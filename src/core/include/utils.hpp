@@ -1031,6 +1031,89 @@ std::vector<int> weighted_shortest_path(const Eigen::MatrixXf& connectivity_matr
     return path;
 }
 
+// @brief: like above but with edge weights
+std::vector<int> weighted_en_shortest_path(const Eigen::MatrixXf& connectivity_matrix,
+                                           const Eigen::MatrixXf& edge_weights,
+                                           const Eigen::VectorXf& node_weights,
+                                           int start_node, int end_node) {
+    int num_nodes = connectivity_matrix.rows();
+    std::vector<float> distances(num_nodes, std::numeric_limits<float>::infinity());
+    std::vector<int> parent(num_nodes, -1);
+    std::vector<bool> finalized(num_nodes, false);
+
+    // Use priority queue with pair of (distance, node)
+    std::priority_queue<std::pair<float, int>> pq;
+
+    // Initialize start node
+    distances[start_node] = node_weights(start_node);
+    pq.push({-distances[start_node], start_node});
+
+    while (!pq.empty()) {
+        int current_node = pq.top().second;
+        float current_dist = -pq.top().first;
+        pq.pop();
+
+        // Skip if we've already finalized this node or found a better path
+        if (finalized[current_node] || current_dist > distances[current_node]) {
+            continue;
+        }
+
+        // Mark this node as finalized
+        finalized[current_node] = true;
+
+        // If we've found the end node, we're done since we've found the shortest path
+        if (current_node == end_node) {
+            break;
+        }
+
+        // Check all neighbors
+        for (int neighbor = 0; neighbor < num_nodes; ++neighbor) {
+            // Check if there's a connection and the neighbor is not finalized
+            if (connectivity_matrix(current_node, neighbor) == 1 && !finalized[neighbor]) {
+                // Calculate new distance:
+                // 1. Current path distance
+                // 2. Node weight of the current node
+                // 3. Edge weight between current and neighbor
+                // 4. Node weight of the neighbor
+                float new_distance = distances[current_node]
+                                     + node_weights(current_node)
+                                     + edge_weights(current_node, neighbor)
+                                     + node_weights(neighbor);
+
+                // If we've found a better path
+                if (new_distance < distances[neighbor]) {
+                    distances[neighbor] = new_distance;
+                    parent[neighbor] = current_node;
+                    pq.push({-new_distance, neighbor});
+                }
+            }
+        }
+    }
+
+    // Reconstruct the path
+    std::vector<int> path;
+    int current = end_node;
+
+    // Check if end node is reachable
+    if (distances[end_node] == std::numeric_limits<float>::infinity()) {
+        return {};
+    }
+
+    while (current != -1) {
+        path.push_back(current);
+        current = parent[current];
+    }
+    std::reverse(path.begin(), path.end());
+
+    // Verify the path starts at the start node
+    if (path.empty() || path[0] != start_node) {
+        return {};
+    }
+
+    return path;
+}
+
+
 // @brief: progress bar
 void print_progress(float progress, int barWidth = 70) {
 
@@ -1055,7 +1138,7 @@ float calculate_angle_gap(int idx, Eigen::MatrixXf& centers,
     Eigen::VectorXf center = centers.row(idx);
     int num_nodes = centers.rows();
 
-    // Initialize 
+    // Initialize
     float max_angle_gap = 0.0f;
     std::vector<float> angles;
     int idx_seen = 0;
@@ -1072,7 +1155,7 @@ float calculate_angle_gap(int idx, Eigen::MatrixXf& centers,
         if (neighbors(i) <= 0.0f) { continue; }
 
         // Get the neighbor's center
-        Eigen::VectorXf neighbor_center = centers.row(i); 
+        Eigen::VectorXf neighbor_center = centers.row(i);
 
         // subtract the center of the node from the neighbor's center
         neighbor_center(0) -= center(0);

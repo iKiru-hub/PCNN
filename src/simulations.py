@@ -30,11 +30,11 @@ GAME_SCALE = games.SCREEN_WIDTH
 
 reward_settings = {
     "rw_fetching": "deterministic",
-    "rw_position": np.array([0.5, 0.2]) * GAME_SCALE,
-    "rw_radius": 0.04 * GAME_SCALE,
+    "rw_position": np.array([0.5, 0.6]) * GAME_SCALE,
+    "rw_radius": 0.07 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 10_000,
+    "delay": 5,
 }
 
 agent_settings = {
@@ -46,7 +46,7 @@ agent_settings = {
 
 game_settings = {
     "plot_interval": 1,
-    "rw_event": "nothing",
+    "rw_event": "move agent",
     "rendering": True,
     "rendering_pcnn": True,
     "max_duration": None,
@@ -93,24 +93,29 @@ class Renderer:
            self.brain.get_directive() == "trg rw" or \
            self.brain.get_directive() == "trg ob":
             self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        c=self.brain.get_trg_representation(), s=100,
+                        c=self.brain.get_trg_representation(), s=120,
                                 cmap="Greens", alpha=0.5)
+            loc_ = np.array(self.space.get_centers())[self.brain.get_trg_idx()]
             self.axs[0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
                 f" ({self.brain.get_trg_representation().max():.3f}, " + \
-                f"{self.brain.get_trg_representation().argmax()})")
+                f"{self.brain.get_trg_representation().argmax()}) " + \
+                f" loc={loc_}")
 
-        else:
-            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        color="blue", s=30, alpha=0.4)
+        # else:
+            # self.axs[0].scatter(*np.array(self.space.get_centers()).T,
+            #             color="blue", s=30, alpha=0.4)
             # for edge in self.space.make_edges():
             #     self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
             #                      alpha=0.1, color="black")
-            self.axs[0].set_title(f"Space | #PCs={len(self.space)}")
+        for edge in self.brain.make_edges_value():
+            self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
+                             lw=edge[2][1]+edge[2][0], color="k", alpha=0.5)
+        self.axs[0].set_title(f"Space | #PCs={len(self.space)}")
 
         self.axs[0].scatter(*np.array(self.space.get_position()).T,
                             color="red", s=80, marker="o", alpha=0.8)
-        self.axs[0].set_xlim(self.bounds)
-        self.axs[0].set_ylim(self.bounds)
+        self.axs[0].set_xlim((-120, 120))
+        self.axs[0].set_ylim((-120, 120))
         # equal aspect ratio
         self.axs[0].set_aspect('equal', adjustable='box')
 
@@ -187,6 +192,11 @@ def run_game(env: games.Environment,
             running = False
             logger.debug(">> Game terminated <<")
 
+        # -reward
+        if observation[3]:
+            logger.debug(">> Reward <<")
+            # input()
+
         # pause
         if pause > 0:
             pygame.time.wait(pause)
@@ -254,8 +264,8 @@ def main_game(room_name: str="Square.v0"):
                            clip_min=0.01,
                            threshold=0.3,
                            rep_threshold=0.95,
-                           rec_threshold=4.,
-                           num_neighbors=8,
+                           rec_threshold=8.,
+                           num_neighbors=5,
                            xfilter=gcn,
                            name="2D")
 
@@ -268,7 +278,7 @@ def main_game(room_name: str="Square.v0"):
                                lr=0.3, threshold=0.01, max_w=1.0,
                                tau_v=1.0, eq_v=0.0, min_v=0.0)
     memrepr = pclib.MemoryRepresentation(model_params["N"], 2.0, 0.1)
-    memact = pclib.MemoryAction(3.0)
+    memact = pclib.MemoryAction(10.0)
     circuit = pclib.Circuits(da, bnd, memrepr, memact)
 
     # ===| target program |===
@@ -279,15 +289,14 @@ def main_game(room_name: str="Square.v0"):
     expmd = pclib.ExperienceModule(speed=agent_settings["speed"],
                                    circuits=circuit,
                                    space=space,
-                                   weights=[-1., 0., 0.0, 0., 0.],
+                                   weights=[0., 0., 0.0, 0., 0.],
                                    action_delay=5)
-    brain = pclib.Brain(circuit, space, expmd, agent_settings["speed"],
-                        5)
+    brain = pclib.Brain(circuit, space, expmd, agent_settings["speed"], 5)
 
 
     """ make game environment """
 
-    room = games.make_room(name=room_name, thickness=20.)
+    room = games.make_room(name=room_name, thickness=50.)
     room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
                    room.bounds[1]+10, room.bounds[3]-10]
 
@@ -327,7 +336,7 @@ def main_game(room_name: str="Square.v0"):
     run_game(env=env,
              brain=brain,
              renderer=renderer,
-             plot_interval=5,
+             plot_interval=20,
              pause=-1)
 
 

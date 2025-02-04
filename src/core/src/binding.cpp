@@ -433,6 +433,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_space", &Brain::get_space)
         .def("get_trg_idx", &Brain::get_trg_idx)
         .def("get_trg_plan", &Brain::get_trg_plan)
+        .def("get_memory_connections", &Brain::get_memory_connections)
+        .def("make_edges_value", &Brain::make_edges_value)
         .def("get_plan_positions", &Brain::get_plan_positions)
         .def("get_plan_score", &Brain::get_plan_score)
         .def("get_plan_scores", &Brain::get_plan_scores)
