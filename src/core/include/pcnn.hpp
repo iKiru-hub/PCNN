@@ -2142,11 +2142,12 @@ private:
         Eigen::Index maxIndex;
         representation.maxCoeff(&maxIndex);
         int max_idx = static_cast<int>(maxIndex);
-        float max_value = representation.maxCoeff();
 
         // decay the memory
         tape -= tape / decay;
-        tape(maxIndex) = max_value;
+        tape(max_idx) = 1.0f;
+        /* LOG("[+] MemoryRepresentation: updated | max_idx: " + std::to_string(max_idx) + \ */
+        /*     " | max_value: " + std::to_string(max_value)); */
     }
 
 };
@@ -2190,25 +2191,72 @@ struct MemoryAction {
 struct MemoryConnections {
 
     Eigen::MatrixXf value_weights;
-    float eta;
+    std::vector<int> path = {-1};
+    float v = 0.0f;
+    float tau_decay;
+    float tau_rise;
+    float threshold = 0.2f;
 
-    void update(std::vector<int>& path) {
+    // CALL
+    void call(float reward) {
+
+        // update the value
+        v += (reward - v) / tau_rise - v / tau_decay;
+
+        LOG("[+] reward=" + std::to_string(reward));
+        LOG("[+] threshold=" + std::to_string(threshold));
+        LOG("[+] updating memory connections, v=" + std::to_string(v));
 
         // record the edges between the nodes in the path
-        // one way though
-        for (int i = 0; i < path.size() - 1; i++) {
-            value_weights(path[i], path[i+1]) += \
-                (1 - value_weights(path[i], path[i+1])) * eta;
+        if (v > threshold && path[0] != -1) {
+            // one way though
+            for (int i = 0; i < path.size() - 2; i++) {
+                value_weights(path[i], path[i+1]) += \
+                    (1 - value_weights(path[i], path[i+1])) * v;
+            }
+            LOG("[+] MemoryConnections: updated | size: " + std::to_string(path.size()));
         }
     }
 
+    void set_path(std::vector<int> path) { 
+        this->path = path;
+        LOG("## set path, size=" + std::to_string(path.size()));;
+    }
     Eigen::MatrixXf& get_value_weights() { return value_weights; }
 
-    MemoryConnections(int size, float eta = 0.5f):
-        value_weights(Eigen::MatrixXf::Zero(size, size)), eta(eta) {}
-
+    MemoryConnections(int size, float tau_rise = 3.0f, float tau_decay = 4.0f,
+                      float threshold = 0.3f):
+        value_weights(Eigen::MatrixXf::Zero(size, size)), tau_rise(tau_rise),
+        tau_decay(tau_decay), threshold(threshold) {}
     std::string str() { return "MemoryConnections"; }
     std::string repr() { return "MemoryConnections"; }
+};
+
+
+struct RepresentationDiffTrace {
+
+    Eigen::VectorXf prev_representation;
+    float v = 0.0f;
+    float tau;
+    float threshold;
+
+    bool call(Eigen::VectorXf representation) {
+
+        float cosim = std::abs(utils::cosine_similarity_vec(representation, prev_representation));
+
+        // if cosine similarity is not nan
+        if (std::isnan(cosim)) { cosim = 0.0f; }
+        v += (cosim - v) / tau; 
+        prev_representation = representation;
+        return v > threshold;
+    }
+
+    RepresentationDiffTrace(int size, float tau,
+                            float threshold = 0.2):
+        tau(tau), threshold(threshold),
+        prev_representation(Eigen::VectorXf::Zero(size)) {}
+
+    float get_v() { return v; }
 };
 
 
@@ -2478,6 +2526,7 @@ public:
 
         /* LOG("[+] plan made, active=" + std::to_string(active)); */
         active = true;
+        memory_connections.set_path(plan_idxs);
         return true;
     }
 
@@ -2602,12 +2651,14 @@ public:
         return local_velocity;
     }
 
-    void update_memory_connections() {
-        LOG("[+] updating memory connections");
-        for (int i = 0; i < plan_idxs.size() - 1; i++)
-            { std::cout << plan_idxs[i] << ", "; }
-        memory_connections.update(plan_idxs); 
-    }
+    /* void update_memory_connections() { */
+    /*     LOG("[+] updating memory connections"); */
+    /*     for (int i = 0; i < plan_idxs.size(); i++) */
+    /*         { std::cout << plan_idxs[i] << ", "; } */
+    /*     memory_connections.update(plan_idxs); */ 
+    /* } */
+
+    void step_memory_connections(float reward) { memory_connections.call(reward); }
 
     std::vector<int> make_shortest_path(Eigen::MatrixXf wrec,
                                         int start_idx, int end_idx) {
@@ -2655,8 +2706,6 @@ public:
         value_mask(Eigen::VectorXf::Zero(da.len())),
         space_size(da.len()) {}
 
-    ~Circuits() {}
-
     // CALL
     std::array<float, CIRCUIT_SIZE> call(Eigen::VectorXf& representation,
                               float collision,
@@ -2675,11 +2724,11 @@ public:
 
     Eigen::VectorXf& make_value_mask() {
 
-        /* Eigen::VectorXf& bnd_mask = bnd.make_mask(); */
+        Eigen::VectorXf& bnd_mask = bnd.make_mask();
 
-        /* for (int i = 0; i < space_size; i++) { */
-        /*     value_mask(i) = bnd_mask(i) + (memrepr.tape(i) - memrepr.mask_threshold) < 0.0f ? 0.0f : 1.0f; */
-        /* } */
+        for (int i = 0; i < space_size; i++) {
+            value_mask(i) = bnd_mask(i) + 0*(memrepr.tape(i) - memrepr.mask_threshold) < 0.0f ? 0.0f : 1.0f;
+        }
 
         return value_mask;
     }
@@ -2778,6 +2827,11 @@ struct ActionSampler2D {
         return velocity;
     }
 
+    std::pair<std::array<float, 2>, int> random_action() {
+        int idx = utils::random.get_random_int(0, ACTION_SPACE_SIZE);
+        return std::make_pair(action_set[idx], idx);
+    }
+
     int get_counter() { return counter-1; }
     bool is_done() { return counter == ACTION_SPACE_SIZE; }
     void reset() { counter = 0; }
@@ -2786,7 +2840,6 @@ struct ActionSampler2D {
         make_action_space();
         update_actions(speed);
     }
-    ~ActionSampler2D() {}
 
 private:
 
@@ -2879,6 +2932,7 @@ struct Plan {
             this->score_seq.push_back(all_scores[idx]);
         }
     }
+
     void reset() {
         this->action = {0.0f, 0.0f};
         this->all_values = {{0.0f}};
@@ -2915,7 +2969,7 @@ class ExperienceModule {
     int make_plan(Eigen::VectorXf& curr_representation,
                   int rejected_idx) {
 
-        one_step_look_ahead(curr_representation);
+        random_action_plan();
         return -1;
 
         // check: the current position is at an open boundary
@@ -2987,6 +3041,15 @@ class ExperienceModule {
 
         /* LOG("[+] best action: " + std::to_string(plan.action[0]) + ", " + \ */
         /*     std::to_string(plan.action[1]) + " | score: " + std::to_string(best_score)); */
+    }
+
+    void random_action_plan() {
+
+        std::pair<std::array<float, 2>, int> res = action_sampler.random_action();
+        this->plan.action = {res.first[0],
+                             res.first[1]};
+        this->plan.idx = res.second;
+        this->plan.all_scores[res.second] = -1.0f;
     }
 
     // evaluate
@@ -3181,7 +3244,7 @@ public:
     int get_last_action_idx() { return plan.idx; }
     void reset_rejected_indexes() { 
         rejected_indexes = Eigen::VectorXf::Zero(space.get_size());
-; }
+    }
 };
 
 
@@ -3196,6 +3259,7 @@ class Brain {
     Circuits& circuits;
     PCNN_REF& space;
     ExperienceModule& expmd;
+    RepresentationDiffTrace rdtrace;
     TargetProgram trgp;
     RewardObject rwobj = RewardObject();
 
@@ -3257,9 +3321,12 @@ public:
           /* TargetProgram& trgp, */
           ExperienceModule& expmd,
           float speed,
-          int max_attempts = 2):
+          int max_attempts = 2,
+          float rdt_tau = 10.0f):
         circuits(circuits), space(space),
         expmd(expmd),
+        rdtrace(RepresentationDiffTrace(space.get_size(),
+                                        rdt_tau, 0.9)),
         trgp(TargetProgram(space, speed, max_attempts)),
         directive("new"), clock(0) {}
 
@@ -3287,15 +3354,17 @@ public:
         // check still-ness
         if (forced_exploration < 5) {
             forced_exploration++;
+            trgp.reset();
             goto explore; }
 
-        if (circuits.get_memory_action_max() > 0.5f) {
+        if (rdtrace.call(curr_representation)) {
             /* LOG("[-] memory action max < 0.1f : " + std::to_string(circuits.get_memory_action_max())); */
+            LOG("[-] repr trace > threshold : " + std::to_string(rdtrace.get_v()));
             forced_exploration = 0;
             goto explore;
-        }// else {
-            /* LOG("[+] memory action max = " + std::to_string(circuits.get_memory_action_max())); */
-        /* } */
+        } else {
+            LOG("[+] repr trace below: " + std::to_string(rdtrace.get_v()));
+        }
 
 
         // === GOAL-DIRECTED BEHAVIOUR ====================================
@@ -3304,6 +3373,7 @@ public:
         trgp.set_wrec(space.get_connectivity());
         trgp.set_centers(space.get_centers());
         /* trgp.set_da_weights(circuits.get_da_weights()); */
+        trgp.step_memory_connections(reward);
 
         // --- current target plan
 
@@ -3324,13 +3394,15 @@ public:
         trg_plan_end++;
 
         // update trg memory in case of reward
-        if (reward > 0.0f && trg_plan_end < 2)
+        if (reward > 0.0f && trg_plan_end < 4)
             {
             LOG("########### +++++ trg memory " + std::to_string(trg_plan_end) + \
                 " | reward: " + std::to_string(reward));
-            trgp.update_memory_connections(); }
+        }
+            /* trgp.update_memory_connections(); } */
         else if (reward) { LOG("########### no trg memory? " + std::to_string(trg_plan_end) + \
             " | reward: " + std::to_string(reward)); }
+        else { LOG("#### no reward " + std::to_string(reward));}
 
         // --- new target plan: REWARD
 

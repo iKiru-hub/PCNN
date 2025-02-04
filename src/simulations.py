@@ -30,22 +30,22 @@ GAME_SCALE = games.SCREEN_WIDTH
 
 reward_settings = {
     "rw_fetching": "deterministic",
-    "rw_position": np.array([0.5, 0.6]) * GAME_SCALE,
-    "rw_radius": 0.07 * GAME_SCALE,
+    "rw_position": np.array([0.5, 2.3]) * GAME_SCALE,
+    "rw_radius": 0.05 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
 }
 
 agent_settings = {
-    "speed": 1.5,
+    "speed": 0.75,
     "init_position": np.array([0.4, 0.5]) * GAME_SCALE,
     "agent_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
 }
 
 game_settings = {
-    "plot_interval": 1,
+    "plot_interval": 5,
     "rw_event": "move agent",
     "rendering": True,
     "rendering_pcnn": True,
@@ -93,29 +93,30 @@ class Renderer:
            self.brain.get_directive() == "trg rw" or \
            self.brain.get_directive() == "trg ob":
             self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        c=self.brain.get_trg_representation(), s=120,
-                                cmap="Greens", alpha=0.5)
+                        c=self.brain.get_trg_representation(), s=120*self.brain.get_trg_representation(),
+                                cmap="Greens", alpha=0.7)
             loc_ = np.array(self.space.get_centers())[self.brain.get_trg_idx()]
             self.axs[0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
                 f" ({self.brain.get_trg_representation().max():.3f}, " + \
                 f"{self.brain.get_trg_representation().argmax()}) " + \
                 f" loc={loc_}")
 
-        # else:
-            # self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-            #             color="blue", s=30, alpha=0.4)
+        else:
+            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
+                        color="blue", s=30, alpha=0.1)
             # for edge in self.space.make_edges():
             #     self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
             #                      alpha=0.1, color="black")
         for edge in self.brain.make_edges_value():
-            self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
-                             lw=edge[2][1]+edge[2][0], color="k", alpha=0.5)
+            if edge[2][1]+edge[2][0] > 0.:
+                self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
+                                 lw=edge[2][1]+edge[2][0], color="k", alpha=0.5)
         self.axs[0].set_title(f"Space | #PCs={len(self.space)}")
 
         self.axs[0].scatter(*np.array(self.space.get_position()).T,
                             color="red", s=80, marker="o", alpha=0.8)
-        self.axs[0].set_xlim((-120, 120))
-        self.axs[0].set_ylim((-120, 120))
+        self.axs[0].set_xlim(self.bounds)
+        self.axs[0].set_ylim(self.bounds)
         # equal aspect ratio
         self.axs[0].set_aspect('equal', adjustable='box')
 
@@ -162,12 +163,28 @@ def run_game(env: games.Environment,
                 if event.type == pygame.QUIT:
                     running = False
 
+        # -reward
+        if observation[3]:
+            logger.debug(f">> Reward << [{observation[3]}]")
+            # input()
+
+        # -collision
+        if observation[2]:
+            logger.debug(f">!!< Collision << [{observation[2]}]")
+            # input()
+
+        # velocity
+        v = [(env.position[0] - prev_position[0]) / env.scale,
+             (env.position[1] - prev_position[1]) / env.scale]
+
+        logger.debug(f"inp v: {v}")
+
         # brain step
-        velocity = brain([(env.position[0] - prev_position[0]) / env.scale,
-                          (env.position[1] - prev_position[1]) / env.scale],
+        velocity = brain(v,
                          observation[1],
                          observation[2],
                          env.reward_availability)
+        logger.debug(f"out v: {velocity}")
 
         # store past position
         prev_position = env.position
@@ -191,11 +208,6 @@ def run_game(env: games.Environment,
         if observation[4]:
             running = False
             logger.debug(">> Game terminated <<")
-
-        # -reward
-        if observation[3]:
-            logger.debug(">> Reward <<")
-            # input()
 
         # pause
         if pause > 0:
@@ -259,23 +271,23 @@ def main_game(room_name: str="Square.v0"):
 
     space = pclib.PCNNsqv2(N=model_params["N"],
                            Nj=len(gcn),
-                           gain=10.,
+                           gain=11.,
                            offset=1.3,
                            clip_min=0.01,
                            threshold=0.3,
-                           rep_threshold=0.95,
+                           rep_threshold=0.9,
                            rec_threshold=8.,
-                           num_neighbors=5,
+                           num_neighbors=8,
                            xfilter=gcn,
                            name="2D")
 
     # ===| modulation |===
 
     da = pclib.BaseModulation(name="DA", size=model_params["N"],
-                              lr=0.2, threshold=0.03, max_w=1.0,
+                              lr=0.1, threshold=0.03, max_w=2.0,
                               tau_v=1.0, eq_v=0.0, min_v=0.0)
     bnd = pclib.BaseModulation(name="BND", size=model_params["N"],
-                               lr=0.3, threshold=0.01, max_w=1.0,
+                               lr=0.4, threshold=0.02, max_w=1.0,
                                tau_v=1.0, eq_v=0.0, min_v=0.0)
     memrepr = pclib.MemoryRepresentation(model_params["N"], 2.0, 0.1)
     memact = pclib.MemoryAction(10.0)
@@ -290,7 +302,7 @@ def main_game(room_name: str="Square.v0"):
                                    circuits=circuit,
                                    space=space,
                                    weights=[0., 0., 0.0, 0., 0.],
-                                   action_delay=5)
+                                   action_delay=9)
     brain = pclib.Brain(circuit, space, expmd, agent_settings["speed"], 5)
 
 
@@ -336,7 +348,7 @@ def main_game(room_name: str="Square.v0"):
     run_game(env=env,
              brain=brain,
              renderer=renderer,
-             plot_interval=20,
+             plot_interval=game_settings["plot_interval"],
              pause=-1)
 
 
@@ -556,6 +568,8 @@ if __name__ == "__main__":
                          '"Flat.1011", "Flat.1110"]')
     parser.add_argument("--main", type=str, default="game",
                         help="[game, rand, simple]")
+    parser.add_argument("--interval", type=int, default=20,
+                        help="plotting interval")
 
     args = parser.parse_args()
 
@@ -563,6 +577,9 @@ if __name__ == "__main__":
     if args.seed > 0:
         logger.debug(f"seed: {args.seed}")
         np.random.seed(args.seed)
+
+    # --- settings
+    game_settings["plot_interval"] = args.interval
 
     # --- run
     if args.main == "game":

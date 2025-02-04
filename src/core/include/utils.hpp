@@ -302,6 +302,7 @@ inline float cosine_similarity_vec(const Eigen::VectorXf& v1,
                                    const Eigen::VectorXf& v2) {
     return v1.dot(v2) / (v1.norm() * v2.norm());
 }
+
 inline float cosine_similarity_vec(const std::vector<float>& v1,
                                    const std::vector<float>& v2) {
     // Ensure the vectors are of the same size
