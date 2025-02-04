@@ -341,7 +341,7 @@ class Environment:
                  reward_obj: object,
                  rw_event: str = "nothing",
                  duration: int=np.inf,
-                 scale: float=1.0,
+                 # scale: float=1.0,
                  verbose: bool=False,
                  visualize: bool=False):
 
@@ -353,7 +353,7 @@ class Environment:
         # Reward event
         self.rw_event = rw_event
         self.duration = duration
-        self.scale = scale * 0.02
+        # self.scale = scale# * 0.02
         self.t = 0
         self.velocity = np.zeros(2)
         self.trajectory = []
@@ -383,7 +383,7 @@ class Environment:
         self.t += 1
 
         # Update agent position with improved collision handling
-        velocity, collision = self.agent(velocity * self.scale)
+        velocity, collision = self.agent(velocity)
         # self.velocity = np.around(velocity, 3)
 
         # Check reward collisions
@@ -408,7 +408,7 @@ class Environment:
         self._reward = float(reward)
 
         # return self.agent.position.copy(), velocity, reward, float(collision), float(self.t >= self.duration), terminated
-        return velocity / self.scale, float(collision), reward, float(self.t >= self.duration), terminated
+        return np.around(velocity, 3), float(collision), reward, float(self.t >= self.duration), terminated
 
     def _reward_event(self, brain: object):
 
@@ -447,16 +447,17 @@ class Environment:
         # print(f"New agent position: {self.agent.position}")
         # self.agent.reset()
 
-        displacement = [(self.agent.position[0] - prev_position[0]) / self.scale / self.scale,
-                        (self.agent.position[1] - prev_position[1]) / self.scale / self.scale]
+        displacement = [(self.agent.position[0] - prev_position[0]),
+                        (-self.agent.position[1] + prev_position[1])]
         # print(f"Displacement: {displacement}")
 
-        # input(f"displacement={displacement}")
+        # print(f"displacement={displacement}")
         # print("displacement: ", displacement)
-        brain(displacement, 0.0, 0.0, False)
+        # print(f"\n[pre displacement]\npc position: {brain.get_space_position()}")
+        # brain(displacement, 0.0, 0.0, False)
 
-        print(f"\n[displacement]\npc position: {brain.get_space_position()}")
-        print(f"trg position: {brain.get_trg_position()}")
+        # print(f"\n[displacement]\npc position: {brain.get_space_position()}")
+        # print(f"agent position: {self.agent.position}")
 
         # input()
 

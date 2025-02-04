@@ -410,13 +410,14 @@ PYBIND11_MODULE(pclib, m) {
              PCNN_REF&,
              /* TargetProgram&, */
              ExperienceModule&,
-             float, int>(),
+             float, int, float>(),
              py::arg("circuits"),
              py::arg("pcnn"),
              /* py::arg("trgp"), */
              py::arg("expmd"),
              py::arg("speed"),
-             py::arg("max_attempts"))
+             py::arg("max_attempts") = 2,
+             py::arg("rdt_tau") = 80.0f)
         .def("__call__", &Brain::call,
              py::arg("velocity"),
              py::arg("collision"),

@@ -11,6 +11,19 @@
 #include <cassert>
 
 
+
+/* ========================================== */
+
+/* things that are delicate:
+ *
+ * o) velocity initial position
+ *
+ *
+ *
+ *
+ */
+
+
 /* ========================================== */
 
 #define SPACE utils::logging.space
@@ -266,22 +279,21 @@ public:
 
     VelocitySpace(int size, float threshold)
         : size(size), threshold(threshold) {
-        centers = Eigen::MatrixXf::Constant(size, 2, -99.0f);
+        centers = Eigen::MatrixXf::Constant(size, 2, -9999.0f);
         connectivity = Eigen::MatrixXf::Zero(size, size);
         weights = Eigen::MatrixXf::Zero(size, size);
-        position = {1.9479814f, 0.9479814f};
+        position = {0.00124789f, 0.00147891f};
         blocked_edges = {};
         nodes_max_angle = Eigen::VectorXf::Zero(size);
     }
-
-    ~VelocitySpace() {}
 
     // CALL
     std::array<float, 2> call(const std::array<float, 2>& v) {
         position[0] += v[0];
         position[1] += v[1];
-        /* LOG("[VS] position: " + std::to_string(position[0]) + ", " + \ */
-        /*     std::to_string(position[1])); */
+        LOG("[VS] v={"+std::to_string(v[0])+", "+std::to_string(v[1])+"}");
+        LOG("[VS] position: " + std::to_string(position[0]) + ", " + \
+            std::to_string(position[1]));
         /* trajectory.push_back({position[0], position[1]}); */
     }
 
@@ -2244,9 +2256,9 @@ struct RepresentationDiffTrace {
 
         // if cosine similarity is not nan
         if (std::isnan(cosim)) { cosim = 0.0f; }
-        v += (cosim - v) / tau; 
+        v += (cosim - v) / tau;
         prev_representation = representation;
-        return v > threshold;
+        return v < threshold;
     }
 
     RepresentationDiffTrace(int size, float tau,
@@ -3320,11 +3332,11 @@ public:
           ExperienceModule& expmd,
           float speed,
           int max_attempts = 2,
-          float rdt_tau = 10.0f):
+          float rdt_tau = 80.0f):
         circuits(circuits), space(space),
         expmd(expmd),
         rdtrace(RepresentationDiffTrace(space.get_size(),
-                                        rdt_tau, 0.9)),
+                                        rdt_tau, 0.001)),
         trgp(TargetProgram(space, speed, max_attempts)),
         directive("new"), clock(0) {}
 
@@ -3337,6 +3349,10 @@ public:
         clock++;
 
         // === STATE UPDATE ===
+
+        LOG("[brain] v=" + std::to_string(velocity[0]) + ", " + std::to_string(velocity[1]));
+        LOG("        e=" + std::to_string(space.get_position()[0]) + ", " + \
+            std::to_string(space.get_position()[1]));
 
         // :space
         auto [u, _] = space.call(velocity);
@@ -3356,13 +3372,13 @@ public:
             goto explore; }
 
         if (rdtrace.call(curr_representation)) {
-            /* LOG("[-] memory action max < 0.1f : " + std::to_string(circuits.get_memory_action_max())); */
+            LOG("[-] %memory action max : " + std::to_string(circuits.get_memory_action_max()));
             /* LOG("[-] repr trace > threshold : " + std::to_string(rdtrace.get_v())); */
             forced_exploration = 0;
             goto explore;
-        } // else {
-            /* LOG("[+] repr trace below: " + std::to_string(rdtrace.get_v())); */
-        /* } */
+        }  else {
+            LOG("[+] repr trace below: " + std::to_string(rdtrace.get_v()));
+        }
 
 
         // === GOAL-DIRECTED BEHAVIOUR ====================================

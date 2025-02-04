@@ -38,7 +38,7 @@ reward_settings = {
 }
 
 agent_settings = {
-    "speed": 0.75,
+    "speed": 4.0,
     "init_position": np.array([0.4, 0.5]) * GAME_SCALE,
     "agent_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
@@ -63,8 +63,8 @@ model_params = {
 }
 
 possible_positions = np.array([
-    [0.2, 0.2], [0.2, 0.2],
-    [0.2, 0.2], [0.2, 0.2],
+    [0.2, 0.8], [0.8, 0.8],
+    [0.2, 0.2], [0.8, 0.2],
 ]) * GAME_SCALE
 
 
@@ -84,7 +84,8 @@ class Renderer:
         self.names = names
         self.fig, self.axs = plt.subplots(1, self.size+1,
                                          figsize=((1+self.size)*4, 2))
-        self.bounds = (-30, 40)
+        self.boundsx = (-200, 250)
+        self.boundsy = (-200, 250)
 
     def render(self):
         self.axs[0].clear()
@@ -115,10 +116,11 @@ class Renderer:
 
         self.axs[0].scatter(*np.array(self.space.get_position()).T,
                             color="red", s=80, marker="o", alpha=0.8)
-        self.axs[0].set_xlim(self.bounds)
-        self.axs[0].set_ylim(self.bounds)
+        self.axs[0].set_xlim(self.boundsx)
+        self.axs[0].set_ylim(self.boundsy)
         # equal aspect ratio
         self.axs[0].set_aspect('equal', adjustable='box')
+        self.axs[0].grid(alpha=0.1)
 
         for i in range(1, 1+self.size):
             self.axs[i].clear()
@@ -126,8 +128,8 @@ class Renderer:
                         c=self.elements[i-1].get_weights(),
                         cmap=self.colors[i-1], alpha=0.5,
                         s=30, vmin=0., vmax=0.1)
-            self.axs[i].set_xlim(self.bounds)
-            self.axs[i].set_ylim(self.bounds)
+            self.axs[i].set_xlim(self.boundsx)
+            self.axs[i].set_ylim(self.boundsy)
             self.axs[i].set_title(self.names[i-1])
             self.axs[i].set_aspect('equal', adjustable='box')
             self.axs[i].scatter(*np.array(self.space.get_position()).T,
@@ -174,21 +176,25 @@ def run_game(env: games.Environment,
             # input()
 
         # velocity
-        v = [(env.position[0] - prev_position[0]) / env.scale,
-             (env.position[1] - prev_position[1]) / env.scale]
+        v = [(env.position[0] - prev_position[0]),
+             (-env.position[1] + prev_position[1])]
+
+        logger.debug(f"[env] v: {v}")
+        logger.debug(f"[env] p: {env.position}")
 
         # brain step
         velocity = brain(v,
                          observation[1],
                          observation[2],
                          env.reward_availability)
+        # velocity = np.around(velocity, 2)
         # logger.debug(f"out v: {velocity}")
 
         # store past position
         prev_position = env.position
 
         # env step
-        observation = env(velocity=np.array(velocity), brain=brain)
+        observation = env(velocity=np.array([velocity[0], -velocity[1]]), brain=brain)
 
         # -check: reset agent's brain
         if observation[3]:
@@ -259,22 +265,23 @@ def main_game(room_name: str="Square.v0"):
 
     # ===| space |===
 
+    local_scale = 0.015
     gcn = pclib.GridNetworkSq([
-           pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.08, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.05, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.005, bounds=[-1, 1, -1, 1])])
+           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale, bounds=[-1, 1, -1, 1])])
 
     space = pclib.PCNNsqv2(N=model_params["N"],
                            Nj=len(gcn),
-                           gain=11.,
+                           gain=10.,
                            offset=1.3,
                            clip_min=0.01,
                            threshold=0.3,
-                           rep_threshold=0.9,
-                           rec_threshold=8.,
+                           rep_threshold=0.8,
+                           rec_threshold=30.,
                            num_neighbors=8,
                            xfilter=gcn,
                            name="2D")
@@ -282,7 +289,7 @@ def main_game(room_name: str="Square.v0"):
     # ===| modulation |===
 
     da = pclib.BaseModulation(name="DA", size=model_params["N"],
-                              lr=0.1, threshold=0.03, max_w=2.0,
+                              lr=0.4, threshold=0.03, max_w=2.0,
                               tau_v=1.0, eq_v=0.0, min_v=0.0)
     bnd = pclib.BaseModulation(name="BND", size=model_params["N"],
                                lr=0.4, threshold=0.02, max_w=1.0,
@@ -300,8 +307,8 @@ def main_game(room_name: str="Square.v0"):
                                    circuits=circuit,
                                    space=space,
                                    weights=[0., 0., 0.0, 0., 0.],
-                                   action_delay=9)
-    brain = pclib.Brain(circuit, space, expmd, agent_settings["speed"], 5)
+                                   action_delay=10.)
+    brain = pclib.Brain(circuit, space, expmd, agent_settings["speed"], 5, 10)
 
 
     """ make game environment """
@@ -331,7 +338,7 @@ def main_game(room_name: str="Square.v0"):
     env = games.Environment(room=room,
                             agent=body,
                             reward_obj=reward_obj,
-                            scale=GAME_SCALE,
+                            # scale=1.0,#GAME_SCALE,
                             rw_event=game_settings["rw_event"],
                             verbose=False,
                             visualize=game_settings["rendering"])
