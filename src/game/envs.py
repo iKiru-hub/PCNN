@@ -332,6 +332,10 @@ def render_room(name: str):
                 running = False
 
 
+def get_random_room() -> str:
+    return np.random.choice(ROOMS)
+
+
 """ Environment class """
 
 

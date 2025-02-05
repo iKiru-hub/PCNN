@@ -227,8 +227,9 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_connectivity", &PCNNsqv2::get_connectivity)
         .def("get_centers", &PCNNsqv2::get_centers,
              py::arg("nonzero") = false)
+        .def("get_node_degrees", &PCNNsqv2::get_node_degrees)
         .def("get_delta_update", &PCNNsqv2::get_delta_update)
-        .def("get_nodes_max_angle", &PCNNsqv2::get_nodes_max_angle)
+        /* .def("get_nodes_max_angle", &PCNNsqv2::get_nodes_max_angle) */
         .def("get_position", &PCNNsqv2::get_position)
         .def("simulate", &PCNNsqv2::simulate,
              py::arg("v"),
@@ -360,7 +361,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("update", &TargetProgram::update,
              py::arg("curr_representation"),
              py::arg("space_weights"),
-             py::arg("tmp_trg_idx") = true)
+             py::arg("tmp_trg_idx") = true,
+             py::arg("use_episodic_memory") = true)
              /* py::arg("trigger") = true) */
         .def("step_plan", &TargetProgram::step_plan)
         .def("make_shortest_path", &TargetProgram::make_shortest_path,
@@ -378,12 +380,13 @@ PYBIND11_MODULE(pclib, m) {
     // 2 layer network
     py::class_<ExperienceModule>(m, "ExperienceModule")
         .def(py::init<float, Circuits&, PCNN_REF&,
-             std::array<float, CIRCUIT_SIZE>, float>(),
+             std::array<float, CIRCUIT_SIZE>, float, int>(),
              py::arg("speed"),
              py::arg("circuits"),
              py::arg("space"),
              py::arg("weights"),
-             py::arg("action_delay") = 1.0f)
+             py::arg("action_delay") = 1.0f,
+             py::arg("edge_route_interval") = 100)
         .def("__call__", &ExperienceModule::call,
              py::arg("directive"),
              py::arg("curr_representation"),
@@ -404,20 +407,34 @@ PYBIND11_MODULE(pclib, m) {
         .def("__str__", &Hexagon::str)
         .def("get_centers", &Hexagon::get_centers);
 
+    // Stationary Sensory
+    py::class_<StationarySensory>(m, "StationarySensory")
+        .def(py::init<int, float, float, float>(),
+             py::arg("size"),
+             py::arg("tau"),
+             py::arg("threshold") = 0.2f,
+             py::arg("min_cosine") = 0.5f)
+        .def("__call__", &StationarySensory::call,
+             py::arg("representation"))
+        .def("__str__", &StationarySensory::str)
+        .def("__repr__", &StationarySensory::repr)
+        .def("get_v", &StationarySensory::get_v);
+
     // Brain
     py::class_<Brain>(m, "Brain")
         .def(py::init<Circuits&,
              PCNN_REF&,
              /* TargetProgram&, */
              ExperienceModule&,
-             float, int, float>(),
+             StationarySensory&,
+             float, int>(),
              py::arg("circuits"),
              py::arg("pcnn"),
              /* py::arg("trgp"), */
              py::arg("expmd"),
+             py::arg("ssry"),
              py::arg("speed"),
-             py::arg("max_attempts") = 2,
-             py::arg("rdt_tau") = 80.0f)
+             py::arg("max_attempts") = 2)
         .def("__call__", &Brain::call,
              py::arg("velocity"),
              py::arg("collision"),
@@ -430,6 +447,7 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_directive", &Brain::get_directive)
         .def("__str__", &Brain::str)
         .def("__repr__", &Brain::repr)
+        .def("__len__", &Brain::len)
         .def("get_expmd", &Brain::get_expmd)
         .def("get_space", &Brain::get_space)
         .def("get_trg_idx", &Brain::get_trg_idx)
@@ -442,6 +460,7 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_plan_score", &Brain::get_plan_score)
         .def("get_plan_scores", &Brain::get_plan_scores)
         .def("get_plan_values", &Brain::get_plan_values)
+        .def("get_plan_idxs", &Brain::get_plan_idxs)
         .def("set_plan_positions", &Brain::set_plan_positions,
              py::arg("position"))
         .def("reset", &Brain::reset);

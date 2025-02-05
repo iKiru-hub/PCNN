@@ -248,20 +248,34 @@ struct GSparams {
 
 class VelocitySpace {
 
-    void update_node_angles(int idx) {
+    /* void update_node_angles(int idx) { */
 
-        // update the neighbors
-        for (int j = 0; j < size; j++) {
-            if ( j == idx ) { continue; }
-            if (connectivity(idx, j) == 1.0) {
-                nodes_max_angle(j) = utils::calculate_angle_gap(
-                    j, centers, connectivity);
-            }
-        }
+    /*     // update the neighbors */
+    /*     for (int j = 0; j < size; j++) { */
+    /*         if ( j == idx ) { continue; } */
+    /*         if (connectivity(idx, j) == 1.0) { */
+    /*             nodes_max_angle(j) = utils::calculate_angle_gap( */
+    /*                 j, centers, connectivity); */
+    /*         } */
+    /*     } */
+
+    /*     // update the node itself */
+    /*     nodes_max_angle(idx) = utils::calculate_angle_gap( */
+    /*         idx, centers, connectivity); */
+    /* } */
+
+    void update_node_degree(int idx, int current_size) {
 
         // update the node itself
-        nodes_max_angle(idx) = utils::calculate_angle_gap(
-            idx, centers, connectivity);
+        node_degree(idx) = connectivity.row(idx).sum();
+
+        // update the neighbors
+        int degree = 0;
+        for (int j = 0; j < current_size; j++) {
+            if (connectivity(idx, j) == 1.0) {
+                node_degree(j) = connectivity.row(j).sum();
+            }
+        }
     }
 
 public:
@@ -270,6 +284,7 @@ public:
     Eigen::MatrixXf connectivity;
     Eigen::MatrixXf weights;
     Eigen::VectorXf nodes_max_angle;
+    Eigen::VectorXf node_degree;
     std::array<float, 2> position;
     int size;
     /* std::vector<std::array<float, 2>> trajectory; */
@@ -285,6 +300,7 @@ public:
         position = {0.00124789f, 0.00147891f};
         blocked_edges = {};
         nodes_max_angle = Eigen::VectorXf::Zero(size);
+        node_degree = Eigen::VectorXf::Zero(size);
     }
 
     // CALL
@@ -293,14 +309,14 @@ public:
         position[1] += v[1];
     }
 
-    void update(int idx) {
+    void update(int idx, int current_size) {
 
         // update the centers
         centers.row(idx) = Eigen::Vector2f(
             position[0], position[1]);
 
         // add recurrent connections
-        for (int j = 0; j < size; j++) {
+        for (int j = 0; j < current_size; j++) {
 
             // check if the edge is blocked
             bool blocked = false;
@@ -333,7 +349,8 @@ public:
         }
 
         // update the node angles
-        update_node_angles(idx);
+        /* update_node_angles(idx); */
+        update_node_degree(idx, current_size);
     }
 
     void add_blocked_edge(int i, int j) {
@@ -377,10 +394,10 @@ public:
         }
         return centers_nonzero;
     }
-    Eigen::MatrixXf& get_connectivity() { return connectivity; }
-    Eigen::MatrixXf& get_connections() { return weights; }
-    Eigen::VectorXf& get_nodes_max_angle() { return nodes_max_angle; }
-    std::array<float, 2> get_position() { return position; }
+    /* Eigen::MatrixXf& get_connectivity() { return connectivity; } */
+    /* Eigen::MatrixXf& get_connections() { return weights; } */
+    /* Eigen::VectorXf& get_nodes_max_angle() { return nodes_max_angle; } */
+    /* std::array<float, 2> get_position() { return position; } */
 
     std::vector<std::array<std::array<float, 2>, 2>> make_edges() {
         // make a list of edges from the connectivity matrix
@@ -1844,9 +1861,9 @@ public:
             /*     std::to_string(idx) + "]"); */
 
             // record new center
-            vspace.update(idx);
-            this->Wrec = vspace.get_connections();
-            this->connectivity = vspace.get_connectivity();
+            vspace.update(idx, 2*len());
+            this->Wrec = vspace.weights;
+            this->connectivity = vspace.connectivity;
         }
     }
 
@@ -1896,8 +1913,8 @@ public:
 
     void add_blocked_edge(int idx, int idx2) {
         vspace.add_blocked_edge(idx, idx2);
-        this->Wrec = vspace.get_connections();
-        this->connectivity = vspace.get_connectivity();
+        this->Wrec = vspace.weights;
+        this->connectivity = vspace.connectivity;
     }
     void reset() { u = Eigen::VectorXf::Zero(N); }
 
@@ -1926,13 +1943,14 @@ public:
     Eigen::MatrixXf& get_connectivity() { return connectivity; }
     Eigen::MatrixXf& get_centers(bool nonzero = false)
         { return vspace.get_centers(nonzero); }
+    Eigen::VectorXf& get_node_degrees() { return vspace.node_degree; }
     float get_delta_update() const { return delta_wff; }
-    Eigen::VectorXf& get_nodes_max_angle()
-        {  return vspace.get_nodes_max_angle(); }
+    /* Eigen::VectorXf& get_nodes_max_angle() */
+    /*     {  return vspace.get_nodes_max_angle(); } */
     Eigen::MatrixXf get_positions_gcn()
         { return xfilter.get_positions(); }
     std::array<float, 2> get_position()
-        { return vspace.get_position(); }
+        { return vspace.position; }
     std::vector<std::array<std::array<float, 2>, GCL_SIZE>> get_gc_positions_vec()
         { return xfilter.get_positions_vec(); }
     void reset_gcn(std::array<float, 2> v) { xfilter.reset(v); }
@@ -2023,12 +2041,12 @@ class BaseModulation{
     float lt_p = 1.0f;
     float threshold;
     float mask_threshold;
-    float max_w;
     Eigen::VectorXf weights;
     Eigen::VectorXf mask;
     LeakyVariable1D leaky;
 
 public:
+    float max_w;
 
     BaseModulation(std::string name, int size, float lr,
                    float threshold, float max_w = 1.0f,
@@ -2239,29 +2257,42 @@ struct MemoryConnections {
 };
 
 
-struct RepresentationDiffTrace {
+struct StationarySensory {
 
     Eigen::VectorXf prev_representation;
     float v = 0.0f;
     float tau;
     float threshold;
+    float min_cosine = 0.5f;
 
     bool call(Eigen::VectorXf representation) {
 
-        float cosim = std::abs(utils::cosine_similarity_vec(representation, prev_representation));
+        float cosim = utils::cosine_similarity_vec(representation, prev_representation);
 
         // if cosine similarity is not nan
-        if (std::isnan(cosim)) { cosim = 0.0f; }
+        if (std::isnan(cosim) || cosim < min_cosine) {
+            /* LOG("[-] cosine similarity is nan"); */
+            /* float sum_1 = representation.sum(); */
+            /* float sum_2 = prev_representation.sum(); */
+            /* LOG("[-] curr repr sum: " + std::to_string(sum_1)); */
+            /* LOG("[-] prev repr sum: " + std::to_string(sum_2)); */
+            cosim = 0.0f;
+        }// else {
+            /* LOG("[+] cosine similarity: " + std::to_string(cosim)); */
+        /* } */
         v += (cosim - v) / tau;
         prev_representation = representation;
         return v > threshold;
     }
 
-    RepresentationDiffTrace(int size, float tau,
-                            float threshold = 0.2):
+    StationarySensory(int size, float tau,
+                            float threshold = 0.2,
+                            float min_cosine = 0.5):
         tau(tau), threshold(threshold),
         prev_representation(Eigen::VectorXf::Zero(size)) {}
 
+    std::string str() { return "StationarySensory"; }
+    std::string repr() { return "StationarySensory"; }
     float get_v() { return v; }
 };
 
@@ -2354,10 +2385,14 @@ struct RewardObject {
         /* trg_idx = converge_to_trg_index(da_weights, space); */
 
         // exit: no trg index
-        if (trg_idx < 0) { return -1; }
+        if (trg_idx < 0) {
+            LOG("[-] no trg index");
+            return -1; }
 
         // exit: low trg value
-        if (da_weights(trg_idx) < 0.00001f) { return -1; }
+        if (da_weights(trg_idx) < 0.00001f) {
+            /* LOG("[-] low trg value"); */
+            return -1; }
 
         // update the target value
         this->trg_idx = trg_idx;
@@ -2428,25 +2463,36 @@ class TargetProgram {
 
     bool make_plan(Eigen::VectorXf& curr_representation,
                    Eigen::VectorXf& space_weights,
-                   int tmp_trg_idx) {
+                   int tmp_trg_idx,
+                   bool use_episodic_memory = true) {
 
         // calculate the current and target nodes
         Eigen::Index maxIndex_curr;
         curr_representation.maxCoeff(&maxIndex_curr);
         curr_idx = static_cast<int>(maxIndex_curr);
+        /* LOG("[+] curr_idx: " + std::to_string(curr_idx)); */
 
         // calculate path
         /* std::vector<int> plan_idxs = \ */
         /*     utils::shortest_path_bfs(wrec, start_idx, end_idx); */
-        /* std::vector<int> plan_idxs = \ */
-        /*     utils::weighted_shortest_path(connectivity, */
-        /*                                   space_weights, */
-        /*                                   curr_idx, tmp_trg_idx); */
-        std::vector<int> plan_idxs = \
-            utils::weighted_en_shortest_path(connectivity,
-                                             memory_connections.get_value_weights(),
-                                             space_weights,
-                                             curr_idx, tmp_trg_idx);
+        /* LOG("use episodic memory: " + std::to_string(use_episodic_memory)); */
+        /* if (use_episodic_memory == true) { */
+            /* LOG("[+] using episodic memory"); */
+            /* LOG("[+] curr_idx: " + std::to_string(curr_idx)); */
+            /* std::vector<int> plan_idxs = \ */
+            /*     utils::weighted_en_shortest_path(connectivity, */
+            /*                                      memory_connections.get_value_weights(), */
+            /*                                      space_weights, */
+            /*                                      curr_idx, tmp_trg_idx); */
+        /* } else { */
+        /*     LOG("[-] not using episodic memory"); */
+        /* } */
+        /* LOG("[+] plan_idxs size: " + std::to_string(plan_idxs.size())); */
+            std::vector<int> plan_idxs = \
+                utils::weighted_shortest_path(connectivity,
+                                              space_weights,
+                                              curr_idx, tmp_trg_idx);
+        /* } */
 
         /* float max_trg_value = trg_representation.maxCoeff(); */
         float max_curr_value = curr_representation.maxCoeff();
@@ -2513,7 +2559,8 @@ public:
 
     bool update(Eigen::VectorXf& curr_representation,
                 Eigen::VectorXf& space_weights,
-                int tmp_trg_idx) {
+                int tmp_trg_idx,
+                bool use_episodic_memory) {
 
         // update graph
         wrec = space.get_wrec();
@@ -2521,7 +2568,7 @@ public:
 
         // attempt planning
         bool is_valid = make_plan(curr_representation, space_weights,
-                                  tmp_trg_idx);
+                                  tmp_trg_idx, use_episodic_memory);
 
         // exit: no plan
         if (!is_valid) {
@@ -2537,12 +2584,13 @@ public:
     }
 
     // if there's a plan, follow it
-    std::array<float, 2> step_plan(Eigen::VectorXf& curr_representation) {
+    std::pair<std::array<float, 2>, bool> step_plan(Eigen::VectorXf& curr_representation) {
 
         // exit: active
         if (!active) {
             /* LOG("[-] not active"); */
-            return {0.0f, 0.0f}; }
+            return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
+    }
 
         std::array<float, 2> local_velocity;
 
@@ -2554,9 +2602,9 @@ public:
             conlochandler.reset();
 
             // check edges
-            LOG("blocked edges conn: " + std::to_string(connectivity(conlochandler.start_point,
-                                                                conlochandler.end_point)));
-            return {0.0f, 0.0f};
+            /* LOG("blocked edges conn: " + std::to_string(connectivity(conlochandler.start_point, */
+            /*                                                     conlochandler.end_point))); */
+            return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
         }
 
         // define current position from the representation argmax
@@ -2575,6 +2623,12 @@ public:
         float dist = utils::euclidean_distance(curr_position, next_position);
         /* LOG("[+] dist: " + std::to_string(dist)); */
 
+        /* LOG("next idx: " + std::to_string(plan_idxs[counter]) + \ */
+        /*     " [" + std::to_string(counter) + "]"); */
+        /* LOG("curr idx: " + std::to_string(curr_idx) + \ */
+        /*     " [" + std::to_string(counter) + "]"); */
+
+
         // check | next position not reached yet
         if (dist > 0.01f && counter > 0) {
             float dx = next_position[0] - curr_position[0];
@@ -2591,6 +2645,10 @@ public:
                 // return the action vector of length speed
                 local_velocity = {speed * dx / norm, speed * dy / norm};
             }
+            /* LOG("\tloc vel: " + std::to_string(local_velocity[0]) + " | " + std::to_string(local_velocity[1])); */
+
+            /* std::array<float, 2> spos = space.get_position(); */
+            /* LOG("space position: " + std::to_string(spos[0]) + ", " + std::to_string(spos[1])); */
 
             // step the consecutive locations handler
             /* bool is_identitcal = conlochandler.update(); */
@@ -2601,7 +2659,7 @@ public:
             /*     this->depth = 0; */
             /*     conlochandler.reset(); */
 
-            /*     return {0.0f, 0.0f}; */
+            /*     return std::make_pair({0.0f, 0.0f}, false); */
             /* } */
         } else {
 
@@ -2615,7 +2673,7 @@ public:
                 /* LOG("[-] end of plan (hit plan size) ..active=" + std::to_string(active) + \ */
                 /*     " [" + std::to_string(counter) + "]"); */
                 conlochandler.reset();
-                return {0.0f, 0.0f};
+                return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
             }
 
             // next position reached, move to the next
@@ -2623,7 +2681,7 @@ public:
                                    centers(plan_idxs[counter], 1)};
             /* LOG("[+] moving to the next position: " + std::to_string(plan_idxs[counter]) + \ */
             /*     " at " + std::to_string(next_position[0]) + " | " + \ */
-                /* std::to_string(next_position[1])); */
+            /*     std::to_string(next_position[1])); */
 
             float dx = next_position[0] - curr_position[0];
             float dy = next_position[1] - curr_position[1];
@@ -2635,17 +2693,20 @@ public:
             if (dist < speed) {
                 /* LOG("[-] last bit of distance b4 next position"); */
                 local_velocity = {dx, dy};
+                /* LOG("\tloc vel: " + std::to_string(local_velocity[0]) + " | " + std::to_string(local_velocity[1])); */
             } else {
                 float norm = sqrt(dx * dx + dy * dy);
 
                 // return the action vector of length speed
                 local_velocity = {speed * dx / norm, speed * dy / norm};
+                /* LOG("\tloc vel: " + std::to_string(local_velocity[0]) + " | " + std::to_string(local_velocity[1])); */
             }
 
             // set the new points
             conlochandler.set_points(plan_idxs[counter-1], plan_idxs[counter]);
 
             counter++;
+            /* LOG("\tcounter: " + std::to_string(counter)); */
         }
 
         // update the current position
@@ -2654,7 +2715,7 @@ public:
 
         /* LOG("out velocity: " + std::to_string(local_velocity[0]) + \ */
         /*     " | " + std::to_string(local_velocity[1])); */
-        return local_velocity;
+        return std::make_pair(local_velocity, true);
     }
 
     /* void update_memory_connections() { */
@@ -2709,7 +2770,7 @@ public:
              MemoryAction& memact):
         da(da), bnd(bnd), pmax(PopulationMaxProgram()),
         memrepr(memrepr), memact(memact),
-        value_mask(Eigen::VectorXf::Zero(da.len())),
+        value_mask(Eigen::VectorXf::Ones(da.len())),
         space_size(da.len()) {}
 
     // CALL
@@ -2733,7 +2794,8 @@ public:
         Eigen::VectorXf& bnd_mask = bnd.make_mask();
 
         for (int i = 0; i < space_size; i++) {
-            value_mask(i) = bnd_mask(i) + 0*(memrepr.tape(i) - memrepr.mask_threshold) < 0.0f ? 0.0f : 1.0f;
+            /* value_mask(i) = bnd_mask(i) + 0*(memrepr.tape(i) - memrepr.mask_threshold) < 0.0f ? 0.0f : 1.0f; */
+            value_mask(i) = bnd_mask(i) < 0.01f ? 1.0f : bnd.max_w - bnd_mask(i);
         }
 
         return value_mask;
@@ -2912,12 +2974,9 @@ struct Plan {
     std::pair<std::array<float, 2>, bool> call() {
 
         // exit: the action have been provided #action_delay times
-        if (t == action_delay) {
-            /* LOG("[-] Plan finished"); */
+        if (t > (action_delay-1)) {
             return std::make_pair(action, true);
         }
-        /* LOG("[+] Plan step: " + std::to_string(t) + ", action: " + \ */
-        /*     std::to_string(action[0]) + ", " + std::to_string(action[1])); */
 
         // provide the action
         this->t++;
@@ -2949,8 +3008,8 @@ struct Plan {
         this->t = 0;
     }
 
-    Plan(float action_delay = 1.0f): action_delay(action_delay) {}
-    ~Plan() {}
+    Plan(float action_delay = 1.0f)
+        { this->action_delay = static_cast<int>(action_delay); }
 };
 
 
@@ -2968,44 +3027,56 @@ class ExperienceModule {
     std::array<float, CIRCUIT_SIZE> weights;
     float speed;
     float action_delay;
-    const float open_threshold = 50.0f;  // radiants
+    const float open_threshold = 2.0f;  // radiants
     Eigen::VectorXf rejected_indexes;
+
+    // alternate between random walk and edge exploration
+    int edge_route_time = 0;
+    int edge_route_interval = 100;
 
     // make new plan
     int make_plan(Eigen::VectorXf& curr_representation,
                   int rejected_idx) {
 
-        random_action_plan();
-        return -1;
+        /* random_action_plan(); */
+        /* return -1; */
+        /* LOG("[+] making new plan.."); */
 
         // check: the current position is at an open boundary
         Eigen::Index maxIndex;
         curr_representation.maxCoeff(&maxIndex);
         int start_idx = static_cast<int>(maxIndex);
+        /* LOG("[+] start_idx: " + std::to_string(start_idx)); */
         /* float value = open_boundary_value(start_idx, circuits.get_bnd_weights(), */
         /*                                   space.get_nodes_max_angle()); */
+        /* Eigen::VectorXf& node_degrees = space.get_node_degrees(); */
         float value = open_boundary_value(start_idx, circuits.get_bnd_weights(),
-                                           space.get_wrec());
+                                          space.get_node_degrees());
 
         // [+] new random walk plan at an open boundary
-        if (value < 100.0f || rejected_idx == 404) {
-            /* LOG("[+] at the open boundary"); */
-            one_step_look_ahead(curr_representation);
+        if (value < open_threshold || rejected_idx == 404 || \
+            edge_route_time < edge_route_interval) {
+            /* LOG("[ ] at the open boundary | rejected | not edge time, value=" + std::to_string(value)); */
+            /* one_step_look_ahead(curr_representation); */
             return -1;
-        }
+        }// else {
+            /* LOG("[-] not at the open boundary, value=" + std::to_string(value)); */
+        /* } */
 
         // check: are there are points at the open boundary
         int open_boundary_idx = get_open_boundary_idx(rejected_idx);
 
         // [+] new random walk plan at an open boundary
-        if (open_boundary_idx < 0) {
+        if (open_boundary_idx < 1) {
             /* LOG("[-] no open boundary"); */
-            one_step_look_ahead(curr_representation);
+            /* one_step_look_ahead(curr_representation); */
             return -1;
         }
 
         // [+] new trg plan to reach the open boundary
+        /* LOG("[+] new trg plan to reach the open boundary"); */
         return open_boundary_idx;
+        /* return -1; */
     }
 
     // one rollout
@@ -3056,6 +3127,7 @@ class ExperienceModule {
                              res.first[1]};
         this->plan.idx = res.second;
         this->plan.all_scores[res.second] = -1.0f;
+        this->plan.t = 0;
     }
 
     // evaluate
@@ -3099,28 +3171,35 @@ class ExperienceModule {
     // check map open-ness
     int get_open_boundary_idx(int rejected_idx) {
 
-        Eigen::VectorXf bnd_weights = circuits.get_bnd_weights();
+        Eigen::VectorXf& bnd_weights = circuits.get_bnd_weights();
         /* Eigen::VectorXf angle_values = space.get_nodes_max_angle(); */
-        Eigen::MatrixXf weights = space.get_wrec();
+        Eigen::VectorXf& node_degrees = space.get_node_degrees();
 
-        if (rejected_idx > -1) {
-            rejected_indexes(rejected_idx) = 1.0f;
-        }
+        if (rejected_idx > -1) { rejected_indexes(rejected_idx) = 1.0f; }
+            /* LOG("[-] REJECTED IDX: " + std::to_string(rejected_idx)); */
 
         // check each neuron
         int idx = -1;
-        float min_value = 0.0f;
-        for (int i = 5; i < space.len(); i++) {
-            if (rejected_indexes(i) > 0.0f) { continue; }
+        float min_value = 1000.0f;
+
+        /* LOG("searching best node: "); */
+        for (int i = 1; i < 2*space.len(); i++) {
+            /* if (rejected_indexes(i) > 0.0f) { continue; } */
             float value = open_boundary_value(
-                    i, bnd_weights, weights);
-            if (value > min_value) {
+                    i, bnd_weights, space.get_node_degrees());
+            /* float value = open_boundary_value( */
+            /*         i, bnd_weights, angle_values); */
+            /* std::cout << value << " - "; */
+            if (value < min_value && value > 0) {
                 idx = i;
                 min_value = value;
+                /* std::cout << "(new min=" << min_value << ") "; */
             }
         }
+        /* LOG(" "); */
 
-        LOG("[+] open boundary idx: " + std::to_string(idx) + " | value: " + std::to_string(min_value));
+        /* LOG("(open boundary idx: " + std::to_string(idx) + ") | value: " + std::to_string(min_value) + \ */
+        /*     ", bnd=" + std::to_string(bnd_weights(idx))); */
         return idx;
     }
 
@@ -3132,32 +3211,32 @@ class ExperienceModule {
     }
 
     float open_boundary_value(int idx, Eigen::VectorXf& bnd_weights,
-                              Eigen::MatrixXf& weights) {
+                              Eigen::VectorXf& node_degrees) {
 
-        if (bnd_weights(idx) > 0.0f) {
-            LOG("[-] open boundary value: | bnd_v=" + std::to_string(bnd_weights(idx)));
-            return 10000.0f;
-        }
+        if (bnd_weights(idx) > 0.0f) { return 10000.0f; }
+        return node_degrees(idx);
 
-        float degree = 0;
-        for (int i = 0; i < space.len(); i++) {
-            degree += weights(idx, i); 
-        }
+        /* float degree = 0; */
+        /* for (int i = 0; i < space.len(); i++) { */
+        /*     degree += weights(idx, i); */ 
+        /* } */
+        /* LOG("[+] open boundary value: " + std::to_string(degree) + " | bnd_v=" + std::to_string(bnd_weights(idx))); */
 
-        return degree;
+        /* weights(idx, i).sum(); */
+        /* return degree; */
     }
 
     float open_boundary_value3(int idx, Eigen::VectorXf& bnd_weights,
                               Eigen::VectorXf& angle_values) {
 
         if (bnd_weights(idx) > 0.0f || angle_values(idx) < open_threshold) {
-            LOG("[-] open boundary value: " + std::to_string(angle_values(idx)) + \
-                " | bnd_v=" + std::to_string(bnd_weights(idx)));
-            return -1.0f; 
+            /* LOG("[-] open boundary value: " + std::to_string(angle_values(idx)) + \ */
+            /*     " | bnd_v=" + std::to_string(bnd_weights(idx))); */
+            return 1000.0f; 
         }
-        LOG("[+] open boundary value: " + std::to_string(angle_values(idx)) + \
-            " | bnd_v=" + std::to_string(bnd_weights(idx)));
-        return angle_values(idx);
+        /* LOG("[+] open boundary value: " + std::to_string(angle_values(idx)) + \ */
+        /*     " | bnd_v=" + std::to_string(bnd_weights(idx))); */
+        return -1.0f*angle_values(idx);
     }
 
 public:
@@ -3167,16 +3246,15 @@ public:
                      Circuits& circuits,
                      PCNN_REF& space,
                      std::array<float, CIRCUIT_SIZE> weights,
-                     float action_delay = 1.0f):
+                     float action_delay = 1.0f,
+                     int edge_route_interval = 100):
             action_sampler(ActionSampler2D(speed * action_delay)),
             speed(speed), circuits(circuits),
             space(space), weights(weights),
             plan(Plan(action_delay)),
-            action_delay(action_delay) {
-        rejected_indexes = Eigen::VectorXf::Zero(space.get_size());
-    }
-
-    ~ExperienceModule() {}
+            action_delay(action_delay),
+            edge_route_interval(edge_route_interval),
+            rejected_indexes(Eigen::VectorXf::Zero(space.get_size())) {}
 
     // CALL
     std::pair<std::array<float, 2>, int>
@@ -3194,16 +3272,23 @@ public:
             this->new_plan = true;
 
             // new plan to the open boundary
-            if (res > -1) { return {{-1.0f, -1.0f}, res}; }
+            if (res > -1) {
+                /* LOG("[+] query new plan to the open boundary" + std::to_string(res)); */
+                return {{-1.0f, -1.0f}, res}; }
             else {
+                // make random action
+                random_action_plan();
                 // step the plan | (action, done)
                 std::pair<std::array<float, 2>, bool> next_step = plan.call();
+                edge_route_time++;
+                /* LOG("[+] make random walk plan | edt: " + std::to_string(edge_route_time)); */
                 return {next_step.first, -1};
             }
         }
 
         // --- continue the plan ---
         this->new_plan = false;
+        /* LOG("[+] continue the random walk plan"); */
         return { next_step.first, -1 };
     }
 
@@ -3248,6 +3333,7 @@ public:
     float get_plan_score() { return plan.all_scores[plan.idx]; }
     std::vector<float> get_plan_scores() { return plan.score_seq; }
     int get_last_action_idx() { return plan.idx; }
+    void confirm_edge_walk() { edge_route_time = 0; }
     void reset_rejected_indexes() { 
         rejected_indexes = Eigen::VectorXf::Zero(space.get_size());
     }
@@ -3265,7 +3351,7 @@ class Brain {
     Circuits& circuits;
     PCNN_REF& space;
     ExperienceModule& expmd;
-    RepresentationDiffTrace rdtrace;
+    StationarySensory& ssry;
     TargetProgram trgp;
     RewardObject rwobj = RewardObject();
 
@@ -3276,14 +3362,15 @@ class Brain {
     int clock;
     int trg_plan_end = 0;
     int forced_exploration = -1;
+    int forced_duration = 7;
 
     std::array<float, 2> attempt_boundary_plan(int idx) {
 
         // reset the set of rejected indexes
         expmd.reset_rejected_indexes();
 
-        LOG("---");
-        LOG("[+] attempting to plan to the open boundary");
+        /* LOG("---"); */
+        /* LOG("[+] attempting to plan to the open boundary"); */
 
         // attempt for a bunch of times | use 404 as final rejection
         for (int i = 0; i < 3; i++) {
@@ -3292,17 +3379,19 @@ class Brain {
             trgp.reset();
             bool valid_plan = trgp.update(curr_representation,
                                           circuits.make_value_mask(),
-                                          idx);
+                                          idx, true);
 
             // valid plan
             if (valid_plan) {
                 this->directive = "trg ob";
-                LOG("[+] plan to the open boundary SUCCESSFUL");
-                LOG("---");
-                return trgp.step_plan(curr_representation);
-            } {
-                LOG("trying again");
-            }
+                /* LOG("[+] plan to the open boundary SUCCESSFUL"); */
+                /* LOG("---"); */
+                std::pair<std::array<float, 2>, bool> progress = trgp.step_plan(curr_representation);
+
+                // confirm the edge walk
+                expmd.confirm_edge_walk();
+                return progress.first;
+            } //{ LOG("trying again"); }
 
             // invalid plan -> try again
             std::pair<std::array<float, 2>, int> expmd_res = \
@@ -3311,10 +3400,10 @@ class Brain {
         }
 
         // tried too many times, make a random walk plan instead
-        LOG("[-] plan to the open boundary FAILED");
+        /* LOG("[-] plan to the open boundary FAILED"); */
         std::pair<std::array<float, 2>, int> expmd_res = \
             expmd.call(directive, curr_representation, 404);
-        LOG("---");
+        /* LOG("---"); */
 
         return expmd_res.first;
     }
@@ -3326,13 +3415,11 @@ public:
           PCNN_REF& space,
           /* TargetProgram& trgp, */
           ExperienceModule& expmd,
-          float speed,
-          int max_attempts = 2,
-          float rdt_tau = 80.0f):
+          StationarySensory& ssry,
+          float speed, int max_attempts = 3):
         circuits(circuits), space(space),
         expmd(expmd),
-        rdtrace(RepresentationDiffTrace(space.get_size(),
-                                        rdt_tau, 0.999)),
+        ssry(ssry),
         trgp(TargetProgram(space, speed, max_attempts)),
         directive("new"), clock(0) {}
 
@@ -3358,16 +3445,16 @@ public:
                           expmd.get_last_action_idx(), false);
 
         // check still-ness
-        if (forced_exploration < 5) {
+        if (forced_exploration < forced_duration) {
             forced_exploration++;
             trgp.reset();
             goto explore; }
 
-        if (rdtrace.call(curr_representation)) {
-            /* LOG("[-] repr trace > threshold : " + std::to_string(rdtrace.get_v())); */
+        if (ssry.call(curr_representation)) {
+            LOG("<forced exploration> : v=" + std::to_string(ssry.get_v()));
             forced_exploration = 0;
             goto explore;
-        }// else { LOG("[+] repr trace below: " + std::to_string(rdtrace.get_v())); }
+        } //else { LOG("[+] repr trace below: " + std::to_string(rdtrace.get_v())); }
 
 
         // === GOAL-DIRECTED BEHAVIOUR ====================================
@@ -3386,7 +3473,14 @@ public:
             /* LOG("continuing trg plan..."); */
             /* this->directive = "trg"; */
             trg_plan_end = 0;
-            return trgp.step_plan(curr_representation);
+            std::pair<std::array<float, 2>, bool> progress = \
+                trgp.step_plan(curr_representation);
+
+            // keep going
+            if (progress.second) { return progress.first; }
+            // end or fail -> random walk
+            forced_exploration = 0;
+            /* LOG("plan failed or ended, walk"); */
         } //else if (!trgp.is_active()) {
             /* LOG("[-] trg plan finished"); */
             /* this->directive = "new"; */
@@ -3429,13 +3523,16 @@ public:
             // check new reward trg plan
             bool valid_plan = trgp.update(curr_representation,
                                           circuits.make_value_mask(),
-                                          tmp_trg_idx);
+                                          tmp_trg_idx, true);
 
             // [+] reward trg plan
             if (valid_plan) {
                 /* LOG("New trg plan..." + std::to_string(valid_plan)); */
                 this->directive = "trg";
-                return trgp.step_plan(curr_representation);
+                std::pair<std::array<float, 2>, bool> progress = trgp.step_plan(curr_representation);
+                if (progress.second) { return progress.first; }
+                forced_exploration = 0;
+                /* LOG("planning failed, walk"); */
             }
         }
 
@@ -3454,7 +3551,7 @@ explore:
         std::pair<std::array<float, 2>, int> expmd_res = expmd.call(directive, curr_representation);
 
         // check: plan to go to the open boundary
-        /* if (expmd_res.second > -1) { return attempt_boundary_plan(expmd_res.second); } */
+        if (expmd_res.second > -1) { return attempt_boundary_plan(expmd_res.second); }
             /* LOG("[+] new plan to the open boundary"); */
             /* trgp.reset(); */
             /* bool valid_plan = trgp.update(curr_representation, */
@@ -3481,6 +3578,7 @@ explore:
 
     std::string str() { return "Brain"; }
     std::string repr() { return "Brain"; }
+    int len() { return space.get_size(); }
     Eigen::VectorXf get_trg_representation() {
         Eigen::VectorXf trg_representation = Eigen::VectorXf::Zero(space.get_size());
         /* trg_representation(trgp.get_trg_idx()) = trgp.get_trg_value(); */
@@ -3510,6 +3608,7 @@ explore:
         if (expmd.new_plan) { expmd.set_plan_positions(position); }
         return expmd.get_plan_positions();
     }
+    std::vector<int> get_plan_idxs() { return trgp.get_plan(); }
     float get_plan_score()
         { return expmd.get_plan_score(); }
     std::vector<float> get_plan_scores()
@@ -3612,15 +3711,16 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     BaseModulation bnd = BaseModulation("BND", N, 0.9f, 0.0f, 1.0f, 2.0f, 0.0f, 0.0f, 0.01f);
     MemoryRepresentation memrepr = MemoryRepresentation(N, 2.0f, 0.1f);
     MemoryAction memact = MemoryAction(2.0f);
+    StationarySensory ssry = StationarySensory(N, 100.0f, 0.2f, 0.5f);
     Circuits circuits = Circuits(da, bnd, memrepr, memact);
 
     // TARGET PROGRAM
     /* TargetProgram trgp = TargetProgram(space.get_connectivity(), space.get_centers(), */
     /*                                    da.get_weights(), SPEED); */
     // EXPERIENCE MODULE & BRAIN
-    ExperienceModule expmd = ExperienceModule(SPEED, circuits, space, 
+    ExperienceModule expmd = ExperienceModule(SPEED, circuits, space,
                                               {bnd_w, 0.0f, 0.0f, 0.0f, 0.0f}, 1.0f);
-    Brain brain = Brain(circuits, space, expmd, SPEED, 5);
+    Brain brain = Brain(circuits, space, expmd, ssry, SPEED, 5);
 
     // simulation settigns
     Reward reward = Reward(10.0f, 10.0f, 1.0f, pause);

@@ -38,8 +38,8 @@ reward_settings = {
 }
 
 agent_settings = {
-    "speed": 4.0,
-    "init_position": np.array([0.4, 0.5]) * GAME_SCALE,
+    "speed": 1.0,
+    "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
     "agent_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
 }
@@ -54,7 +54,7 @@ game_settings = {
 }
 
 model_params = {
-    "N": 30**2,
+    "N": 32**2,
     "bnd_threshold": 0.2,
     "bnd_tau": 1,
     "threshold": 0.3,
@@ -84,8 +84,8 @@ class Renderer:
         self.names = names
         self.fig, self.axs = plt.subplots(1, self.size+1,
                                          figsize=((1+self.size)*4, 2))
-        self.boundsx = (-150, 300)
-        self.boundsy = (-200, 250)
+        self.boundsx = (-50, 400)
+        self.boundsy = (-400, 50)
 
     def render(self):
         self.axs[0].clear()
@@ -93,14 +93,26 @@ class Renderer:
         if self.brain.get_directive() == "trg" or \
            self.brain.get_directive() == "trg rw" or \
            self.brain.get_directive() == "trg ob":
+
             self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        c=self.brain.get_trg_representation(), s=120*self.brain.get_trg_representation(),
+                        color="blue", s=30, alpha=0.05)
+
+            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
+                        c=self.brain.get_trg_representation(),
+                                s=100*self.brain.get_trg_representation(),
                                 cmap="Greens", alpha=0.7)
+
+            plan = np.zeros(len(self.brain))
+            plan[self.brain.get_plan_idxs()] = 1.
+            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
+                        c=plan, s=50*plan, cmap="Greens", alpha=0.7)
+
             loc_ = np.array(self.space.get_centers())[self.brain.get_trg_idx()]
             self.axs[0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
                 f" ({self.brain.get_trg_representation().max():.3f}, " + \
                 f"{self.brain.get_trg_representation().argmax()}) " + \
                 f" loc={loc_}")
+
 
         else:
             self.axs[0].scatter(*np.array(self.space.get_centers()).T,
@@ -273,26 +285,27 @@ def main_game(room_name: str="Square.v0"):
 
     space = pclib.PCNNsqv2(N=model_params["N"],
                            Nj=len(gcn),
-                           gain=10.,
-                           offset=1.3,
+                           gain=9.,
+                           offset=1.0,
                            clip_min=0.01,
                            threshold=0.3,
-                           rep_threshold=0.85,
-                           rec_threshold=30.,
-                           num_neighbors=8,
+                           rep_threshold=0.8,
+                           rec_threshold=40.,
+                           num_neighbors=5,
                            xfilter=gcn,
                            name="2D")
 
     # ===| modulation |===
 
     da = pclib.BaseModulation(name="DA", size=model_params["N"],
-                              lr=0.4, threshold=0.03, max_w=2.0,
+                              lr=0.5, threshold=0.1, max_w=2.0,
                               tau_v=1.0, eq_v=0.0, min_v=0.0)
     bnd = pclib.BaseModulation(name="BND", size=model_params["N"],
-                               lr=0.4, threshold=0.02, max_w=1.0,
+                               lr=0.4, threshold=0.04, max_w=1.0,
                                tau_v=1.0, eq_v=0.0, min_v=0.0)
     memrepr = pclib.MemoryRepresentation(model_params["N"], 2.0, 0.1)
     memact = pclib.MemoryAction(10.0)
+    ssry = pclib.StationarySensory(model_params["N"], 200., 0.993, 0.99)
     circuit = pclib.Circuits(da, bnd, memrepr, memact)
 
     # ===| target program |===
@@ -304,13 +317,14 @@ def main_game(room_name: str="Square.v0"):
                                    circuits=circuit,
                                    space=space,
                                    weights=[0., 0., 0.0, 0., 0.],
-                                   action_delay=10.)
-    brain = pclib.Brain(circuit, space, expmd, agent_settings["speed"], 5, 10)
+                                   action_delay=10.,
+                                   edge_route_interval=80)
+    brain = pclib.Brain(circuit, space, expmd, ssry, agent_settings["speed"], 5)
 
 
     """ make game environment """
 
-    room = games.make_room(name=room_name, thickness=50.)
+    room = games.make_room(name=room_name, thickness=30.)
     room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
                    room.bounds[1]+10, room.bounds[3]-10]
 
@@ -568,7 +582,7 @@ if __name__ == "__main__":
                         help='room name: ["Square.v0", "Square.v1", "Square.v2",' + \
                          '"Hole.v0", "Flat.0000", "Flat.0001", "Flat.0010", "Flat.0011",' + \
                          '"Flat.0110", "Flat.1000", "Flat.1001", "Flat.1010",' + \
-                         '"Flat.1011", "Flat.1110"]')
+                         '"Flat.1011", "Flat.1110"] or `random`')
     parser.add_argument("--main", type=str, default="game",
                         help="[game, rand, simple]")
     parser.add_argument("--interval", type=int, default=20,
@@ -583,6 +597,10 @@ if __name__ == "__main__":
 
     # --- settings
     game_settings["plot_interval"] = args.interval
+
+    if args.room == "random":
+        args.room = games.get_random_room()
+        logger(f"random room: {args.room}")
 
     # --- run
     if args.main == "game":
