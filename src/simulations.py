@@ -316,22 +316,22 @@ def main_game(room_name: str="Square.v0"):
     bnd = pclib.BaseModulation(name="BND", size=model_params["N"],
                                lr=0.4, threshold=0.04, max_w=1.0,
                                tau_v=1.0, eq_v=0.0, min_v=0.0)
-    memrepr = pclib.MemoryRepresentation(model_params["N"], 2.0, 0.1)
-    memact = pclib.MemoryAction(10.0)
+    # memrepr = pclib.MemoryRepresentation(model_params["N"], 2.0, 0.1)
+    # memact = pclib.MemoryAction(10.0)
     ssry = pclib.StationarySensory(model_params["N"], 200., 0.991, 0.99)
-    circuit = pclib.Circuits(da, bnd, memrepr, memact)
+    circuit = pclib.Circuits(da, bnd)# memrepr, memact)
 
     # ===| target program |===
 
     # trgp = pclib.TargetProgram(space.get_connectivity(), space.get_centers(),
     #                            da.get_weights(), agent_settings["speed"])
-    dpolicy = pclib.DensityPolicy(space, [0.1, -1.0],
-                                  [0.0, 0.0])
+    dpolicy = pclib.DensityPolicy(space, 0.2, 40.0,
+                                  0.1, 20.0)
 
     expmd = pclib.ExperienceModule(speed=agent_settings["speed"]*5.0,
                                    circuits=circuit,
                                    space=space,
-                                   weights=[0., 0., 0.0, 0., 0.],
+                                   # weights=[0., 0., 0.0, 0., 0.],
                                    action_delay=10.,
                                    edge_route_interval=80)
     brain = pclib.Brain(circuit, space, expmd, ssry, dpolicy,

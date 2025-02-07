@@ -1137,22 +1137,20 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matri
         float current_dist = -pq.top().first;
         pq.pop();
 
-        if (finalized[current_node] || current_dist > distances[current_node]) {
-            continue;
-        }
+        if (finalized[current_node] || current_dist > distances[current_node])
+            { continue; }
 
         finalized[current_node] = true;
 
-        if (current_node == end_node) {
-            break;
-        }
+        if (current_node == end_node)
+            { break; }
 
         // Check all neighbors
         for (int neighbor = 0; neighbor < num_nodes; ++neighbor) {
             if (connectivity_matrix(current_node, neighbor) == 1 && !finalized[neighbor]) {
 
                 if (node_weights(neighbor) < -100.0f) {
-                    /* std::cout << "Node penalty: " << node_penalty << std::endl; */
+                    std::cout << "Node penalty: " << node_weights(neighbor) << std::endl;
                     continue;
                 }
 
@@ -1180,9 +1178,8 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matri
     std::vector<int> path;
     int current = end_node;
 
-    if (distances[end_node] == std::numeric_limits<float>::infinity()) {
-        return {};
-    }
+    if (distances[end_node] == std::numeric_limits<float>::infinity())
+        { return {}; }
 
     while (current != -1) {
         path.push_back(current);
@@ -1190,9 +1187,8 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matri
     }
     std::reverse(path.begin(), path.end());
 
-    if (path.empty() || path[0] != start_node) {
-        return {};
-    }
+    if (path.empty() || path[0] != start_node) 
+        { return {}; }
 
     return path;
 }

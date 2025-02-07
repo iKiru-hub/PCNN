@@ -285,27 +285,27 @@ PYBIND11_MODULE(pclib, m) {
         .def("len", &PopulationMaxProgram::len)
         .def("get_value", &PopulationMaxProgram::get_value);
 
-    py::class_<MemoryRepresentation>(m, "MemoryRepresentation")
-        .def(py::init<int, float, float>(),
-             py::arg("size"),
-             py::arg("decay"),
-             py::arg("threshold"))
-        .def("__str__", &MemoryRepresentation::str)
-        .def("__repr__", &MemoryRepresentation::repr)
-        .def("__call__", &MemoryRepresentation::call,
-             py::arg("representation"),
-             py::arg("simulate") = false)
-        .def_readwrite("tape", &MemoryRepresentation::tape);
+    /* py::class_<MemoryRepresentation>(m, "MemoryRepresentation") */
+    /*     .def(py::init<int, float, float>(), */
+    /*          py::arg("size"), */
+    /*          py::arg("decay"), */
+    /*          py::arg("threshold")) */
+    /*     .def("__str__", &MemoryRepresentation::str) */
+    /*     .def("__repr__", &MemoryRepresentation::repr) */
+    /*     .def("__call__", &MemoryRepresentation::call, */
+    /*          py::arg("representation"), */
+    /*          py::arg("simulate") = false) */
+    /*     .def_readwrite("tape", &MemoryRepresentation::tape); */
 
-    py::class_<MemoryAction>(m, "MemoryAction")
-        .def(py::init<float>(),
-             py::arg("decay"))
-        .def("__str__", &MemoryAction::str)
-        .def("__repr__", &MemoryAction::repr)
-        .def("__call__", &MemoryAction::call,
-             py::arg("idx"),
-             py::arg("simulate") = false)
-        .def_readwrite("tape", &MemoryAction::tape);
+    /* py::class_<MemoryAction>(m, "MemoryAction") */
+    /*     .def(py::init<float>(), */
+    /*          py::arg("decay")) */
+    /*     .def("__str__", &MemoryAction::str) */
+    /*     .def("__repr__", &MemoryAction::repr) */
+    /*     .def("__call__", &MemoryAction::call, */
+    /*          py::arg("idx"), */
+    /*          py::arg("simulate") = false) */
+    /*     .def_readwrite("tape", &MemoryAction::tape); */
 
     /* MODULATION */
     py::class_<BaseModulation>(m, "BaseModulation")
@@ -332,12 +332,12 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_weights", &BaseModulation::get_weights);
 
     py::class_<Circuits>(m, "Circuits")
-        .def(py::init<BaseModulation&, BaseModulation&,
-             MemoryRepresentation&, MemoryAction&>(),
+        .def(py::init<BaseModulation&, BaseModulation&>(),
+             /* MemoryRepresentation&, MemoryAction&>(), */
              py::arg("da"),
-             py::arg("bnd"),
-             py::arg("memrepr"),
-             py::arg("memact"))
+             py::arg("bnd"))
+             /* py::arg("memrepr"), */
+             /* py::arg("memact")) */
         .def("__str__", &Circuits::str)
         .def("__repr__", &Circuits::repr)
         .def("__len__", &Circuits::len)
@@ -345,11 +345,10 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("u"),
              py::arg("collision"),
              py::arg("reward"),
-             py::arg("action_idx") = -1,
              py::arg("simulate") = false)
         .def("get_output", &Circuits::get_output)
-        .def("get_memory_representation", &Circuits::get_memory_representation)
-        .def("get_memory_action", &Circuits::get_memory_action)
+        /* .def("get_memory_representation", &Circuits::get_memory_representation) */
+        /* .def("get_memory_action", &Circuits::get_memory_action) */
         .def("get_leaky_v", &Circuits::get_leaky_v);
 
     /* MODULES */
@@ -370,8 +369,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("update", &TargetProgram::update,
              py::arg("curr_representation"),
              py::arg("space_weights"),
-             py::arg("tmp_trg_idx") = true,
-             py::arg("use_episodic_memory") = true)
+             py::arg("tmp_trg_idx") = true)
+             /* py::arg("use_episodic_memory") = true) */
              /* py::arg("trigger") = true) */
         .def("step_plan", &TargetProgram::step_plan)
         .def("make_shortest_path", &TargetProgram::make_shortest_path,
@@ -388,12 +387,12 @@ PYBIND11_MODULE(pclib, m) {
 
     // 2 layer network
     py::class_<ExperienceModule>(m, "ExperienceModule")
-        .def(py::init<float, Circuits&, PCNN_REF&,
-             std::array<float, CIRCUIT_SIZE>, float, int>(),
+        .def(py::init<float, Circuits&, PCNN_REF&, float, int>(),
+             /* std::array<float, CIRCUIT_SIZE>, float, int>(), */
              py::arg("speed"),
              py::arg("circuits"),
              py::arg("space"),
-             py::arg("weights"),
+             /* py::arg("weights"), */
              py::arg("action_delay") = 1.0f,
              py::arg("edge_route_interval") = 100)
         .def("__call__", &ExperienceModule::call,
@@ -402,10 +401,12 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("rejection"))
         .def("__str__", &ExperienceModule::str)
         .def("__repr__", &ExperienceModule::repr)
-        .def("get_actions", &ExperienceModule::get_actions)
-        .def("get_plan", &ExperienceModule::get_plan)
-        .def("get_all_plan_values", &ExperienceModule::get_all_plan_values)
-        .def("get_all_plan_scores", &ExperienceModule::get_all_plan_scores);
+        .def("confirm_edge_walk", &ExperienceModule::confirm_edge_walk)
+        .def("reset_rejected_indexes", &ExperienceModule::reset_rejected_indexes);
+        /* .def("get_actions", &ExperienceModule::get_actions); */
+        /* .def("get_plan", &ExperienceModule::get_plan) */
+        /* .def("get_all_plan_values", &ExperienceModule::get_all_plan_values) */
+        /* .def("get_all_plan_scores", &ExperienceModule::get_all_plan_scores); */
 
     // Hexagon
     py::class_<Hexagon>(m, "Hexagon")
@@ -418,22 +419,25 @@ PYBIND11_MODULE(pclib, m) {
 
     // Density Policy
     py::class_<DensityPolicy>(m, "DensityPolicy")
-        .def(py::init<PCNN_REF&, std::array<float, 2>,
-             std::array<float, 2>>(),
+        .def(py::init<PCNN_REF&, float, float,
+             float, float>(),
              py::arg("space"),
-             py::arg("gain_modulation"),
-             py::arg("rep_modulation"))
+             py::arg("rwd_weight"),
+             py::arg("rwd_sigma"),
+             py::arg("col_weight"),
+             py::arg("col_sigma"))
         .def("__call__", &DensityPolicy::call,
-             py::arg("gc_representation"),
+             py::arg("da_weights"),
              py::arg("bnd_weights"),
              py::arg("displacement"),
              py::arg("da_value"),
              py::arg("bnd_value"),
-             py::arg("reward"))
+             py::arg("reward"),
+             py::arg("collision"))
         .def("__str__", &DensityPolicy::str)
         .def("__repr__", &DensityPolicy::repr)
-        .def("get_gain_mod", &DensityPolicy::get_gain_mod)
-        .def("get_rep_mod", &DensityPolicy::get_rep_mod);
+        .def("get_rwd_mod", &DensityPolicy::get_rwd_mod)
+        .def("get_col_mod", &DensityPolicy::get_col_mod);
 
     // Stationary Sensory
     py::class_<StationarySensory>(m, "StationarySensory")
@@ -485,15 +489,15 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_episodic_memory", &Brain::get_episodic_memory)
         .def("make_edges_value", &Brain::make_edges_value)
         .def("get_trg_position", &Brain::get_trg_position)
+        .def("get_plan_idxs", &Brain::get_plan_idxs)
         .def("get_leaky_v", &Brain::get_leaky_v)
         .def("get_space_position", &Brain::get_space_position)
-        .def("get_plan_positions", &Brain::get_plan_positions)
-        .def("get_plan_score", &Brain::get_plan_score)
-        .def("get_plan_scores", &Brain::get_plan_scores)
-        .def("get_plan_values", &Brain::get_plan_values)
-        .def("get_plan_idxs", &Brain::get_plan_idxs)
-        .def("set_plan_positions", &Brain::set_plan_positions,
-             py::arg("position"))
+        /* .def("get_plan_positions", &Brain::get_plan_positions) */
+        /* .def("get_plan_score", &Brain::get_plan_score) */
+        /* .def("get_plan_scores", &Brain::get_plan_scores) */
+        /* .def("get_plan_values", &Brain::get_plan_values) */
+        /* .def("set_plan_positions", &Brain::set_plan_positions, */
+        /*      py::arg("position")) */
         .def("reset", &Brain::reset);
 
 }
