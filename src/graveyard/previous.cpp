@@ -2276,6 +2276,124 @@ struct Planv0 {
 
 
 
+struct MemoryRepresentation {
+
+    Eigen::VectorXf tape;
+    Eigen::VectorXf mask;
+    float decay;
+    float mask_threshold;
+
+    // call
+    float call(Eigen::VectorXf& representation, bool simulate = false) {
+
+        // evaluate without updating
+        if (simulate) {
+            // check if the norm is zero
+            if (representation.norm() == 0.0f) { return 0.0f; }
+
+            // dot product
+            return tape.dot(representation) / representation.norm();
+        }
+
+        // update the memory
+        update(representation);
+        return 1.0f;
+    }
+
+    /* Eigen::VectorXf& make_mask() { */
+
+    /*     // the nodes that are fresh in memory will affect action selection, */
+    /*     // thus acting as a mask */
+    /*     for (int i = 0; i < tape.size(); i++) { */
+    /*         mask(i) = tape(i) > mask_threshold ? 0.0f : 1.0f; */
+    /*     } */
+    /*     return mask; */
+    /* } */
+
+    float get_max_value() { return tape.maxCoeff(); }
+
+    MemoryRepresentation(int size, float decay, float mask_threshold):
+        tape(Eigen::VectorXf::Zero(size)), decay(decay),
+        mask_threshold(mask_threshold),
+        mask(Eigen::VectorXf::Zero(size)) {}
+    std::string str() { return "MemoryRepresentation"; }
+    std::string repr() { return "MemoryRepresentation"; }
+
+private:
+
+    void update(Eigen::VectorXf& representation) {
+
+        Eigen::Index maxIndex;
+        representation.maxCoeff(&maxIndex);
+        int max_idx = static_cast<int>(maxIndex);
+
+        // decay the memory
+        tape -= tape / decay;
+        tape(max_idx) = 1.0f;
+        /* LOG("[+] MemoryRepresentation: updated | max_idx: " + std::to_string(max_idx) + \ */
+        /*     " | max_value: " + std::to_string(max_value)); */
+    }
+
+};
+
+
+struct MemoryAction {
+
+    std::array<float, ACTION_SPACE_SIZE> tape;
+    float decay;
+
+    // CALL
+    float call(int idx, bool simulate=false) {
+
+        // evaluate without updating
+        if (simulate) {
+            return tape[idx];
+        }
+
+        // decay the memory
+        for (int i = 0; i < ACTION_SPACE_SIZE; i++) {
+            tape[i] -= tape[i] / decay;
+        }
+
+        // update the action
+        tape[idx] += (1.0f - tape[idx]) / decay;
+
+
+        return tape[idx];
+    }
+
+    float get_max_value() {
+        return *std::max_element(tape.begin(), tape.end());
+    }
+
+    MemoryAction(float decay): decay(decay) {}
+    std::string str() { return "MemoryAction"; }
+    std::string repr() { return "MemoryAction"; }
+};
+
+
+class PopulationMaxProgram {
+
+    float output;
+
+public:
+
+    PopulationMaxProgram() {}
+    ~PopulationMaxProgram() {}
+
+    float call(const Eigen::VectorXf& u) {
+        // compute the maximum activity
+        output = *std::max_element(u.data(), u.data() + u.size());
+        return output;
+    }
+
+    float get_value() { return output; }
+    std::string str() { return "PopulationMaxProgram"; }
+    std::string repr() { return "PopulationMaxProgram"; }
+    int len() { return 1; }
+};
+
+
 
 
 // ExperienceModule

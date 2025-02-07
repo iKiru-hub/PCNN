@@ -456,13 +456,15 @@ PYBIND11_MODULE(pclib, m) {
     py::class_<Brain>(m, "Brain")
         .def(py::init<Circuits&,
              PCNN_REF&,
+             PCNN_REF&,
              /* TargetProgram&, */
              ExperienceModule&,
              StationarySensory&,
              DensityPolicy&,
              float, int>(),
              py::arg("circuits"),
-             py::arg("pcnn"),
+             py::arg("space"),
+             py::arg("space_coarse"),
              /* py::arg("trgp"), */
              py::arg("expmd"),
              py::arg("ssry"),
@@ -476,6 +478,8 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("trigger"))
         .def("get_representation",
              &Brain::get_representation)
+        .def("get_representation_coarse",
+             &Brain::get_representation_coarse)
         .def("get_trg_representation",
              &Brain::get_trg_representation)
         .def("get_directive", &Brain::get_directive)
@@ -485,13 +489,15 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_expmd", &Brain::get_expmd)
         .def("get_space", &Brain::get_space)
         .def("get_trg_idx", &Brain::get_trg_idx)
-        .def("get_trg_plan", &Brain::get_trg_plan)
+        .def("get_space_position_fine", &Brain::get_space_position_fine)
+        .def("get_plan_idxs_coarse", &Brain::get_plan_idxs_coarse)
         .def("get_episodic_memory", &Brain::get_episodic_memory)
         .def("make_edges_value", &Brain::make_edges_value)
         .def("get_trg_position", &Brain::get_trg_position)
         .def("get_plan_idxs", &Brain::get_plan_idxs)
         .def("get_leaky_v", &Brain::get_leaky_v)
-        .def("get_space_position", &Brain::get_space_position)
+        .def("get_space_position_fine", &Brain::get_space_position_fine)
+        .def("get_space_position_coarse", &Brain::get_space_position_coarse)
         /* .def("get_plan_positions", &Brain::get_plan_positions) */
         /* .def("get_plan_score", &Brain::get_plan_score) */
         /* .def("get_plan_scores", &Brain::get_plan_scores) */
