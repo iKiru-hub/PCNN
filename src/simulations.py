@@ -34,11 +34,12 @@ reward_settings = {
     "rw_radius": 0.05 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 5,
+    "delay": 200,
+    "silent_duration": 5_000,
 }
 
 agent_settings = {
-    "speed": 1.0,
+    "speed": 0.7,
     "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
     "agent_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
@@ -95,7 +96,11 @@ class Renderer:
            self.brain.get_directive() == "trg ob":
 
             self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        color="blue", s=30, alpha=0.05)
+                        color="blue", s=30, alpha=0.1)
+            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
+                        # color="blue",
+                                c = self.brain.get_representation(), cmap="Greys",
+                                s=30, alpha=0.3)
 
             self.axs[0].scatter(*np.array(self.space.get_centers()).T,
                         c=self.brain.get_trg_representation(),
@@ -116,7 +121,11 @@ class Renderer:
 
         else:
             self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        color="blue", s=30, alpha=0.1)
+                        color="blue", s=30, alpha=0.2)
+            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
+                        # color="blue",
+                                c = self.brain.get_representation(), cmap="Greys",
+                                s=30, alpha=0.4)
             # for edge in self.space.make_edges():
             #     self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
             #                      alpha=0.1, color="black")
@@ -124,7 +133,7 @@ class Renderer:
             if edge[2][1]+edge[2][0] > 0.:
                 self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
                                  lw=edge[2][1]+edge[2][0], color="k", alpha=0.5)
-        self.axs[0].set_title(f"Space | #PCs={len(self.space)}")
+        self.axs[0].set_title(f"#PCs={len(self.space)} | directive={self.brain.get_directive()}")
 
         self.axs[0].scatter(*np.array(self.space.get_position()).T,
                             color="red", s=80, marker="o", alpha=0.8)
@@ -142,12 +151,17 @@ class Renderer:
                         s=30, vmin=0., vmax=0.1)
             self.axs[i].set_xlim(self.boundsx)
             self.axs[i].set_ylim(self.boundsy)
-            self.axs[i].set_title(self.names[i-1])
+            self.axs[i].set_title(f"{self.names[i-1]} {self.brain.get_leaky_v()[i-1]:.2f}")
             self.axs[i].set_aspect('equal', adjustable='box')
             self.axs[i].scatter(*np.array(self.space.get_position()).T,
                                 color="red", s=80, marker="o")
-            if i == 1:
-                self.axs[1].set_title(f"directive={self.brain.get_directive()}")
+            # if i == 1:
+            # self.axs[i].set_title(f"")
+            # elif i == 2:
+                # text = f"g:{self.space.get_gain():.3f} "
+                # text += f"r:{self.space.get_rep():.3f} "
+                # text += f"t:{self.space.get_threshold():.3f}"
+                # self.axs[i].set_title(text)
 
         # plt.axis("equal")
         plt.pause(0.00001)
@@ -178,8 +192,8 @@ def run_game(env: games.Environment,
                     running = False
 
         # -reward
-        # if observation[3]:
-        #     logger.debug(f">> Reward << [{observation[3]}]")
+        if observation[2]:
+            logger.debug(f">> Reward << [{observation[3]}]")
             # input()
 
         # -collision
@@ -197,7 +211,6 @@ def run_game(env: games.Environment,
                          observation[2],
                          env.reward_availability)
         # velocity = np.around(velocity, 2)
-        # logger.debug(f"out v: {velocity}")
 
         # store past position
         prev_position = env.position
@@ -285,12 +298,12 @@ def main_game(room_name: str="Square.v0"):
 
     space = pclib.PCNNsqv2(N=model_params["N"],
                            Nj=len(gcn),
-                           gain=9.,
-                           offset=1.0,
+                           gain=10.,
+                           offset=1.1,
                            clip_min=0.01,
                            threshold=0.3,
-                           rep_threshold=0.8,
-                           rec_threshold=40.,
+                           rep_threshold=0.89,
+                           rec_threshold=50.,
                            num_neighbors=5,
                            xfilter=gcn,
                            name="2D")
@@ -298,28 +311,31 @@ def main_game(room_name: str="Square.v0"):
     # ===| modulation |===
 
     da = pclib.BaseModulation(name="DA", size=model_params["N"],
-                              lr=0.5, threshold=0.1, max_w=2.0,
+                              lr=0.4, threshold=0.08, max_w=2.0,
                               tau_v=1.0, eq_v=0.0, min_v=0.0)
     bnd = pclib.BaseModulation(name="BND", size=model_params["N"],
                                lr=0.4, threshold=0.04, max_w=1.0,
                                tau_v=1.0, eq_v=0.0, min_v=0.0)
     memrepr = pclib.MemoryRepresentation(model_params["N"], 2.0, 0.1)
     memact = pclib.MemoryAction(10.0)
-    ssry = pclib.StationarySensory(model_params["N"], 200., 0.993, 0.99)
+    ssry = pclib.StationarySensory(model_params["N"], 200., 0.991, 0.99)
     circuit = pclib.Circuits(da, bnd, memrepr, memact)
 
     # ===| target program |===
 
     # trgp = pclib.TargetProgram(space.get_connectivity(), space.get_centers(),
     #                            da.get_weights(), agent_settings["speed"])
+    dpolicy = pclib.DensityPolicy(space, [0.1, -1.0],
+                                  [0.0, 0.0])
 
-    expmd = pclib.ExperienceModule(speed=agent_settings["speed"],
+    expmd = pclib.ExperienceModule(speed=agent_settings["speed"]*5.0,
                                    circuits=circuit,
                                    space=space,
                                    weights=[0., 0., 0.0, 0., 0.],
                                    action_delay=10.,
                                    edge_route_interval=80)
-    brain = pclib.Brain(circuit, space, expmd, ssry, agent_settings["speed"], 5)
+    brain = pclib.Brain(circuit, space, expmd, ssry, dpolicy,
+                        agent_settings["speed"], 5)
 
 
     """ make game environment """
@@ -342,7 +358,8 @@ def main_game(room_name: str="Square.v0"):
                 radius=reward_settings["rw_radius"],
                 fetching=reward_settings["rw_fetching"],
                 bounds=room_bounds,
-                delay=reward_settings["delay"])
+                delay=reward_settings["delay"],
+                silent_duration=reward_settings["silent_duration"])
     logger(reward_obj)
 
     # --- env

@@ -1114,6 +1114,88 @@ std::vector<int> weighted_en_shortest_path(const Eigen::MatrixXf& connectivity_m
     return path;
 }
 
+// @brief: take into account also the node coordinates
+std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matrix,
+                                       const Eigen::MatrixXf& node_coordinates,  // Nx2 matrix with (x,y) coordinates
+                                       const Eigen::VectorXf& node_weights,      // Optional node penalties/costs
+                                       int start_node, int end_node) {
+
+    int num_nodes = connectivity_matrix.rows();
+    std::vector<float> distances(num_nodes, std::numeric_limits<float>::infinity());
+    std::vector<int> parent(num_nodes, -1);
+    std::vector<bool> finalized(num_nodes, false);
+
+    // Priority queue with pair of (distance, node)
+    std::priority_queue<std::pair<float, int>> pq;
+
+    // Initialize start node
+    distances[start_node] = 0;  // Start with zero distance
+    pq.push({0, start_node});
+
+    while (!pq.empty()) {
+        int current_node = pq.top().second;
+        float current_dist = -pq.top().first;
+        pq.pop();
+
+        if (finalized[current_node] || current_dist > distances[current_node]) {
+            continue;
+        }
+
+        finalized[current_node] = true;
+
+        if (current_node == end_node) {
+            break;
+        }
+
+        // Check all neighbors
+        for (int neighbor = 0; neighbor < num_nodes; ++neighbor) {
+            if (connectivity_matrix(current_node, neighbor) == 1 && !finalized[neighbor]) {
+
+                if (node_weights(neighbor) < -100.0f) {
+                    /* std::cout << "Node penalty: " << node_penalty << std::endl; */
+                    continue;
+                }
+
+                // Calculate Euclidean distance between nodes
+                float dx = node_coordinates(current_node, 0) - node_coordinates(neighbor, 0);
+                float dy = node_coordinates(current_node, 1) - node_coordinates(neighbor, 1);
+                float edge_distance = std::sqrt(dx*dx + dy*dy);
+
+                // Add optional node weight as a penalty/cost factor
+                /* float node_penalty = node_weights(neighbor); */
+
+                // New distance is current distance plus edge length and node penalty
+                float new_distance = distances[current_node] + edge_distance + node_weights(neighbor);
+
+                if (new_distance < distances[neighbor]) {
+                    distances[neighbor] = new_distance;
+                    parent[neighbor] = current_node;
+                    pq.push({-new_distance, neighbor});
+                }
+            }
+        }
+    }
+
+    // Reconstruct the path
+    std::vector<int> path;
+    int current = end_node;
+
+    if (distances[end_node] == std::numeric_limits<float>::infinity()) {
+        return {};
+    }
+
+    while (current != -1) {
+        path.push_back(current);
+        current = parent[current];
+    }
+    std::reverse(path.begin(), path.end());
+
+    if (path.empty() || path[0] != start_node) {
+        return {};
+    }
+
+    return path;
+}
 
 // @brief: progress bar
 void print_progress(float progress, int barWidth = 70) {

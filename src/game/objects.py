@@ -128,6 +128,7 @@ class RewardObj:
                     (100, SCREEN_WIDTH-100,
                      100, SCREEN_HEIGHT-100),
                  fetching: str="probabilistic",
+                 silent_duration: int = 10,
                  color: Tuple[int, int, int] = (25, 255, 0),
                  delay: int = 10):
 
@@ -143,6 +144,7 @@ class RewardObj:
         self.color = color
         self.collected = False
         self._fetching = fetching
+        self.silent_duration = silent_duration
         self.count = 0
 
         self.available = True
@@ -151,14 +153,14 @@ class RewardObj:
         self.delay = delay
 
     def __str__(self) -> str:
-        return f"Reward({self.x}, {self.y})"
+        return f"Reward({self.x}, {self.y}, silent={self.silent_duration})"
 
     def __call__(self, agent_pos: Tuple[int, int]) -> bool:
 
         distance = np.sqrt((self.x - agent_pos[0])**2 +
                       (self.y - agent_pos[1])**2)
 
-        if distance < self.radius:
+        if distance < self.radius and self.available and self.t > self.silent_duration:
 
             if self._fetching == "deterministic":
                 self.collected = 1.0
@@ -172,7 +174,7 @@ class RewardObj:
             self.count += 1
             self.t_collected = self.t
 
-        self.available = (self.t - self.t_collected) > self.delay
+        self.available = ((self.t - self.t_collected) > self.delay) and (self.t > self.silent_duration)
 
         self.t += 1
 

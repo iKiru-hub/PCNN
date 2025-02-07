@@ -121,8 +121,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("update", &PCNNgridhex::update,
              py::arg("x") = -1.0,
              py::arg("y") = -1.0)
-        .def("ach_modulation", &PCNNgridhex::ach_modulation,
-             py::arg("ach"))
+        /* .def("ach_modulation", &PCNNgridhex::ach_modulation, */
+        /*      py::arg("ach")) */
         .def("get_activation", &PCNNgridhex::get_activation)
         .def("get_activation_gcn",
              &PCNNgridhex::get_activation_gcn)
@@ -218,8 +218,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_activation", &PCNNsqv2::get_activation)
         .def("get_activation_gcn",
              &PCNNsqv2::get_activation_gcn)
-        .def("ach_modulation", &PCNNsqv2::ach_modulation,
-             py::arg("ach"))
+        /* .def("ach_modulation", &PCNNsqv2::ach_modulation, */
+        /*      py::arg("ach")) */
         .def("get_size", &PCNNsqv2::get_size)
         .def("get_wff", &PCNNsqv2::get_wff)
         .def("get_wrec", &PCNNsqv2::get_wrec)
@@ -242,6 +242,15 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("connectivity"))
         /* .def("fwd_int", &PCNNsqv2::fwd_int, */
         /*      py::arg("a")) */
+        .def("modulate_gain", &PCNNsqv2::modulate_gain,
+             py::arg("mod"))
+        .def("modulate_rep", &PCNNsqv2::modulate_rep,
+             py::arg("mod"))
+        .def("modulate_threshold", &PCNNsqv2::modulate_threshold,
+             py::arg("mod"))
+        .def("get_gain", &PCNNsqv2::get_gain)
+        .def("get_rep", &PCNNsqv2::get_rep)
+        .def("get_threshold", &PCNNsqv2::get_threshold)
         .def("reset_gcn", &PCNNsqv2::reset_gcn,
              py::arg("v"));
 
@@ -407,6 +416,25 @@ PYBIND11_MODULE(pclib, m) {
         .def("__str__", &Hexagon::str)
         .def("get_centers", &Hexagon::get_centers);
 
+    // Density Policy
+    py::class_<DensityPolicy>(m, "DensityPolicy")
+        .def(py::init<PCNN_REF&, std::array<float, 2>,
+             std::array<float, 2>>(),
+             py::arg("space"),
+             py::arg("gain_modulation"),
+             py::arg("rep_modulation"))
+        .def("__call__", &DensityPolicy::call,
+             py::arg("gc_representation"),
+             py::arg("bnd_weights"),
+             py::arg("displacement"),
+             py::arg("da_value"),
+             py::arg("bnd_value"),
+             py::arg("reward"))
+        .def("__str__", &DensityPolicy::str)
+        .def("__repr__", &DensityPolicy::repr)
+        .def("get_gain_mod", &DensityPolicy::get_gain_mod)
+        .def("get_rep_mod", &DensityPolicy::get_rep_mod);
+
     // Stationary Sensory
     py::class_<StationarySensory>(m, "StationarySensory")
         .def(py::init<int, float, float, float>(),
@@ -427,12 +455,14 @@ PYBIND11_MODULE(pclib, m) {
              /* TargetProgram&, */
              ExperienceModule&,
              StationarySensory&,
+             DensityPolicy&,
              float, int>(),
              py::arg("circuits"),
              py::arg("pcnn"),
              /* py::arg("trgp"), */
              py::arg("expmd"),
              py::arg("ssry"),
+             py::arg("dpolicy"),
              py::arg("speed"),
              py::arg("max_attempts") = 2)
         .def("__call__", &Brain::call,
@@ -452,9 +482,10 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_space", &Brain::get_space)
         .def("get_trg_idx", &Brain::get_trg_idx)
         .def("get_trg_plan", &Brain::get_trg_plan)
-        .def("get_memory_connections", &Brain::get_memory_connections)
+        .def("get_episodic_memory", &Brain::get_episodic_memory)
         .def("make_edges_value", &Brain::make_edges_value)
         .def("get_trg_position", &Brain::get_trg_position)
+        .def("get_leaky_v", &Brain::get_leaky_v)
         .def("get_space_position", &Brain::get_space_position)
         .def("get_plan_positions", &Brain::get_plan_positions)
         .def("get_plan_score", &Brain::get_plan_score)
