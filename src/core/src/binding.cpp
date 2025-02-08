@@ -461,7 +461,7 @@ PYBIND11_MODULE(pclib, m) {
              ExplorationModule&,
              StationarySensory&,
              DensityPolicy&,
-             float, float, int>(),
+             float, float, int, int>(),
              py::arg("circuits"),
              py::arg("space"),
              py::arg("space_coarse"),
@@ -470,7 +470,8 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("dpolicy"),
              py::arg("speed"),
              py::arg("speed_coarse"),
-             py::arg("max_attempts") = 2)
+             py::arg("max_attempts") = 2,
+             py::arg("forced_duration") = 10)
         .def("__call__", &Brain::call,
              py::arg("velocity"),
              py::arg("collision"),

@@ -128,6 +128,7 @@ class RewardObj:
                     (100, SCREEN_WIDTH-100,
                      100, SCREEN_HEIGHT-100),
                  fetching: str="probabilistic",
+                 value: str="binary",
                  silent_duration: int = 10,
                  color: Tuple[int, int, int] = (25, 255, 0),
                  delay: int = 10):
@@ -144,6 +145,7 @@ class RewardObj:
         self.color = color
         self.collected = False
         self._fetching = fetching
+        self.reward_value = value
         self.silent_duration = silent_duration
         self.count = 0
 
@@ -166,10 +168,16 @@ class RewardObj:
                 " | silent:{self.silent_duration} av:{self.available}")
 
             if self._fetching == "deterministic":
-                self.collected = 1.0
+                if self.reward_value == "continuous":
+                    self.collected = np.exp(-distance / self.radius)
+                else:
+                    self.collected = 1.0
+
             elif self._fetching == "probabilistic":
                 p = np.exp(-distance / (2 * self.radius**2))
                 self.collected = np.random.binomial(1, p)
+                if self.reward_value == "continuous":
+                    self.collected *= p
         else:
             self.collected = 0.
 

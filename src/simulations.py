@@ -30,12 +30,13 @@ GAME_SCALE = games.SCREEN_WIDTH
 
 reward_settings = {
     "rw_fetching": "deterministic",
+    "rw_value": "continuous",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.05 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 50,
-    "silent_duration": 3_000,
+    "silent_duration": 6_000,
 }
 
 agent_settings = {
@@ -84,7 +85,7 @@ class Renderer:
         self.brain = brain
         self.colors = colors
         self.names = names
-        self.fig, self.axs = plt.subplots(2, 2, figsize=((1+self.size)*3, 3))
+        self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
         self.fig.set_tight_layout(True)
         self.boundsx = (-50, 400)
         self.boundsy = (-400, 50)
@@ -264,8 +265,8 @@ def run_game(env: games.Environment,
             # input()
 
         # -collision
-        # if observation[2]:
-        #     logger.debug(f">!!< Collision << [{observation[2]}]")
+        if observation[2]:
+            logger.debug(f">!!< Collision << [{observation[2]}]")
             # input()
 
         # velocity
@@ -376,7 +377,7 @@ def main_game(room_name: str="Square.v0"):
                            xfilter=gcn_fine,
                            name="2D")
 
-    local_scale_coarse = 0.005
+    local_scale_coarse = 0.006
     gcn_coarse = pclib.GridNetworkSq([
            pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_coarse,
                              bounds=[-1, 1, -1, 1]),
@@ -405,7 +406,7 @@ def main_game(room_name: str="Square.v0"):
     # ===| modulation |===
 
     da = pclib.BaseModulation(name="DA", size=model_params["N"],
-                              lr=0.4, threshold=0.08, max_w=2.0,
+                              lr=0.3, threshold=0.08, max_w=2.0,
                               tau_v=1.0, eq_v=0.0, min_v=0.0)
     bnd = pclib.BaseModulation(name="BND", size=model_params["N"],
                                lr=0.4, threshold=0.04, max_w=1.0,
@@ -424,7 +425,8 @@ def main_game(room_name: str="Square.v0"):
                                     action_delay=10.,
                                     edge_route_interval=80)
     brain = pclib.Brain(circuit, space, space_coarse, expmd, ssry, dpolicy,
-                        agent_settings["speed"], 2.*agent_settings["speed"], 5)
+                        agent_settings["speed"], 2.*agent_settings["speed"],
+                        5, 30)
 
 
     """ make game environment """
@@ -446,6 +448,7 @@ def main_game(room_name: str="Square.v0"):
                 position=reward_settings["rw_position"],
                 radius=reward_settings["rw_radius"],
                 fetching=reward_settings["rw_fetching"],
+                value=reward_settings["rw_value"],
                 bounds=room_bounds,
                 delay=reward_settings["delay"],
                 silent_duration=reward_settings["silent_duration"])

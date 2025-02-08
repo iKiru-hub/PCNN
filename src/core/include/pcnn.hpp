@@ -2276,10 +2276,10 @@ public:
 
     Eigen::VectorXf& make_value_mask(bool strict = false) {
 
-        Eigen::VectorXf& bnd_mask = bnd.make_mask();
+        Eigen::VectorXf& bnd_weights = bnd.get_weights();
 
         for (int i = 0; i < space_size; i++) {
-            float bnd_value = bnd_mask(i);
+            float bnd_value = bnd_weights(i);
 
             if (!strict) {
                 value_mask(i) = bnd_value < 0.01f ? 1.0f : 0.0f;
@@ -2287,13 +2287,13 @@ public:
             }
 
             if (bnd_value < 0.01f) {
-                LOG("[cir] value_mask: " + std::to_string(bnd_value) + " < 0.01");
+                /* LOG("[cir] value_mask: " + std::to_string(bnd_value) + " < 0.01"); */
                 value_mask(i) = 1.0f; }
             else if (bnd_value < threshold) { 
-                LOG("[cir] value_mask: 0.01 < " + std::to_string(bnd_value) + " < " + std::to_string(threshold));
+                /* LOG("[cir] value_mask: 0.01 < " + std::to_string(bnd_value) + " < " + std::to_string(threshold)); */
                 value_mask(i) = 0.01f; }
             else {
-                LOG("[cir] value_mask: " + std::to_string(bnd_value) + " > " + std::to_string(threshold));
+                /* LOG("[cir] value_mask: " + std::to_string(bnd_value) + " > " + std::to_string(threshold)); */
                 value_mask(i) = -1000.0; }
         }
 
@@ -2369,14 +2369,20 @@ struct RewardObject {
 
     int trg_idx = -1;
     float trg_value = 0.0f;
+    int min_weight_value = 0.2f;
 
     int update(Eigen::VectorXf& da_weights,
                PCNN_REF& space,
                bool trigger = true) {
 
-        // exit: no trigge
+        // exit: no trigger
         if (!trigger) {
             return -1;
+
+            // exit: weights not strong enough
+            if (da_weights.maxCoeff() < min_weight_value) {
+                return -1;
+            }
         }
 
         // --- update the target representation ---
@@ -2930,6 +2936,9 @@ public:
         // check: failed planning
         if (!fine_progress.second) {
             LOG("[Goal] failed fine planning");
+
+            // end coarse plan too
+            coarse_plan.reset();
             return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false); 
         }
 
@@ -3136,7 +3145,7 @@ class Brain {
     int clock;
     int trg_plan_end = 0;
     int forced_exploration = -1;
-    int forced_duration = 7;
+    int forced_duration;
 
     // initialize
     std::pair<std::array<float, 2>, int> expmd_res = \
@@ -3192,18 +3201,15 @@ class Brain {
 
 public:
 
-    Brain(Circuits& circuits,
-          PCNN_REF& space,
-          PCNN_REF& space_coarse,
-          ExplorationModule& expmd,
-          StationarySensory& ssry,
-          DensityPolicy& dpolicy,
-          float speed, float speed_coarse, int max_attempts = 3):
+    Brain(Circuits& circuits, PCNN_REF& space,
+          PCNN_REF& space_coarse, ExplorationModule& expmd,
+          StationarySensory& ssry, DensityPolicy& dpolicy,
+          float speed, float speed_coarse, int max_attempts = 3,
+          int forced_duration = 10):
         circuits(circuits), space(space), space_coarse(space_coarse),
         expmd(expmd), ssry(ssry), dpolicy(dpolicy),
-        /* trgp(TargetProgram(space, speed, max_attempts)), */
         goalmd(GoalModule(space, space_coarse, circuits, speed, speed_coarse)),
-        directive("new"), clock(0) {}
+        directive("new"), clock(0), forced_duration(forced_duration) {}
 
     // CALL
     std::array<float, 2> call(
@@ -3254,7 +3260,7 @@ public:
 
         // check: current trg plan
         if (goalmd.is_active()) {
-            LOG("[Brain] active goal plan");
+            /* LOG("[Brain] active goal plan"); */
             trg_plan_end = 0;
             std::pair<std::array<float, 2>, bool> progress = \
                 goalmd.step_plan(collision > 0.0f);
