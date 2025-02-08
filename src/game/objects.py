@@ -160,7 +160,10 @@ class RewardObj:
         distance = np.sqrt((self.x - agent_pos[0])**2 +
                       (self.y - agent_pos[1])**2)
 
-        if distance < self.radius and self.available and self.t > self.silent_duration:
+        if distance < self.radius and self.available and \
+            self.t > self.silent_duration:
+            print(f"[RW] collected | distance:{distance} | t:{self.t}" + \
+                " | silent:{self.silent_duration} av:{self.available}")
 
             if self._fetching == "deterministic":
                 self.collected = 1.0
@@ -174,7 +177,8 @@ class RewardObj:
             self.count += 1
             self.t_collected = self.t
 
-        self.available = ((self.t - self.t_collected) > self.delay) and (self.t > self.silent_duration)
+        self.available = ((self.t - self.t_collected) > self.delay) and \
+                (self.t > self.silent_duration)
 
         self.t += 1
 

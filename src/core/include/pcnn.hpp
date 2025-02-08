@@ -246,23 +246,7 @@ struct GSparams {
 };
 
 
-class VelocitySpace {
-
-    /* void update_node_angles(int idx) { */
-
-    /*     // update the neighbors */
-    /*     for (int j = 0; j < size; j++) { */
-    /*         if ( j == idx ) { continue; } */
-    /*         if (connectivity(idx, j) == 1.0) { */
-    /*             nodes_max_angle(j) = utils::calculate_angle_gap( */
-    /*                 j, centers, connectivity); */
-    /*         } */
-    /*     } */
-
-    /*     // update the node itself */
-    /*     nodes_max_angle(idx) = utils::calculate_angle_gap( */
-    /*         idx, centers, connectivity); */
-    /* } */
+struct VelocitySpace {
 
     void update_node_degree(int idx, int current_size) {
 
@@ -351,7 +335,6 @@ public:
         }
 
         // update the node angles
-        /* update_node_angles(idx); */
         update_node_degree(idx, current_size);
     }
 
@@ -389,8 +372,6 @@ public:
             std::to_string(j));
     }
 
-    /* std::vector<std::array<float, 2>> get_trajectory() { */
-    /*     return trajectory; } */
     Eigen::MatrixXf& get_centers(bool nonzero=false) {
 
         if (!nonzero) { return centers; }
@@ -403,10 +384,6 @@ public:
         }
         return centers_nonzero;
     }
-    /* Eigen::MatrixXf& get_connectivity() { return connectivity; } */
-    /* Eigen::MatrixXf& get_connections() { return weights; } */
-    /* Eigen::VectorXf& get_nodes_max_angle() { return nodes_max_angle; } */
-    /* std::array<float, 2> get_position() { return position; } */
 
     std::vector<std::array<std::array<float, 2>, 2>> make_edges() {
         // make a list of edges from the connectivity matrix
@@ -421,7 +398,7 @@ public:
                 }
             }
         }
-        return edges;  // Add this line to return the edges vector
+        return edges;
     }
 
     std::vector<std::array<std::array<float, 2>, 3>> make_edges_value(
@@ -1680,6 +1657,7 @@ private:
 
 
 class PCNNsqv2 {
+
     // parameters
     const int N;
     const int Nj;
@@ -1696,8 +1674,6 @@ class PCNNsqv2 {
     float threshold;
     float gain;
 
-    /* float ach; */
-
     GridNetworkSq xfilter;
 
     // variables
@@ -1713,7 +1689,6 @@ class PCNNsqv2 {
     int cell_count;
     Eigen::VectorXf u;
     Eigen::VectorXf x_filtered;
-    /* Eigen::MatrixXf gc_positions; */
 
     VelocitySpace vspace;
 
@@ -1736,25 +1711,15 @@ class PCNNsqv2 {
             };
         };
 
-        /* if (max_u < (threshold * ach) ) { return -1; } */
-        /* else { */
-        /*     DEBUG("Fixed index above threshold: " + \ */
-        /*         std::to_string(max_u) + \ */
-        /*         " [" + std::to_string(threshold) + "]"); */
-        /*     return max_idx; }; */
         return max_idx;
     }
 
     // @brief Quantify the indexes.
     void make_indexes() {
-
         free_indexes.clear();
         for (int i = 0; i < N; i++) {
-            if (Wff.row(i).sum() > 0.0f) {
-                fixed_indexes.push_back(i);
-            } else {
-                free_indexes.push_back(i);
-            }
+            if (Wff.row(i).sum() > 0.0f) { fixed_indexes.push_back(i); }
+            else { free_indexes.push_back(i); }
         }
     }
 
@@ -1762,21 +1727,14 @@ public:
     const float rec_threshold;
 
     PCNNsqv2(int N, int Nj, float gain, float offset,
-         float clip_min, float threshold,
-         float rep_threshold,
-         float rec_threshold,
-         int num_neighbors,
+         float clip_min, float threshold, float rep_threshold,
+         float rec_threshold, int num_neighbors,
          GridNetworkSq& xfilter, std::string name = "2D")
         : N(N), Nj(Nj), gain(gain), gain_const(gain),
-        offset(offset),
-        clip_min(clip_min),
-        rep_threshold(rep_threshold),
-        rep_threshold_const(rep_threshold),
-        rec_threshold(rec_threshold),
-        threshold_const(threshold),
-        threshold(threshold),
-        num_neighbors(num_neighbors),
-        xfilter(xfilter), name(name),
+        offset(offset), clip_min(clip_min), rep_threshold(rep_threshold),
+        rep_threshold_const(rep_threshold), rec_threshold(rec_threshold),
+        threshold_const(threshold), threshold(threshold),
+        num_neighbors(num_neighbors), xfilter(xfilter), name(name),
         vspace(VelocitySpace(N, rec_threshold)) {
 
         // Initialize the variables
@@ -1784,24 +1742,15 @@ public:
         Wffbackup = Eigen::MatrixXf::Zero(N, Nj);
         Wrec = Eigen::MatrixXf::Zero(N, N);
         connectivity = Eigen::MatrixXf::Zero(N, N);
-        /* centers = Eigen::MatrixXf::Zero(N, 2); */
         mask = Eigen::VectorXf::Zero(N);
         u = Eigen::VectorXf::Zero(N);
-        /* trace = Eigen::VectorXf::Zero(N); */
         delta_wff = 0.0;
         x_filtered = Eigen::VectorXf::Zero(N);
         cell_count = 0;
 
-        /* ach = 1.0; */
-
         // make vector of free indexes
-        for (int i = 0; i < N; i++) {
-            free_indexes.push_back(i);
-        }
+        for (int i = 0; i < N; i++) { free_indexes.push_back(i); }
         fixed_indexes = {};
-
-        LOG("PCNN gain: " + std::to_string(gain));
-        LOG("PCNN  rep: " + std::to_string(rep_threshold));
     }
 
     // CALL
@@ -1826,7 +1775,6 @@ public:
         u = utils::generalized_sigmoid_vec(u, offset,
                                            gain, clip_min);
 
-        /* return u; */
         return std::make_pair(u, x_filtered);
     }
 
@@ -1836,23 +1784,13 @@ public:
         make_indexes();
 
         // exit: a fixed neuron is above threshold
-        if (check_fixed_indexes() != -1) {
-            DEBUG("!Fixed index above threshold");
-           return void();
-        };
+        if (check_fixed_indexes() != -1) { return void(); }
 
         // exit: there are no free neurons
-        /* if (free_indexes.size() == 0) { */
-        if (cell_count == N) {
-            DEBUG("!No free neurons");
-            return void();
-        };
+        if (cell_count == N) { return void(); }
 
-        /* // pick new index */
-        /* int idx = utils::random.get_random_element_vec( */
-        /*                                 free_indexes); */
+        // pick new index
         int idx = free_indexes[cell_count];
-        DEBUG("Picked index: " + std::to_string(idx));
 
         // determine weight update
         Eigen::VectorXf dw = x_filtered - Wff.row(idx).transpose();
@@ -1881,9 +1819,6 @@ public:
             // update count and backup
             cell_count++;
             Wffbackup.row(idx) = Wff.row(idx);
-            /* LOG("(:)cell_count: " + std::to_string(cell_count) + \ */
-            /*     " [" + std::to_string(similarity) + ", idx=" + \ */
-            /*     std::to_string(idx) + "]"); */
 
             // record new center
             vspace.update(idx, get_size());
@@ -1944,11 +1879,6 @@ public:
 
         if (magnitude < 0.00001f) { return; }
 
-        /* LOG("--- remapping ---"); */
-        /* LOG("magnitude: " + std::to_string(magnitude)); */
-        /* LOG("displacement: " + std::to_string(displacement[0]) + ", " + std::to_string(displacement[1])); */
-        /* LOG("curr position: " + std::to_string(vspace.position[0]) + ", " + std::to_string(vspace.position[1])); */
-
         float max_dist = 0.0f;
         for (int i = 0; i < N; i++) {
 
@@ -1968,8 +1898,9 @@ public:
             max_dist = max_dist < dist ? dist : max_dist;
 
             // weight the displacement
-            std::array<float, 2> gc_displacement = {displacement[0] * dist * magnitude - displacement[0],
-                                                    displacement[1] * dist * magnitude - displacement[1]};
+            std::array<float, 2> gc_displacement = {
+                            displacement[0] * dist * magnitude - displacement[0],
+                            displacement[1] * dist * magnitude - displacement[1]};
 
             // pass the input through the filter layer
             x_filtered = xfilter.simulate_one_step(gc_displacement);
@@ -1979,8 +1910,7 @@ public:
 
             // check similarity
             float similarity = \
-                utils::max_cosine_similarity_in_rows(
-                    Wff, i);
+                utils::max_cosine_similarity_in_rows(Wff, i);
 
             // check repulsion (similarity) level
             if (similarity > (dist * min_rep_threshold + (1 - dist) * min_rep_threshold) || \
@@ -1989,21 +1919,15 @@ public:
                 continue;
             }
 
-            /* LOG("remapping " + std::to_string(i) + " [" + std::to_string(dist) + "]" + \ */
-            /*     " block=" + std::to_string(block_weights(i)) + \ */
-            /*     " sim=" + std::to_string(similarity) + \ */
-            /*     " [M=" + std::to_string(magnitude) + "]"); */
-
             // update backup and vspace
             Wffbackup.row(i) = Wff.row(i);
             vspace.remap_center(i, N, {displacement[0] * dist * magnitude,
                                        displacement[1] * dist * magnitude});
         }
-        /* LOG("max_dist: " + std::to_string(max_dist)); */
     }
 
     int calculate_closest_index(const std::array<float, 2>& c)
-    { return vspace.calculate_closest_index(c); }
+        { return vspace.calculate_closest_index(c); }
 
     void reset() { u = Eigen::VectorXf::Zero(N); }
 
@@ -2018,24 +1942,20 @@ public:
             std::to_string(rec_threshold) + \
             std::to_string(num_neighbors) + ")";
     }
-    Eigen::VectorXf get_activation() const { return u; }
+    Eigen::VectorXf& get_activation() { return u; }
     Eigen::VectorXf get_activation_gcn() const
         { return xfilter.get_activation(); }
-    Eigen::MatrixXf get_wff() const { return Wff; }
+    Eigen::MatrixXf& get_wff() { return Wff; }
     Eigen::MatrixXf& get_wrec() { return Wrec; }
     std::vector<std::array<std::array<float, 2>, 2>> make_edges()
         { return vspace.make_edges(); }
     std::vector<std::array<std::array<float, 2>, 3>> make_edges_value(
         Eigen::MatrixXf& values) { return vspace.make_edges_value(values); }
-    /* std::vector<std::array<float, 2>> get_trajectory() { */
-    /*     return vspace.get_trajectory(); } */
     Eigen::MatrixXf& get_connectivity() { return connectivity; }
     Eigen::MatrixXf& get_centers(bool nonzero = false)
         { return vspace.get_centers(nonzero); }
     Eigen::VectorXf& get_node_degrees() { return vspace.node_degree; }
-    float get_delta_update() const { return delta_wff; }
-    /* Eigen::VectorXf& get_nodes_max_angle() */
-    /*     {  return vspace.get_nodes_max_angle(); } */
+    float get_delta_update() { return delta_wff; }
     Eigen::MatrixXf get_positions_gcn()
         { return xfilter.get_positions(); }
     std::array<float, 2> get_position()
@@ -2058,7 +1978,7 @@ public:
     float get_rep() { return rep_threshold; }
     float get_threshold() { return threshold; }
     float calculate_angle_gap(int idx, Eigen::MatrixXf& centers,
-                            Eigen::MatrixXf& connectivity)
+                              Eigen::MatrixXf& connectivity)
         { return utils::calculate_angle_gap(idx, centers, connectivity); }
 
 };
@@ -2083,35 +2003,20 @@ public:
         // simulate
         if (simulate) {
             float z = v + (eq - v) * tau + x;
-            if (z < min_v) {
-                z = min_v;
-            }
+            if (z < min_v) { z = min_v; }
             return z;
         }
 
         v = v + (eq - v) * tau + x;
 
-        /* if (v < min_v) { */
-        /*     v = min_v; */
-        /* } */
-        if (v < min_v) {
-            v = 0.0f;
-        }
+        if (v < min_v) { v = 0.0f; }
         return v;
     }
 
     LeakyVariable1D(std::string name, float eq,
                     float tau, float min_v = 0.0)
         : name(std::move(name)), eq(eq), tau(1.0/tau),
-        v(eq), min_v(min_v){
-
-        /* LOG("[+] LeakyVariable1D created with name: " + \ */
-        /*     this->name); */
-    }
-
-    ~LeakyVariable1D() {
-        /* LOG("[-] LeakyVariable1D destroyed with name: " + name); */
-    }
+        v(eq), min_v(min_v){}
 
     float get_v() { return v; }
     std::string str() { return "LeakyVariable." + name; }
@@ -2138,7 +2043,6 @@ class BaseModulation{
     LeakyVariable1D leaky;
     std::string name;
     int size;
-    int size_coarse;
     float lr;
     float lt_p = 1.0f;
     float threshold;
@@ -2146,10 +2050,8 @@ class BaseModulation{
 
     // variables
     Eigen::VectorXf weights;
-    Eigen::VectorXf weights_coarse;
     Eigen::VectorXf mask;
-    Eigen::VectorXf mask_coarse;
-    std::array<float, 2> output;
+    float output;
 
     // prediction
     Eigen::VectorXf prediction;
@@ -2158,27 +2060,22 @@ class BaseModulation{
 public:
     float max_w;
 
-    BaseModulation(std::string name, int size, int size_coarse,
+    BaseModulation(std::string name, int size,
                    float lr, float threshold, float max_w = 1.0f,
                    float tau_v = 1.0f, float eq_v = 1.0f,
                    float min_v = 0.0f, float mask_threshold = 0.01f,
                    float lr_pred = 0.01f):
-        name(name), size(size), size_coarse(size_coarse), lr(lr),
-        threshold(threshold),
+        name(name), size(size), lr(lr), threshold(threshold),
         max_w(max_w), mask_threshold(mask_threshold),
         leaky(LeakyVariable1D(name, eq_v, tau_v, min_v)),
         lr_pred(lr_pred) {
         weights = Eigen::VectorXf::Zero(size);
-        weights_coarse = Eigen::VectorXf::Zero(size_coarse);
         mask = Eigen::VectorXf::Zero(size);
-        mask_coarse = Eigen::VectorXf::Zero(size_coarse);
         prediction = Eigen::VectorXf::Zero(size);
     }
 
-    ~BaseModulation() {}
-
     // CALL
-    std::array<float, 2> call(const Eigen::VectorXf& u, const Eigen::VectorXf& uc,
+    float call(const Eigen::VectorXf& u,
                float x = 0.0f, bool simulate = false) {
 
         // forward to the leaky variable
@@ -2190,62 +2087,37 @@ public:
 
                 // forward, delta from current input
                 float ui = u[i] > threshold ? u[i] : 0.0;
-                float uci = uc[i] > threshold ? uc[i] : 0.0;
-
                 float dw = lr * v * ui;
-                float dwc = lr * v * uci;
 
                 // backward, prediction error
                 float pred_err = lr_pred * (prediction[i] - v * ui);
 
                 // update weights
                 weights[i] += lr * v * ui + pred_err;
-                weights_coarse[i] += lr * v * uci;
 
                 // clip the weights in (0, max_w)
-                if (weights[i] < 0.0) {
-                    weights[i] = 0.0;
-                } else if (weights[i] > max_w) {
-                    weights[i] = max_w;
-                }
-                if (weights_coarse[i] < 0.0) {
-                    weights_coarse[i] = 0.0;
-                } else if (weights_coarse[i] > max_w) {
-                    weights_coarse[i] = max_w;
-                }
+                if (weights[i] < 0.0) { weights[i] = 0.0; }
+                else if (weights[i] > max_w) { weights[i] = max_w; }
             }
         }
 
         // compute the output
-        output = {0.0f, 0.0f};
-        for (int i = 0; i < size; i++) {
-            output[0] += weights[i] * u[i];
-            output[1] += weights_coarse[i] * uc[i];
-        }
+        output = 0.0f;
+        for (int i = 0; i < size; i++) { output += weights[i] * u[i]; }
         return output;
     }
 
-    void make_prediction(const Eigen::VectorXf& u) {
+    void make_prediction(const Eigen::VectorXf& u)
+        { for (int i = 0; i < size; i++) { prediction[i] = weights[i] * u[i]; }}
 
-        // update the prediction
-        for (int i = 0; i < size; i++) {
-            prediction[i] = weights[i] * u[i];
-        }
-    }
-
-    std::array<float, 2> get_output() { return output; }
-    /* std::vector<float> get_weights() { return weights; } */
+    float get_output() { return output; }
     Eigen::VectorXf& get_weights() { return weights; }
-    Eigen::VectorXf& get_weights_coarse() { return weights_coarse; }
-    std::array<Eigen::VectorXf, 2> make_mask() {
+    Eigen::VectorXf& make_mask() {
 
         // the nodes that are fresh in memory will affect action selection,
         // thus acting as a mask
-        for (int i = 0; i < size; i++) {
-            mask(i) = weights(i) > mask_threshold ? 0.0f : 1.0f;
-            mask_coarse(i) = weights_coarse(i) > mask_threshold ? 0.0f : 1.0f;
-        }
-        return {mask, mask_coarse};
+        for (int i = 0; i < size; i++) { this->mask(i) = weights(i) > mask_threshold ? 0.0f : 1.0f; }
+        return mask;
     }
     float get_leaky_v() { return leaky.get_v(); }
     std::string str() { return name; }
@@ -2312,24 +2184,15 @@ struct StationarySensory {
         float cosim = utils::cosine_similarity_vec(representation, prev_representation);
 
         // if cosine similarity is not nan
-        if (std::isnan(cosim) || cosim < min_cosine) {
-            /* LOG("[-] cosine similarity is nan"); */
-            /* float sum_1 = representation.sum(); */
-            /* float sum_2 = prev_representation.sum(); */
-            /* LOG("[-] curr repr sum: " + std::to_string(sum_1)); */
-            /* LOG("[-] prev repr sum: " + std::to_string(sum_2)); */
-            cosim = 0.0f;
-        }// else {
-            /* LOG("[+] cosine similarity: " + std::to_string(cosim)); */
-        /* } */
+        if (std::isnan(cosim) || cosim < min_cosine) { cosim = 0.0f; }
         v += (cosim - v) / tau;
         prev_representation = representation;
         return v > threshold;
     }
 
     StationarySensory(int size, float tau,
-                            float threshold = 0.2,
-                            float min_cosine = 0.5):
+                      float threshold = 0.2,
+                      float min_cosine = 0.5):
         tau(tau), threshold(threshold),
         prev_representation(Eigen::VectorXf::Zero(size)) {}
 
@@ -2341,7 +2204,6 @@ struct StationarySensory {
 
 struct DensityPolicy {
 
-    /* PCNN_REF& space; */
     float rwd_weight;
     float rwd_sigma;
     float col_weight;;
@@ -2370,13 +2232,10 @@ struct DensityPolicy {
         }
     }
 
-    DensityPolicy(float rwd_weight,
-                  float rwd_sigma,
-                  float col_weight,
-                  float col_sigma):
-        rwd_weight(rwd_weight),
-        rwd_sigma(rwd_sigma), col_sigma(col_sigma),
-        col_weight(col_weight) {}
+    DensityPolicy(float rwd_weight, float rwd_sigma,
+                  float col_weight, float col_sigma):
+        rwd_weight(rwd_weight), rwd_sigma(rwd_sigma),
+        col_sigma(col_sigma), col_weight(col_weight) {}
     std::string str() { return "DensityPolicy"; }
     std::string repr() { return "DensityPolicy"; }
     float get_rwd_mod() { return rwd_drive; }
@@ -2390,57 +2249,44 @@ class Circuits {
     BaseModulation& bnd;
 
     std::array<float, CIRCUIT_SIZE> output;
-    Eigen::VectorXf value_mask_fine;
-    Eigen::VectorXf value_mask_coarse;
+    Eigen::VectorXf value_mask;
     int space_size;
 
 public:
 
     Circuits(BaseModulation& da, BaseModulation& bnd):
-        da(da), bnd(bnd),
-        value_mask_fine(Eigen::VectorXf::Ones(da.len())),
-        value_mask_coarse(Eigen::VectorXf::Ones(da.len())),
+        da(da), bnd(bnd), value_mask(Eigen::VectorXf::Ones(da.len())),
         space_size(da.len()) {}
 
     // CALL
     std::array<float, CIRCUIT_SIZE> call(Eigen::VectorXf& representation,
-                              Eigen::VectorXf& representation_coarse,
-                              float collision,
-                              float reward,
-                              bool simulate = false) {
+            float collision, float reward, bool simulate = false) {
 
-        output[0] = bnd.call(representation, representation_coarse,
+        output[0] = bnd.call(representation,
                              collision, simulate);
-        output[1] = da.call(representation, representation_coarse,
+        output[1] = da.call(representation,
                             reward, simulate);
-
         return output;
     }
 
-     void make_value_mask(bool strict = false) {
+    Eigen::VectorXf& make_value_mask(bool strict = false) {
 
-        std::array<Eigen::VectorXf, 2>& bnd_masks = bnd.make_mask();
-        Eigen::VectorXf& bnd_mask_fine = bnd_masks[0];
-        Eigen::VectorXf& bnd_mask_coarse = bnd_masks[1];
+        Eigen::VectorXf& bnd_mask = bnd.make_mask();
 
         for (int i = 0; i < space_size; i++) {
-            float bnd_value_fine = bnd_mask_fine(i);
-            float bnd_value_coarse = bnd_mask_coarse(i);
+            float bnd_value = bnd_mask(i);
 
             if (!strict) {
-                value_mask_fine(i) = bnd_value_fine < 0.01f ? 1.0f : 0.0f;
-                value_mask_coarse(i) = bnd_value_coarse < 0.01f ? 1.0f : 0.0f;
+                value_mask(i) = bnd_value < 0.01f ? 1.0f : 0.0f;
                 continue;
             }
 
             if (bnd_value < 0.01f) { value_mask(i) = 1.0f; }
             else if (bnd_value < 0.5f) { value_mask(i) = 0.00f; }
             else { value_mask(i) = -1000.0; }
-
-            if (bnd_value_coarse < 0.01f) { value_mask_coarse(i) = 1.0f; }
-            else if (bnd_value_coarse < 0.5f) { value_mask_coarse(i) = 0.00f; }
-            else { value_mask_coarse(i) = -1000.0; }
         }
+
+        return value_mask;
     }
 
     void make_prediction(Eigen::VectorXf& representation) {
@@ -2454,12 +2300,9 @@ public:
     std::array<float, CIRCUIT_SIZE> get_output() { return output; }
     std::array<float, 2> get_leaky_v() { return {da.get_leaky_v(), bnd.get_leaky_v()}; }
     Eigen::VectorXf& get_da_weights() { return da.get_weights(); }
-    Eigen::VectorXf& get_da_weights_coarse() { return da.get_weights_coarse(); }
     Eigen::VectorXf& get_bnd_weights() { return bnd.get_weights(); }
-    Eigen::VectorXf& get_bnd_weights_coarse() { return bnd.get_weights_coarse(); }
-    Eigen::VectorXf& get_value_mask_fine() { return value_mask_fine; }
-    Eigen::VectorXf& get_value_mask_coarse() { return value_mask_coarse; }
     Eigen::VectorXf get_bnd_mask() { return bnd.make_mask(); }
+    Eigen::VectorXf& get_value_mask() { return value_mask; }
     void reset() {
         da.reset();
         bnd.reset();
@@ -2553,8 +2396,8 @@ struct RewardObject {
         this->trg_idx = trg_idx;
         this->trg_value = da_weights(trg_idx);
 
-        LOG("[+] RewardObject: trg_idx=" + std::to_string(trg_idx) + \
-            " | trg_value=" + std::to_string(trg_value));
+        /* LOG("[+] RewardObject: trg_idx=" + std::to_string(trg_idx) + \ */
+        /*     " | trg_value=" + std::to_string(trg_value)); */
 
         return trg_idx;
     }
@@ -2762,14 +2605,16 @@ public:
         // check if it's the last point
         if (plan_idxs[counter] == tmp_trg_idx) {
         } else if (plan_idxs[counter] < -10000 || plan_idxs[counter] > 10000) {
-            LOG("[!] !!! possible memory leak?? " + std::to_string(plan_idxs[counter]) + ", counter=" + \
-                std::to_string(counter) + " | plan size=" + std::to_string(plan_idxs.size()));
+            LOG("[!] !!! possible memory leak?? " + \
+                std::to_string(plan_idxs[counter]) + ", counter=" + \
+                std::to_string(counter) + " | plan size=" + \
+                std::to_string(plan_idxs.size()));
         }
 
         // distance netween the current and next position
         float dx = next_position[0] - curr_position[0];
         float dy = next_position[1] - curr_position[1];
-        float dist = utils::euclidean_distance(curr_position, next_position);
+        dist = utils::euclidean_distance(curr_position, next_position);
 
         // determine velocity magnitude
         if (dist < speed) { local_velocity = {dx, dy}; }
@@ -2826,7 +2671,7 @@ struct Plan {
     std::vector<int> plan_idxs = {};
     std::array<float, 2> curr_position = {0.0f, 0.0f};
     std::array<float, 2> next_position = {0.0f, 0.0f};
-    int size = 0;
+    int size = -1;
     int counter = 0;
     int curr_idx = -1;
     int trg_idx = -1;
@@ -2837,12 +2682,15 @@ struct Plan {
         float distance = calculate_distance();
 
         // same next position
-        if (distance > 0.01f && counter > 0)
-            { return std::make_pair(make_velocity(), true); }
+        if (distance > 0.01f && counter > 0) {
+            LOG("[plan] same next position");
+            return std::make_pair(make_velocity(), true);
+        }
 
         // check: end of the plan
-        if (counter > (size-1)) {
+        if (counter > size || curr_idx == trg_idx) {
             reset();
+            LOG("[plan] end of the plan");
             return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
         }
 
@@ -2852,9 +2700,12 @@ struct Plan {
 
         // check if it's the last point
         if (plan_idxs[counter] == trg_idx) {
+            LOG("[plan] last point | idx=" + std::to_string(trg_idx));
         } else if (plan_idxs[counter] < -10000 || plan_idxs[counter] > 10000) {
-            LOG("[!] !!! possible memory leak?? " + std::to_string(plan_idxs[counter]) + ", counter=" + \
-                std::to_string(counter) + " | plan size=" + std::to_string(plan_idxs.size()));
+            LOG("[!plan] !!! possible memory leak?? " + \
+                std::to_string(plan_idxs[counter]) + ", counter=" + \
+                std::to_string(counter) + " | plan size=" + \
+                std::to_string(plan_idxs.size()));
         }
 
         counter++;
@@ -2868,12 +2719,19 @@ struct Plan {
         float dy = next_position[1] - curr_position[1];
 
         // determine velocity magnitude
-        if (distance < speed) { local_velocity = {dx, dy}; }
+        if (std::sqrt(dx * dx + dy * dy) < speed)
+            {
+            LOG("[plan] just a little bit");
+            local_velocity = {dx, dy}; }
         else {
-            float norm = sqrt(dx * dx + dy * dy);
+            float norm = std::sqrt(dx * dx + dy * dy);
+            LOG("[plan] norm=" + std::to_string(norm) + \
+                " | speed=" + std::to_string(speed));
             local_velocity = {speed * dx / norm,
                               speed * dy / norm};
         }
+        LOG("[plan] local_velocity=" + std::to_string(local_velocity[0]) + \
+            ", " + std::to_string(local_velocity[1]));
         return local_velocity;
     }
 
@@ -2892,13 +2750,12 @@ struct Plan {
         this->trg_idx = plan_idxs.back();
     }
 
-    bool is_finished() { return counter == size; }
+    bool is_finished() { return counter > size; }
     std::array<float, 2> get_next_position() { return next_position; }
 
     void reset() {
-        tmp_trg_idx = -1;
         plan_idxs = {};
-        size = 0;
+        size = -1;
         counter = 0;
         curr_idx = -1;
         trg_idx = -1;
@@ -2915,13 +2772,11 @@ class GoalModule {
     PCNN_REF& space_fine;
     PCNN_REF& space_coarse;
     Circuits& circuits;
+    Eigen::VectorXf flat_weights;
 
     // internal components
     Plan fine_plan;
     Plan coarse_plan;
-
-    // parameters
-    float speed;
 
     // variables
     bool using_coarse = true;
@@ -2935,7 +2790,7 @@ class GoalModule {
 
         // current index and value
         if (curr_idx == -1)
-            { int curr_idx = space.calculate_closest_index(space.curr_position()); }
+            { curr_idx = space.calculate_closest_index(space.get_position()); }
 
         // plan
         std::vector<int> plan_idxs = \
@@ -2945,23 +2800,29 @@ class GoalModule {
                                          curr_idx, trg_idx);
 
         // check if the plan is valid, ie size > 1
-        if (plan_idxs.size() < 1) { return std::make_pair({}, false); }
+        if (plan_idxs.size() < 1) { 
+            return std::make_pair(std::vector<int>{}, false); }
+
+        LOG("[goal] new plan:");
+        for (int i = 0; i < plan_idxs.size(); i++) {
+            std::cout << plan_idxs[i] << " ";
+        }
+        LOG(" ");
+
         return std::make_pair(plan_idxs, true);
     }
 
 public:
 
     GoalModule(PCNN_REF& space_fine, PCNN_REF& space_coarse,
-               Circuits& circuits, float speed):
+               Circuits& circuits, float speed, float speed_coarse):
         space_fine(space_fine), space_coarse(space_coarse),
         circuits(circuits),
-        speed(speed), coarse_plan(space_coarse, true, speed),
-        fine_plan(space_fine, false, speed),
-        final_fine_plan(space_fine, false, speed) {}
+        flat_weights(Eigen::VectorXf::Ones(space_coarse.get_size())),
+        coarse_plan(space_coarse, true, speed_coarse),
+        fine_plan(space_fine, false, speed) {}
 
     bool update(int trg_idx_fine) {
-
-        circuits.make_value_mask();
 
         // -- make a coarse plan
 
@@ -2972,7 +2833,7 @@ public:
 
         // plan from the current position
         std::pair<std::vector<int>, bool> res_coarse = \
-            make_plan(space_coarse, circuits.get_value_mask_coarse(),
+            make_plan(space_coarse, flat_weights,
                       trg_idx_coarse);
 
         // check: failed planning
@@ -2987,7 +2848,7 @@ public:
 
         // plan from the last index of the coarse plan
         std::pair<std::vector<int>, bool> res_fine = \
-            make_plan(space_fine, circuits.get_value_mask_fine(),
+            make_plan(space_fine, circuits.make_value_mask(true),
                       trg_idx_fine, curr_idx_fine);
 
         // check: failed planning
@@ -2995,13 +2856,12 @@ public:
 
         // record
         coarse_plan.set_plan(res_coarse.first);
-        /* final_fine_plan.set_plan(res_fine.first); */
         final_fine_idx = trg_idx_fine;
 
         return true;
     }
 
-    std::pair<std::array<float, 2>, bool> step_plan(bool obstacle) {
+    std::pair<std::array<float, 2>, bool> step_plan(bool obstacle = false) {
 
         // exit: active
         if (coarse_plan.is_finished() && fine_plan.is_finished())
@@ -3012,18 +2872,23 @@ public:
         // -- obstacle handling
 
         // -- coarse plan
-        if (using_coarse && !coarse_plan.is_finished()) {
+        if (using_coarse && !coarse_plan.is_finished() && \
+            !obstacle && !is_fine_tuning) {
             std::pair<std::array<float, 2>, bool> coarse_progress = \
                         coarse_plan.step_plan();
+
+            LOG("coarse_progress=" + std::to_string(coarse_progress.second));
 
             // exit: coarse action
             if (coarse_progress.second) { return coarse_progress; }
         }
+        LOG("obstacle=" + std::to_string(obstacle));
 
         // -- fine plan
 
         // [] case 1: already fine tuning
         if (is_fine_tuning) {
+            LOG("[+] fine tuning..");
             std::pair<std::array<float, 2>, bool> fine_progress = \
                 fine_plan.step_plan();
 
@@ -3032,29 +2897,35 @@ public:
                 is_fine_tuning = false;
 
                 // also the coarse plan is finished
-                if (course_plan.is_finished()) { return fine_progress; }
+                if (coarse_plan.is_finished()) { return fine_progress; }
             }
 
-            return std::make_pair(fine_plan.first, true);
+            return std::make_pair(fine_progress.first, true);
         }
 
         // [] case 2: start fine tuning
-        if (coarse_plan.is_finished()) { int trg_idx_fine = final_fine_idx; }
+        int trg_idx_fine = -1;
+        if (coarse_plan.is_finished()) { trg_idx_fine = final_fine_idx; }
         else {
             // make a new plan to the coarse plan next position
-            int trg_idx_fine = space_fine.calculate_closest_index(
-                        coarse_plan.get_next_position())
+            trg_idx_fine = space_fine.calculate_closest_index(
+                        coarse_plan.get_next_position());
         }
+        LOG("[+] trg_idx_fine=" + std::to_string(trg_idx_fine));
         std::pair<std::vector<int>, bool> fine_progress = \
-            make_plan(space_fine, circuits.get_value_mask_fine(),
+            make_plan(space_fine, circuits.make_value_mask(true),
                       trg_idx_fine);
 
         // check: failed planning
-        if (!fine_progress.second) { return false; }
+        if (!fine_progress.second) {
+            LOG("[-] failed fine planning");
+            return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false); 
+        }
 
         // record
         fine_plan.set_plan(fine_progress.first);
         is_fine_tuning = true;
+        LOG("[+] start fine tuning");
 
         return fine_plan.step_plan();
     }
@@ -3062,13 +2933,13 @@ public:
     void reset() {
         coarse_plan.reset();
         fine_plan.reset();
-        final_fine_plan.reset();
         is_fine_tuning = false;
         fine_tuning_time = 0;
         final_fine_idx = -1;
     }
 
-    bool is_active() { return !coarse_plan.is_finished() || !fine_plan.is_finished(); }
+    bool is_active() { return !coarse_plan.is_finished() || \
+        !fine_plan.is_finished(); }
     std::vector<int> get_plan_idxs_fine() { return fine_plan.plan_idxs; }
     std::vector<int> get_plan_idxs_coarse() { return coarse_plan.plan_idxs; }
 };
@@ -3089,35 +2960,33 @@ class ExplorationModule {
     // plan
     int t = 0;
     std::array<float, 2> action = {0.0f, 0.0f};
+    int edge_idx = -1;
 
     // alternate between random walk and edge exploration
     int edge_route_time = 0;
     int edge_route_interval = 100;
 
     // make new plan
-    int make_plan(Eigen::VectorXf& curr_representation,
-                  int rejected_idx) {
+    int make_plan(int rejected_idx) {
 
         // check: the current position is at an open boundary
-        Eigen::Index maxIndex;
-        curr_representation.maxCoeff(&maxIndex);
-        int start_idx = static_cast<int>(maxIndex);
-        float value = open_boundary_value(start_idx, circuits.get_bnd_weights(),
+        int curr_idx = space.calculate_closest_index(space.get_position());
+        float value = open_boundary_value(curr_idx, circuits.get_bnd_weights(),
                                           space.get_node_degrees());
 
         // [+] new random walk plan at an open boundary
         if (value < open_threshold || rejected_idx == 404 || \
-            edge_route_time < edge_route_interval) {
-            return -1;
-        }
+            edge_route_time < edge_route_interval) { return -1; }
 
         // check: there are points at the open boundary
         int open_boundary_idx = get_open_boundary_idx(rejected_idx);
 
         // [+] new random walk plan at an open boundary
-        if (open_boundary_idx < 1) { return -1; }
+        if (open_boundary_idx < 1) {
+            return -1; }
 
         // [+] new trg plan to reach the open boundary
+        LOG("[exp] new trg plan to reach the open boundary");
         return open_boundary_idx;
     }
 
@@ -3163,6 +3032,7 @@ class ExplorationModule {
                 min_value = value;
             }
         }
+        this->edge_idx = idx;
         return idx;
     }
 
@@ -3176,21 +3046,16 @@ class ExplorationModule {
 public:
     bool new_plan = true;
 
-    ExplorationModule(float speed,
-                     Circuits& circuits,
-                     PCNN_REF& space,
-                     float action_delay = 1.0f,
+    ExplorationModule(float speed, Circuits& circuits,
+                     PCNN_REF& space, float action_delay = 1.0f,
                      int edge_route_interval = 100):
-            speed(speed), circuits(circuits),
-            space(space),
-            action_delay(action_delay),
-            edge_route_interval(edge_route_interval),
-            rejected_indexes(Eigen::VectorXf::Zero(space.get_size())) {}
+        speed(speed), circuits(circuits), space(space),
+        action_delay(action_delay), edge_route_interval(edge_route_interval),
+        rejected_indexes(Eigen::VectorXf::Zero(space.get_size())) {}
 
     // CALL
     std::pair<std::array<float, 2>, int>
-    call(std::string directive, Eigen::VectorXf& curr_representation,
-         int rejected_idx = -1) {
+    call(std::string directive, int rejected_idx = -1) {
 
         // check: previous plan ongoing
         std::pair<std::array<float, 2>, bool> next_step = step_random_plan();
@@ -3199,7 +3064,7 @@ public:
         if (directive == "new" || next_step.second) {
 
             // rejection : the attempt to make a trg plan to the boundary has failed
-            int res = make_plan(curr_representation, rejected_idx);
+            int res = make_plan(rejected_idx);
             this->new_plan = true;
 
             // new plan to the open boundary
@@ -3225,6 +3090,14 @@ public:
     void confirm_edge_walk() { edge_route_time = 0; }
     void reset_rejected_indexes()
         { rejected_indexes = Eigen::VectorXf::Zero(space.get_size()); }
+    Eigen::VectorXf get_edge_representation() {
+
+        Eigen::VectorXf edge_rep = Eigen::VectorXf::Zero(space.get_size());
+
+        if (edge_idx < 0) { return edge_rep; }
+        edge_rep(edge_idx) = 1.0f;
+        return edge_rep;
+    }
 };
 
 
@@ -3248,7 +3121,7 @@ class Brain {
 
     // variables
     Eigen::VectorXf curr_representation;
-    Eigen::VectorXf curr_representation_sparse;
+    Eigen::VectorXf curr_representation_coarse;
     std::string directive;
     int clock;
     int trg_plan_end = 0;
@@ -3272,15 +3145,13 @@ class Brain {
             // attempt a plan
             /* trgp.reset(); */
             goalmd.reset();
-            bool valid_plan = goalmd.update(curr_representation,
-                                          circuits.make_value_mask(false),
-                                          idx);
+            bool valid_plan = goalmd.update(idx);
 
             // valid plan
             if (valid_plan) {
                 this->directive = "trg ob";
                 std::pair<std::array<float, 2>, bool> progress = \
-                    goalmd.step_plan(curr_representation);
+                    goalmd.step_plan(false);
 
                 // confirm the edge walk
                 expmd.confirm_edge_walk();
@@ -3289,13 +3160,13 @@ class Brain {
 
             // invalid plan -> try again
             std::pair<std::array<float, 2>, int> expmd_res = \
-                expmd.call(directive, curr_representation, idx);
+                expmd.call(directive, idx);
             idx = expmd_res.second;
         }
 
         // tried too many times, make a random walk plan instead
         std::pair<std::array<float, 2>, int> expmd_res = \
-            expmd.call(directive, curr_representation, 404);
+            expmd.call(directive, 404);
 
         return expmd_res.first;
     }
@@ -3318,11 +3189,11 @@ public:
           ExplorationModule& expmd,
           StationarySensory& ssry,
           DensityPolicy& dpolicy,
-          float speed, int max_attempts = 3):
-        circuits(circuits), space(space),
+          float speed, float speed_coarse, int max_attempts = 3):
+        circuits(circuits), space(space), space_coarse(space_coarse),
         expmd(expmd), ssry(ssry), dpolicy(dpolicy),
         /* trgp(TargetProgram(space, speed, max_attempts)), */
-        goalmd(GoalModule(space, space_coarse, circuits, speed)),
+        goalmd(GoalModule(space, space_coarse, circuits, speed, speed_coarse)),
         directive("new"), clock(0) {}
 
     // CALL
@@ -3333,11 +3204,14 @@ public:
 
         clock++;
 
+        if (collision > 0.0f) { LOG("[brain] collision received"); }
+        if (reward > 0.0f) { LOG("[brain] reward received"); }
+
         // === STATE UPDATE ==============================================
 
         // :space
         auto [u, _] = space.call(velocity);
-        auto [uc, _] = space_coarse.call(velocity);
+        auto [uc, __] = space_coarse.call(velocity);
         this->curr_representation = u;
         this->curr_representation_coarse = uc;
 
@@ -3352,19 +3226,12 @@ public:
                      internal_state[1], internal_state[0],
                      reward, collision);
         space.update();
-
-        // :dpolicy coarse space
-        dpolicy.call(space_coarse, circuits.get_da_weights_coarse(),
-                     circuits.get_bnd_weights_coarse(),
-                     velocity,
-                     internal_state[1], internal_state[0],
-                     reward, collision);
         space_coarse.update();
 
         // check: still-ness | wrt the fine space
         if (forced_exploration < forced_duration) {
             forced_exploration++;
-            trgp.reset();
+            goalmd.reset();
             goto explore;
         } else if (ssry.call(curr_representation)) {
             LOG("<forced exploration> : v=" + std::to_string(ssry.get_v()));
@@ -3374,19 +3241,13 @@ public:
 
         // === GOAL-DIRECTED BEHAVIOUR ====================================
 
-        // :target program
-        /* trgp.set_wrec(space.get_connectivity()); */
-        /* trgp.set_centers(space.get_centers()); */
-        /* trgp.step_episodic_memory(reward); */
-
         // --- current target plan
 
         // check: current trg plan
-        /* if (trgp.is_active()) { */
         if (goalmd.is_active()) {
             trg_plan_end = 0;
             std::pair<std::array<float, 2>, bool> progress = \
-                goalmd.step_plan(curr_representation);
+                goalmd.step_plan(collision > 0.0f);
 
             // keep going
             if (progress.second) {
@@ -3408,24 +3269,15 @@ public:
 
         if (tmp_trg_idx > -1) {
 
-            // trg position
-            /* Eigen::VectorXf trg_position = space.get_centers().row(tmp_trg_idx); */
-
-            // argmax of the current representation
-            /* Eigen::Index maxIndex; */
-            /* curr_representation.maxCoeff(&maxIndex); */
-            /* int curr_idx = static_cast<int>(maxIndex); */
-            /* Eigen::VectorXf curr_position = space.get_centers().row(curr_idx); */
-
             // check new reward trg plan
-            bool valid_plan = goalmd.update(curr_representation,
-                                            circuits.make_value_mask(),
-                                            tmp_trg_idx);
+            bool valid_plan = goalmd.update(tmp_trg_idx);
 
             // [+] reward trg plan
             if (valid_plan) {
+                LOG("[brain] valid trg plan");
                 this->directive = "trg";
-                std::pair<std::array<float, 2>, bool> progress = trgp.step_plan(curr_representation);
+                std::pair<std::array<float, 2>, bool> progress = \
+                    goalmd.step_plan(collision > 0.0f);
                 if (progress.second) {
                     this->action = progress.first;
                     goto final;
@@ -3442,8 +3294,7 @@ explore:
         else { this->directive = "continue"; }
 
         // :experience module
-        /* return expmd.call(directive, curr_representation); */
-        expmd_res = expmd.call(directive, curr_representation);
+        expmd_res = expmd.call(directive);
 
         // check: plan to go to the open boundary
         if (expmd_res.second > -1) {
@@ -3458,6 +3309,9 @@ final:
 
         // make prediction
         make_prediction();
+
+        LOG("[brain] action=" + std::to_string(action[0]) + ", " + \
+            std::to_string(action[1]));
         return action;
     }
 
@@ -3471,8 +3325,7 @@ final:
     }
     int get_trg_idx() { return rwobj.trg_idx; }
     std::array<float, 2> get_leaky_v() { return circuits.get_leaky_v(); }
-    Eigen::VectorXf& get_representation()
-        { return curr_representation; }
+    Eigen::VectorXf& get_representation() { return curr_representation; }
     Eigen::VectorXf& get_representation_coarse()
         { return curr_representation_coarse; }
     std::array<float, 2> get_trg_position() {
@@ -3481,15 +3334,14 @@ final:
     }
     ExplorationModule& get_expmd() { return expmd; }
     PCNN_REF& get_space() { return space; }
-    Eigen::MatrixXf& get_episodic_memory()
-        { return trgp.get_episodic_memory(); }
-    std::vector<std::array<std::array<float, 2>, 3>> make_edges_value()
-        { return space.make_edges_value(trgp.get_episodic_memory()); }
     std::string get_directive() { return directive; }
     std::vector<int> get_plan_idxs_fine() { return goalmd.get_plan_idxs_fine(); }
     std::vector<int> get_plan_idxs_coarse() { return goalmd.get_plan_idxs_coarse(); }
     std::array<float, 2> get_space_position_fine() { return space.get_position(); }
-    std::array<float, 2> get_space_position_coarse() { return space_coarse.get_position(); }
+    std::array<float, 2> get_space_position_coarse()
+        { return space_coarse.get_position(); }
+    Eigen::VectorXf get_edge_representation() 
+        { return expmd.get_edge_representation(); }
     void reset() {
         /* trgp.reset(); */
         goalmd.reset();
@@ -3558,26 +3410,27 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     gcn_layers.push_back(GridLayerSq(0.04, 0.03, {-1.0f, 1.0f, -1.0f, 1.0f}));
     gcn_layers.push_back(GridLayerSq(0.04, 0.005, {-1.0f, 1.0f, -1.0f, 1.0f}));
     GridNetworkSq gcn = GridNetworkSq(gcn_layers);
-    PCNNsqv2 space = PCNNsqv2(N, gcn.len(), 10.0f, 1.4f, 0.01f, 0.2f, 0.7f, 5.0f, 5, gcn, "2D");
-    PCNNsqv2 space_coarse = PCNNsqv2(N, gcn.len(), 10.0f, 1.4f, 0.01f, 0.2f, 0.7f, 5.0f, 5, gcn, "2D");
+    PCNNsqv2 space = PCNNsqv2(N, gcn.len(), 10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
+                              5.0f, 5, gcn, "2D");
+    PCNNsqv2 space_coarse = PCNNsqv2(N, gcn.len(),
+                                     10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
+                                     5.0f, 5, gcn, "2D");
 
     // MODULATION
     // name size lr threshold maxw tauv eqv minv
-    BaseModulation da = BaseModulation("DA", N, 0.5f, 0.0f, 1.0f, 2.0f, 0.0f, 0.0f, 0.01f);
-    BaseModulation bnd = BaseModulation("BND", N, 0.9f, 0.0f, 1.0f, 2.0f, 0.0f, 0.0f, 0.01f);
-    /* MemoryRepresentation memrepr = MemoryRepresentation(N, 2.0f, 0.1f); */
-    /* MemoryAction memact = MemoryAction(2.0f); */
+    BaseModulation da = BaseModulation("DA", N, 0.5f, 0.0f, 1.0f,
+                                       2.0f, 0.0f, 0.0f, 0.01f);
+    BaseModulation bnd = BaseModulation("BND", N, 0.9f, 0.0f, 1.0f,
+                                        2.0f, 0.0f, 0.0f, 0.01f);
     StationarySensory ssry = StationarySensory(N, 100.0f, 0.2f, 0.5f);
-    Circuits circuits = Circuits(da, bnd);//, memrepr, memact);
+    Circuits circuits = Circuits(da, bnd);
 
-    // TARGET PROGRAM
-    /* TargetProgram trgp = TargetProgram(space.get_connectivity(), space.get_centers(), */
-    /*                                    da.get_weights(), SPEED); */
     // EXPERIENCE MODULE & BRAIN
-    DensityPolicy dpolicy = DensityPolicy(space, 0.5f, 40.0f, 0.5f, 20.0f);
-    ExplorationModule expmd = ExperienceModule(SPEED, circuits, space, 1.0f);
+    DensityPolicy dpolicy = DensityPolicy(0.5f, 40.0f, 0.5f, 20.0f);
+    ExplorationModule expmd = ExplorationModule(SPEED, circuits, space, 1.0f);
                                               /* {bnd_w, 0.0f, 0.0f, 0.0f, 0.0f}, 1.0f); */
-    Brain brain = Brain(circuits, space, space_coarse expmd, ssry, dpolicy, SPEED, 5);
+    Brain brain = Brain(circuits, space, space_coarse, expmd, ssry, dpolicy, 
+                        SPEED, SPEED * 2.0f, 5);
 
     // simulation settigns
     Reward reward = Reward(10.0f, 10.0f, 1.0f, pause);

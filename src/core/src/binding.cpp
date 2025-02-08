@@ -276,14 +276,14 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("eq"))
         .def("reset", &LeakyVariable1D::reset);
 
-    py::class_<PopulationMaxProgram>(m, "PopulationMaxProgram")
-        .def(py::init<>())
-        .def("__str__", &PopulationMaxProgram::str)
-        .def("__repr__", &PopulationMaxProgram::repr)
-        .def("__call__", &PopulationMaxProgram::call,
-             py::arg("u"))
-        .def("len", &PopulationMaxProgram::len)
-        .def("get_value", &PopulationMaxProgram::get_value);
+    /* py::class_<PopulationMaxProgram>(m, "PopulationMaxProgram") */
+    /*     .def(py::init<>()) */
+    /*     .def("__str__", &PopulationMaxProgram::str) */
+    /*     .def("__repr__", &PopulationMaxProgram::repr) */
+    /*     .def("__call__", &PopulationMaxProgram::call, */
+    /*          py::arg("u")) */
+    /*     .def("len", &PopulationMaxProgram::len) */
+    /*     .def("get_value", &PopulationMaxProgram::get_value); */
 
     /* py::class_<MemoryRepresentation>(m, "MemoryRepresentation") */
     /*     .def(py::init<int, float, float>(), */
@@ -353,40 +353,40 @@ PYBIND11_MODULE(pclib, m) {
 
     /* MODULES */
 
-    py::class_<TargetProgram>(m, "TargetProgram")
-        /* .def(py::init<Eigen::VectorXf&, PCNN_REF&, */
-        /*      float>(), */
-        .def(py::init<PCNN_REF&, float>(),
-             /* py::arg("wrec"), */
-             /* py::arg("centers"), */
-             /* py::arg("da_weights"), */
-             py::arg("space"),
-             py::arg("speed"))
-        .def("__len__", &TargetProgram::len)
-        .def("__str__", &TargetProgram::str)
-        .def("__repr__", &TargetProgram::repr)
-        .def("is_active", &TargetProgram::is_active)
-        .def("update", &TargetProgram::update,
-             py::arg("curr_representation"),
-             py::arg("space_weights"),
-             py::arg("tmp_trg_idx") = true)
-             /* py::arg("use_episodic_memory") = true) */
-             /* py::arg("trigger") = true) */
-        .def("step_plan", &TargetProgram::step_plan)
-        .def("make_shortest_path", &TargetProgram::make_shortest_path,
-             py::arg("wrec"),
-             py::arg("start_idx"),
-             py::arg("end_idx"))
-        /* .def("set_da_weights", &TargetProgram::set_da_weights, */
-        /*      py::arg("da_weights")) */
-        .def("set_wrec", &TargetProgram::set_wrec,
-             py::arg("wrec"))
-        /* .def("get_trg_idx", */
-        /*      &TargetProgram::get_trg_idx) */
-        .def("get_plan", &TargetProgram::get_plan);
+    /* py::class_<TargetProgram>(m, "TargetProgram") */
+    /*     /1* .def(py::init<Eigen::VectorXf&, PCNN_REF&, *1/ */
+    /*     /1*      float>(), *1/ */
+    /*     .def(py::init<PCNN_REF&, float>(), */
+    /*          /1* py::arg("wrec"), *1/ */
+    /*          /1* py::arg("centers"), *1/ */
+    /*          /1* py::arg("da_weights"), *1/ */
+    /*          py::arg("space"), */
+    /*          py::arg("speed")) */
+    /*     .def("__len__", &TargetProgram::len) */
+    /*     .def("__str__", &TargetProgram::str) */
+    /*     .def("__repr__", &TargetProgram::repr) */
+    /*     .def("is_active", &TargetProgram::is_active) */
+    /*     .def("update", &TargetProgram::update, */
+    /*          py::arg("curr_representation"), */
+    /*          py::arg("space_weights"), */
+    /*          py::arg("tmp_trg_idx") = true) */
+    /*          /1* py::arg("use_episodic_memory") = true) *1/ */
+    /*          /1* py::arg("trigger") = true) *1/ */
+    /*     .def("step_plan", &TargetProgram::step_plan) */
+    /*     /1* .def("make_shortest_path", &TargetProgram::make_shortest_path, *1/ */
+    /*     /1*      py::arg("wrec"), *1/ */
+    /*     /1*      py::arg("start_idx"), *1/ */
+    /*          /1* py::arg("end_idx")) *1/ */
+    /*     /1* .def("set_da_weights", &TargetProgram::set_da_weights, *1/ */
+    /*     /1*      py::arg("da_weights")) *1/ */
+    /*     .def("set_wrec", &TargetProgram::set_wrec, */
+    /*          py::arg("wrec")) */
+    /*     /1* .def("get_trg_idx", *1/ */
+    /*     /1*      &TargetProgram::get_trg_idx) *1/ */
+    /*     .def("get_plan", &TargetProgram::get_plan); */
 
     // 2 layer network
-    py::class_<ExperienceModule>(m, "ExperienceModule")
+    py::class_<ExplorationModule>(m, "ExplorationModule")
         .def(py::init<float, Circuits&, PCNN_REF&, float, int>(),
              /* std::array<float, CIRCUIT_SIZE>, float, int>(), */
              py::arg("speed"),
@@ -395,18 +395,17 @@ PYBIND11_MODULE(pclib, m) {
              /* py::arg("weights"), */
              py::arg("action_delay") = 1.0f,
              py::arg("edge_route_interval") = 100)
-        .def("__call__", &ExperienceModule::call,
+        .def("__call__", &ExplorationModule::call,
              py::arg("directive"),
-             py::arg("curr_representation"),
              py::arg("rejection"))
-        .def("__str__", &ExperienceModule::str)
-        .def("__repr__", &ExperienceModule::repr)
-        .def("confirm_edge_walk", &ExperienceModule::confirm_edge_walk)
-        .def("reset_rejected_indexes", &ExperienceModule::reset_rejected_indexes);
-        /* .def("get_actions", &ExperienceModule::get_actions); */
-        /* .def("get_plan", &ExperienceModule::get_plan) */
-        /* .def("get_all_plan_values", &ExperienceModule::get_all_plan_values) */
-        /* .def("get_all_plan_scores", &ExperienceModule::get_all_plan_scores); */
+        .def("__str__", &ExplorationModule::str)
+        .def("__repr__", &ExplorationModule::repr)
+        .def("confirm_edge_walk", &ExplorationModule::confirm_edge_walk)
+        .def("reset_rejected_indexes", &ExplorationModule::reset_rejected_indexes);
+        /* .def("get_actions", &ExplorationModule::get_actions); */
+        /* .def("get_plan", &ExplorationModule::get_plan) */
+        /* .def("get_all_plan_values", &ExplorationModule::get_all_plan_values) */
+        /* .def("get_all_plan_scores", &ExplorationModule::get_all_plan_scores); */
 
     // Hexagon
     py::class_<Hexagon>(m, "Hexagon")
@@ -419,14 +418,14 @@ PYBIND11_MODULE(pclib, m) {
 
     // Density Policy
     py::class_<DensityPolicy>(m, "DensityPolicy")
-        .def(py::init<PCNN_REF&, float, float,
+        .def(py::init<float, float,
              float, float>(),
-             py::arg("space"),
              py::arg("rwd_weight"),
              py::arg("rwd_sigma"),
              py::arg("col_weight"),
              py::arg("col_sigma"))
         .def("__call__", &DensityPolicy::call,
+             py::arg("space"),
              py::arg("da_weights"),
              py::arg("bnd_weights"),
              py::arg("displacement"),
@@ -457,19 +456,18 @@ PYBIND11_MODULE(pclib, m) {
         .def(py::init<Circuits&,
              PCNN_REF&,
              PCNN_REF&,
-             /* TargetProgram&, */
-             ExperienceModule&,
+             ExplorationModule&,
              StationarySensory&,
              DensityPolicy&,
-             float, int>(),
+             float, float, int>(),
              py::arg("circuits"),
              py::arg("space"),
              py::arg("space_coarse"),
-             /* py::arg("trgp"), */
              py::arg("expmd"),
              py::arg("ssry"),
              py::arg("dpolicy"),
              py::arg("speed"),
+             py::arg("speed_coarse"),
              py::arg("max_attempts") = 2)
         .def("__call__", &Brain::call,
              py::arg("velocity"),
@@ -491,13 +489,15 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_trg_idx", &Brain::get_trg_idx)
         .def("get_space_position_fine", &Brain::get_space_position_fine)
         .def("get_plan_idxs_coarse", &Brain::get_plan_idxs_coarse)
-        .def("get_episodic_memory", &Brain::get_episodic_memory)
-        .def("make_edges_value", &Brain::make_edges_value)
+        /* .def("get_episodic_memory", &Brain::get_episodic_memory) */
+        /* .def("make_edges_value", &Brain::make_edges_value) */
         .def("get_trg_position", &Brain::get_trg_position)
-        .def("get_plan_idxs", &Brain::get_plan_idxs)
+        .def("get_plan_idxs_fine", &Brain::get_plan_idxs_fine)
+        .def("get_plan_idxs_coarse", &Brain::get_plan_idxs_coarse)
         .def("get_leaky_v", &Brain::get_leaky_v)
         .def("get_space_position_fine", &Brain::get_space_position_fine)
         .def("get_space_position_coarse", &Brain::get_space_position_coarse)
+        .def("get_edge_representation", &Brain::get_edge_representation)
         /* .def("get_plan_positions", &Brain::get_plan_positions) */
         /* .def("get_plan_score", &Brain::get_plan_score) */
         /* .def("get_plan_scores", &Brain::get_plan_scores) */

@@ -74,87 +74,154 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, elements, space,
+    def __init__(self, elements, space, space_coarse,
                  brain, colors, names):
 
         self.elements = elements
         self.size = len(elements)
         self.space = space
+        self.space_coarse = space_coarse
         self.brain = brain
         self.colors = colors
         self.names = names
-        self.fig, self.axs = plt.subplots(1, self.size+1,
-                                         figsize=((1+self.size)*4, 2))
+        self.fig, self.axs = plt.subplots(2, 2, figsize=((1+self.size)*3, 3))
+        self.fig.set_tight_layout(True)
         self.boundsx = (-50, 400)
         self.boundsy = (-400, 50)
 
     def render(self):
-        self.axs[0].clear()
 
+        # -- space plots --
+        self.axs[0, 0].clear()
+        self.axs[0, 1].clear()
+
+        # -- goal-behaviour
         if self.brain.get_directive() == "trg" or \
            self.brain.get_directive() == "trg rw" or \
            self.brain.get_directive() == "trg ob":
 
-            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        color="blue", s=30, alpha=0.1)
-            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        # color="blue",
-                                c = self.brain.get_representation(), cmap="Greys",
-                                s=30, alpha=0.3)
+            # space
+            self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+                                   color="blue", s=20, alpha=0.1)
+            # current position
+            self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+                                   c = self.brain.get_representation(),
+                                   cmap="Greys",
+                                   s=20, alpha=0.3)
+            # goal
+            self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+                                   c=self.brain.get_trg_representation(),
+                                   s=100*self.brain.get_trg_representation(),
+                                   cmap="Greens", alpha=0.7)
 
-            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        c=self.brain.get_trg_representation(),
-                                s=100*self.brain.get_trg_representation(),
-                                cmap="Greens", alpha=0.7)
-
+            # plan
             plan = np.zeros(len(self.brain))
-            plan[self.brain.get_plan_idxs()] = 1.
-            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        c=plan, s=50*plan, cmap="Greens", alpha=0.7)
+            plan[self.brain.get_plan_idxs_fine()] = 1.
+            self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+                        c=plan, s=40*plan, cmap="Greens", alpha=0.7)
 
+            # title
             loc_ = np.array(self.space.get_centers())[self.brain.get_trg_idx()]
-            self.axs[0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
+            self.axs[0, 0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
                 f" ({self.brain.get_trg_representation().max():.3f}, " + \
                 f"{self.brain.get_trg_representation().argmax()}) " + \
                 f" loc={loc_}")
 
+            # space
+            self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
+                                   color="blue", s=50, alpha=0.1)
+            # current position
+            # self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
+            #                        c = self.brain.get_representation(),
+            #                        cmap="Greys",
+            #                        s=30, alpha=0.3)
+            # goal
+            # self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
+            #                        c=self.brain.get_trg_representation(),
+            #                        s=100*self.brain.get_trg_representation(),
+            #                        cmap="Greens", alpha=0.7)
+
+            # plan
+            plan = np.zeros(len(self.brain))
+            plan[self.brain.get_plan_idxs_coarse()] = 1.
+            self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
+                        c=plan, s=50*plan, cmap="Greens", alpha=0.7)
+
+            # title
+            # loc_ = np.array(self.space.get_centers())[self.brain.get_trg_idx()]
+            self.axs[0, 1].set_title(f"Coarse space") #| trg_idx={self.brain.get_trg_idx()} " + \
+                # f" ({self.brain.get_trg_representation().max():.3f}, " + \
+                # f"{self.brain.get_trg_representation().argmax()}) " + \
+                # f" loc={loc_}")
 
         else:
-            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        color="blue", s=30, alpha=0.2)
-            self.axs[0].scatter(*np.array(self.space.get_centers()).T,
-                        # color="blue",
-                                c = self.brain.get_representation(), cmap="Greys",
-                                s=30, alpha=0.4)
-            # for edge in self.space.make_edges():
-            #     self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
+            # fine space
+            self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+                                   color="blue", s=20, alpha=0.2)
+
+            # coarse space
+            self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
+                                   color="blue", s=40, alpha=0.2)
+            # for edge in self.space_coarse.make_edges():
+            #     self.axs[0, 1].plot((edge[0][0], edge[1][0]),
+            #                         (edge[0][1], edge[1][1]),
             #                      alpha=0.1, color="black")
-        for edge in self.brain.make_edges_value():
-            if edge[2][1]+edge[2][0] > 0.:
-                self.axs[0].plot((edge[0][0], edge[1][0]), (edge[0][1], edge[1][1]),
-                                 lw=edge[2][1]+edge[2][0], color="k", alpha=0.5)
-        self.axs[0].set_title(f"#PCs={len(self.space)} | directive={self.brain.get_directive()}")
 
-        self.axs[0].scatter(*np.array(self.space.get_position()).T,
-                            color="red", s=80, marker="o", alpha=0.8)
-        self.axs[0].set_xlim(self.boundsx)
-        self.axs[0].set_ylim(self.boundsy)
-        # equal aspect ratio
-        self.axs[0].set_aspect('equal', adjustable='box')
-        self.axs[0].grid(alpha=0.1)
+            # for edge in self.space.make_edges():
+            #     self.axs[0, 0].plot((edge[0][0], edge[1][0]),
+            #                         (edge[0][1], edge[1][1]),
+            #                      alpha=0.1, color="black")
 
-        for i in range(1, 1+self.size):
-            self.axs[i].clear()
-            self.axs[i].scatter(*np.array(self.space.get_centers()).T,
-                        c=self.elements[i-1].get_weights(),
-                        cmap=self.colors[i-1], alpha=0.5,
-                        s=30, vmin=0., vmax=0.1)
-            self.axs[i].set_xlim(self.boundsx)
-            self.axs[i].set_ylim(self.boundsy)
-            self.axs[i].set_title(f"{self.names[i-1]} {self.brain.get_leaky_v()[i-1]:.2f}")
-            self.axs[i].set_aspect('equal', adjustable='box')
-            self.axs[i].scatter(*np.array(self.space.get_position()).T,
-                                color="red", s=80, marker="o")
+        # current representation
+        self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+                               c = self.brain.get_representation(), cmap="Greys",
+                               s=30, alpha=0.6)
+        self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
+                               c=self.brain.get_representation_coarse(),
+                               cmap="Greys", s=40, alpha=0.6)
+
+        # plot edge representation
+        self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+                               c=self.brain.get_edge_representation(),
+                               cmap="Oranges", alpha=0.5)
+
+        # fine
+        self.axs[0, 0].set_title(f"#PCs={len(self.space)} | " + \
+            f"dir:{self.brain.get_directive()}")
+        self.axs[0, 0].scatter(*np.array(self.space.get_position()).T,
+                               color="red", s=50, marker="v", alpha=0.8)
+        self.axs[0, 0].set_xlim(self.boundsx)
+        self.axs[0, 0].set_ylim(self.boundsy)
+        self.axs[0, 0].set_aspect('equal', adjustable='box')
+        self.axs[0, 0].grid(alpha=0.1)
+        self.axs[0, 0].set_xticks(())
+        self.axs[0, 0].set_yticks(())
+
+        # coarse
+        self.axs[0, 1].set_title(f"#PCs={len(self.space_coarse)}")
+        self.axs[0, 1].scatter(*np.array(self.space_coarse.get_position()).T,
+                               color="red", s=50, marker="v", alpha=0.8)
+        self.axs[0, 1].set_xlim(self.boundsx)
+        self.axs[0, 1].set_ylim(self.boundsy)
+        self.axs[0, 1].set_xticks(())
+        self.axs[0, 1].set_yticks(())
+        self.axs[0, 1].set_aspect('equal', adjustable='box')
+        self.axs[0, 1].grid(alpha=0.1)
+
+        for i in range(self.size):
+            self.axs[1, i].clear()
+            self.axs[1, i].scatter(*np.array(self.space.get_centers()).T,
+                                   c=self.elements[i-1].get_weights(),
+                                   cmap=self.colors[i-1], alpha=0.5,
+                                   s=30, vmin=0., vmax=0.1)
+            self.axs[1, i].set_xlim(self.boundsx)
+            self.axs[1, i].set_ylim(self.boundsy)
+            self.axs[1, i].set_xticks(())
+            self.axs[1, i].set_yticks(())
+            self.axs[1, i].set_title(f"{self.names[i-1]} {self.brain.get_leaky_v()[i-1]:.2f}")
+            self.axs[1, i].set_aspect('equal', adjustable='box')
+            self.axs[1, i].scatter(*np.array(self.space.get_position()).T,
+                                   color="red", s=50, marker="v")
             # if i == 1:
             # self.axs[i].set_title(f"")
             # elif i == 2:
@@ -193,7 +260,7 @@ def run_game(env: games.Environment,
 
         # -reward
         if observation[2]:
-            logger.debug(f">> Reward << [{observation[3]}]")
+            logger.debug(f">> Reward << [{observation[2]}]")
             # input()
 
         # -collision
@@ -216,7 +283,8 @@ def run_game(env: games.Environment,
         prev_position = env.position
 
         # env step
-        observation = env(velocity=np.array([velocity[0], -velocity[1]]), brain=brain)
+        observation = env(velocity=np.array([velocity[0], -velocity[1]]),
+                          brain=brain)
 
         # -check: reset agent's brain
         if observation[3]:
@@ -288,7 +356,7 @@ def main_game(room_name: str="Square.v0"):
     # ===| space |===
 
     local_scale = 0.015
-    gcn = pclib.GridNetworkSq([
+    gcn_fine = pclib.GridNetworkSq([
            pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale, bounds=[-1, 1, -1, 1]),
            pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale, bounds=[-1, 1, -1, 1]),
            pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale, bounds=[-1, 1, -1, 1]),
@@ -297,15 +365,41 @@ def main_game(room_name: str="Square.v0"):
            pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale, bounds=[-1, 1, -1, 1])])
 
     space = pclib.PCNNsqv2(N=model_params["N"],
-                           Nj=len(gcn),
+                           Nj=len(gcn_fine),
                            gain=10.,
                            offset=1.1,
                            clip_min=0.01,
-                           threshold=0.3,
-                           rep_threshold=0.89,
-                           rec_threshold=50.,
+                           threshold=0.35,
+                           rep_threshold=0.9,
+                           rec_threshold=40.,
                            num_neighbors=5,
-                           xfilter=gcn,
+                           xfilter=gcn_fine,
+                           name="2D")
+
+    local_scale_coarse = 0.005
+    gcn_coarse = pclib.GridNetworkSq([
+           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1])])
+    space_coarse = pclib.PCNNsqv2(N=model_params["N"],
+                           Nj=len(gcn_coarse),
+                           gain=10.,
+                           offset=1.2,
+                           clip_min=0.01,
+                           threshold=0.3,
+                           rep_threshold=0.83,
+                           rec_threshold=70.,
+                           num_neighbors=5,
+                           xfilter=gcn_coarse,
                            name="2D")
 
     # ===| modulation |===
@@ -316,26 +410,21 @@ def main_game(room_name: str="Square.v0"):
     bnd = pclib.BaseModulation(name="BND", size=model_params["N"],
                                lr=0.4, threshold=0.04, max_w=1.0,
                                tau_v=1.0, eq_v=0.0, min_v=0.0)
-    # memrepr = pclib.MemoryRepresentation(model_params["N"], 2.0, 0.1)
-    # memact = pclib.MemoryAction(10.0)
-    ssry = pclib.StationarySensory(model_params["N"], 200., 0.991, 0.99)
-    circuit = pclib.Circuits(da, bnd)# memrepr, memact)
+    ssry = pclib.StationarySensory(model_params["N"], 200., 0.995, 0.99)
+    circuit = pclib.Circuits(da, bnd)
 
     # ===| target program |===
 
-    # trgp = pclib.TargetProgram(space.get_connectivity(), space.get_centers(),
-    #                            da.get_weights(), agent_settings["speed"])
-    dpolicy = pclib.DensityPolicy(space, 0.2, 40.0,
-                                  0.1, 20.0)
+    dpolicy = pclib.DensityPolicy(0.2, 40.0,
+                                  0.0, 2.0)
 
-    expmd = pclib.ExperienceModule(speed=agent_settings["speed"]*5.0,
-                                   circuits=circuit,
-                                   space=space,
-                                   # weights=[0., 0., 0.0, 0., 0.],
-                                   action_delay=10.,
-                                   edge_route_interval=80)
-    brain = pclib.Brain(circuit, space, expmd, ssry, dpolicy,
-                        agent_settings["speed"], 5)
+    expmd = pclib.ExplorationModule(speed=agent_settings["speed"]*5.0,
+                                    circuits=circuit,
+                                    space=space,
+                                    action_delay=10.,
+                                    edge_route_interval=80)
+    brain = pclib.Brain(circuit, space, space_coarse, expmd, ssry, dpolicy,
+                        agent_settings["speed"], 2.*agent_settings["speed"], 5)
 
 
     """ make game environment """
@@ -375,7 +464,7 @@ def main_game(room_name: str="Square.v0"):
 
     """ run game """
 
-    renderer = Renderer(elements=[da, bnd], space=space,
+    renderer = Renderer(elements=[da, bnd], space=space, space_coarse=space_coarse,
                         brain=brain, colors=["Greens", "Blues"],
                         names=["DA", "BND"])
 
