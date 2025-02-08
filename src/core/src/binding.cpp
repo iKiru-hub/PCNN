@@ -332,10 +332,12 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_weights", &BaseModulation::get_weights);
 
     py::class_<Circuits>(m, "Circuits")
-        .def(py::init<BaseModulation&, BaseModulation&>(),
+        .def(py::init<BaseModulation&, BaseModulation&,
+             float>(),
              /* MemoryRepresentation&, MemoryAction&>(), */
              py::arg("da"),
-             py::arg("bnd"))
+             py::arg("bnd"),
+             py::arg("threshold"))
              /* py::arg("memrepr"), */
              /* py::arg("memact")) */
         .def("__str__", &Circuits::str)

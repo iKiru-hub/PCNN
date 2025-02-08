@@ -2245,18 +2245,23 @@ struct DensityPolicy {
 
 class Circuits {
 
+    // external components
     BaseModulation& da;
     BaseModulation& bnd;
 
+    // parameters
+    int space_size;
+    float threshold;
+
+    // variables
     std::array<float, CIRCUIT_SIZE> output;
     Eigen::VectorXf value_mask;
-    int space_size;
 
 public:
 
-    Circuits(BaseModulation& da, BaseModulation& bnd):
+    Circuits(BaseModulation& da, BaseModulation& bnd, float threshold):
         da(da), bnd(bnd), value_mask(Eigen::VectorXf::Ones(da.len())),
-        space_size(da.len()) {}
+        space_size(da.len()), threshold(threshold) {}
 
     // CALL
     std::array<float, CIRCUIT_SIZE> call(Eigen::VectorXf& representation,
@@ -2281,9 +2286,15 @@ public:
                 continue;
             }
 
-            if (bnd_value < 0.01f) { value_mask(i) = 1.0f; }
-            else if (bnd_value < 0.5f) { value_mask(i) = 0.00f; }
-            else { value_mask(i) = -1000.0; }
+            if (bnd_value < 0.01f) {
+                LOG("[cir] value_mask: " + std::to_string(bnd_value) + " < 0.01");
+                value_mask(i) = 1.0f; }
+            else if (bnd_value < threshold) { 
+                LOG("[cir] value_mask: 0.01 < " + std::to_string(bnd_value) + " < " + std::to_string(threshold));
+                value_mask(i) = 0.01f; }
+            else {
+                LOG("[cir] value_mask: " + std::to_string(bnd_value) + " > " + std::to_string(threshold));
+                value_mask(i) = -1000.0; }
         }
 
         return value_mask;
@@ -2384,20 +2395,20 @@ struct RewardObject {
 
         // exit: no trg index
         if (trg_idx < 0) {
-            /* LOG("[-] no trg index"); */
+            LOG("[RwO] no trg index");
             return -1; }
 
         // exit: low trg value
         if (da_weights(trg_idx) < 0.00001f) {
-            /* LOG("[-] low trg value"); */
+            LOG("[RwO] low trg value");
             return -1; }
 
         // update the target value
         this->trg_idx = trg_idx;
         this->trg_value = da_weights(trg_idx);
 
-        /* LOG("[+] RewardObject: trg_idx=" + std::to_string(trg_idx) + \ */
-        /*     " | trg_value=" + std::to_string(trg_value)); */
+        LOG("[RwO] goal_idx=" + std::to_string(trg_idx) + \
+            " | goal_value=" + std::to_string(trg_value));
 
         return trg_idx;
     }
@@ -2822,7 +2833,7 @@ public:
         coarse_plan(space_coarse, true, speed_coarse),
         fine_plan(space_fine, false, speed) {}
 
-    bool update(int trg_idx_fine) {
+    bool update(int trg_idx_fine, bool goal_directed) {
 
         // -- make a coarse plan
 
@@ -2846,13 +2857,15 @@ public:
                 {space_coarse.get_centers()(res_coarse.first.back(), 0),
                  space_coarse.get_centers()(res_coarse.first.back(), 1)});
 
-        // plan from the last index of the coarse plan
+        // plan from the last indegoal_directedx of the coarse plan
         std::pair<std::vector<int>, bool> res_fine = \
-            make_plan(space_fine, circuits.make_value_mask(true),
+            make_plan(space_fine, circuits.make_value_mask(goal_directed),
                       trg_idx_fine, curr_idx_fine);
 
         // check: failed planning
-        if (!res_fine.second) { return false; }
+        if (!res_fine.second) {
+            LOG("[Goal] failed fine planning");
+            return false; }
 
         // record
         coarse_plan.set_plan(res_coarse.first);
@@ -2869,26 +2882,24 @@ public:
 
         std::array<float, 2> local_velocity;
 
-        // -- obstacle handling
-
         // -- coarse plan
         if (using_coarse && !coarse_plan.is_finished() && \
             !obstacle && !is_fine_tuning) {
             std::pair<std::array<float, 2>, bool> coarse_progress = \
                         coarse_plan.step_plan();
 
-            LOG("coarse_progress=" + std::to_string(coarse_progress.second));
+            LOG("[Goal] coarse_progress=" + std::to_string(coarse_progress.second));
 
             // exit: coarse action
             if (coarse_progress.second) { return coarse_progress; }
         }
-        LOG("obstacle=" + std::to_string(obstacle));
+        LOG("[Goal] obstacle=" + std::to_string(obstacle));
 
         // -- fine plan
 
         // [] case 1: already fine tuning
         if (is_fine_tuning) {
-            LOG("[+] fine tuning..");
+            LOG("[Goal] fine tuning..");
             std::pair<std::array<float, 2>, bool> fine_progress = \
                 fine_plan.step_plan();
 
@@ -2911,21 +2922,21 @@ public:
             trg_idx_fine = space_fine.calculate_closest_index(
                         coarse_plan.get_next_position());
         }
-        LOG("[+] trg_idx_fine=" + std::to_string(trg_idx_fine));
+        LOG("[Goal] trg_idx_fine=" + std::to_string(trg_idx_fine));
         std::pair<std::vector<int>, bool> fine_progress = \
             make_plan(space_fine, circuits.make_value_mask(true),
                       trg_idx_fine);
 
         // check: failed planning
         if (!fine_progress.second) {
-            LOG("[-] failed fine planning");
+            LOG("[Goal] failed fine planning");
             return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false); 
         }
 
         // record
         fine_plan.set_plan(fine_progress.first);
         is_fine_tuning = true;
-        LOG("[+] start fine tuning");
+        LOG("[Goal] start fine tuning");
 
         return fine_plan.step_plan();
     }
@@ -2986,7 +2997,7 @@ class ExplorationModule {
             return -1; }
 
         // [+] new trg plan to reach the open boundary
-        LOG("[exp] new trg plan to reach the open boundary");
+        LOG("[Exp] new trg plan to reach the open boundary");
         return open_boundary_idx;
     }
 
@@ -3012,7 +3023,6 @@ class ExplorationModule {
         return std::make_pair(action, false);
     }
 
-    // check map open-ness
     int get_open_boundary_idx(int rejected_idx) {
 
         Eigen::VectorXf& bnd_weights = circuits.get_bnd_weights();
@@ -3143,9 +3153,8 @@ class Brain {
         for (int i = 0; i < 3; i++) {
 
             // attempt a plan
-            /* trgp.reset(); */
             goalmd.reset();
-            bool valid_plan = goalmd.update(idx);
+            bool valid_plan = goalmd.update(idx, false);
 
             // valid plan
             if (valid_plan) {
@@ -3204,8 +3213,8 @@ public:
 
         clock++;
 
-        if (collision > 0.0f) { LOG("[brain] collision received"); }
-        if (reward > 0.0f) { LOG("[brain] reward received"); }
+        if (collision > 0.0f) { LOG("[Brain] collision received"); }
+        if (reward > 0.0f) { LOG("[Brain] reward received"); }
 
         // === STATE UPDATE ==============================================
 
@@ -3234,7 +3243,7 @@ public:
             goalmd.reset();
             goto explore;
         } else if (ssry.call(curr_representation)) {
-            LOG("<forced exploration> : v=" + std::to_string(ssry.get_v()));
+            LOG("[Brain] forced exploration : v=" + std::to_string(ssry.get_v()));
             forced_exploration = 0;
             goto explore;
         }
@@ -3245,6 +3254,7 @@ public:
 
         // check: current trg plan
         if (goalmd.is_active()) {
+            LOG("[Brain] active goal plan");
             trg_plan_end = 0;
             std::pair<std::array<float, 2>, bool> progress = \
                 goalmd.step_plan(collision > 0.0f);
@@ -3270,11 +3280,11 @@ public:
         if (tmp_trg_idx > -1) {
 
             // check new reward trg plan
-            bool valid_plan = goalmd.update(tmp_trg_idx);
+            bool valid_plan = goalmd.update(tmp_trg_idx, true);
 
             // [+] reward trg plan
             if (valid_plan) {
-                LOG("[brain] valid trg plan");
+                LOG("[Brain] valid goal plan");
                 this->directive = "trg";
                 std::pair<std::array<float, 2>, bool> progress = \
                     goalmd.step_plan(collision > 0.0f);
@@ -3284,6 +3294,7 @@ public:
                 }
                 forced_exploration = 0;
             }
+            LOG("[Brain] invalid goal plan");
         }
 
         // === EXPLORATIVE BEHAVIOUR =======================================
@@ -3310,8 +3321,8 @@ final:
         // make prediction
         make_prediction();
 
-        LOG("[brain] action=" + std::to_string(action[0]) + ", " + \
-            std::to_string(action[1]));
+        /* LOG("[brain] action=" + std::to_string(action[0]) + ", " + \ */
+        /*     std::to_string(action[1])); */
         return action;
     }
 
@@ -3423,7 +3434,7 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     BaseModulation bnd = BaseModulation("BND", N, 0.9f, 0.0f, 1.0f,
                                         2.0f, 0.0f, 0.0f, 0.01f);
     StationarySensory ssry = StationarySensory(N, 100.0f, 0.2f, 0.5f);
-    Circuits circuits = Circuits(da, bnd);
+    Circuits circuits = Circuits(da, bnd, 0.5f);
 
     // EXPERIENCE MODULE & BRAIN
     DensityPolicy dpolicy = DensityPolicy(0.5f, 40.0f, 0.5f, 20.0f);

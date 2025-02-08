@@ -1150,7 +1150,7 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matri
             if (connectivity_matrix(current_node, neighbor) == 1 && !finalized[neighbor]) {
 
                 if (node_weights(neighbor) < -100.0f) {
-                    std::cout << "Node penalty: " << node_weights(neighbor) << std::endl;
+                    /* std::cout << "Node penalty: " << node_weights(neighbor) << std::endl; */
                     continue;
                 }
 

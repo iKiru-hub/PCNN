@@ -34,8 +34,8 @@ reward_settings = {
     "rw_radius": 0.05 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 200,
-    "silent_duration": 5_000,
+    "delay": 50,
+    "silent_duration": 3_000,
 }
 
 agent_settings = {
@@ -162,10 +162,10 @@ class Renderer:
             # coarse space
             self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
                                    color="blue", s=40, alpha=0.2)
-            # for edge in self.space_coarse.make_edges():
-            #     self.axs[0, 1].plot((edge[0][0], edge[1][0]),
-            #                         (edge[0][1], edge[1][1]),
-            #                      alpha=0.1, color="black")
+            for edge in self.space_coarse.make_edges():
+                self.axs[0, 1].plot((edge[0][0], edge[1][0]),
+                                    (edge[0][1], edge[1][1]),
+                                 alpha=0.1, color="black")
 
             # for edge in self.space.make_edges():
             #     self.axs[0, 0].plot((edge[0][0], edge[1][0]),
@@ -395,9 +395,9 @@ def main_game(room_name: str="Square.v0"):
                            gain=10.,
                            offset=1.2,
                            clip_min=0.01,
-                           threshold=0.3,
-                           rep_threshold=0.83,
-                           rec_threshold=70.,
+                           threshold=0.35,
+                           rep_threshold=0.89,
+                           rec_threshold=80.,
                            num_neighbors=5,
                            xfilter=gcn_coarse,
                            name="2D")
@@ -411,7 +411,7 @@ def main_game(room_name: str="Square.v0"):
                                lr=0.4, threshold=0.04, max_w=1.0,
                                tau_v=1.0, eq_v=0.0, min_v=0.0)
     ssry = pclib.StationarySensory(model_params["N"], 200., 0.995, 0.99)
-    circuit = pclib.Circuits(da, bnd)
+    circuit = pclib.Circuits(da, bnd, 0.7)
 
     # ===| target program |===
 
