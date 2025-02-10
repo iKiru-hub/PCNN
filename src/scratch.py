@@ -12,7 +12,7 @@ reward_settings = {
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 50,
     "silent_duration": 5_000,
-    "transparent": False,
+    "transparent": True,
 }
 
 game_settings = {
