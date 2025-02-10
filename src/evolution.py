@@ -201,7 +201,31 @@ class Env:
 
 
 # parameters that are not evolved
-FIXED_PARAMETERS = {}
+FIXED_PARAMETERS = {
+
+    "offset_fine": 1.1,
+
+    "offset_coarse": 1.1,
+
+    "lr_da": 0.4,
+    "threshold_da": 0.1,
+    "tau_v_da": 1,
+
+    "lr_bnd": 0.4,
+    "threshold_bnd": 0.1,
+    "tau_v_bnd": 1,
+
+    "tau_ssry": 300,
+    # "threshold_ssry": 0.992,
+
+    # "threshold_circuit": 0.5,
+
+    "action_delay": 10,
+    "edge_route_interval": 80,
+
+    "forced_duration": 300,
+    "fine_tuning_min_duration": 50,
+}
 
 
 # Define the genome as a dict of parameters
@@ -209,21 +233,21 @@ PARAMETERS = {
 
     "gain_fine": lambda: round(random.uniform(5., 20.), 1),
     "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
-    "threshold_fine": lambda: round(random.uniform(0.01, 0.8), 2),
+    "threshold_fine": lambda: round(random.uniform(0.05, 0.6), 2),
     "rep_threshold_fine": lambda: round(random.uniform(0.7, 0.93), 2),
 
     "gain_coarse": lambda: round(random.uniform(5., 20.), 1),
     "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
-    "threshold_coarse": lambda: round(random.uniform(0.01, 0.8), 2),
+    "threshold_coarse": lambda: round(random.uniform(0.05, 0.6), 2),
     "rep_threshold_coarse": lambda: round(random.uniform(0.7, 0.93), 2),
 
     "lr_da": lambda: round(random.uniform(0.05, 0.9), 2),
     "threshold_da": lambda: round(random.uniform(0.01, 0.8), 2),
-    "tau_v_da": lambda: float(random.randint(1, 15)),
+    "tau_v_da": lambda: float(random.randint(1, 10)),
 
     "lr_bnd": lambda: round(random.uniform(0.05, 0.9), 2),
     "threshold_bnd": lambda: round(random.uniform(0.01, 0.8), 2),
-    "tau_v_bnd": lambda: float(random.randint(1, 15)),
+    "tau_v_bnd": lambda: float(random.randint(1, 10)),
 
     "tau_ssry": lambda: float(random.randint(1, 800)),
     "threshold_ssry": lambda: round(random.uniform(0.8, 0.9999), 3),
@@ -233,7 +257,7 @@ PARAMETERS = {
     "rwd_weight": lambda: round(random.uniform(0.0, 1.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 80.0), 1),
     "col_weight": lambda: round(random.uniform(0.0, 1.0), 2),
-    "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
+    "col_sigma": lambda: round(random.uniform(1.0, 30.0), 1),
 
     "action_delay": lambda: round(random.uniform(1., 80.), 1),
     "edge_route_interval": lambda: random.randint(1, 200),

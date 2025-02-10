@@ -628,7 +628,7 @@ def main_game(room_name: str="Square.v0"):
     else:
         renderer = None
 
-    sim.logger("[@simulations.py]")
+    logger("[@simulations.py]")
     run_game(env=env,
              brain=brain,
              renderer=renderer,
