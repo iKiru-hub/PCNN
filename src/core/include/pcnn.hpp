@@ -41,6 +41,7 @@
 
 // blank log function
 void LOG(const std::string& msg) {
+    return;
     std::cout << msg << std::endl;
 }
 
@@ -2821,9 +2822,9 @@ class GoalModule {
             return std::make_pair(std::vector<int>{}, false); }
 
         LOG("[goal] new plan:");
-        for (int i = 0; i < plan_idxs.size(); i++) {
-            std::cout << plan_idxs[i] << " ";
-        }
+        /* for (int i = 0; i < plan_idxs.size(); i++) { */
+            /* std::cout << plan_idxs[i] << " "; */
+        /* } */
         LOG(" ");
 
         return std::make_pair(plan_idxs, true);
@@ -3366,6 +3367,311 @@ final:
     }
 };
 
+
+class Brainv2 {
+
+    // external components
+    BaseModulation da;
+    BaseModulation bnd;
+    std::vector<GridLayerSq> gcn_layers_fine;
+    std::vector<GridLayerSq> gcn_layers_coarse;
+    GridNetworkSq gcn_fine;
+    GridNetworkSq gcn_coarse;
+
+    Circuits circuits;
+    PCNN_REF space;
+    PCNN_REF space_coarse;
+    ExplorationModule expmd;
+    StationarySensory ssry;
+    DensityPolicy dpolicy;
+    GoalModule goalmd;
+    RewardObject rwobj = RewardObject();
+
+    // variables
+    Eigen::VectorXf curr_representation;
+    Eigen::VectorXf curr_representation_coarse;
+    std::string directive;
+    int clock;
+    int trg_plan_end = 0;
+    int forced_exploration = -1;
+    int forced_duration;
+
+    // initialize
+    std::pair<std::array<float, 2>, int> expmd_res = \
+        std::make_pair(std::array<float, 2>{0.0f, 0.0f}, 0);
+    int tmp_trg_idx = -1;
+    std::array<float, 2> action = {0.0f, 0.0f};
+
+    std::array<float, 2> attempt_boundary_plan(int idx) {
+
+        // reset the set of rejected indexes
+        expmd.reset_rejected_indexes();
+
+        // attempt for a bunch of times | use 404 as final rejection
+        for (int i = 0; i < 3; i++) {
+
+            // attempt a plan
+            goalmd.reset();
+            bool valid_plan = goalmd.update(idx, false);
+
+            // valid plan
+            if (valid_plan) {
+                this->directive = "trg ob";
+                std::pair<std::array<float, 2>, bool> progress = \
+                    goalmd.step_plan(false);
+
+                // confirm the edge walk
+                expmd.confirm_edge_walk();
+                return progress.first;
+            }
+
+            // invalid plan -> try again
+            std::pair<std::array<float, 2>, int> expmd_res = \
+                expmd.call(directive, idx);
+            idx = expmd_res.second;
+        }
+
+        // tried too many times, make a random walk plan instead
+        std::pair<std::array<float, 2>, int> expmd_res = \
+            expmd.call(directive, 404);
+
+        return expmd_res.first;
+    }
+
+    void make_prediction() {
+
+        // simulate a step
+        Eigen::VectorXf& next_representation = space.simulate_one_step(action);
+
+        // make prediction
+        circuits.make_prediction(next_representation);
+    }
+
+
+public:
+
+    Brainv2(float local_scale_fine, 
+          float local_scale_coarse,
+         int N,
+         float rec_threshold_fine,
+         float rec_threshold_coarse,
+         float speed,
+
+         float gain_fine,
+         float offset_fine,
+         float threshold_fine,
+         float rep_threshold_fine,
+
+         float gain_coarse,
+         float offset_coarse,
+         float threshold_coarse,
+         float rep_threshold_coarse,
+
+         float lr_da,
+         float threshold_da,
+         float tau_v_da,
+
+         float lr_bnd,
+         float threshold_bnd,
+         float tau_v_bnd,
+
+         float tau_ssry,
+         float threshold_ssry,
+
+         float threshold_circuit,
+
+         float rwd_weight,
+         float rwd_sigma,
+         float col_weight,
+         float col_sigma,
+
+         float action_delay,
+         int edge_route_interval,
+
+         int forced_duration,
+         int fine_tuning_min_duration): 
+        clock(0), forced_duration(forced_duration), directive("new"),
+        da(BaseModulation("DA", N, lr_da, threshold_da, 1.0f,
+                                           tau_v_da, 0.0f, 0.0f)),
+        bnd(BaseModulation("BND", N, lr_bnd, threshold_bnd, 1.0f,
+                                            tau_v_bnd, 0.0f, 0.0f)),
+        ssry(StationarySensory(N, tau_ssry, threshold_ssry, 0.99)),
+        circuits(Circuits(da, bnd, threshold_circuit)),
+
+        // initialize with a set of GridLayerSq
+        gcn_layers_fine({GridLayerSq(0.04, 1.0 * local_scale_fine,
+                                      {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.8 * local_scale_fine,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.7 * local_scale_fine,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.5 * local_scale_fine,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.3 * local_scale_fine,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.05 * local_scale_fine,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f})}),
+        gcn_layers_coarse({GridLayerSq(0.04, 1.0 * local_scale_coarse,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.8 * local_scale_coarse,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.7 * local_scale_coarse,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.5 * local_scale_coarse,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.3 * local_scale_coarse,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.05 * local_scale_coarse,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f})}),
+        gcn_fine(GridNetworkSq(gcn_layers_fine)),
+        gcn_coarse(GridNetworkSq(gcn_layers_coarse)),
+        space(PCNNsqv2(N, gcn_fine.len(), gain_fine, offset_fine,
+                       0.01f, threshold_fine, rep_threshold_fine,
+                       rec_threshold_fine, 5, gcn_fine, "2D")),
+        space_coarse(PCNNsqv2(N, gcn_coarse.len(), gain_coarse, offset_coarse,
+                              0.01f, threshold_coarse, rep_threshold_coarse,
+                              rec_threshold_coarse, 5, gcn_coarse, "2D")),
+        goalmd(GoalModule(space, space_coarse, circuits, speed,
+                          speed * local_scale_fine / local_scale_coarse)),
+        dpolicy(DensityPolicy(rwd_weight, rwd_sigma, col_weight, col_sigma)),
+        expmd(ExplorationModule(speed * 2.0f,
+                                circuits, space, action_delay,
+                                edge_route_interval)) {}
+
+    // CALL
+    std::array<float, 2> call(
+            const std::array<float, 2>& velocity,
+            float collision, float reward,
+            bool trigger) {
+
+        clock++;
+
+        if (collision > 0.0f) { LOG("[Brain] collision received"); }
+        if (reward > 0.0f) { LOG("[Brain] reward received"); }
+
+        // === STATE UPDATE ==============================================
+
+        // :space
+        auto [u, _] = space.call(velocity);
+        auto [uc, __] = space_coarse.call(velocity);
+        this->curr_representation = u;
+        this->curr_representation_coarse = uc;
+
+        // :circuits
+        std::array<float, CIRCUIT_SIZE> internal_state = \
+            circuits.call(u, collision, reward, false);
+
+        // :dpolicy fine space
+        dpolicy.call(space, circuits.get_da_weights(),
+                     circuits.get_bnd_weights(),
+                     velocity,
+                     internal_state[1], internal_state[0],
+                     reward, collision);
+
+        // update spaces
+        space.update();
+        space_coarse.update();
+
+
+        // check: still-ness | wrt the fine space
+        if (forced_exploration < forced_duration) {
+            forced_exploration++;
+            goalmd.reset();
+            goto explore;
+        } else if (ssry.call(curr_representation)) {
+            LOG("[Brain] forced exploration : v=" + std::to_string(ssry.get_v()));
+            forced_exploration = 0;
+            goto explore;
+        }
+
+        // === GOAL-DIRECTED BEHAVIOUR ====================================
+
+        // --- current target plan
+
+        // check: current trg plan
+        if (goalmd.is_active()) {
+            LOG("[Brain] active goal plan");
+            trg_plan_end = 0;
+            std::pair<std::array<float, 2>, bool> progress = \
+                goalmd.step_plan(collision > 0.0f);
+
+            // keep going
+            if (progress.second) {
+                this->action = progress.first; 
+                goto final;
+            }
+            // end or fail -> random walk
+            forced_exploration = 0;
+            LOG("[Brain] plan dropped");
+        }
+
+        // time since the last trg plan ended
+        trg_plan_end++;
+
+        // --- new target plan: REWARD
+
+        // :reward object | new reward trg index wrt the fine space
+        tmp_trg_idx = rwobj.update(circuits.get_da_weights(),
+                                   space, trigger);
+
+        if (tmp_trg_idx > -1) {
+
+            // check new reward trg plan
+            bool valid_plan = goalmd.update(tmp_trg_idx, true);
+
+            // [+] reward trg plan
+            if (valid_plan) {
+                LOG("[Brain] valid goal plan");
+                this->directive = "trg";
+                std::pair<std::array<float, 2>, bool> progress = \
+                    goalmd.step_plan(collision > 0.0f);
+                if (progress.second) {
+                    this->action = progress.first;
+                    goto final;
+                }
+                forced_exploration = 0;
+            }
+            LOG("[Brain] invalid goal plan");
+        }
+
+        // === EXPLORATIVE BEHAVIOUR =======================================
+explore:
+
+        // check: collision
+        if (collision > 0.0f) { this->directive = "new"; }
+        else { this->directive = "continue"; }
+
+        // :experience module
+        expmd_res = expmd.call(directive);
+
+        // check: plan to go to the open boundary
+        if (expmd_res.second > -1) {
+            this->action = attempt_boundary_plan(expmd_res.second);
+            goto final;
+        }
+        this->action = expmd_res.first;
+
+final:
+
+        // ================================================================
+
+        // make prediction
+        make_prediction();
+
+        /* LOG("[brain] action=" + std::to_string(action[0]) + ", " + \ */
+        /*     std::to_string(action[1])); */
+        return action;
+    }
+
+    std::string str() { return "Brainv2"; }
+    std::string repr() { return "Brainv2"; }
+    int len() { return space.get_size(); }
+    std::array<int, 2> get_cell_count() { return {space.len(), space_coarse.len()}; }
+    void reset() {
+        goalmd.reset();
+        circuits.reset();
+    }
+};
 
 
 /* ========================================== */

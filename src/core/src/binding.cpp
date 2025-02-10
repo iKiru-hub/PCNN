@@ -509,6 +509,72 @@ PYBIND11_MODULE(pclib, m) {
         /*      py::arg("position")) */
         .def("reset", &Brain::reset);
 
+    py::class_<Brainv2>(m, "Brainv2")
+
+        .def(py::init<
+             float, float, int, float, float, float,
+             float, float, float, float,
+             float, float, float, float,
+             float, float, float,
+             float, float, float,
+             float, float,
+             float,
+             float, float, float, float,
+             float, int,
+             int, int
+             >(),
+             py::arg("local_scale_fine"),
+             py::arg("local_scale_coarse"),
+             py::arg("N"),
+             py::arg("rec_threshold_fine"),
+             py::arg("rec_threshold_coarse"),
+             py::arg("speed"),
+
+             py::arg("gain_fine"),
+             py::arg("offset_fine"),
+             py::arg("threshold_fine"),
+             py::arg("rep_threshold_fine"),
+
+             py::arg("gain_coarse"),
+             py::arg("offset_coarse"),
+             py::arg("threshold_coarse"),
+             py::arg("rep_threshold_coarse"),
+
+             py::arg("lr_da"),
+             py::arg("threshold_da"),
+             py::arg("tau_v_da"),
+
+             py::arg("lr_bnd"),
+             py::arg("threshold_bnd"),
+             py::arg("tau_v_bnd"),
+
+             py::arg("tau_ssry"),
+             py::arg("threshold_ssry"),
+
+             py::arg("threshold_circuit"),
+
+             py::arg("rwd_weight"),
+             py::arg("rwd_sigma"),
+             py::arg("col_weight"),
+             py::arg("col_sigma"),
+
+             py::arg("action_delay"),
+             py::arg("edge_route_interval"),
+
+             py::arg("forced_duration"),
+             py::arg("fine_tuning_min_duration"))
+        .def("__call__", &Brainv2::call,
+             py::arg("velocity"),
+             py::arg("collision"),
+             py::arg("reward"),
+             py::arg("trigger"))
+        .def("__str__", &Brainv2::str)
+        .def("__repr__", &Brainv2::repr)
+        .def("__len__", &Brainv2::len)
+        .def("get_cell_count", &Brainv2::get_cell_count)
+        .def("reset", &Brainv2::reset);
+
+
 }
 
 
