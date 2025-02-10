@@ -20,7 +20,7 @@ add_subdirectory(extern/pybind11)
 # Header files
 set(HEADERS
     include/pcnn.hpp
-    include/utils.hpp
+    # include/utils.hpp
 )
 
 # Python module

@@ -1,6 +1,10 @@
+/* #ifndef PCNN_HPP */
+/* #define PCNN_HPP */
+
+/* #include "utils.hpp" */
+
 #include <iostream>
 #include <Eigen/Dense>
-#include "utils.hpp"
 #include <unordered_map>
 #include <memory>
 #include <array>
@@ -9,6 +13,9 @@
 #include <cmath>
 #include <tuple>
 #include <cassert>
+#include <vector>
+#include <random>
+#include <queue>
 
 
 
@@ -26,7 +33,6 @@
 
 /* ========================================== */
 
-#define SPACE utils::logging.space
 #define GCL_SIZE 36
 #define GCL_SIZE_SQRT 6
 #define PCNN_REF PCNNsqv2
@@ -46,19 +52,541 @@ void LOG(const std::string& msg) {
 }
 
 
-// DEBUGGING logs
+int SEED = 0;
 
-bool DEBUGGING = false;
 
-void set_debug(bool flag) {
-    DEBUGGING = flag;
+
+std::mt19937& get_rng(unsigned int seed = 0) {
+    static std::mt19937 rng(std::random_device{}());  // Persistent generator
+    if (seed) rng.seed(seed);  // Reset the seed if provided
+    return rng;
 }
 
-void DEBUG(const std::string& msg) {
-    if (DEBUGGING) {
-        std::cout << "[DEBUG] " << msg << std::endl;
+
+int random_int(int min, int max, unsigned int seed) {
+    std::uniform_int_distribution<int> dist(min, max);
+    return dist(get_rng(seed));
+}
+
+
+double random_float(double min, double max, unsigned int seed) {
+    std::uniform_real_distribution<double> dist(min, max);
+    return dist(get_rng(seed));
+}
+
+
+Eigen::MatrixXf generate_lattice(int N, int length) {
+    // Determine the number of points along each axis
+    int grid_size = static_cast<int>(std::sqrt(N));
+    if (grid_size * grid_size < N) {
+        grid_size += 1; // Ensure we have at least N points
     }
+    float grid_size_f = static_cast<float>(grid_size);
+    float length_f = static_cast<float>(length);
+    // Step size between points
+    float step = length_f / (grid_size_f - 1);
+
+    // Initialize a matrix to store the points
+    Eigen::MatrixXf points(N, 2);
+
+    // Generate lattice points
+    int count = 0;
+    for (int i = 0; i < grid_size; ++i) {
+        for (int j = 0; j < grid_size; ++j) {
+            if (count >= N) break; // Stop if we have enough points
+
+            points(count, 0) = i * step;
+            points(count, 1) = j * step;
+            ++count;
+        }
+        if (count >= N) break;
+    }
+
+    return points.topRows(count); // Return only the rows with valid points
 }
+
+
+/* ALGORITHMS */
+
+
+std::vector<int> weighted_en_shortest_path(const Eigen::MatrixXf connectivity_matrix,
+                                           const Eigen::MatrixXf edge_weights,
+                                           const Eigen::VectorXf node_weights,
+                                           int start_node, int end_node) {
+    int num_nodes = connectivity_matrix.rows();
+    std::vector<float> distances(num_nodes, std::numeric_limits<float>::infinity());
+    std::vector<int> parent(num_nodes, -1);
+    std::vector<bool> finalized(num_nodes, false);
+
+    // Use priority queue with pair of (distance, node)
+    std::priority_queue<std::pair<float, int>> pq;
+
+    // Initialize start node
+    distances[start_node] = node_weights(start_node);
+    pq.push({-distances[start_node], start_node});
+
+    while (!pq.empty()) {
+        int current_node = pq.top().second;
+        float current_dist = -pq.top().first;
+        pq.pop();
+
+        // Skip if we've already finalized this node or found a better path
+        if (finalized[current_node] || current_dist > distances[current_node]) {
+            continue;
+        }
+
+        // Mark this node as finalized
+        finalized[current_node] = true;
+
+        // If we've found the end node, we're done since we've found the shortest path
+        if (current_node == end_node) {
+            break;
+        }
+
+        // Check all neighbors
+        for (int neighbor = 0; neighbor < num_nodes; ++neighbor) {
+            // Check if there's a connection and the neighbor is not finalized
+            if (connectivity_matrix(current_node, neighbor) == 1 && !finalized[neighbor]) {
+                // Calculate new distance:
+                // 1. Current path distance
+                // 2. Node weight of the current node
+                // 3. Edge weight between current and neighbor
+                // 4. Node weight of the neighbor
+                float new_distance = distances[current_node]
+                                     + node_weights(current_node)
+                                     + edge_weights(current_node, neighbor)
+                                     + node_weights(neighbor);
+
+                // If we've found a better path
+                if (new_distance < distances[neighbor]) {
+                    distances[neighbor] = new_distance;
+                    parent[neighbor] = current_node;
+                    pq.push({-new_distance, neighbor});
+                }
+            }
+        }
+    }
+
+    // Reconstruct the path
+    std::vector<int> path;
+    int current = end_node;
+
+    // Check if end node is reachable
+    if (distances[end_node] == std::numeric_limits<float>::infinity()) {
+        return {};
+    }
+
+    while (current != -1) {
+        path.push_back(current);
+        current = parent[current];
+    }
+    std::reverse(path.begin(), path.end());
+
+    // Verify the path starts at the start node
+    if (path.empty() || path[0] != start_node) {
+        return {};
+    }
+
+    return path;
+}
+
+
+std::vector<int> spatial_shortest_path(const Eigen::MatrixXf connectivity_matrix,
+                                       const Eigen::MatrixXf node_coordinates,  // Nx2 matrix with (x,y) coordinates
+                                       const Eigen::VectorXf node_weights,      // Optional node penalties/costs
+                                       int start_node, int end_node) {
+
+    int num_nodes = connectivity_matrix.rows();
+    std::vector<float> distances(num_nodes, std::numeric_limits<float>::infinity());
+    std::vector<int> parent(num_nodes, -1);
+    std::vector<bool> finalized(num_nodes, false);
+
+    // Priority queue with pair of (distance, node)
+    std::priority_queue<std::pair<float, int>> pq;
+
+    // Initialize start node
+    distances[start_node] = 0;  // Start with zero distance
+    pq.push({0, start_node});
+
+    while (!pq.empty()) {
+        int current_node = pq.top().second;
+        float current_dist = -pq.top().first;
+        pq.pop();
+
+        if (finalized[current_node] || current_dist > distances[current_node])
+            { continue; }
+
+        finalized[current_node] = true;
+
+        if (current_node == end_node)
+            { break; }
+
+        // Check all neighbors
+        for (int neighbor = 0; neighbor < num_nodes; ++neighbor) {
+            if (connectivity_matrix(current_node, neighbor) == 1 && !finalized[neighbor]) {
+
+                if (node_weights(neighbor) < -100.0f) {
+                    /* std::cout << "Node penalty: " << node_weights(neighbor) << std::endl; */
+                    continue;
+                }
+
+                // Calculate Euclidean distance between nodes
+                float dx = node_coordinates(current_node, 0) - node_coordinates(neighbor, 0);
+                float dy = node_coordinates(current_node, 1) - node_coordinates(neighbor, 1);
+                float edge_distance = std::sqrt(dx*dx + dy*dy);
+
+                // Add optional node weight as a penalty/cost factor
+                /* float node_penalty = node_weights(neighbor); */
+
+                // New distance is current distance plus edge length and node penalty
+                float new_distance = distances[current_node] + edge_distance + node_weights(neighbor);
+
+                if (new_distance < distances[neighbor]) {
+                    distances[neighbor] = new_distance;
+                    parent[neighbor] = current_node;
+                    pq.push({-new_distance, neighbor});
+                }
+            }
+        }
+    }
+
+    // Reconstruct the path
+    std::vector<int> path;
+    int current = end_node;
+
+    if (distances[end_node] == std::numeric_limits<float>::infinity())
+        { return {}; }
+
+    while (current != -1) {
+        path.push_back(current);
+        current = parent[current];
+    }
+    std::reverse(path.begin(), path.end());
+
+    if (path.empty() || path[0] != start_node) 
+        { return {}; }
+
+    return path;
+}
+
+
+/* LINEAR ALGEBRA */
+
+
+inline float cosine_similarity_vec(const Eigen::VectorXf v1,
+                                   const Eigen::VectorXf v2) {
+    return v1.dot(v2) / (v1.norm() * v2.norm());
+}
+
+
+inline float cosine_similarity_vec(const std::vector<float> v1,
+                                   const std::vector<float> v2) {
+    // Ensure the vectors are of the same size
+    if (v1.size() != v2.size()) {
+        throw std::invalid_argument("Vectors must be of the same size.");
+    }
+
+    // Calculate dot product
+    float dot_product = std::inner_product(v1.begin(),
+                                           v1.end(), v2.begin(), 0.0f);
+
+    // Calculate norms of the vectors
+    float norm_v1 = std::sqrt(std::inner_product(v1.begin(),
+                                                 v1.end(),
+                                                 v1.begin(), 0.0f));
+    float norm_v2 = std::sqrt(std::inner_product(v2.begin(),
+                                                 v2.end(),
+                                                 v2.begin(), 0.0f));
+
+    // Handle potential division by zero
+    if (norm_v1 == 0.0f || norm_v2 == 0.0f) {
+        throw std::invalid_argument(
+            "Vectors must not have zero magnitude.");
+    }
+
+    // Return cosine similarity
+    return dot_product / (norm_v1 * norm_v2);
+}
+
+
+Eigen::VectorXf cosine_similarity_vector_matrix(
+    const Eigen::VectorXf vector,
+    const Eigen::MatrixXf matrix) {
+
+    // Normalize the vector to unit norm
+    Eigen::VectorXf normalized_vector = vector.normalized();
+
+    // set NaN values to zero
+    normalized_vector = (normalized_vector.array().isNaN()).select(
+        Eigen::VectorXf::Zero(matrix.rows()), normalized_vector);
+
+    // Normalize each row of the matrix to unit norm
+    Eigen::MatrixXf normalized_matrix = matrix.rowwise().normalized();
+
+    // set NaN values to zero
+    normalized_matrix = (normalized_matrix.array().isNaN()).select(
+        Eigen::MatrixXf::Zero(matrix.rows(), matrix.cols()), normalized_matrix);
+
+    // Compute the cosine similarity
+    Eigen::VectorXf similarity_vector = \
+        normalized_matrix * normalized_vector;
+
+    return similarity_vector;
+}
+
+
+Eigen::MatrixXf cosine_similarity_matrix(
+    const Eigen::MatrixXf matrix) {
+
+    int n = matrix.rows();
+    Eigen::MatrixXf similarity_matrix(n, n);
+
+    // Normalize each row to unit norm
+    Eigen::MatrixXf normalized_matrix = matrix.rowwise().normalized();
+
+    // set NaN values to zero
+    normalized_matrix = (normalized_matrix.array().isNaN()).select(
+        Eigen::MatrixXf::Zero(n, n), normalized_matrix);
+
+    // Compute the cosine similarity (normalized dot product)
+    similarity_matrix = normalized_matrix * normalized_matrix.transpose();
+
+    // take out the diagonal
+    similarity_matrix.diagonal().setZero();
+
+    return similarity_matrix;
+}
+
+
+float max_cosine_similarity_in_rows(
+    const Eigen::MatrixXf matrix, int idx) {
+    // Compute the cosine similarity matrix
+    Eigen::MatrixXf similarity_matrix = cosine_similarity_matrix(matrix);
+
+    // Check that idx is within bounds
+    if (idx < 0 || idx >= similarity_matrix.rows()) {
+        throw std::out_of_range("Index is out of bounds.");
+    }
+
+    // Get the row at the specified index
+    Eigen::VectorXf column = similarity_matrix.col(idx);
+
+    // Find the maximum value in the column
+    float max_similarity = column.maxCoeff();
+
+    return max_similarity;
+}
+
+
+float euclidean_distance(const std::array<float, 2> v1,
+                         const std::array<float, 2> v2) {
+    return std::sqrt(std::pow(v1[0] - v2[0], 2) +
+                     std::pow(v1[1] - v2[1], 2));
+}
+
+
+
+/* MISCELLANEOUS */
+
+
+int get_segments_intersection(float p0_x, float p0_y,
+                              float p1_x, float p1_y,
+                              float p2_x, float p2_y,
+                              float p3_x, float p3_y,
+                              float *i_x, float *i_y) {
+
+    float s02_x, s02_y, s10_x, s10_y, s32_x;
+    float s32_y, s_numer, t_numer, denom, t;
+    s10_x = p1_x - p0_x;
+    s10_y = p1_y - p0_y;
+    s32_x = p3_x - p2_x;
+    s32_y = p3_y - p2_y;
+
+    denom = s10_x * s32_y - s32_x * s10_y;
+    if (denom == 0)
+        return 0; // Collinear
+    bool denomPositive = denom > 0;
+
+    s02_x = p0_x - p2_x;
+    s02_y = p0_y - p2_y;
+    s_numer = s10_x * s02_y - s10_y * s02_x;
+    if ((s_numer < 0) == denomPositive)
+        return 0; // No collision
+
+    t_numer = s32_x * s02_y - s32_y * s02_x;
+    if ((t_numer < 0) == denomPositive)
+        return 0; // No collision
+
+    if (((s_numer > denom) == denomPositive) || ((t_numer > denom) == denomPositive))
+        return 0; // No collision
+    //
+    // Collision detected
+    t = t_numer / denom;
+    if (i_x != NULL)
+        *i_x = p0_x + (t * s10_x);
+    if (i_y != NULL)
+        *i_y = p0_y + (t * s10_y);
+
+    return 1;
+}
+
+
+std::array<float, 2> reflect_point_over_segment(
+                    float x, float y, float x1,
+                    float y1, float x2, float y2) {
+
+    if (x1 == x2) {
+        return {2*x1 - x, y};
+    } else if (y1 == y2) {
+        return {x, 2*y1 - y};
+    }
+
+    /* printf("\nx1: %f, y1: %f, x2: %f, y2: %f\n", x1, y1, x2, y2); */
+    /* printf("x: %f, y: %f\n", x, y); */
+
+    // define line equation
+    float m = (y2-y1) / (x2 - x1);
+    float q = (x1-x2)*y1 + (y2-y1)*x1;
+
+    /* printf("\nm: %f, q: %f\n", m, q); */
+
+    // rotate x2,y2 around x1,y1 by 90 degrees
+    float x3 = x2 - x1;
+    float y3 = y2 - y1;
+    float _x3 = -y3 + x1;
+    float _y3 = x3 + y1;
+    /* printf("_x3: %f, _y3: %f\n", _x3, _y3); */
+
+    float _m = (_y3 - y1) / (_x3 - x1);
+
+    // calculate q for perpendicular line
+    // y - _m*x = q
+    float _q = y - _m*x;
+    /* printf("_m: %f, _q: %f\n", _m, _q); */
+
+    // find intersection between line and perpendicular line
+    // _m * x + _q = m * x + q
+    // x = (q - _q) / (_m - m)
+    float xc = (q - _q) / (_m - m);
+    float yc = m * xc + q;
+
+    // reflect x,y over xc,yc
+    float xr = 2*xc - x;
+    float yr = 2*yc - y;
+    /* printf("x: %f, y: %f\n", x, y); */
+    /* printf("m, _m: %f, %f\n", m, _m); */
+    /* printf("q, _q: %f, %f\n", q, _q); */
+    /* printf("xc: %f, yc: %f\n", xc, yc); */
+    /* printf("xr: %f, yr: %f\n", xr, yr); */
+
+    return {xr, yr};
+}
+
+
+Eigen::VectorXf linspace(float start, float end, int num)
+{
+    /* int num = num; // Ensure `num` is an integer */
+
+    if (num <= 0) {
+        return Eigen::VectorXf(); // Return an empty vector
+    }
+
+    if (num == 1) {
+        Eigen::VectorXf linspaced(1);
+        linspaced(0) = start;
+        return linspaced;
+    }
+
+    Eigen::VectorXf linspaced(num);
+    float delta = (end - start) / (num - 1);
+
+    for (int i = 0; i < num; ++i) {
+        linspaced(i) = start + delta * i;
+    }
+
+    return linspaced;
+}
+
+
+std::vector<float> linspace_vec(float start, float end, int num,
+                                bool startpoint = true,
+                                bool endpoint = true)
+{
+    if (num <= 0) {
+        return std::vector<float>(); // Return an empty vector
+    }
+
+    if (num == 1) {
+        return std::vector<float>{start};
+    }
+
+    if (!endpoint) {
+        end = end - (end - start) / num;
+    }
+    if (!startpoint) {
+        start = start + (end - start) / num;
+    }
+
+    std::vector<float> linspaced(num);
+    float delta = (end - start) / (num - 1);
+
+    for (int i = 0; i < num; ++i) {
+        linspaced[i] = start + delta * i;
+    }
+
+    return linspaced;
+}
+
+
+Eigen::MatrixXf connectivity_matrix(
+    const Eigen::MatrixXf matrix,
+    float threshold = 0.5f) {
+
+    // Compute the row to row similarity matrix
+    Eigen::MatrixXf similarity_matrix = \
+        cosine_similarity_matrix(matrix);
+
+    // Threshold the similarity matrix
+    Eigen::MatrixXf connectivity = (similarity_matrix.array() > threshold).cast<float>();
+
+    return connectivity;
+}
+
+
+/* ACTIVATION FUNCTIONS */
+
+
+inline Eigen::VectorXf generalized_sigmoid_vec(
+    const Eigen::VectorXf x,
+    float offset = 1.0f,
+    float gain = 1.0f,
+    float clip = 0.0f) {
+    // Offset each element by `offset`, apply the gain,
+    // and then compute the sigmoid
+    Eigen::VectorXf result = 1.0f / (1.0f + \
+        (-gain * (x.array() - offset)).exp());
+
+    return (result.array() >= clip).select(result, 0.0f);
+}
+
+
+inline std::vector<float> generalized_sigmoid_vec(
+    const std::vector<float> x, float offset = 1.0f,
+    float gain = 1.0f, float clip = 0.0f) {
+
+    // Offset each element by `offset`, apply the gain,
+    // and then compute the sigmoid
+    std::vector<float> result;
+    for (size_t i = 0; i < x.size(); i++) {
+        float val = 1.0f / (1.0f + \
+            exp(-gain * (x[i] - offset)));
+        result.push_back(val >= clip ? val : 0.0f);
+    }
+
+    return result;
+}
+
+
 
 
 /* ========================================== */
@@ -163,7 +691,7 @@ class Hexagon {
         /* printf("B: %f, %f\n", bx, by); */
         // calculate the intersection s between ab and ro
         float sx, sy;
-        if (utils::get_segments_intersection(
+        if (get_segments_intersection(
             ax, ay, bx, by, rx, ry,
             0.0f, 0.0f, &sx, &sy)) {
         } else {
@@ -182,10 +710,10 @@ class Hexagon {
         // reflect wrt the line s-center
         std::array<float, 2> z;
         if (sy > 0) {
-             z = utils::reflect_point_over_segment(
+             z = reflect_point_over_segment(
                 rx, ry, 0.0f, 0.0f, mx, my);
         } else {
-            z = utils::reflect_point_over_segment(
+            z = reflect_point_over_segment(
                 rx, ry, mx, my, 0.0f, 0.0f);
         }
 
@@ -207,8 +735,6 @@ public:
 
         /* LOG("[+] hexagon created"); */
     }
-
-    ~Hexagon() {} // LOG("[-] hexagon destroyed"); }
 
     // @brief call: apply the boundary conditions
     std::array<float, 2> call(float x, float y) {
@@ -272,7 +798,6 @@ public:
     Eigen::VectorXf node_degree;
     std::array<float, 2> position;
     int size;
-    /* std::vector<std::array<float, 2>> trajectory; */
     float threshold;
 
     std::vector<std::array<int, 2>> blocked_edges;
@@ -289,7 +814,7 @@ public:
     }
 
     // CALL
-    std::array<float, 2> call(const std::array<float, 2>& v) {
+    std::array<float, 2> call(const std::array<float, 2> v) {
         position[0] += v[0];
         position[1] += v[1];
     }
@@ -373,7 +898,7 @@ public:
             std::to_string(j));
     }
 
-    Eigen::MatrixXf& get_centers(bool nonzero=false) {
+    Eigen::MatrixXf get_centers(bool nonzero=false) {
 
         if (!nonzero) { return centers; }
 
@@ -421,7 +946,7 @@ public:
         return edges;  // Add this line to return the edges vector
     }
 
-    int calculate_closest_index(const std::array<float, 2>& c) {
+    int calculate_closest_index(std::array<float, 2> c) {
         // calculate the closest index to the velocity
         float min_dist = 1000.0f;
         int idx = -1;
@@ -756,10 +1281,10 @@ class GridLayerSq {
         // define the centers as a grid:
         // - excluding the endpoints
         // - assuming bounds (-1, 1), (-1, 1)
-        std::vector<float> linex = utils::linspace_vec(
+        std::vector<float> linex = linspace_vec(
                         bounds[0], bounds[1], GCL_SIZE_SQRT,
                         true, false);
-        std::vector<float> liney = utils::linspace_vec(
+        std::vector<float> liney = linspace_vec(
                         bounds[2], bounds[3], GCL_SIZE_SQRT,
                         true, false);
 
@@ -944,7 +1469,7 @@ public:
 
     ~GridNetworkSq() {} // LOG("[-] GridNetworkSq destroyed"); }
 
-    Eigen::VectorXf& call(const std::array<float, 2>& x) {
+    Eigen::VectorXf call(const std::array<float, 2> x) {
 
         for (int i = 0; i < num_layers; i++) {
             // Convert the output of layers[i].call(x) to
@@ -961,9 +1486,9 @@ public:
         return y;
     }
 
-    Eigen::VectorXf& simulate(
+    Eigen::VectorXf simulate(
         const std::array<float, 2>& v,
-        std::vector<std::array<std::array<float, 2>, GCL_SIZE>>& sim_gc_positions) {
+        std::vector<std::array<std::array<float, 2>, GCL_SIZE>> sim_gc_positions) {
 
         Eigen::VectorXf yfwd = Eigen::VectorXf::Zero(N);
         for (int i = 0; i < num_layers; i++) {
@@ -984,7 +1509,7 @@ public:
         return yfwd;
     }
 
-    Eigen::VectorXf& simulate_one_step(const std::array<float, 2>& v) {
+    Eigen::VectorXf simulate_one_step(std::array<float, 2> v) {
 
         Eigen::VectorXf yfwd = Eigen::VectorXf::Zero(N);
         for (int i = 0; i < num_layers; i++) {
@@ -1130,16 +1655,16 @@ public:
         // forward it to the network by doing a dot product
         // with the feedforward weights
         /* u = Wff * x_filtered + pre_x; */
-        u = utils::cosine_similarity_vector_matrix(
+        u = cosine_similarity_vector_matrix(
                 x_filtered, Wff);
 
         Eigen::VectorXf sigma = \
             Eigen::VectorXf::Constant(u.size(), 0.01);
 
         // maybe use cosine similarity?
-        /* u = utils::gaussian_distance(x_filtered, Wff, sigma); */
+        /* u = gaussian_distance(x_filtered, Wff, sigma); */
 
-        u = utils::generalized_sigmoid_vec(u, offset,
+        u = generalized_sigmoid_vec(u, offset,
                                            gain, clip_min);
 
         // update the trace
@@ -1162,42 +1687,29 @@ public:
         make_indexes();
 
         // exit: a fixed neuron is above threshold
-        if (check_fixed_indexes() != -1) {
-            DEBUG("!Fixed index above threshold");
-            /* printf("(-)Fixed index above threshold\n"); */
-           return void();
-        };
+        if (check_fixed_indexes() != -1) { return void(); }
 
         // exit: there are no free neurons
-        if (free_indexes.size() == 0) {
-            DEBUG("!No free neurons");
-            return void();
-        };
+        if (free_indexes.size() == 0) { return void(); }
 
         // pick new index
-        int idx = utils::random.get_random_element_vec(
-                                        free_indexes);
-        DEBUG("Picked index: " + std::to_string(idx));
+        int idx = random_int(0, free_indexes.size() - 1, SEED);
 
         // determine weight update
         Eigen::VectorXf dw = x_filtered - \
             Wff.row(idx).transpose();
 
         // trim the weight update
-        /* delta_wff = (dw.array() > 0.01).select(dw, 0.0f); */
-
         delta_wff = dw.norm();
 
         if (delta_wff > 0.0) {
-
-            DEBUG("delta_wff: " + std::to_string(delta_wff));
 
             // update weights
             Wff.row(idx) += dw.transpose();
 
             // calculate the similarity among the rows
             float similarity = \
-                utils::max_cosine_similarity_in_rows(
+                max_cosine_similarity_in_rows(
                     Wff, idx);
 
             // check repulsion (similarity) level
@@ -1236,14 +1748,14 @@ public:
 
         // forward it to the network by doing a dot product
         // with the feedforward weights
-        u = utils::cosine_similarity_vector_matrix(
+        u = cosine_similarity_vector_matrix(
                 x_filtered, Wff);
 
         Eigen::VectorXf sigma = \
             Eigen::VectorXf::Constant(u.size(), 0.01);
 
         // maybe use cosine similarity?
-        return utils::generalized_sigmoid_vec(u, offset,
+        return generalized_sigmoid_vec(u, offset,
                                            gain, clip_min);
     }
 
@@ -1363,13 +1875,7 @@ private:
         };
 
         if (max_u < (threshold * ach) ) { return -1; }
-        else {
-            DEBUG("Fixed index above threshold: " + \
-                std::to_string(max_u) + \
-                " [" + std::to_string(threshold) + "]");
-            /* printf("(-)Fixed index above threshold [u=%f]{%f}\n", */
-                   /* max_u, threshold); */
-            return max_idx; };
+        else {return max_idx; }
     }
 
     // @brief Quantify the indexes.
@@ -1388,12 +1894,12 @@ private:
     // @brief calculate the recurrent connections
     void update_recurrent() {
         // connectivity matrix
-        connectivity = utils::connectivity_matrix(
+        connectivity = connectivity_matrix(
             Wff, rec_threshold
         );
 
         // similarity
-        Wrec = utils::cosine_similarity_matrix(Wff);
+        Wrec = cosine_similarity_matrix(Wff);
 
         // weights
         Wrec = Wrec.cwiseProduct(connectivity);
@@ -1438,7 +1944,7 @@ public:
 
         ach = 1.0;
 
-        this->fixed_centers = utils::generate_lattice(N, length);
+        this->fixed_centers = generate_lattice(N, length);
 
         // make recurrent connections based on the fixed centers
         // 1. loop through the fixed centers
@@ -1484,7 +1990,7 @@ public:
                               (xfilter[1] - fixed_centers(i, 1))));
         }
 
-        y = utils::generalized_sigmoid_vec(y, offset,
+        y = generalized_sigmoid_vec(y, offset,
                                            gain, clip_min);
 
         return std::make_pair(y, x_filtered);
@@ -1504,7 +2010,7 @@ public:
                               (x[1] - fixed_centers(i, 1))));
         }
 
-        return utils::generalized_sigmoid_vec(z, offset,
+        return generalized_sigmoid_vec(z, offset,
                                              gain, clip_min);
 
         // maybe use cosine similarity?
@@ -1620,11 +2126,7 @@ private:
         };
 
         if (max_u < (threshold * ach) ) { return -1; }
-        else {
-            DEBUG("Fixed index above threshold: " + \
-                std::to_string(max_u) + \
-                " [" + std::to_string(threshold) + "]");
-            return max_idx; };
+        else { return max_idx; }
     }
 
     // @brief Quantify the indexes.
@@ -1643,12 +2145,12 @@ private:
     // @brief calculate the recurrent connections
     void update_recurrent() {
         // connectivity matrix
-        connectivity = utils::connectivity_matrix(
+        connectivity = connectivity_matrix(
             Wff, rec_threshold
         );
 
         // similarity
-        Wrec = utils::cosine_similarity_matrix(Wff);
+        Wrec = cosine_similarity_matrix(Wff);
 
         // weights
         Wrec = Wrec.cwiseProduct(connectivity);
@@ -1730,7 +2232,7 @@ public:
     PCNNsqv2(int N, int Nj, float gain, float offset,
          float clip_min, float threshold, float rep_threshold,
          float rec_threshold, int num_neighbors,
-         GridNetworkSq& xfilter, std::string name = "2D")
+         GridNetworkSq xfilter, std::string name = "2D")
         : N(N), Nj(Nj), gain(gain), gain_const(gain),
         offset(offset), clip_min(clip_min), rep_threshold(rep_threshold),
         rep_threshold_const(rep_threshold), rec_threshold(rec_threshold),
@@ -1756,7 +2258,7 @@ public:
 
     // CALL
     std::pair<Eigen::VectorXf,
-    Eigen::VectorXf> call(const std::array<float, 2>& v) {
+    Eigen::VectorXf> call(std::array<float, 2> v) {
 
         vspace.call(v);
 
@@ -1766,14 +2268,14 @@ public:
         // forward it to the network by doing a dot product
         // with the feedforward weights
         u = Wff * x_filtered;
-        u = utils::cosine_similarity_vector_matrix(
+        u = cosine_similarity_vector_matrix(
                 x_filtered, Wff);
 
         Eigen::VectorXf sigma = Eigen::VectorXf::Constant(u.size(),
                                                           0.01);
 
         // maybe use cosine similarity?
-        u = utils::generalized_sigmoid_vec(u, offset,
+        u = generalized_sigmoid_vec(u, offset,
                                            gain, clip_min);
 
         return std::make_pair(u, x_filtered);
@@ -1801,14 +2303,12 @@ public:
 
         if (delta_wff > 0.0) {
 
-            DEBUG("delta_wff: " + std::to_string(delta_wff));
-
             // update weights
             Wff.row(idx) += dw.transpose();
 
             // calculate the similarity among the rows
             float similarity = \
-                utils::max_cosine_similarity_in_rows(
+                max_cosine_similarity_in_rows(
                     Wff, idx);
 
             // check repulsion (similarity) level
@@ -1838,14 +2338,14 @@ public:
 
         // forward it to the network by doing a dot product
         // with the feedforward weights
-        u = utils::cosine_similarity_vector_matrix(
+        u = cosine_similarity_vector_matrix(
                 x_filtered, Wff);
 
         Eigen::VectorXf sigma = Eigen::VectorXf::Constant(u.size(),
                                                           0.01);
 
         // maybe use cosine similarity?
-        u = utils::generalized_sigmoid_vec(u, offset,
+        u = generalized_sigmoid_vec(u, offset,
                                            gain, clip_min);
         return std::make_pair(u, xfilter.get_positions_vec());
     }
@@ -1857,13 +2357,13 @@ public:
 
         // forward it to the network by doing a dot product
         // with the feedforward weights
-        u = utils::cosine_similarity_vector_matrix(
+        u = cosine_similarity_vector_matrix(
                 x_filtered, Wff);
 
         Eigen::VectorXf sigma = Eigen::VectorXf::Constant(u.size(), 0.01);
 
         // maybe use cosine similarity?
-        u = utils::generalized_sigmoid_vec(u, offset,
+        u = generalized_sigmoid_vec(u, offset,
                                            gain, clip_min);
         return u;
     }
@@ -1911,7 +2411,7 @@ public:
 
             // check similarity
             float similarity = \
-                utils::max_cosine_similarity_in_rows(Wff, i);
+                max_cosine_similarity_in_rows(Wff, i);
 
             // check repulsion (similarity) level
             if (similarity > (dist * min_rep_threshold + (1 - dist) * min_rep_threshold) || \
@@ -1953,7 +2453,7 @@ public:
     std::vector<std::array<std::array<float, 2>, 3>> make_edges_value(
         Eigen::MatrixXf& values) { return vspace.make_edges_value(values); }
     Eigen::MatrixXf& get_connectivity() { return connectivity; }
-    Eigen::MatrixXf& get_centers(bool nonzero = false)
+    Eigen::MatrixXf get_centers(bool nonzero = false)
         { return vspace.get_centers(nonzero); }
     Eigen::VectorXf& get_node_degrees() { return vspace.node_degree; }
     float get_delta_update() { return delta_wff; }
@@ -1978,9 +2478,6 @@ public:
     float get_gain() { return gain; }
     float get_rep() { return rep_threshold; }
     float get_threshold() { return threshold; }
-    float calculate_angle_gap(int idx, Eigen::MatrixXf& centers,
-                              Eigen::MatrixXf& connectivity)
-        { return utils::calculate_angle_gap(idx, centers, connectivity); }
 
 };
 
@@ -2128,50 +2625,6 @@ public:
 };
 
 
-struct EpisodicMemory {
-
-    Eigen::MatrixXf value_weights;
-    std::vector<int> path = {-1};
-    float v = 0.0f;
-    float tau_decay;
-    float tau_rise;
-    float threshold = 0.2f;
-
-    // CALL
-    void call(float reward) {
-
-        // update the value
-        v += (reward - v) / tau_rise - v / tau_decay;
-
-        /* LOG("[+] reward=" + std::to_string(reward)); */
-        /* LOG("[+] threshold=" + std::to_string(threshold)); */
-        /* LOG("[+] updating memory connections, v=" + std::to_string(v)); */
-
-        // record the edges between the nodes in the path
-        if (v > threshold && path[0] != -1) {
-            // one way though
-            for (int i = 0; i < path.size() - 2; i++) {
-                value_weights(path[i], path[i+1]) += \
-                    (1 - value_weights(path[i], path[i+1])) * v;
-            }
-            /* LOG("[+] EpisodicMemory: updated | size: " + std::to_string(path.size())); */
-        }
-    }
-
-    void set_path(std::vector<int> path) { this->path = path; }
-        /* LOG("## set path, size=" + std::to_string(path.size()));; */
-    Eigen::MatrixXf& get_value_weights() { return value_weights; }
-    void reset() { v = 0.0f; }
-
-    EpisodicMemory(int size, float tau_rise = 3.0f, float tau_decay = 4.0f,
-                      float threshold = 0.3f):
-        value_weights(Eigen::MatrixXf::Zero(size, size)), tau_rise(tau_rise),
-        tau_decay(tau_decay), threshold(threshold) {}
-    std::string str() { return "EpisodicMemory"; }
-    std::string repr() { return "EpisodicMemory"; }
-};
-
-
 struct StationarySensory {
 
     Eigen::VectorXf prev_representation;
@@ -2182,7 +2635,7 @@ struct StationarySensory {
 
     bool call(Eigen::VectorXf representation) {
 
-        float cosim = utils::cosine_similarity_vec(representation, prev_representation);
+        float cosim = cosine_similarity_vec(representation, prev_representation);
 
         // if cosine similarity is not nan
         if (std::isnan(cosim) || cosim < min_cosine) { cosim = 0.0f; }
@@ -2327,45 +2780,6 @@ public:
 /* ========================================== */
 
 
-struct ConsecutiveLocationsHandler {
-    int start_point = -1;
-    int end_point = -1;
-    int counter = 0;
-    int max_attempts = 1;
-
-    void set_points(int start_point, int end_point) {
-        this->start_point = start_point;
-        this->end_point = end_point;
-        this->counter = 0;
-        /* LOG("[+] setting ConsecutiveLocationsHandler: " + \ */
-        /*     std::to_string(start_point) + " -> " + \ */
-        /*     std::to_string(end_point)); */
-    }
-    bool update() {
-
-        if (start_point == end_point || start_point < 0 || end_point < 0) {
-            /* LOG("[-] ConsecutiveLocationsHandler: invalid points or equal points"); */
-            return true;
-        }
-        counter++;
-        /* LOG("[-] ConsecutiveLocationsHandler: " + \ */
-        /*     std::to_string(start_point) + " -> " + \ */
-        /*     std::to_string(end_point) + " [" + \ */
-        /*     std::to_string(counter) + "]"); */
-        return false;
-    }
-
-    bool is_valid() { return counter < max_attempts; }
-    void reset() {
-        start_point = -1;
-        end_point = -1;
-        counter = 0;
-    }
-
-    ConsecutiveLocationsHandler(int max_attemps): max_attempts(max_attemps) {}
-};
-
-
 struct RewardObject {
 
     int trg_idx = -1;
@@ -2452,230 +2866,6 @@ private:
 };
 
 
-class TargetProgram {
-
-    // external variables
-    Eigen::MatrixXf& wrec;
-    Eigen::MatrixXf& connectivity;
-    Eigen::MatrixXf& centers;
-    PCNN_REF& space;
-    PCNN_REF& space_coarse;
-    /* Eigen::VectorXf& da_weights; */
-
-    // internal variables
-    ConsecutiveLocationsHandler conlochandler;
-    EpisodicMemory episodic_memory;
-    float speed;
-    bool active;
-    int tmp_trg_idx;
-    int curr_idx;
-    std::vector<int> plan_idxs;
-    std::array<float, 2> next_position;
-    std::array<float, 2> curr_position;
-    int depth;
-    int size;
-    int counter;
-
-    bool make_plan(Eigen::VectorXf& curr_representation,
-                   Eigen::VectorXf& space_weights,
-                   int tmp_trg_idx) {
-
-        // calculate the current node
-        Eigen::Index maxIndex_curr;
-        curr_representation.maxCoeff(&maxIndex_curr);
-        curr_idx = static_cast<int>(maxIndex_curr);
-
-        // plan
-        std::vector<int> plan_idxs = \
-            utils::spatial_shortest_path(connectivity,
-                                         space.get_centers(),
-                                         space_weights,
-                                         curr_idx, tmp_trg_idx);
-
-        float max_curr_value = curr_representation.maxCoeff();
-
-        // check if the plan is valid, ie size > 1
-        if (plan_idxs.size() < 3) {
-            /* LOG("[-] short plan"); */
-            return false;
-        } else if (max_curr_value < 0.00001f) {
-            /* LOG("[-] low max curr value"); */
-            return false;
-        }
-
-        // next position as the center corresponding to the
-        // the next index in the plan
-        this->active = true;
-        this->curr_position = {centers(plan_idxs[0], 0),
-                               centers(plan_idxs[0], 1)};
-        this->next_position = {centers(plan_idxs[1], 0),
-                               centers(plan_idxs[1], 1)};
-        this->counter = 1;
-        this->depth = plan_idxs.size();
-        this->plan_idxs = plan_idxs;
-
-        conlochandler.set_points(curr_idx, plan_idxs[1]);
-        return true;
-    }
-
-public:
-
-    TargetProgram(PCNN_REF& space, PCNN_REF& space_coarse,
-                  float speed, int max_attempts = 2):
-        active(false), space(space), space_coarse(space_coarse),
-        wrec(space.get_wrec()),
-        connectivity(space.get_connectivity()),
-        centers(space.get_centers()),
-        episodic_memory(EpisodicMemory(space.get_size())),
-        speed(speed), depth(0), conlochandler(max_attempts) {
-
-        size = wrec.rows();
-        plan_idxs = {};
-        next_position = {0.0f, 0.0f};
-        curr_position = {0.0f, 0.0f};
-    }
-
-    // UPDATE
-
-    bool update(Eigen::VectorXf& curr_representation,
-                Eigen::VectorXf& curr_representation_coarse,
-                Eigen::VectorXf& space_weights,
-                Eigen::VectorXf& space_weights_coarse,
-                int tmp_trg_idx) {
-
-        // update graph
-        wrec = space.get_wrec();
-        connectivity = space.get_connectivity();
-
-        // attempt planning
-        bool is_valid = make_plan(curr_representation, space_weights,
-                                  tmp_trg_idx);
-
-        // exit: no plan
-        if (!is_valid) {
-            active = false;
-            return false;
-        }
-
-        active = true;
-        episodic_memory.set_path(plan_idxs);
-        return true;
-    }
-
-    // if there's a plan, follow it
-    std::pair<std::array<float, 2>, bool> step_plan(Eigen::VectorXf& curr_representation) {
-
-        // exit: active
-        if (!active) {
-            /* LOG("[-] not active"); */
-            return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
-        }
-
-        std::array<float, 2> local_velocity;
-
-        // exit: conlochandler
-        if (!conlochandler.is_valid()) {
-            space.add_blocked_edge(conlochandler.start_point,
-                                   conlochandler.end_point);
-            conlochandler.reset();
-
-            // check edges
-            return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
-        }
-
-        // +current position
-        this->curr_position = space.get_position();
-        int curr_idx = space.calculate_closest_index(curr_position);
-
-        // +distance
-        float dist = utils::euclidean_distance(curr_position, next_position);
-
-        // -- same next position
-        if (dist > 0.01f && counter > 0) {
-            float dx = next_position[0] - curr_position[0];
-            float dy = next_position[1] - curr_position[1];
-
-            // determine velocity magnitude
-            if (dist < speed) { local_velocity = {dx, dy}; }
-            else {
-                float norm = sqrt(dx * dx + dy * dy);
-                local_velocity = {speed * dx / norm,
-                                  speed * dy / norm};
-            }
-            return std::make_pair(local_velocity, true);
-        }
-
-        // -- move to the next position
-
-        // check: end of the plan
-        if (counter > (plan_idxs.size()-1)) {
-            this->active = false;
-            this->counter = 0;
-            this->depth = 0;
-            conlochandler.reset();
-            return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
-        }
-
-        // retrieve next position
-        this->next_position = {centers(plan_idxs[counter], 0),
-                               centers(plan_idxs[counter], 1)};
-
-        // check if it's the last point
-        if (plan_idxs[counter] == tmp_trg_idx) {
-        } else if (plan_idxs[counter] < -10000 || plan_idxs[counter] > 10000) {
-            LOG("[!] !!! possible memory leak?? " + \
-                std::to_string(plan_idxs[counter]) + ", counter=" + \
-                std::to_string(counter) + " | plan size=" + \
-                std::to_string(plan_idxs.size()));
-        }
-
-        // distance netween the current and next position
-        float dx = next_position[0] - curr_position[0];
-        float dy = next_position[1] - curr_position[1];
-        dist = utils::euclidean_distance(curr_position, next_position);
-
-        // determine velocity magnitude
-        if (dist < speed) { local_velocity = {dx, dy}; }
-        else {
-            float norm = sqrt(dx * dx + dy * dy);
-            local_velocity = {speed * dx / norm,
-                              speed * dy / norm};
-        }
-
-        // set the new points
-        conlochandler.set_points(plan_idxs[counter-1], plan_idxs[counter]);
-
-        counter++;
-
-        // update the current position
-        /* this->curr_position = {curr_position[0] + local_velocity[0], */
-        /*                        curr_position[1] + local_velocity[1]}; */
-
-        return std::make_pair(local_velocity, true);
-    }
-
-    void step_episodic_memory(float reward) { episodic_memory.call(reward); }
-
-    std::string str() { return "TargetProgram"; }
-    std::string repr() { return "TargetProgram"; }
-    int len() { return 1; }
-    bool is_active() { return active; }
-    bool is_plan_finished() { return counter == depth; }
-    void set_wrec(Eigen::MatrixXf wrec) { this->wrec = wrec; }
-    void set_centers(Eigen::MatrixXf centers) { this->centers = centers; }
-    std::vector<int> get_plan() { return plan_idxs; }
-    Eigen::MatrixXf& get_episodic_memory()
-        { return episodic_memory.get_value_weights(); }
-    void reset() {
-        /* LOG("[-] resetting TargetProgram"); */
-        active = false;
-        counter = 0;
-        depth = 0;
-        episodic_memory.reset();
-    }
-};
-
-
 struct Plan {
 
     // external components
@@ -2757,7 +2947,7 @@ struct Plan {
 
         curr_position = space.get_position();
         curr_idx = space.calculate_closest_index(curr_position);
-        return utils::euclidean_distance(curr_position, next_position);
+        return euclidean_distance(curr_position, next_position);
     }
 
     void set_plan(std::vector<int> plan_idxs) {
@@ -2812,7 +3002,7 @@ class GoalModule {
 
         // plan
         std::vector<int> plan_idxs = \
-            utils::spatial_shortest_path(space.get_connectivity(),
+            spatial_shortest_path(space.get_connectivity(),
                                          space.get_centers(),
                                          space_weights,
                                          curr_idx, trg_idx);
@@ -3015,7 +3205,8 @@ class ExplorationModule {
     void random_action_plan() {
 
         // sample a random angle
-        float angle = utils::random.get_random_float(0.0f, 2.0f * M_PI);
+        /* float angle = random.get_random_float(0.0f, 2.0f * M_PI); */
+        float angle = random_float(0.0f, 2.0f * M_PI, SEED);
 
         // update plan
         this->action = {std::cos(angle) * speed,
@@ -3135,7 +3326,6 @@ class Brain {
     ExplorationModule& expmd;
     StationarySensory& ssry;
     DensityPolicy& dpolicy;
-    /* TargetProgram trgp; */
     GoalModule goalmd;
     RewardObject rwobj = RewardObject();
 
@@ -3347,7 +3537,7 @@ final:
     Eigen::VectorXf& get_representation_coarse()
         { return curr_representation_coarse; }
     std::array<float, 2> get_trg_position() {
-        Eigen::MatrixXf& centers = space.get_centers();
+        Eigen::MatrixXf centers = space.get_centers();
         return {centers(rwobj.trg_idx, 0), centers(rwobj.trg_idx, 1)};
     }
     ExplorationModule& get_expmd() { return expmd; }
@@ -3851,3 +4041,6 @@ void test_bnd(int duration = 3000) {
 };
 
 };
+
+
+/* #endif // MAINLIB_HPP */

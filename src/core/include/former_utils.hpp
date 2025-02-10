@@ -471,6 +471,7 @@ Eigen::VectorXf linspace(float start, float end, int num)
     return linspaced;
 }
 
+
 std::vector<float> linspace_vec(float start, float end, int num,
                                 bool startpoint = true,
                                 bool endpoint = true)

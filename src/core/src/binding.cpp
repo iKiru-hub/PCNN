@@ -1,5 +1,5 @@
 #include "pcnn.hpp"
-#include "utils.hpp"
+/* #include "utils.hpp" */
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
@@ -14,8 +14,8 @@ namespace py = pybind11;
 PYBIND11_MODULE(pclib, m) {
 
     // function `set_debug`
-    m.def("set_debug", &set_debug,
-          py::arg("flag"));
+    /* m.def("set_debug", &set_debug, */
+    /*       py::arg("flag")); */
 
     /* PCNN MODEL */
     // (InputFilter) Grid Layer
@@ -236,10 +236,10 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("sim_gc_positions"))
         .def("simulate_one_step", &PCNNsqv2::simulate_one_step,
              py::arg("v"))
-        .def("calculate_angle_gap", &PCNNsqv2::calculate_angle_gap,
-             py::arg("idx"),
-             py::arg("centers"),
-             py::arg("connectivity"))
+        /* .def("calculate_angle_gap", &PCNNsqv2::calculate_angle_gap, */
+        /*      py::arg("idx"), */
+        /*      py::arg("centers"), */
+        /*      py::arg("connectivity")) */
         /* .def("fwd_int", &PCNNsqv2::fwd_int, */
         /*      py::arg("a")) */
         .def("modulate_gain", &PCNNsqv2::modulate_gain,

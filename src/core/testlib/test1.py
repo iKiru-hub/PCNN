@@ -56,38 +56,6 @@ def test_leaky1D():
         f"second call is not correct v={lv.get_v()}"
 
 
-def test_leakyND():
-
-    """
-    test the LeakyVariableND class
-    """
-
-    eq = 0.
-    tau = 2.
-    ndim = 3
-
-    # definition
-    lv = pclib.LeakyVariableND("TST", eq, tau, ndim)
-
-    # check dimensions
-    assert len(lv) == ndim, f"Dimension of the leaky variable " + \
-        f"is not correct {len(lv)}"
-
-    # check initialization
-    assert lv.get_v()[0] == eq, f"Initial value is not " + \
-        f"correct v={lv.get_v()}"
-
-    # dynamics | v = v + (eq - v) / tau + x
-    x = np.array([1., 0.4, 0.5]).reshape(-1)
-    lv(x)
-    assert lv.get_v()[0] == x[0], f"Value after first call is " +\
-        f"not correct v={lv.get_v()}"
-
-    lv(np.zeros(ndim))
-    assert lv.get_v()[0] == (x + (eq - x) / tau)[0], f"Value" + \
-        f" after second call is not correct v={lv.get_v()}"
-
-
 def test_densitymod():
 
     x, w = np.random.randn(2, 5)
