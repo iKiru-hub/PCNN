@@ -358,6 +358,7 @@ class Environment:
         self.rw_event = rw_event
         self.duration = duration
         # self.scale = scale# * 0.02
+        self.rw_count = 0
         self.t = 0
         self.velocity = np.zeros(2)
         self.trajectory = []
@@ -377,7 +378,8 @@ class Environment:
             pygame.display.set_caption("Simple Pygame Game")
 
     def __str__(self):
-        return f"Environment({self.room}, verbose={self.verbose})"
+        return f"Environment({self.room}, duration={self.duration}, " + \
+               f"verbose={self.verbose})"
 
     def __call__(self, velocity: np.ndarray, brain: object) -> \
         Tuple[float, np.ndarray, bool, bool]:
@@ -396,6 +398,7 @@ class Environment:
         if reward:
             # print(f"[t={self.t}] +reward")
             self.rw_time = self.t
+            self.rw_count += 1
 
         if (self.t - self.rw_time) == self.rw_duration:
             terminated = self._reward_event(brain=brain)

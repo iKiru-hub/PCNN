@@ -18,6 +18,7 @@ COLOR3 = tuple(random.randint(0, 255) for _ in range(3))
 # Increase for more precision, decrease
 # for better performance
 NUM_STEPS = 10
+GAME_SCALE = SCREEN_WIDTH
 
 
 """ rooms """

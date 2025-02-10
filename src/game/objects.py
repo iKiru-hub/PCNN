@@ -32,7 +32,7 @@ class AgentBody:
         self.initial_pos = tuple(self.position)
         self.radius = max((width, height))
         self.random_brain = random_brain
-        self.trajectory = [self.position.tolist()]
+        self.trajectory = [self.position.tolist() if isinstance(self.position, np.ndarray) else self.position]
         self._possible_positions = possible_positions
 
     def __str__(self) -> str:
@@ -128,6 +128,7 @@ class RewardObj:
                     (100, SCREEN_WIDTH-100,
                      100, SCREEN_HEIGHT-100),
                  fetching: str="probabilistic",
+                 transparent: bool = False,
                  value: str="binary",
                  silent_duration: int = 10,
                  color: Tuple[int, int, int] = (25, 255, 0),
@@ -145,6 +146,7 @@ class RewardObj:
         self.color = color
         self.collected = False
         self._fetching = fetching
+        self._transparent = transparent
         self.reward_value = value
         self.silent_duration = silent_duration
         self.count = 0
@@ -155,17 +157,19 @@ class RewardObj:
         self.delay = delay
 
     def __str__(self) -> str:
-        return f"Reward({self.x}, {self.y}, silent={self.silent_duration})"
+        return f"Reward({self.x}, {self.y}, silent={self.silent_duration}, " + \
+            f"transparency={self._transparent})"
 
     def __call__(self, agent_pos: Tuple[int, int]) -> bool:
 
         distance = np.sqrt((self.x - agent_pos[0])**2 +
                       (self.y - agent_pos[1])**2)
 
-        if distance < self.radius and self.available and \
+        # if distance < self.radius and self.available and \
+        if distance < self.radius and \
             self.t > self.silent_duration:
-            print(f"[RW] collected | distance:{distance} | t:{self.t}" + \
-                " | silent:{self.silent_duration} av:{self.available}")
+            # print(f"[RW] collected | distance:{distance} | t:{self.t}" + \
+            #     " | silent:{self.silent_duration} av:{self.available}")
 
             if self._fetching == "deterministic":
                 if self.reward_value == "continuous":
@@ -186,7 +190,8 @@ class RewardObj:
             self.t_collected = self.t
 
         self.available = ((self.t - self.t_collected) > self.delay) and \
-                (self.t > self.silent_duration)
+                (self.t > self.silent_duration) and \
+                (not self._transparent)
 
         self.t += 1
 

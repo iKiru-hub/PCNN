@@ -3,252 +3,197 @@ import time, os
 import random
 from deap import base, creator, tools, cma
 import argparse
+import json
+import subprocess
 
 import tools.evolutions as me
-import run_core as rc
-from utils_core import setup_logger
-from utils_core import edit_logger as edit_logger_utc
-from mod_core import edit_logger as edit_logger_mod
-
+from utils import setup_logger
+import simulations as sim
+from game.constants import ROOMS, GAME_SCALE
 
 
 
 """ SETTINGS """
+logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-rc.edit_logger(level=-1, is_debugging=False, is_warning=False)
-edit_logger_utc(level=-1, is_debugging=False, is_warning=False)
-edit_logger_mod(level=-1, is_debugging=False, is_warning=False)
 
-logger = setup_logger(name="EVO", level=2,
-                      is_debugging=True, is_warning=True)
-
-_bounds = np.array([0., 1., 0., 1.])
-# sim_settings = {
-#     "bounds": _bounds,
-#     "speed": 0.04,
-#     "init_position": None,
-#     "rw_fetching": "deterministic",
-#     "rw_event": "move reward",
-#     "rw_position": None,
-#     "rw_radius": 0.03,
-#     "rw_bounds": np.array([_bounds[0]+0.2, _bounds[1]-0.2,
-#                            _bounds[2]+0.2, _bounds[3]-0.2]),
-#     "plot_interval": 8,
-#     "rendering": False,
-#     "room": "square",
-#     "max_duration": 500,
-#     "seed": None
-# }
-
-sim_settings = {
-    "bounds": np.array([0., 1., 0., 1.]),
-    "speed": 0.03,
-    "init_position": np.array([0.8, 0.2]),
-    "rw_fetching": "probabilistic",
-    "rw_event": "move reward",
-    "rw_position": np.array([0.5, 0.8]),
-    "rw_radius": 0.1,
-    "rw_bounds": np.array([0.2, 0.8, 0.2, 0.8]),
-    "plot_interval": 1,
-    "rendering": True,
-    "rendering_pcnn": True,
-    "render_game": True,
-    "room": "square",
-    "use_game": False,
-    "max_duration": None,
-    "seed": None
+reward_settings = {
+    "rw_fetching": "deterministic",
+    "rw_value": "continuous",
+    "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
+    "rw_radius": 0.05 * GAME_SCALE,
+    "rw_bounds": np.array([0.23, 0.77,
+                           0.23, 0.77]) * GAME_SCALE,
+    "delay": 50,
+    "silent_duration": 5_000,
+    "transparent": True,
 }
 
 agent_settings = {
-    "N": 200,
-    "Nj": 13**2,
-    "sigma": 0.04 * _bounds[1],
+    # "speed": 0.7,
+    "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
+    "agent_bounds": np.array([0.23, 0.77,
+                           0.23, 0.77]) * GAME_SCALE,
 }
 
+game_settings = {
+    "plot_interval": 5,
+    "rw_event": "move agent",
+    "rendering": False,
+    "rendering_pcnn": False,
+    "max_duration": 8_000,
+    "room_thickness": 30,
+    "seed": None
+}
 
-""" EVALUATION """
-
-# @brief: reward count
-def eval_func_I(agent: object):
-
-    """
-    reward count
-    """
-
-    return agent.model.get_reward_count()
-
-
-def eval_func_II(agent: object):
-
-    """
-    reward count
-    """
-
-    return agent.model.get_reward_count(), -agent.model.get_collision_count()
+global_parameters = {
+    "local_scale_fine": 0.015,
+    "local_scale_coarse": 0.006,
+    "N": 25**2,
+    "rec_threshold_fine": 30.,
+    "rec_threshold_coarse": 70.,
+    "speed": 1.5,
+}
 
 
 """ ENVIRONMENT """
 
 
-class ModelMLP(rc.Simulation):
+def convert_numpy(obj):
 
-    def __init__(self, threshold: float,
-                 bnd_threshold: float,
-                 bnd_tau: float,
-                 action_delay: float,
-                 max_depth: int,
-                 w1: float, w2: float, w3: float,
-                 w4: float, w5: float,
-                 w6: float, w7: float,
-                 w8: float, w9: float,
-                 w10: float, w11: float,
-                 w12: float,
-                 sim_settings: dict=sim_settings,
-                 agent_settings: dict=agent_settings):
+    """Helper function to convert NumPy arrays to lists for JSON serialization."""
 
-        self.model_params = {
-            "threshold": threshold,
-            "bnd_threshold": bnd_threshold,
-            "bnd_tau": bnd_tau,
-            "action_delay": action_delay,  # "action_delay": "random
-            "max_depth": max_depth,
-            "w1": w1,
-            "w2": w2,
-            "w3": w3,
-            "w4": w4,
-            "w5": w5,
-            "w6": w6,
-            "w7": w7,
-            "w8": w8,
-            "w9": w9,
-            "w10": w10,
-            "w11": w11,
-            "w12": w12
-        }
-
-        super().__init__(sim_settings=sim_settings,
-                         agent_settings=agent_settings,
-                         model_params=self.model_params)
-
-    def reset(self):
-
-        self.reward_obj.reset()
-
-        self.__init__(**self.model_params,
-                      sim_settings=sim_settings,
-                      agent_settings=agent_settings)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
-class Model(rc.Simulation):
+def safe_run_model(agent, room_name):
+    """Runs sim.run_model in a subprocess to prevent crashes."""
+    try:
+        # Convert agent parameters to JSON, handling NumPy arrays
+        params = json.dumps(agent.model.get_params(), default=convert_numpy)
 
-    def __init__(self, threshold: float,
-                 bnd_threshold: float,
-                 bnd_tau: float,
-                 action_delay: float,
-                 max_depth: int,
-                 w1: float, w2: float, w3: float,
-                 w4: float, w5: float,
-                 w6: float, w7: float,
-                 w8: float, w9: float,
-                 w10: float,
-                 sim_settings: dict=sim_settings,
-                 agent_settings: dict=agent_settings):
+        # Convert all other settings while handling NumPy arrays
+        global_params_json = json.dumps(global_parameters, default=convert_numpy)
+        agent_settings_json = json.dumps(agent_settings, default=convert_numpy)
+        reward_settings_json = json.dumps(reward_settings, default=convert_numpy)
+        game_settings_json = json.dumps(game_settings, default=convert_numpy)
 
-        self.model_params = {
-            "bnd_threshold": bnd_threshold,
-            "bnd_tau": bnd_tau,
-            "threshold": threshold,
+        # Construct the command to execute sim.run_model in a subprocess
+        command = [
+            "python3", "-c",
+            f"""
+import json, simulations, numpy as np
+params = json.loads('{params}')
+global_parameters = json.loads('{global_params_json}')
+agent_settings = json.loads('{agent_settings_json}')
+reward_settings = json.loads('{reward_settings_json}')
+game_settings = json.loads('{game_settings_json}')
+result = simulations.run_model(
+    parameters=params,
+    global_parameters=global_parameters,
+    agent_settings=agent_settings,
+    reward_settings=reward_settings,
+    game_settings=game_settings,
+    room_name='{room_name}',
+    verbose=False
+)
+print(result)
+            """
+        ]
+
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
+
+        # Extract the last line of output (assuming sim.run_model() prints only the result last)
+        last_line = result.stdout.strip().split("\n")[-1]
+
+        return float(last_line)
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
+        return 0
+    except ValueError as e:
+        logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
+        return 0
+
+
+class Model:
+
+    def __init__(self, gain_fine, offset_fine, threshold_fine, rep_threshold_fine,
+                 gain_coarse, offset_coarse, threshold_coarse, rep_threshold_coarse,
+                 lr_da, threshold_da, tau_v_da,
+                 lr_bnd, threshold_bnd, tau_v_bnd,
+                 tau_ssry, threshold_ssry,
+                 threshold_circuit,
+                 rwd_weight, rwd_sigma, col_weight, col_sigma,
+                 action_delay, edge_route_interval,
+                 forced_duration, fine_tuning_min_duration):
+
+        self._params = {
+            "gain_fine": gain_fine,
+            "offset_fine": offset_fine,
+            "threshold_fine": threshold_fine,
+            "rep_threshold_fine": rep_threshold_fine,
+            "gain_coarse": gain_coarse,
+            "offset_coarse": offset_coarse,
+            "threshold_coarse": threshold_coarse,
+            "rep_threshold_coarse": rep_threshold_coarse,
+            "lr_da": lr_da,
+            "threshold_da": threshold_da,
+            "tau_v_da": tau_v_da,
+            "lr_bnd": lr_bnd,
+            "threshold_bnd": threshold_bnd,
+            "tau_v_bnd": tau_v_bnd,
+            "tau_ssry": tau_ssry,
+            "threshold_ssry": threshold_ssry,
+            "threshold_circuit": threshold_circuit,
+            "rwd_weight": rwd_weight,
+            "rwd_sigma": rwd_sigma,
+            "col_weight": col_weight,
+            "col_sigma": col_sigma,
             "action_delay": action_delay,
-            "max_depth": max_depth,
-            "w1": w1,
-            "w2": w2,
-            "w3": w3,
-            "w4": w4,
-            "w5": w5,
-            "w6": w6,
-            "w7": w7,
-            "w8": w8,
-            "w9": w9,
-            "w10": w10,
+            "edge_route_interval": edge_route_interval,
+            "forced_duration": forced_duration,
+            "fine_tuning_min_duration": fine_tuning_min_duration
         }
 
-        super().__init__(sim_settings=sim_settings,
-                         agent_settings=agent_settings,
-                         model_params=self.model_params)
+    def __repr__(self):
+        return "ModelShell"
 
-    def reset(self):
+    def get_params(self):
+        return self._params
 
-        self.reward_obj.reset()
-
-        self.__init__(**self.model_params,
-                      sim_settings=sim_settings,
-                      agent_settings=agent_settings)
+    def output(self): pass
+    def step(self): pass
+    def reset(self): pass
 
 
 class Env:
 
-    """
-    `Nj_set` is not present in this variant
-    """
-
-    def __init__(self, num_samples: int=1,
-                 fitness_size: int=1,
-                 eval_func: callable=eval_func_I):
-
-        #
+    def __init__(self, num_samples: int, npop: int):
         self._num_samples = num_samples
-        self._fitness_size = fitness_size
-        self._eval_func = eval_func
-
-        # variables
-        self.counter = 0
+        self._npop = npop
+        self._rooms = np.random.choice(ROOMS, size=self._num_samples,
+                                       replace=False)
+        self._counter = 0
 
     def __repr__(self):
+        return f"Env({self._num_samples})"
 
-        return f"Env()"
+    def run(self, agent: object) -> tuple:
 
-    def _train(self, agent: object) -> tuple:
+        self._counter += 1
+        logger(f"Env counter: {self._counter}")
+        if self._counter % self._npop == 0:
+            self._rooms = np.random.choice(ROOMS, size=self._num_samples,
+                                           replace=False)
 
-        done = False
-        duration = agent.model.max_duration
-        agent.model.reset()
-        while not done:
-            done = agent.model.update()
-
-        return agent
-
-    def run(self, agent: object) -> float:
-
-        """
-        Evaluate a agent on the dataset.
-
-        Parameters
-        ----------
-        agent : object
-            A agent object.
-
-        Returns
-        -------
-        fitness : float
-            The fitness value.
-        """
-
-        fitness = [0.] * self._fitness_size
+        fitness = 0
         for i in range(self._num_samples):
+            fitness += safe_run_model(agent, self._rooms[i])
 
-            # test the agent on the dataset
-            agent = self._train(agent=agent)
-
-            # evaluate the agent
-            results = self._eval_func(agent=agent)
-            for j in range(self._fitness_size):
-                fitness[j] += results[j]
-
-        # average the fitness
-        for j in range(self._fitness_size):
-            fitness[j] /= self._num_samples
-
-        return tuple(fitness)
+        return fitness / self._num_samples,
 
 
 
@@ -256,51 +201,45 @@ class Env:
 
 
 # parameters that are not evolved
-# >>> no ftg weight
-FIXED_PARAMETERS = {
-    # 'w4': 0.,
-    'bnd_threshold': 0.1,
-    'bnd_tau': 2,
-}
+FIXED_PARAMETERS = {}
 
 
 # Define the genome as a dict of parameters
 PARAMETERS = {
-    'bnd_threshold': lambda: round(random.uniform(0.01, 0.3), 2),
-    'bnd_tau': lambda: random.randint(1, 15),
-    'threshold': lambda: round(random.uniform(0.01, 0.8), 2),
-    'action_delay': lambda : round(random.uniform(1., 10.), 1),
-    'max_depth': lambda: random.randint(1, 15),
-    'w1': lambda: round(random.uniform(-3.0, 0.0), 1),
-    'w2': lambda: round(random.uniform(-3.0, 2.0), 1),
-    'w3': lambda: round(random.uniform(-3.0, 2.0), 1),
-    'w4': lambda: round(random.uniform(-3.0, 2.0), 1),
-    'w5': lambda: round(random.uniform(-3.0, 2.0), 1),
-    'w6': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w7': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w8': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w9': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w10': lambda: round(random.uniform(-2.0, 2.0), 1),
-}
 
-PARAMETERS_MLP = {
-    'bnd_threshold': lambda: round(random.uniform(0.01, 1.0), 2),
-    'bnd_tau': lambda: random.randint(1, 15),
-    'threshold': lambda: round(random.uniform(0.01, 0.3), 2),
-    'action_delay': lambda : round(random.uniform(1., 10.), 1),
-    'max_depth': lambda: random.randint(1, 15),
-    'w1': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w2': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w3': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w4': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w5': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w6': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w7': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w8': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w9': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w10': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w11': lambda: round(random.uniform(-2.0, 2.0), 1),
-    'w12': lambda: round(random.uniform(-2.0, 2.0), 1),
+    "gain_fine": lambda: round(random.uniform(5., 20.), 1),
+    "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
+    "threshold_fine": lambda: round(random.uniform(0.01, 0.8), 2),
+    "rep_threshold_fine": lambda: round(random.uniform(0.7, 0.93), 2),
+
+    "gain_coarse": lambda: round(random.uniform(5., 20.), 1),
+    "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
+    "threshold_coarse": lambda: round(random.uniform(0.01, 0.8), 2),
+    "rep_threshold_coarse": lambda: round(random.uniform(0.7, 0.93), 2),
+
+    "lr_da": lambda: round(random.uniform(0.05, 0.9), 2),
+    "threshold_da": lambda: round(random.uniform(0.01, 0.8), 2),
+    "tau_v_da": lambda: float(random.randint(1, 15)),
+
+    "lr_bnd": lambda: round(random.uniform(0.05, 0.9), 2),
+    "threshold_bnd": lambda: round(random.uniform(0.01, 0.8), 2),
+    "tau_v_bnd": lambda: float(random.randint(1, 15)),
+
+    "tau_ssry": lambda: float(random.randint(1, 800)),
+    "threshold_ssry": lambda: round(random.uniform(0.8, 0.9999), 3),
+
+    "threshold_circuit": lambda: round(random.uniform(0.4, 0.9), 2),
+
+    "rwd_weight": lambda: round(random.uniform(0.0, 1.0), 2),
+    "rwd_sigma": lambda: round(random.uniform(1.0, 80.0), 1),
+    "col_weight": lambda: round(random.uniform(0.0, 1.0), 2),
+    "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
+
+    "action_delay": lambda: round(random.uniform(1., 80.), 1),
+    "edge_route_interval": lambda: random.randint(1, 200),
+
+    "forced_duration": lambda: random.randint(1, 1500),
+    "fine_tuning_min_duration": lambda: random.randint(1, 100),
 }
 
 
@@ -315,13 +254,12 @@ if __name__ == "__main__" :
 
     args = parser.parse_args()
 
-    # ---| Setup |---
+    # ---| Evaluation configs |---
 
-    fitness_weights = (1., 0.3)
-    num_samples = 4
-    USE_MLP = False
-    eval_func = eval_func_II
+    fitness_weights = (1.,)
+    num_samples = 2
 
+    # ---| Evolution configs |---
     NGEN = args.ngen
     NUM_CORES = args.cores  # out of 8
     NPOP = args.npop
@@ -335,8 +273,6 @@ if __name__ == "__main__" :
     # ---| CMA-ES |---
 
     # parameters
-    if USE_MLP:
-        PARAMETERS = PARAMETERS_MLP
     N_param = len(PARAMETERS) - len(FIXED_PARAMETERS)  # number of parameters
     MEAN = np.random.rand(N_param)  # Initial mean, could be randomized
     SIGMA = 0.8  # Initial standard deviation
@@ -348,21 +284,17 @@ if __name__ == "__main__" :
                             lambda_=lambda_)
 
     # ---| Game |---
-    model = ModelMLP if USE_MLP else Model
     # -> see above for the specification of the data settings
-    env = Env(num_samples=num_samples,
-              fitness_size=len(fitness_weights),
-              eval_func=eval_func)
+    env = Env(num_samples=num_samples, npop=NPOP)
 
     logger(f"Env: {env.__repr__()}")
-    logger(f"eval_func: {eval_func.__name__}")
 
     # ---| Evolution |---
 
     # Create the toolbox
     toolbox = me.make_toolbox(PARAMETERS=PARAMETERS.copy(),
                               game=env,
-                              model=model,
+                              model=Model,
                               strategy=strategy,
                               FIXED_PARAMETERS=FIXED_PARAMETERS.copy(),
                               fitness_weights=fitness_weights)
@@ -399,19 +331,20 @@ if __name__ == "__main__" :
     # get number of files in the cache
     n_files = len([f for f in os.listdir(path) \
         if os.path.isfile(os.path.join(path, f))])
-    filename = str(n_files+1) + "_best_pcore"
+    filename = str(n_files+1) + "_best_agent"
 
     # extra information
     info = {
         "date": time.strftime("%d/%m/%Y") + " at " + time.strftime("%H:%M"),
-        "model": model.__name__,
+        "model": "ModelShell",
         "game": env.__repr__(),
         "evolution": settings,
         "evolved": [key for key in PARAMETERS.keys() if key not in FIXED_PARAMETERS.keys()],
-        "data": {"sim_settings": sim_settings.copy(),
+        "data": {"game_settings": game_settings.copy(),
+                 "reward_settings": reward_settings.copy(),
                  "agent_settings": agent_settings.copy(),
-                 "USE_MLP": USE_MLP},
-        "other": "evaluating reward count + collisions, %ach weights",
+                 "global_parameters": global_parameters.copy()},
+        "other": "first try",
     }
 
     # ---| Run |---
@@ -419,4 +352,5 @@ if __name__ == "__main__" :
                        info=info, save=save, visualizer=visualizer,
                        filename=filename,
                        verbose=True)
+
 

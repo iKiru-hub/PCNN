@@ -36,11 +36,12 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 50,
-    "silent_duration": 6_000,
+    "silent_duration": 5_000,
+    "transparent": True,
 }
 
 agent_settings = {
-    "speed": 0.7,
+    # "speed": 0.7,
     "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
     "agent_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
@@ -51,18 +52,65 @@ game_settings = {
     "rw_event": "move agent",
     "rendering": True,
     "rendering_pcnn": True,
-    "max_duration": None,
+    "max_duration": 8_000,
+    "room_thickness": 30,
     "seed": None
 }
 
 model_params = {
-    "N": 32**2,
+    "N": 30**2,
     "bnd_threshold": 0.2,
     "bnd_tau": 1,
     "threshold": 0.3,
     "rep_threshold": 0.5,
     "action_delay": 6,
 }
+
+global_parameters = {
+    "local_scale_fine": 0.015,
+    "local_scale_coarse": 0.006,
+    "N": 30**2,
+    "rec_threshold_fine": 40.,
+    "rec_threshold_coarse": 80.,
+    "speed": 1.5,
+}
+
+parameters = {
+    "gain_fine": 11.,
+    "offset_fine": 1.2,
+    "threshold_fine": 0.4,
+    "rep_threshold_fine": 0.9,
+
+    "gain_coarse": 10.,
+    "offset_coarse": 1.2,
+    "threshold_coarse": 0.4,
+    "rep_threshold_coarse": 0.89,
+
+    "lr_da": 0.3,
+    "threshold_da": 0.08,
+    "tau_v_da": 1.0,
+
+    "lr_bnd": 0.4,
+    "threshold_bnd": 0.04,
+    "tau_v_bnd": 1.0,
+
+    "tau_ssry": 200.,
+    "threshold_ssry": 0.99,
+
+    "threshold_circuit": 0.7,
+
+    "rwd_weight": 0.1,
+    "rwd_sigma": 40.0,
+    "col_weight": 0.0,
+    "col_sigma": 2.0,
+
+    "action_delay": 10.,
+    "edge_route_interval": 80,
+
+    "forced_duration": 400,
+    "fine_tuning_min_duration": 5,
+}
+
 
 possible_positions = np.array([
     [0.2, 0.8], [0.8, 0.8],
@@ -239,7 +287,8 @@ def run_game(env: games.Environment,
              brain: object,
              renderer: object,
              plot_interval: int,
-             pause: int=-1):
+             pause: int=-1,
+             verbose: bool=True):
 
     # ===| setup |===
     clock = pygame.time.Clock()
@@ -260,13 +309,13 @@ def run_game(env: games.Environment,
                     running = False
 
         # -reward
-        if observation[2]:
-            logger.debug(f">> Reward << [{observation[2]}]")
+        # if observation[2] and verbose:
+        #     logger.debug(f">> Reward << [{observation[2]}]")
             # input()
 
         # -collision
-        if observation[2]:
-            logger.debug(f">!!< Collision << [{observation[2]}]")
+        # if observation[2] and verbose:
+        #     logger.debug(f">!!< Collision << [{observation[2]}]")
             # input()
 
         # velocity
@@ -289,8 +338,10 @@ def run_game(env: games.Environment,
 
         # -check: reset agent's brain
         if observation[3]:
-            logger.info(">> Game reset <<")
-            brain.reset(position=env.agent.position)
+            if verbose:
+                logger.info(">> Game reset <<")
+            running = False
+            # brain.reset(position=env.agent.position)
 
         # -check: render
         if env.visualize:
@@ -298,11 +349,15 @@ def run_game(env: games.Environment,
                 env.render()
                 if renderer:
                     renderer.render()
+        else:
+            if env.t % plot_interval == 0 and verbose:
+                logger(f"{env.t/env.duration*100:.1f}%")
 
         # -check: exit
         if observation[4]:
             running = False
-            logger.debug(">> Game terminated <<")
+            if verbose:
+                logger.debug(">> Game terminated <<")
 
         # pause
         if pause > 0:
@@ -310,6 +365,102 @@ def run_game(env: games.Environment,
 
     pygame.quit()
 
+
+def run_model(parameters: dict, global_parameters: dict,
+              agent_settings: dict, reward_settings: dict,
+              game_settings: dict, room_name: str="Flat.1011",
+              verbose: bool=True) -> int:
+
+    """
+    meant to be run standalone
+    """
+
+    """ make model """
+
+    brain = pclib.Brainv2(
+                local_scale_fine=global_parameters["local_scale_fine"],
+                local_scale_coarse=global_parameters["local_scale_coarse"],
+                          N=global_parameters["N"],
+                rec_threshold_fine=global_parameters["rec_threshold_fine"],
+                rec_threshold_coarse=global_parameters["rec_threshold_coarse"],
+                          speed=global_parameters["speed"],
+                          gain_fine=parameters["gain_fine"],
+                          offset_fine=parameters["offset_fine"],
+                          threshold_fine=parameters["threshold_fine"],
+                          rep_threshold_fine=parameters["rep_threshold_fine"],
+                          gain_coarse=parameters["gain_coarse"],
+                          offset_coarse=parameters["offset_coarse"],
+                          threshold_coarse=parameters["threshold_coarse"],
+                          rep_threshold_coarse=parameters["rep_threshold_coarse"],
+                          lr_da=parameters["lr_da"],
+                          threshold_da=parameters["threshold_da"],
+                          tau_v_da=parameters["tau_v_da"],
+                          lr_bnd=parameters["lr_bnd"],
+                          threshold_bnd=parameters["threshold_bnd"],
+                          tau_v_bnd=parameters["tau_v_bnd"],
+                          tau_ssry=parameters["tau_ssry"],
+                          threshold_ssry=parameters["threshold_ssry"],
+                          threshold_circuit=parameters["threshold_circuit"],
+                          rwd_weight=parameters["rwd_weight"],
+                          rwd_sigma=parameters["rwd_sigma"],
+                          col_weight=parameters["col_weight"],
+                          col_sigma=parameters["col_sigma"],
+                          action_delay=parameters["action_delay"],
+                          edge_route_interval=parameters["edge_route_interval"],
+                          forced_duration=parameters["forced_duration"],
+                fine_tuning_min_duration=parameters["fine_tuning_min_duration"])
+
+    """ make game environment """
+
+    if verbose:
+        logger(f"room_name={room_name}")
+
+    room = games.make_room(name=room_name,
+                           thickness=game_settings["room_thickness"])
+    room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
+                   room.bounds[1]+10, room.bounds[3]-10]
+
+    # ===| objects |===
+
+    body = objects.AgentBody(
+                position=agent_settings["init_position"],
+                speed=global_parameters["speed"],
+                possible_positions=possible_positions,
+                bounds=agent_settings["agent_bounds"],
+                room=room,
+                color=(10, 10, 10))
+
+    reward_obj = objects.RewardObj(
+                position=reward_settings["rw_position"],
+                radius=reward_settings["rw_radius"],
+                fetching=reward_settings["rw_fetching"],
+                value=reward_settings["rw_value"],
+                bounds=room_bounds,
+                delay=reward_settings["delay"],
+                silent_duration=reward_settings["silent_duration"],
+                transparent=reward_settings["transparent"])
+
+    # --- env
+    env = games.Environment(room=room,
+                            agent=body,
+                            reward_obj=reward_obj,
+                            rw_event=game_settings["rw_event"],
+                            verbose=False,
+                            duration=game_settings["max_duration"],
+                            visualize=game_settings["rendering"])
+
+    """ run game """
+
+
+    # return
+    run_game(env=env,
+             brain=brain,
+             renderer=None,
+             plot_interval=game_settings["plot_interval"],
+             pause=-1,
+             verbose=verbose)
+
+    return env.rw_count
 
 
 """ MAIN """
@@ -406,7 +557,7 @@ def main_game(room_name: str="Square.v0"):
     # ===| modulation |===
 
     da = pclib.BaseModulation(name="DA", size=model_params["N"],
-                              lr=0.3, threshold=0.08, max_w=2.0,
+                              lr=0.4, threshold=0.02, max_w=1.0,
                               tau_v=1.0, eq_v=0.0, min_v=0.0)
     bnd = pclib.BaseModulation(name="BND", size=model_params["N"],
                                lr=0.4, threshold=0.04, max_w=1.0,
@@ -419,13 +570,14 @@ def main_game(room_name: str="Square.v0"):
     dpolicy = pclib.DensityPolicy(0.2, 40.0,
                                   0.0, 2.0)
 
-    expmd = pclib.ExplorationModule(speed=agent_settings["speed"]*5.0,
+    expmd = pclib.ExplorationModule(speed=global_parameters["speed"]*2.0,
                                     circuits=circuit,
                                     space=space,
                                     action_delay=10.,
                                     edge_route_interval=80)
     brain = pclib.Brain(circuit, space, space_coarse, expmd, ssry, dpolicy,
-                        agent_settings["speed"], 2.*agent_settings["speed"],
+                        global_parameters["speed"],
+                        global_parameters["speed"]*local_scale/local_scale_coarse,
                         5, 30)
 
 
@@ -439,7 +591,7 @@ def main_game(room_name: str="Square.v0"):
 
     body = objects.AgentBody(
                 position=agent_settings["init_position"],
-                speed=agent_settings["speed"],
+                speed=global_parameters["speed"],
                 possible_positions=possible_positions,
                 bounds=agent_settings["agent_bounds"],
                 room=room,
@@ -451,14 +603,15 @@ def main_game(room_name: str="Square.v0"):
                 value=reward_settings["rw_value"],
                 bounds=room_bounds,
                 delay=reward_settings["delay"],
-                silent_duration=reward_settings["silent_duration"])
+                silent_duration=reward_settings["silent_duration"],
+                transparent=reward_settings["transparent"])
     logger(reward_obj)
 
     # --- env
     env = games.Environment(room=room,
                             agent=body,
                             reward_obj=reward_obj,
-                            # scale=1.0,#GAME_SCALE,
+                            duration=game_settings["max_duration"],
                             rw_event=game_settings["rw_event"],
                             verbose=False,
                             visualize=game_settings["rendering"])
@@ -467,15 +620,22 @@ def main_game(room_name: str="Square.v0"):
 
     """ run game """
 
-    renderer = Renderer(elements=[da, bnd], space=space, space_coarse=space_coarse,
-                        brain=brain, colors=["Greens", "Blues"],
-                        names=["DA", "BND"])
+    if game_settings["rendering"]:
+        renderer = Renderer(elements=[da, bnd], space=space,
+                            space_coarse=space_coarse,
+                            brain=brain, colors=["Greens", "Blues"],
+                            names=["DA", "BND"])
+    else:
+        renderer = None
 
+    sim.logger("[@simulations.py]")
     run_game(env=env,
              brain=brain,
              renderer=renderer,
              plot_interval=game_settings["plot_interval"],
              pause=-1)
+
+    logger(f"rw_count={env.rw_count}")
 
 
 def main_simple_square(duration: int):
