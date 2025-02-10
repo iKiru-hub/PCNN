@@ -2395,6 +2395,318 @@ public:
 
 
 
+class TargetProgram {
+
+    // external variables
+    Eigen::MatrixXf& wrec;
+    Eigen::MatrixXf& connectivity;
+    Eigen::MatrixXf& centers;
+    PCNN_REF& space;
+    PCNN_REF& space_coarse;
+    /* Eigen::VectorXf& da_weights; */
+
+    // internal variables
+    ConsecutiveLocationsHandler conlochandler;
+    EpisodicMemory episodic_memory;
+    float speed;
+    bool active;
+    int tmp_trg_idx;
+    int curr_idx;
+    std::vector<int> plan_idxs;
+    std::array<float, 2> next_position;
+    std::array<float, 2> curr_position;
+    int depth;
+    int size;
+    int counter;
+
+    bool make_plan(Eigen::VectorXf& curr_representation,
+                   Eigen::VectorXf& space_weights,
+                   int tmp_trg_idx) {
+
+        // calculate the current node
+        Eigen::Index maxIndex_curr;
+        curr_representation.maxCoeff(&maxIndex_curr);
+        curr_idx = static_cast<int>(maxIndex_curr);
+
+        // plan
+        std::vector<int> plan_idxs = \
+            utils::spatial_shortest_path(connectivity,
+                                         space.get_centers(),
+                                         space_weights,
+                                         curr_idx, tmp_trg_idx);
+
+        float max_curr_value = curr_representation.maxCoeff();
+
+        // check if the plan is valid, ie size > 1
+        if (plan_idxs.size() < 3) {
+            /* LOG("[-] short plan"); */
+            return false;
+        } else if (max_curr_value < 0.00001f) {
+            /* LOG("[-] low max curr value"); */
+            return false;
+        }
+
+        // next position as the center corresponding to the
+        // the next index in the plan
+        this->active = true;
+        this->curr_position = {centers(plan_idxs[0], 0),
+                               centers(plan_idxs[0], 1)};
+        this->next_position = {centers(plan_idxs[1], 0),
+                               centers(plan_idxs[1], 1)};
+        this->counter = 1;
+        this->depth = plan_idxs.size();
+        this->plan_idxs = plan_idxs;
+
+        conlochandler.set_points(curr_idx, plan_idxs[1]);
+        return true;
+    }
+
+public:
+
+    TargetProgram(PCNN_REF& space, PCNN_REF& space_coarse,
+                  float speed, int max_attempts = 2):
+        active(false), space(space), space_coarse(space_coarse),
+        wrec(space.get_wrec()),
+        connectivity(space.get_connectivity()),
+        centers(space.get_centers()),
+        episodic_memory(EpisodicMemory(space.get_size())),
+        speed(speed), depth(0), conlochandler(max_attempts) {
+
+        size = wrec.rows();
+        plan_idxs = {};
+        next_position = {0.0f, 0.0f};
+        curr_position = {0.0f, 0.0f};
+    }
+
+    // UPDATE
+
+    bool update(Eigen::VectorXf& curr_representation,
+                Eigen::VectorXf& curr_representation_coarse,
+                Eigen::VectorXf& space_weights,
+                Eigen::VectorXf& space_weights_coarse,
+                int tmp_trg_idx) {
+
+        // update graph
+        wrec = space.get_wrec();
+        connectivity = space.get_connectivity();
+
+        // attempt planning
+        bool is_valid = make_plan(curr_representation, space_weights,
+                                  tmp_trg_idx);
+
+        // exit: no plan
+        if (!is_valid) {
+            active = false;
+            return false;
+        }
+
+        active = true;
+        episodic_memory.set_path(plan_idxs);
+        return true;
+    }
+
+    // if there's a plan, follow it
+    std::pair<std::array<float, 2>, bool> step_plan(Eigen::VectorXf& curr_representation) {
+
+        // exit: active
+        if (!active) {
+            /* LOG("[-] not active"); */
+            return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
+        }
+
+        std::array<float, 2> local_velocity;
+
+        // exit: conlochandler
+        if (!conlochandler.is_valid()) {
+            space.add_blocked_edge(conlochandler.start_point,
+                                   conlochandler.end_point);
+            conlochandler.reset();
+
+            // check edges
+            return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
+        }
+
+        // +current position
+        this->curr_position = space.get_position();
+        int curr_idx = space.calculate_closest_index(curr_position);
+
+        // +distance
+        float dist = utils::euclidean_distance(curr_position, next_position);
+
+        // -- same next position
+        if (dist > 0.01f && counter > 0) {
+            float dx = next_position[0] - curr_position[0];
+            float dy = next_position[1] - curr_position[1];
+
+            // determine velocity magnitude
+            if (dist < speed) { local_velocity = {dx, dy}; }
+            else {
+                float norm = sqrt(dx * dx + dy * dy);
+                local_velocity = {speed * dx / norm,
+                                  speed * dy / norm};
+            }
+            return std::make_pair(local_velocity, true);
+        }
+
+        // -- move to the next position
+
+        // check: end of the plan
+        if (counter > (plan_idxs.size()-1)) {
+            this->active = false;
+            this->counter = 0;
+            this->depth = 0;
+            conlochandler.reset();
+            return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
+        }
+
+        // retrieve next position
+        this->next_position = {centers(plan_idxs[counter], 0),
+                               centers(plan_idxs[counter], 1)};
+
+        // check if it's the last point
+        if (plan_idxs[counter] == tmp_trg_idx) {
+        } else if (plan_idxs[counter] < -10000 || plan_idxs[counter] > 10000) {
+            LOG("[!] !!! possible memory leak?? " + \
+                std::to_string(plan_idxs[counter]) + ", counter=" + \
+                std::to_string(counter) + " | plan size=" + \
+                std::to_string(plan_idxs.size()));
+        }
+
+        // distance netween the current and next position
+        float dx = next_position[0] - curr_position[0];
+        float dy = next_position[1] - curr_position[1];
+        dist = utils::euclidean_distance(curr_position, next_position);
+
+        // determine velocity magnitude
+        if (dist < speed) { local_velocity = {dx, dy}; }
+        else {
+            float norm = sqrt(dx * dx + dy * dy);
+            local_velocity = {speed * dx / norm,
+                              speed * dy / norm};
+        }
+
+        // set the new points
+        conlochandler.set_points(plan_idxs[counter-1], plan_idxs[counter]);
+
+        counter++;
+
+        // update the current position
+        /* this->curr_position = {curr_position[0] + local_velocity[0], */
+        /*                        curr_position[1] + local_velocity[1]}; */
+
+        return std::make_pair(local_velocity, true);
+    }
+
+    void step_episodic_memory(float reward) { episodic_memory.call(reward); }
+
+    std::string str() { return "TargetProgram"; }
+    std::string repr() { return "TargetProgram"; }
+    int len() { return 1; }
+    bool is_active() { return active; }
+    bool is_plan_finished() { return counter == depth; }
+    void set_wrec(Eigen::MatrixXf wrec) { this->wrec = wrec; }
+    void set_centers(Eigen::MatrixXf centers) { this->centers = centers; }
+    std::vector<int> get_plan() { return plan_idxs; }
+    Eigen::MatrixXf& get_episodic_memory()
+        { return episodic_memory.get_value_weights(); }
+    void reset() {
+        /* LOG("[-] resetting TargetProgram"); */
+        active = false;
+        counter = 0;
+        depth = 0;
+        episodic_memory.reset();
+    }
+};
+
+
+
+struct EpisodicMemory {
+
+    Eigen::MatrixXf value_weights;
+    std::vector<int> path = {-1};
+    float v = 0.0f;
+    float tau_decay;
+    float tau_rise;
+    float threshold = 0.2f;
+
+    // CALL
+    void call(float reward) {
+
+        // update the value
+        v += (reward - v) / tau_rise - v / tau_decay;
+
+        /* LOG("[+] reward=" + std::to_string(reward)); */
+        /* LOG("[+] threshold=" + std::to_string(threshold)); */
+        /* LOG("[+] updating memory connections, v=" + std::to_string(v)); */
+
+        // record the edges between the nodes in the path
+        if (v > threshold && path[0] != -1) {
+            // one way though
+            for (int i = 0; i < path.size() - 2; i++) {
+                value_weights(path[i], path[i+1]) += \
+                    (1 - value_weights(path[i], path[i+1])) * v;
+            }
+            /* LOG("[+] EpisodicMemory: updated | size: " + std::to_string(path.size())); */
+        }
+    }
+
+    void set_path(std::vector<int> path) { this->path = path; }
+        /* LOG("## set path, size=" + std::to_string(path.size()));; */
+    Eigen::MatrixXf& get_value_weights() { return value_weights; }
+    void reset() { v = 0.0f; }
+
+    EpisodicMemory(int size, float tau_rise = 3.0f, float tau_decay = 4.0f,
+                      float threshold = 0.3f):
+        value_weights(Eigen::MatrixXf::Zero(size, size)), tau_rise(tau_rise),
+        tau_decay(tau_decay), threshold(threshold) {}
+    std::string str() { return "EpisodicMemory"; }
+    std::string repr() { return "EpisodicMemory"; }
+};
+
+
+
+
+
+struct ConsecutiveLocationsHandler {
+    int start_point = -1;
+    int end_point = -1;
+    int counter = 0;
+    int max_attempts = 1;
+
+    void set_points(int start_point, int end_point) {
+        this->start_point = start_point;
+        this->end_point = end_point;
+        this->counter = 0;
+        /* LOG("[+] setting ConsecutiveLocationsHandler: " + \ */
+        /*     std::to_string(start_point) + " -> " + \ */
+        /*     std::to_string(end_point)); */
+    }
+    bool update() {
+
+        if (start_point == end_point || start_point < 0 || end_point < 0) {
+            /* LOG("[-] ConsecutiveLocationsHandler: invalid points or equal points"); */
+            return true;
+        }
+        counter++;
+        /* LOG("[-] ConsecutiveLocationsHandler: " + \ */
+        /*     std::to_string(start_point) + " -> " + \ */
+        /*     std::to_string(end_point) + " [" + \ */
+        /*     std::to_string(counter) + "]"); */
+        return false;
+    }
+
+    bool is_valid() { return counter < max_attempts; }
+    void reset() {
+        start_point = -1;
+        end_point = -1;
+        counter = 0;
+    }
+
+    ConsecutiveLocationsHandler(int max_attemps): max_attempts(max_attemps) {}
+};
+
+
+
 
 // ExperienceModule
 
