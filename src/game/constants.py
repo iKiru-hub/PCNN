@@ -13,6 +13,8 @@ COLOR1 = tuple(random.randint(0, 255) for _ in range(3))
 COLOR2 = tuple(random.randint(0, 255) for _ in range(3))
 COLOR3 = tuple(random.randint(0, 255) for _ in range(3))
 
+PURPLE = (255, 0, 255)
+
 """ game constants """
 
 # Increase for more precision, decrease

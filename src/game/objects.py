@@ -7,6 +7,10 @@ import os, sys
 from game.constants import *
 
 
+# absolute path to the sprites folder
+sprite_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sprites")
+
+
 class AgentBody:
 
     def __init__(self, position: np.ndarray,
@@ -14,9 +18,11 @@ class AgentBody:
                  speed = 1.0,
                  width: int = 20, height: int = 20,
                  color: Tuple[int, int, int] = (255, 0, 0),
-                 bounds: Tuple[int, int, int, int] = (0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
+                 bounds: Tuple[int, int, int, int] = (0,
+                                    SCREEN_WIDTH, 0, SCREEN_HEIGHT),
                  possible_positions: List[Tuple[int, int]] = None,
-                 random_brain=None):
+                 random_brain=None,
+                 use_sprites: bool = True):
 
         self.bounds = bounds
         self.room = room
@@ -28,15 +34,51 @@ class AgentBody:
         self.rect = pygame.Rect(self.position[0],
                                 self.position[1], width, height)
         self.color = color
+        self.use_sprites = use_sprites
         self.speed = speed
         self.initial_pos = tuple(self.position)
         self.radius = max((width, height))
         self.random_brain = random_brain
-        self.trajectory = [self.position.tolist() if isinstance(self.position, np.ndarray) else self.position]
+        self.trajectory = [self.position.tolist() if isinstance(
+                    self.position, np.ndarray) else self.position]
         self._possible_positions = possible_positions
+
+        # Load sprites
+        self.sprites = {
+            "stand": pygame.image.load(f"{sprite_folder}/standeye.png"),
+            "up": pygame.image.load(f"{sprite_folder}/upeye.png"),
+            "down": pygame.image.load(f"{sprite_folder}/downeye.png"),
+            "left": pygame.image.load(f"{sprite_folder}/lefteye.png"),
+            "right": pygame.image.load(f"{sprite_folder}/righteye.png")
+        }
+
+        # Resize all sprites to fit the agent size
+        for key in self.sprites:
+            self.sprites[key] = pygame.transform.scale(
+                            self.sprites[key], (2.*width,
+                                                2.*height))
+
+        # Default sprite
+        self.current_sprite = self.sprites["stand"]
 
     def __str__(self) -> str:
         return f"AgentBody{tuple(self.position.tolist())}"
+
+    def update_sprite(self, velocity: np.ndarray):
+        """Updates the sprite based on the direction of movement."""
+        if np.linalg.norm(velocity) < 1e-2:  # Small movement = standing
+            self.current_sprite = self.sprites["stand"]
+        else:
+            angle = np.arctan2(velocity[1], velocity[0])
+
+            if -np.pi / 4 <= angle < np.pi / 4:
+                self.current_sprite = self.sprites["right"]
+            elif np.pi / 4 <= angle < 3 * np.pi / 4:
+                self.current_sprite = self.sprites["down"]
+            elif -3 * np.pi / 4 <= angle < -np.pi / 4:
+                self.current_sprite = self.sprites["up"]
+            else:
+                self.current_sprite = self.sprites["left"]
 
     def __call__(self, velocity: np.ndarray) -> Tuple[np.ndarray, bool]:
         """
@@ -73,7 +115,10 @@ class AgentBody:
             for wall in self.room.walls:
                 if self.rect.colliderect(wall.rect):
                     collision = True
+                    wall.has_collided(True)
                     break
+                wall.has_collided(False)
+
 
         if collision:
             # Revert to previous position
@@ -89,6 +134,7 @@ class AgentBody:
         else:
             # No collision, update position
             self.position = next_pos
+            self.update_sprite(velocity)  # Change sprite
             return velocity, False
 
     def set_position(self, position: np.ndarray=None):
@@ -109,7 +155,11 @@ class AgentBody:
         self.position = position
 
     def render(self, screen: pygame.Surface):
-        pygame.draw.rect(screen, self.color, self.rect)
+
+        if self.use_sprites:
+            screen.blit(self.current_sprite, (self.rect.x, self.rect.y))
+        else:
+            pygame.draw.rect(screen, self.color, self.rect)
 
     def reset(self, starting_position: bool=False):
         if starting_position:
@@ -132,7 +182,8 @@ class RewardObj:
                  value: str="binary",
                  silent_duration: int = 10,
                  color: Tuple[int, int, int] = (25, 255, 0),
-                 delay: int = 10):
+                 delay: int = 10,
+                 use_sprites: bool = True):
 
         self._bounds = bounds
         if np.all(position != None):
@@ -150,15 +201,41 @@ class RewardObj:
         self.reward_value = value
         self.silent_duration = silent_duration
         self.count = 0
+        self.use_sprites = use_sprites
 
         self.available = True
         self.t = 0
         self.t_collected = 0
         self.delay = delay
 
+        self.sprites = {
+           "taken": pygame.image.load(f"{sprite_folder}/reward_free.png"),
+           "free": pygame.image.load(f"{sprite_folder}/reward.png"),
+           "locked": pygame.image.load(f"{sprite_folder}/reward_locked.png"),
+        }
+
+        # Resize all sprites to fit the agent size
+        for key in self.sprites:
+            self.sprites[key] = pygame.transform.scale(
+                            self.sprites[key], (2.*self.radius,
+                                                2.*self.radius))
+
+        self.current_sprite = self.sprites["free"] 
+
     def __str__(self) -> str:
-        return f"Reward({self.x}, {self.y}, silent={self.silent_duration}, " + \
+        return f"Reward({self.x}, {self.y}, " + \
+            f"silent={self.silent_duration}, " + \
             f"transparency={self._transparent})"
+
+    def update_sprite(self):
+        """Updates the sprite based on the direction of movement."""
+
+        if self.t - self.t_collected < 30 or self.collected==1:
+            self.current_sprite = self.sprites["taken"]
+        elif not self.available:
+            self.current_sprite = self.sprites["locked"]
+        else:
+            self.current_sprite = self.sprites["free"]
 
     def __call__(self, agent_pos: Tuple[int, int]) -> bool:
 
@@ -167,7 +244,8 @@ class RewardObj:
 
         # if distance < self.radius and self.available and \
         if distance < self.radius and \
-            self.t > self.silent_duration:
+            self.t > self.silent_duration and \
+            self.available:
             # print(f"[RW] collected | distance:{distance} | t:{self.t}" + \
             #     " | silent:{self.silent_duration} av:{self.available}")
 
@@ -195,6 +273,8 @@ class RewardObj:
 
         self.t += 1
 
+        self.update_sprite()
+
         return self.collected
 
     def set_position(self, position: np.ndarray=None):
@@ -207,8 +287,12 @@ class RewardObj:
         self.position = np.array([self.x, self.y])
 
     def render(self, screen: pygame.Surface):
-        pygame.draw.circle(screen, self.color,
-                         (self.x, self.y), self.radius)
+
+        if self.use_sprites:
+            screen.blit(self.current_sprite, (self.x, self.y))
+        else:
+            pygame.draw.circle(screen, self.color,
+                             (self.x, self.y), self.radius)
 
     def reset(self):
         self.set_position()

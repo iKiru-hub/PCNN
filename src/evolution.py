@@ -203,28 +203,39 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
 
-    "offset_fine": 1.1,
+    "gain_fine": 11.,
+    "offset_fine": 1.2,
+    "threshold_fine": 0.4,
+    "rep_threshold_fine": 0.9,
 
-    "offset_coarse": 1.1,
+    # "gain_coarse": 10.,
+    "offset_coarse": 1.2,
+    # "threshold_coarse": 0.4,
+    # "rep_threshold_coarse": 0.89,
 
-    "lr_da": 0.4,
-    "threshold_da": 0.1,
-    "tau_v_da": 1,
+    "lr_da": 0.3,
+    "threshold_da": 0.08,
+    "tau_v_da": 1.0,
 
     "lr_bnd": 0.4,
-    "threshold_bnd": 0.1,
-    "tau_v_bnd": 1,
+    "threshold_bnd": 0.04,
+    "tau_v_bnd": 1.0,
 
-    "tau_ssry": 300,
-    # "threshold_ssry": 0.992,
+    "tau_ssry": 200.,
+    "threshold_ssry": 0.99,
 
-    # "threshold_circuit": 0.5,
+    "threshold_circuit": 0.7,
 
-    "action_delay": 10,
+    "rwd_weight": 0.1,
+    "rwd_sigma": 40.0,
+    "col_weight": 0.0,
+    "col_sigma": 2.0,
+
+    "action_delay": 10.,
     "edge_route_interval": 80,
 
-    "forced_duration": 300,
-    "fine_tuning_min_duration": 50,
+    "forced_duration": 400,
+    "fine_tuning_min_duration": 8
 }
 
 

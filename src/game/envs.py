@@ -46,8 +46,16 @@ class Wall:
 
         for edge_start, edge_end in self.edges:
             if intersect(p1, p2, edge_start, edge_end):
+
+                # self.color = PURPLE
                 return True
+
+        # self.color = BLACK
         return False
+
+    def has_collided(self, collision: bool):
+
+        self.color = PURPLE if collision else BLACK
 
     def render(self, screen: pygame.Surface):
 
@@ -80,8 +88,8 @@ class Room:
 
         if bounds is None:
             bounds = [OFFSET, OFFSET,
-                      SCREEN_WIDTH-2*OFFSET,
-                      SCREEN_HEIGHT-2*OFFSET]
+                      SCREEN_WIDTH-1*OFFSET,
+                      SCREEN_HEIGHT-1*OFFSET]
         self.bounds = bounds
         self.bounce_coeff = bounce_coeff
         self.moving_wall = moving_wall
@@ -128,10 +136,8 @@ class Room:
 
     def _check_bounds(self, x: float, y: float) -> Tuple[float, float]:
         margin = self.safety_margin
-        x = max(self.bounds[0] + margin,
-               min(x, self.bounds[2] - margin))
-        y = max(self.bounds[1] + margin,
-               min(y, self.bounds[3] - margin))
+        x = max(self.bounds[0] + margin, min(x, self.bounds[2] - margin))
+        y = max(self.bounds[1] + margin, min(y, self.bounds[3] - margin))
         return x, y
 
     def check_collision(self, x: float, y: float,
@@ -215,15 +221,16 @@ def make_room(name: str="square", thickness: float=20.,
               moving_wall: bool=False,
               visualize: bool=False):
 
+    bound_thickness = 5
     walls_bounds = [
-        Wall(OFFSET, OFFSET,
+        Wall(OFFSET, 2*OFFSET,
              SCREEN_WIDTH-2*OFFSET+thickness, thickness),  # Top
-        Wall(OFFSET, SCREEN_HEIGHT-OFFSET-thickness,
+        Wall(OFFSET, SCREEN_HEIGHT-1*OFFSET,
              SCREEN_WIDTH-2*OFFSET+thickness, thickness),  # Bottom
-        Wall(OFFSET, OFFSET, thickness,
-             SCREEN_HEIGHT-2*OFFSET),  # Left
-        Wall(SCREEN_WIDTH-OFFSET, OFFSET,
-             thickness, SCREEN_HEIGHT-2*OFFSET),  # Right
+        Wall(OFFSET, 2*OFFSET, thickness,
+             SCREEN_HEIGHT-3*OFFSET),  # Left
+        Wall(SCREEN_WIDTH-1*OFFSET, 2*OFFSET,
+             thickness, SCREEN_HEIGHT-3*OFFSET),  # Right
     ]
 
     walls_extra = []
@@ -283,7 +290,7 @@ def make_room(name: str="square", thickness: float=20.,
         ]
     elif name == "Flat.1001":
         walls_extra += [
-            Wall(2*SCREEN_WIDTH//3, OFFSET,
+            Wall(2*SCREEN_WIDTH//3, 2*OFFSET,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
     elif name == "Flat.1010":
@@ -295,9 +302,9 @@ def make_room(name: str="square", thickness: float=20.,
         ]
     elif name == "Flat.1011":
         walls_extra += [
-            Wall(SCREEN_WIDTH//3, OFFSET,
+            Wall(SCREEN_WIDTH//3, 2*OFFSET,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
-            Wall(2*SCREEN_WIDTH//3, SCREEN_HEIGHT//3-OFFSET, 
+            Wall(2*SCREEN_WIDTH//3, SCREEN_HEIGHT//3-0*OFFSET, 
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
     elif name == "Flat.1110":
@@ -410,7 +417,8 @@ class Environment:
             #     logger.info(f"[t={self.t}] -collision")
 
         # position = self.agent.position.copy() / self.scale
-        self.trajectory.append(self.agent.position.tolist())
+        self.trajectory.append([self.agent.position[0]+8,
+                                self.agent.position[1]+8])
         self._collision = float(collision)
         self._reward = float(reward)
 
@@ -482,25 +490,25 @@ class Environment:
 
         # Render game objects
         self.room.render(self.screen)
-        self.reward_obj.render(self.screen)
 
         # plot trajectory
         if len(self.trajectory) > 1:
-            pygame.draw.lines(self.screen, (*self.traj_color, 0.2),
+            pygame.draw.lines(self.screen, (*self.traj_color, 0.1),
                               False, self.trajectory, 1)
 
         # write text
         font = pygame.font.Font(None, 36)
-        text = f"t: {self.t:04d} | "
-        text += f"#R={self.reward_obj.count} | "
-        text += f"-R={self.reward_availability} | "
-        text += f"C={self._collision} |"
-        text += f"v={np.around(self.velocity, 2)}"
+        text = f"#R={self.reward_obj.count} | "
+        text += f"t: {self.t:04d}"
+        # text += f"-R={self.reward_availability} | "
+        # text += f"C={self._collision} |"
+        # text += f"v={np.around(self.velocity, 2)}"
         score_text = font.render(text, True, BLACK)
 
+        self.reward_obj.render(self.screen)
         self.agent.render(self.screen)
 
-        self.screen.blit(score_text, (10, 10))
+        self.screen.blit(score_text, (200, 30))
         pygame.display.flip()
 
 

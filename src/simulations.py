@@ -35,7 +35,7 @@ reward_settings = {
     "rw_radius": 0.05 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 50,
+    "delay": 2,
     "silent_duration": 5_000,
     "transparent": True,
 }
@@ -53,8 +53,9 @@ game_settings = {
     "rendering": True,
     "rendering_pcnn": True,
     "max_duration": 8_000,
-    "room_thickness": 30,
-    "seed": None
+    "room_thickness": 10,
+    "seed": None,
+    "pause": -1
 }
 
 model_params = {
@@ -369,6 +370,7 @@ def run_game(env: games.Environment,
 def run_model(parameters: dict, global_parameters: dict,
               agent_settings: dict, reward_settings: dict,
               game_settings: dict, room_name: str="Flat.1011",
+              pause: int=-1,
               verbose: bool=True) -> int:
 
     """
@@ -416,7 +418,8 @@ def run_model(parameters: dict, global_parameters: dict,
         logger(f"room_name={room_name}")
 
     room = games.make_room(name=room_name,
-                           thickness=game_settings["room_thickness"])
+                           thickness=game_settings["room_thickness"],
+                           bounds=[0, 1, 0, 1])
     room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
                    room.bounds[1]+10, room.bounds[3]-10]
 
@@ -457,7 +460,7 @@ def run_model(parameters: dict, global_parameters: dict,
              brain=brain,
              renderer=None,
              plot_interval=game_settings["plot_interval"],
-             pause=-1,
+             pause=pause,
              verbose=verbose)
 
     return env.rw_count
@@ -583,7 +586,9 @@ def main_game(room_name: str="Square.v0"):
 
     """ make game environment """
 
-    room = games.make_room(name=room_name, thickness=30.)
+    room = games.make_room(name=room_name,
+                           thickness=game_settings["room_thickness"],
+                           bounds=[0, 1, 0, 1])
     room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
                    room.bounds[1]+10, room.bounds[3]-10]
 
@@ -596,6 +601,7 @@ def main_game(room_name: str="Square.v0"):
                 bounds=agent_settings["agent_bounds"],
                 room=room,
                 color=(10, 10, 10))
+
     reward_obj = objects.RewardObj(
                 position=reward_settings["rw_position"],
                 radius=reward_settings["rw_radius"],
@@ -605,6 +611,7 @@ def main_game(room_name: str="Square.v0"):
                 delay=reward_settings["delay"],
                 silent_duration=reward_settings["silent_duration"],
                 transparent=reward_settings["transparent"])
+
     logger(reward_obj)
 
     # --- env

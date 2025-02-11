@@ -75,6 +75,7 @@ double random_float(double min, double max, unsigned int seed) {
 }
 
 
+
 Eigen::MatrixXf generate_lattice(int N, int length) {
     // Determine the number of points along each axis
     int grid_size = static_cast<int>(std::sqrt(N));
@@ -109,9 +110,9 @@ Eigen::MatrixXf generate_lattice(int N, int length) {
 /* ALGORITHMS */
 
 
-std::vector<int> weighted_en_shortest_path(const Eigen::MatrixXf connectivity_matrix,
-                                           const Eigen::MatrixXf edge_weights,
-                                           const Eigen::VectorXf node_weights,
+std::vector<int> weighted_en_shortest_path(const Eigen::MatrixXf& connectivity_matrix,
+                                           const Eigen::MatrixXf& edge_weights,
+                                           const Eigen::VectorXf& node_weights,
                                            int start_node, int end_node) {
     int num_nodes = connectivity_matrix.rows();
     std::vector<float> distances(num_nodes, std::numeric_limits<float>::infinity());
@@ -191,9 +192,9 @@ std::vector<int> weighted_en_shortest_path(const Eigen::MatrixXf connectivity_ma
 }
 
 
-std::vector<int> spatial_shortest_path(const Eigen::MatrixXf connectivity_matrix,
-                                       const Eigen::MatrixXf node_coordinates,  // Nx2 matrix with (x,y) coordinates
-                                       const Eigen::VectorXf node_weights,      // Optional node penalties/costs
+std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matrix,
+                                       const Eigen::MatrixXf& node_coordinates,  // Nx2 matrix with (x,y) coordinates
+                                       const Eigen::VectorXf& node_weights,      // Optional node penalties/costs
                                        int start_node, int end_node) {
 
     int num_nodes = connectivity_matrix.rows();
@@ -273,14 +274,14 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf connectivity_matrix
 /* LINEAR ALGEBRA */
 
 
-inline float cosine_similarity_vec(const Eigen::VectorXf v1,
-                                   const Eigen::VectorXf v2) {
+inline float cosine_similarity_vec(const Eigen::VectorXf& v1,
+                                   const Eigen::VectorXf& v2) {
     return v1.dot(v2) / (v1.norm() * v2.norm());
 }
 
 
-inline float cosine_similarity_vec(const std::vector<float> v1,
-                                   const std::vector<float> v2) {
+inline float cosine_similarity_vec(const std::vector<float>& v1,
+                                   const std::vector<float>& v2) {
     // Ensure the vectors are of the same size
     if (v1.size() != v2.size()) {
         throw std::invalid_argument("Vectors must be of the same size.");
@@ -310,8 +311,8 @@ inline float cosine_similarity_vec(const std::vector<float> v1,
 
 
 Eigen::VectorXf cosine_similarity_vector_matrix(
-    const Eigen::VectorXf vector,
-    const Eigen::MatrixXf matrix) {
+    const Eigen::VectorXf& vector,
+    const Eigen::MatrixXf& matrix) {
 
     // Normalize the vector to unit norm
     Eigen::VectorXf normalized_vector = vector.normalized();
@@ -336,7 +337,7 @@ Eigen::VectorXf cosine_similarity_vector_matrix(
 
 
 Eigen::MatrixXf cosine_similarity_matrix(
-    const Eigen::MatrixXf matrix) {
+    const Eigen::MatrixXf& matrix) {
 
     int n = matrix.rows();
     Eigen::MatrixXf similarity_matrix(n, n);
@@ -359,7 +360,7 @@ Eigen::MatrixXf cosine_similarity_matrix(
 
 
 float max_cosine_similarity_in_rows(
-    const Eigen::MatrixXf matrix, int idx) {
+    const Eigen::MatrixXf& matrix, int idx) {
     // Compute the cosine similarity matrix
     Eigen::MatrixXf similarity_matrix = cosine_similarity_matrix(matrix);
 
@@ -378,8 +379,8 @@ float max_cosine_similarity_in_rows(
 }
 
 
-float euclidean_distance(const std::array<float, 2> v1,
-                         const std::array<float, 2> v2) {
+float euclidean_distance(const std::array<float, 2>& v1,
+                         const std::array<float, 2>& v2) {
     return std::sqrt(std::pow(v1[0] - v2[0], 2) +
                      std::pow(v1[1] - v2[1], 2));
 }
@@ -539,7 +540,7 @@ std::vector<float> linspace_vec(float start, float end, int num,
 
 
 Eigen::MatrixXf connectivity_matrix(
-    const Eigen::MatrixXf matrix,
+    const Eigen::MatrixXf& matrix,
     float threshold = 0.5f) {
 
     // Compute the row to row similarity matrix
@@ -557,7 +558,7 @@ Eigen::MatrixXf connectivity_matrix(
 
 
 inline Eigen::VectorXf generalized_sigmoid_vec(
-    const Eigen::VectorXf x,
+    const Eigen::VectorXf& x,
     float offset = 1.0f,
     float gain = 1.0f,
     float clip = 0.0f) {
@@ -571,7 +572,7 @@ inline Eigen::VectorXf generalized_sigmoid_vec(
 
 
 inline std::vector<float> generalized_sigmoid_vec(
-    const std::vector<float> x, float offset = 1.0f,
+    const std::vector<float>& x, float offset = 1.0f,
     float gain = 1.0f, float clip = 0.0f) {
 
     // Offset each element by `offset`, apply the gain,
@@ -2633,7 +2634,7 @@ struct StationarySensory {
     float threshold;
     float min_cosine = 0.5f;
 
-    bool call(Eigen::VectorXf representation) {
+    bool call(Eigen::VectorXf& representation) {
 
         float cosim = cosine_similarity_vec(representation, prev_representation);
 
@@ -2741,13 +2742,10 @@ public:
             }
 
             if (bnd_value < 0.01f) {
-                /* LOG("[cir] value_mask: " + std::to_string(bnd_value) + " < 0.01"); */
                 value_mask(i) = 1.0f; }
             else if (bnd_value < threshold) { 
-                /* LOG("[cir] value_mask: 0.01 < " + std::to_string(bnd_value) + " < " + std::to_string(threshold)); */
                 value_mask(i) = 0.01f; }
             else {
-                /* LOG("[cir] value_mask: " + std::to_string(bnd_value) + " > " + std::to_string(threshold)); */
                 value_mask(i) = -1000.0; }
         }
 
