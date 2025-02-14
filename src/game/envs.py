@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 from typing import Tuple, List
 
+import argparse
 import os, sys
 sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 from game.constants import *
@@ -65,9 +66,7 @@ class Wall:
         """
 
         pygame.draw.rect(screen, self.color,
-                         self.rect, self.thickness)
-
-
+                         self.rect)#, self.thickness)
 
         # pygame.draw.rect(screen, self.color,
         #                 self.rect, self.thickness)
@@ -216,14 +215,13 @@ class Room:
             wall.render(screen)
 
 
-def make_room(name: str="square", thickness: float=20.,
+def make_room(name: str="square", thickness: float=10.,
               bounds: list=[0, 1, 0, 1],
               moving_wall: bool=False,
               visualize: bool=False):
 
-    bound_thickness = 5
     walls_bounds = [
-        Wall(OFFSET, 2*OFFSET,
+        Wall(OFFSET, 2*OFFSET-thickness,
              SCREEN_WIDTH-2*OFFSET+thickness, thickness),  # Top
         Wall(OFFSET, SCREEN_HEIGHT-1*OFFSET,
              SCREEN_WIDTH-2*OFFSET+thickness, thickness),  # Bottom
@@ -248,14 +246,14 @@ def make_room(name: str="square", thickness: float=20.,
         ]
     elif name == "Hole.v0":
         walls_extra += [
-            Wall(SCREEN_WIDTH//2.5-OFFSET,
-                 SCREEN_HEIGHT//2.5-OFFSET,
+            Wall(SCREEN_WIDTH//2.4-OFFSET,
+                 SCREEN_HEIGHT//2.6,
                  SCREEN_WIDTH//3, SCREEN_HEIGHT//3),
         ]
     elif name == "Flat.0000":
         walls_extra += [
-            Wall(OFFSET, SCREEN_HEIGHT//3,
-                 2*SCREEN_WIDTH//3-OFFSET, thickness),
+            Wall(OFFSET, SCREEN_HEIGHT//2,
+                 2*SCREEN_WIDTH//3-2*OFFSET, thickness),
         ]
     elif name == "Flat.0001":
         walls_extra += [
@@ -264,29 +262,29 @@ def make_room(name: str="square", thickness: float=20.,
         ]
     elif name == "Flat.0010":
         walls_extra += [
-            Wall(OFFSET, SCREEN_HEIGHT//3,
+            Wall(OFFSET, SCREEN_HEIGHT//3+OFFSET,
                  2*SCREEN_WIDTH//3-OFFSET, thickness),
             Wall(OFFSET, 2*SCREEN_HEIGHT//3,
                  2*SCREEN_WIDTH//3-OFFSET, thickness),
         ]
     elif name == "Flat.0011":
         walls_extra += [
-            Wall(OFFSET, SCREEN_HEIGHT//3,
-                 2*SCREEN_WIDTH//3-OFFSET, thickness),
-            Wall(SCREEN_WIDTH//3-OFFSET, 2*SCREEN_HEIGHT//3,
-                 2*SCREEN_WIDTH//3-OFFSET, thickness),
+            Wall(OFFSET, SCREEN_HEIGHT//3+OFFSET,
+                 2*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//3+1*OFFSET, 2*SCREEN_HEIGHT//3,
+                 2*SCREEN_WIDTH//3-2*OFFSET, thickness),
         ]
     elif name == "Flat.0110":
         walls_extra += [
-            Wall(SCREEN_WIDTH//3-OFFSET, SCREEN_HEIGHT//3,
-                 2*SCREEN_WIDTH//3-OFFSET, thickness),
+            Wall(SCREEN_WIDTH//3+OFFSET, SCREEN_HEIGHT//3+OFFSET,
+                 2*SCREEN_WIDTH//3-2*OFFSET, thickness),
             Wall(OFFSET, 2*SCREEN_HEIGHT//3,
                  2*SCREEN_WIDTH//3-OFFSET, thickness),
         ]
     elif name == "Flat.1000":
         walls_extra += [
-            Wall(SCREEN_WIDTH//3, OFFSET,
-                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+            Wall(SCREEN_WIDTH//3, 2*OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-2*OFFSET),
         ]
     elif name == "Flat.1001":
         walls_extra += [
@@ -295,23 +293,23 @@ def make_room(name: str="square", thickness: float=20.,
         ]
     elif name == "Flat.1010":
         walls_extra += [
-            Wall(SCREEN_WIDTH//3, OFFSET,
-                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
-            Wall(2*SCREEN_WIDTH//3, OFFSET,
-                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+            Wall(SCREEN_WIDTH//3, 2*OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-2*OFFSET),
+            Wall(2*SCREEN_WIDTH//3, 2*OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-2*OFFSET),
         ]
     elif name == "Flat.1011":
         walls_extra += [
-            Wall(SCREEN_WIDTH//3, 2*OFFSET,
+            Wall(SCREEN_WIDTH//3, 2*OFFSET-thickness,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
-            Wall(2*SCREEN_WIDTH//3, SCREEN_HEIGHT//3-0*OFFSET, 
+            Wall(2*SCREEN_WIDTH//3, SCREEN_HEIGHT//3+thickness,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
     elif name == "Flat.1110":
         walls_extra += [
-            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-OFFSET,
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-2*OFFSET,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
-            Wall(2*SCREEN_WIDTH//3, OFFSET, 
+            Wall(2*SCREEN_WIDTH//3, 2*OFFSET, 
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
     else:
@@ -327,16 +325,22 @@ def make_room(name: str="square", thickness: float=20.,
 
 def render_room(name: str):
 
-    room = make_room(name=name)
+    room = make_room(name=name, thickness=30.)
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     room.render(screen)
     pygame.display.flip()
+
+    print(f"\nRoom: {name}")
 
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
+        screen.fill(WHITE)
+        room.render(screen)
+        pygame.display.flip()
 
 
 def get_random_room() -> str:
@@ -369,11 +373,11 @@ class Environment:
         self.t = 0
         self.velocity = np.zeros(2)
         self.trajectory = []
+        self.trajectory_set = [[]]
         self.traj_color = (255, 0, 0)
         self._collision = 0
         self._reward = 0
 
-        self.rw_duration = 2
         self.rw_time = 0
 
         # rendering
@@ -395,6 +399,14 @@ class Environment:
         # velocity *= self.scale
         self.t += 1
 
+        if (self.t == self.rw_time): #> self.reward_obj.fetching_duration:
+            # print(f"[ENV] [t={self.t} = {self.rw_time}")
+            terminated = self._reward_event(brain=brain)
+            # self.trajectory_set += [self.trajectory]
+            self.trajectory_set += [[]]
+            self.trajectory = []
+            # print("trajectory_set: ", len(self.trajectory_set))
+
         # Update agent position with improved collision handling
         velocity, collision = self.agent(velocity)
         # self.velocity = np.around(velocity, 3)
@@ -403,12 +415,9 @@ class Environment:
         reward = self.reward_obj(self.agent.rect.center)
         terminated = False
         if reward:
-            # print(f"[t={self.t}] +reward")
-            self.rw_time = self.t
+            self.rw_time = self.t + self.reward_obj.fetching_duration
+            # print(f"[ENV] [t={self.t}] +reward [{self.rw_time=}, {self.t=}]")
             self.rw_count += 1
-
-        if (self.t - self.rw_time) == self.rw_duration:
-            terminated = self._reward_event(brain=brain)
 
         # if self.verbose:
             # if reward:
@@ -419,6 +428,8 @@ class Environment:
         # position = self.agent.position.copy() / self.scale
         self.trajectory.append([self.agent.position[0]+8,
                                 self.agent.position[1]+8])
+        self.trajectory_set[-1].append([self.agent.position[0]+8,
+                                        self.agent.position[1]+8])
         self._collision = float(collision)
         self._reward = float(reward)
 
@@ -431,7 +442,7 @@ class Environment:
         logic for when the reward is collected
         """
 
-        # print("reward event: ", self.rw_event)
+        # print("[ENV] reward event: ", self.rw_event)
 
         if self.rw_event == "move reward":
             self.reward_obj.set_position()
@@ -492,9 +503,20 @@ class Environment:
         self.room.render(self.screen)
 
         # plot trajectory
-        if len(self.trajectory) > 1:
-            pygame.draw.lines(self.screen, (*self.traj_color, 0.1),
-                              False, self.trajectory, 1)
+        # if len(self.trajectory) > 1:
+        #     pygame.draw.lines(self.screen, (*self.traj_color, 0.1),
+        #                       False, self.trajectory, 1)
+
+        if len(self.trajectory_set) > 0:
+            # print(self.t, self.trajectory_set)
+            for i, traj in enumerate(self.trajectory_set):
+                # print(traj)
+                # print(*np.array(traj).T)
+                if len(traj) > 1:
+                    pygame.draw.lines(self.screen, (*self.traj_color, 0.5/(len(self.trajectory_set)-i+1)),
+                                        False, traj, 1)
+            # pygame.draw.lines(self.screen, (*self.traj_color, 0.1),
+            #                   False, self.trajectory, 1)
 
         # write text
         font = pygame.font.Font(None, 36)
@@ -512,4 +534,16 @@ class Environment:
         pygame.display.flip()
 
 
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--room", type=str, default="Square.v0",
+                        help='room name: ["Square.v0", "Square.v1", "Square.v2",' + \
+                         '"Hole.v0", "Flat.0000", "Flat.0001", "Flat.0010", "Flat.0011",' + \
+                         '"Flat.0110", "Flat.1000", "Flat.1001", "Flat.1010",' + \
+                         '"Flat.1011", "Flat.1110"] or `random`')
+    args = parser.parse_args()
+
+
+    render_room(args.room)
 

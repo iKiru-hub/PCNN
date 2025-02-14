@@ -174,6 +174,7 @@ class RewardObj:
 
     def __init__(self, position: np.ndarray,
                  radius: int = 10,
+                 sigma: int = 10,
                  bounds: Tuple[int, int, int, int] = \
                     (100, SCREEN_WIDTH-100,
                      100, SCREEN_HEIGHT-100),
@@ -183,7 +184,9 @@ class RewardObj:
                  silent_duration: int = 10,
                  color: Tuple[int, int, int] = (25, 255, 0),
                  delay: int = 10,
-                 use_sprites: bool = True):
+                 fetching_duration = 2,
+                 use_sprites: bool = True,
+                 **kwargs):
 
         self._bounds = bounds
         if np.all(position != None):
@@ -194,12 +197,16 @@ class RewardObj:
         self.x = self.position[0]
         self.y = self.position[1]
         self.radius = radius
+        self.sigma = sigma
+        self.beta = kwargs.get("beta", 10)
+        self.alpha = kwargs.get("alpha", 0.6)
         self.color = color
         self.collected = False
         self._fetching = fetching
         self._transparent = transparent
         self.reward_value = value
         self.silent_duration = silent_duration
+        self.fetching_duration = fetching_duration
         self.count = 0
         self.use_sprites = use_sprites
 
@@ -217,18 +224,27 @@ class RewardObj:
         # Resize all sprites to fit the agent size
         for key in self.sprites:
             self.sprites[key] = pygame.transform.scale(
-                            self.sprites[key], (2.*self.radius,
-                                                2.*self.radius))
+                            self.sprites[key], (self.radius,
+                                                self.radius))
 
         self.current_sprite = self.sprites["free"] 
 
     def __str__(self) -> str:
         return f"Reward({self.x}, {self.y}, " + \
             f"silent={self.silent_duration}, " + \
+            f"{self._fetching}, " + \
             f"transparency={self._transparent})"
 
-    def update_sprite(self):
-        """Updates the sprite based on the direction of movement."""
+    def _probability_function(self, distance: float) -> float:
+
+        p = 1 / (1 + np.exp(-self.beta * ( np.exp(-distance**2 / self.sigma) - self.alpha)))
+        p = np.where(p < 0.02, 0, p)
+        # print(f"[Rw]\tproability: {p}")
+        return p
+
+    def _update_sprite(self):
+
+        """ Updates the sprite based on the direction of movement. """
 
         if self.t - self.t_collected < 30 or self.collected==1:
             self.current_sprite = self.sprites["taken"]
@@ -243,25 +259,28 @@ class RewardObj:
                       (self.y - agent_pos[1])**2)
 
         # if distance < self.radius and self.available and \
-        if distance < self.radius and \
-            self.t > self.silent_duration and \
-            self.available:
-            # print(f"[RW] collected | distance:{distance} | t:{self.t}" + \
-            #     " | silent:{self.silent_duration} av:{self.available}")
+        if distance < self.radius: #and \
+            # print(f"[Rw] {distance} ({self.radius})")
 
-            if self._fetching == "deterministic":
-                if self.reward_value == "continuous":
-                    self.collected = np.exp(-distance / self.radius)
-                else:
-                    self.collected = 1.0
+            if self.available:
+                # print(f"[RW] collected | distance:{distance} | t:{self.t}" + \
+                #     " | silent:{self.silent_duration} av:{self.available}")
 
-            elif self._fetching == "probabilistic":
-                p = np.exp(-distance / (2 * self.radius**2))
-                self.collected = np.random.binomial(1, p)
-                if self.reward_value == "continuous":
-                    self.collected *= p
+                if self._fetching == "deterministic":
+                    if self.reward_value == "continuous":
+                        self.collected = np.exp(-distance / self.radius)
+                    else:
+                        self.collected = 1.0
+
+                elif self._fetching == "probabilistic":
+                    # p = np.exp(-distance / (2 * self.radius**2))
+                    p = self._probability_function(distance)
+                    self.collected = np.random.binomial(1, p)
+                    if self.reward_value == "continuous":
+                        self.collected *= p
         else:
             self.collected = 0.
+
 
         if self.collected:
             self.count += 1
@@ -273,7 +292,8 @@ class RewardObj:
 
         self.t += 1
 
-        self.update_sprite()
+        if self.use_sprites:
+            self._update_sprite()
 
         return self.collected
 

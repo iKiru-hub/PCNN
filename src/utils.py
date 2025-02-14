@@ -1,5 +1,5 @@
 import logging, coloredlogs
-import os
+import os, json
 
 
 def setup_logger(name: str="MAIN",
@@ -118,6 +118,21 @@ def edit_logger(level: int=-1,
 
 
 
+def load_parameters():
+
+    print("\n----\nLoading from evolution")
+
+    files = os.listdir("cache")
+    for i, file in enumerate(files):
+        print(f"{i}: {file}")
+
+    ans = input("\n>Select file: ")
+    idx = -1 if ans == "" else int(ans)
+
+    with open(f"cache/{files[idx]}", "r") as f:
+        run_data = json.load(f)
+
+    return run_data["info"]["record_genome"]["0"]["genome"]
 
 
 

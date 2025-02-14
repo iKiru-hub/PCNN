@@ -16,24 +16,32 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
+NUM_SAMPLES = 4
+ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES, replace=False).tolist() + \
+    [ROOMS[0]]
+
 
 reward_settings = {
-    "rw_fetching": "deterministic",
-    "rw_value": "continuous",
+    "rw_fetching": "probabilistic",
+    "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.05 * GAME_SCALE,
+    "rw_radius": 0.1 * GAME_SCALE,
+    "rw_sigma": 1.5 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 50,
-    "silent_duration": 5_000,
-    "transparent": True,
+    "silent_duration": 8_000,
+    "fetching_duration": 1,
+    "transparent": False,
+    "beta": 30.,
+    "alpha": 0.06,# * GAME_SCALE,
 }
 
 agent_settings = {
     # "speed": 0.7,
     "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
     "agent_bounds": np.array([0.23, 0.77,
-                           0.23, 0.77]) * GAME_SCALE,
+                              0.23, 0.77]) * GAME_SCALE,
 }
 
 game_settings = {
@@ -41,18 +49,21 @@ game_settings = {
     "rw_event": "move agent",
     "rendering": False,
     "rendering_pcnn": False,
-    "max_duration": 8_000,
+    "max_duration": 14_000,
     "room_thickness": 30,
-    "seed": None
+    "seed": None,
+    "pause": -1,
+    "verbose": False
 }
 
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 25**2,
-    "rec_threshold_fine": 30.,
-    "rec_threshold_coarse": 70.,
+    "N": 30**2,
+    "rec_threshold_fine": 24.,
+    "rec_threshold_coarse": 60.,
     "speed": 1.5,
+    "min_weight_value": 0.6
 }
 
 
@@ -174,8 +185,8 @@ class Env:
     def __init__(self, num_samples: int, npop: int):
         self._num_samples = num_samples
         self._npop = npop
-        self._rooms = np.random.choice(ROOMS, size=self._num_samples,
-                                       replace=False)
+        # self._rooms = np.random.choice(ROOMS, size=self._num_samples,
+        #                                replace=False)
         self._counter = 0
 
     def __repr__(self):
@@ -183,15 +194,16 @@ class Env:
 
     def run(self, agent: object) -> tuple:
 
-        self._counter += 1
-        logger(f"Env counter: {self._counter}")
-        if self._counter % self._npop == 0:
-            self._rooms = np.random.choice(ROOMS, size=self._num_samples,
-                                           replace=False)
+        # self._counter += 1
+        # logger(f"Env counter: {self._counter}")
+        # if self._counter % self._npop == 0:
+        #     self._rooms = np.random.choice(ROOMS, size=self._num_samples,
+        #                                    replace=False)
 
         fitness = 0
         for i in range(self._num_samples):
-            fitness += safe_run_model(agent, self._rooms[i])
+            # fitness += safe_run_model(agent, self._rooms[i])
+            fitness += safe_run_model(agent, ROOM_LIST[i])
 
         return fitness / self._num_samples,
 
@@ -208,12 +220,12 @@ FIXED_PARAMETERS = {
     "threshold_fine": 0.4,
     "rep_threshold_fine": 0.9,
 
-    # "gain_coarse": 10.,
+    "gain_coarse": 11.,
     "offset_coarse": 1.2,
-    # "threshold_coarse": 0.4,
-    # "rep_threshold_coarse": 0.89,
+    "threshold_coarse": 0.4,
+    "rep_threshold_coarse": 0.89,
 
-    "lr_da": 0.3,
+    "lr_da": 0.4,
     "threshold_da": 0.08,
     "tau_v_da": 1.0,
 
@@ -221,21 +233,21 @@ FIXED_PARAMETERS = {
     "threshold_bnd": 0.04,
     "tau_v_bnd": 1.0,
 
-    "tau_ssry": 200.,
-    "threshold_ssry": 0.99,
+    "tau_ssry": 100.,
+    "threshold_ssry": 0.95,
 
-    "threshold_circuit": 0.7,
+    # "threshold_circuit": 0.7,
 
-    "rwd_weight": 0.1,
-    "rwd_sigma": 40.0,
-    "col_weight": 0.0,
-    "col_sigma": 2.0,
+    # "rwd_weight": 0.0,
+    # "rwd_sigma": 40.0,
+    # "col_weight": 0.0,
+    # "col_sigma": 2.0,
 
-    "action_delay": 10.,
+    "action_delay": 15.,
     "edge_route_interval": 80,
 
-    "forced_duration": 400,
-    "fine_tuning_min_duration": 8
+    "forced_duration": 100,
+    "fine_tuning_min_duration": 15
 }
 
 
@@ -245,12 +257,12 @@ PARAMETERS = {
     "gain_fine": lambda: round(random.uniform(5., 20.), 1),
     "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_fine": lambda: round(random.uniform(0.05, 0.6), 2),
-    "rep_threshold_fine": lambda: round(random.uniform(0.7, 0.93), 2),
+    "rep_threshold_fine": lambda: round(random.uniform(0.7, 0.95), 2),
 
     "gain_coarse": lambda: round(random.uniform(5., 20.), 1),
     "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_coarse": lambda: round(random.uniform(0.05, 0.6), 2),
-    "rep_threshold_coarse": lambda: round(random.uniform(0.7, 0.93), 2),
+    "rep_threshold_coarse": lambda: round(random.uniform(0.7, 0.95), 2),
 
     "lr_da": lambda: round(random.uniform(0.05, 0.9), 2),
     "threshold_da": lambda: round(random.uniform(0.01, 0.8), 2),
@@ -263,11 +275,11 @@ PARAMETERS = {
     "tau_ssry": lambda: float(random.randint(1, 800)),
     "threshold_ssry": lambda: round(random.uniform(0.8, 0.9999), 3),
 
-    "threshold_circuit": lambda: round(random.uniform(0.4, 0.9), 2),
+    "threshold_circuit": lambda: round(random.uniform(0.2, 0.9), 2),
 
-    "rwd_weight": lambda: round(random.uniform(0.0, 1.0), 2),
+    "rwd_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 80.0), 1),
-    "col_weight": lambda: round(random.uniform(0.0, 1.0), 2),
+    "col_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 30.0), 1),
 
     "action_delay": lambda: round(random.uniform(1., 80.), 1),
@@ -292,7 +304,7 @@ if __name__ == "__main__" :
     # ---| Evaluation configs |---
 
     fitness_weights = (1.,)
-    num_samples = 2
+    # num_samples = 2
 
     # ---| Evolution configs |---
     NGEN = args.ngen
@@ -320,7 +332,7 @@ if __name__ == "__main__" :
 
     # ---| Game |---
     # -> see above for the specification of the data settings
-    env = Env(num_samples=num_samples, npop=NPOP)
+    env = Env(num_samples=NUM_SAMPLES, npop=NPOP)
 
     logger(f"Env: {env.__repr__()}")
 

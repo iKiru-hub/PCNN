@@ -29,15 +29,19 @@ GAME_SCALE = games.SCREEN_WIDTH
 
 
 reward_settings = {
-    "rw_fetching": "deterministic",
-    "rw_value": "continuous",
+    "rw_fetching": "probabilistic",
+    "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.05 * GAME_SCALE,
+    "rw_radius": 0.1 * GAME_SCALE,
+    "rw_sigma": 1.5 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 2,
-    "silent_duration": 5_000,
-    "transparent": True,
+    "delay": 50,
+    "silent_duration": 8_000,
+    "fetching_duration": 1,
+    "transparent": False,
+    "beta": 30.,
+    "alpha": 0.06,# * GAME_SCALE,
 }
 
 agent_settings = {
@@ -53,9 +57,10 @@ game_settings = {
     "rendering": True,
     "rendering_pcnn": True,
     "max_duration": 8_000,
-    "room_thickness": 10,
+    "room_thickness": 30,
     "seed": None,
-    "pause": -1
+    "pause": -1,
+    "verbose": True
 }
 
 model_params = {
@@ -71,51 +76,55 @@ global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
     "N": 30**2,
-    "rec_threshold_fine": 40.,
-    "rec_threshold_coarse": 80.,
+    "rec_threshold_fine": 24.,
+    "rec_threshold_coarse": 60.,
     "speed": 1.5,
+    "min_weight_value": 0.6
 }
 
 parameters = {
+
     "gain_fine": 11.,
     "offset_fine": 1.2,
-    "threshold_fine": 0.4,
+    "threshold_fine": 0.35,
     "rep_threshold_fine": 0.9,
 
-    "gain_coarse": 10.,
-    "offset_coarse": 1.2,
-    "threshold_coarse": 0.4,
-    "rep_threshold_coarse": 0.89,
+    "gain_coarse": 8.,
+    "offset_coarse": 1.,
+    "threshold_coarse": 0.3,
+    "rep_threshold_coarse": 0.7,
 
     "lr_da": 0.3,
-    "threshold_da": 0.08,
+    "threshold_da": 0.04,
     "tau_v_da": 1.0,
 
     "lr_bnd": 0.4,
-    "threshold_bnd": 0.04,
-    "tau_v_bnd": 1.0,
+    "threshold_bnd": 0.05,
+    "tau_v_bnd": 2.0,
 
-    "tau_ssry": 200.,
-    "threshold_ssry": 0.99,
+    "tau_ssry": 100.,
+    "threshold_ssry": 0.95,
 
-    "threshold_circuit": 0.7,
+    "threshold_circuit": 0.2,
 
-    "rwd_weight": 0.1,
-    "rwd_sigma": 40.0,
+    "rwd_weight": 0.03,
+    "rwd_sigma": 10.0,
     "col_weight": 0.0,
     "col_sigma": 2.0,
 
-    "action_delay": 10.,
-    "edge_route_interval": 80,
+    "action_delay": 50.,
+    "edge_route_interval": 50,
 
-    "forced_duration": 400,
-    "fine_tuning_min_duration": 5,
+    "forced_duration": 100,
+    "fine_tuning_min_duration": 10,
 }
+
+fixed_params = parameters.copy()
 
 
 possible_positions = np.array([
-    [0.2, 0.8], [0.8, 0.8],
-    [0.2, 0.2], [0.8, 0.2],
+    [0.25, 0.75], [0.75, 0.75],
+    [0.25, 0.25], [0.75, 0.25],
 ]) * GAME_SCALE
 
 
@@ -136,8 +145,8 @@ class Renderer:
         self.names = names
         self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
         self.fig.set_tight_layout(True)
-        self.boundsx = (-50, 400)
-        self.boundsy = (-400, 50)
+        self.boundsx = (-100, 440)
+        self.boundsy = (-440, 100)
 
     def render(self):
 
@@ -207,15 +216,15 @@ class Renderer:
         else:
             # fine space
             self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
-                                   color="blue", s=20, alpha=0.2)
+                                   color="blue", s=20, alpha=0.4)
 
             # coarse space
+            # for edge in self.space_coarse.make_edges():
+            #     self.axs[0, 1].plot((edge[0][0], edge[1][0]),
+            #                         (edge[0][1], edge[1][1]),
+            #                      alpha=0.1, color="black")
             self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
-                                   color="blue", s=40, alpha=0.2)
-            for edge in self.space_coarse.make_edges():
-                self.axs[0, 1].plot((edge[0][0], edge[1][0]),
-                                    (edge[0][1], edge[1][1]),
-                                 alpha=0.1, color="black")
+                                   color="blue", s=40, alpha=0.4)
 
             # for edge in self.space.make_edges():
             #     self.axs[0, 0].plot((edge[0][0], edge[1][0]),
@@ -225,19 +234,22 @@ class Renderer:
         # current representation
         self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
                                c = self.brain.get_representation(), cmap="Greys",
-                               s=30, alpha=0.6)
+                               s=40*self.brain.get_representation(),
+                               alpha=0.9)
         self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
                                c=self.brain.get_representation_coarse(),
-                               cmap="Greys", s=40, alpha=0.6)
+                               s=50*self.brain.get_representation_coarse(),
+                               cmap="Greys", alpha=0.9)
 
         # plot edge representation
-        self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
-                               c=self.brain.get_edge_representation(),
-                               cmap="Oranges", alpha=0.5)
+        # self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+        #                        c=self.brain.get_edge_representation(),
+        #                        cmap="Oranges", alpha=0.5)
 
         # fine
-        self.axs[0, 0].set_title(f"#PCs={len(self.space)} | " + \
-            f"dir:{self.brain.get_directive()}")
+        # self.axs[0, 0].set_title(f"#PCs={len(self.space)} | " + \
+            # f"dir:{self.brain.get_directive()}")
+        self.axs[0, 0].set_title(f"#PCs={len(self.space)}")
         self.axs[0, 0].scatter(*np.array(self.space.get_position()).T,
                                color="red", s=50, marker="v", alpha=0.8)
         self.axs[0, 0].set_xlim(self.boundsx)
@@ -258,19 +270,35 @@ class Renderer:
         self.axs[0, 1].set_aspect('equal', adjustable='box')
         self.axs[0, 1].grid(alpha=0.1)
 
-        for i in range(self.size):
-            self.axs[1, i].clear()
-            self.axs[1, i].scatter(*np.array(self.space.get_centers()).T,
-                                   c=self.elements[i-1].get_weights(),
-                                   cmap=self.colors[i-1], alpha=0.5,
-                                   s=30, vmin=0., vmax=0.1)
-            self.axs[1, i].set_xlim(self.boundsx)
-            self.axs[1, i].set_ylim(self.boundsy)
-            self.axs[1, i].set_xticks(())
-            self.axs[1, i].set_yticks(())
-            self.axs[1, i].set_title(f"{self.names[i-1]} {self.brain.get_leaky_v()[i-1]:.2f}")
-            self.axs[1, i].set_aspect('equal', adjustable='box')
-            self.axs[1, i].scatter(*np.array(self.space.get_position()).T,
+        self.axs[1, 0].clear()
+        self.axs[1, 0].scatter(*np.array(self.space.get_centers()).T,
+                               c=self.elements[1].get_weights(),
+                               cmap=self.colors[1], alpha=0.5,
+                               s=30, vmin=0., vmax=0.1)
+        self.axs[1, 0].set_xlim(self.boundsx)
+        self.axs[1, 0].set_ylim(self.boundsy)
+        self.axs[1, 0].set_xticks(())
+        self.axs[1, 0].set_yticks(())
+        self.axs[1, 0].set_title(f"BND")# [{self.brain.get_leaky_v()[1]:.2f}]")
+        self.axs[1, 0].set_aspect('equal', adjustable='box')
+        self.axs[1, 0].scatter(*np.array(self.space.get_position()).T,
+                                   color="red", s=50, marker="v")
+
+        self.axs[1, 1].clear()
+        daw = self.elements[0].get_weights()
+        self.axs[1, 1].scatter(*np.array(self.space.get_centers()).T,
+                               c=self.elements[0].get_weights(),
+                               s=np.where(daw > 0.01, 30, 1),
+                               cmap=self.colors[0], alpha=0.8,
+                               vmin=0.)
+        self.axs[1, 1].set_xlim(self.boundsx)
+        self.axs[1, 1].set_ylim(self.boundsy)
+        self.axs[1, 1].set_xticks(())
+        self.axs[1, 1].set_yticks(())
+        self.axs[1, 1].set_title(f"DA")# [{self.brain.get_leaky_v()[0]:.2f}]")# + \
+                    # f" | {self.elements[0].get_weights().max():.2f}")
+        self.axs[1, 1].set_aspect('equal', adjustable='box')
+        self.axs[1, 1].scatter(*np.array(self.space.get_position()).T,
                                    color="red", s=50, marker="v")
             # if i == 1:
             # self.axs[i].set_title(f"")
@@ -289,7 +317,8 @@ def run_game(env: games.Environment,
              renderer: object,
              plot_interval: int,
              pause: int=-1,
-             verbose: bool=True):
+             verbose: bool=True,
+             verbose_min: bool=True):
 
     # ===| setup |===
     clock = pygame.time.Clock()
@@ -310,13 +339,13 @@ def run_game(env: games.Environment,
                     running = False
 
         # -reward
-        # if observation[2] and verbose:
-        #     logger.debug(f">> Reward << [{observation[2]}]")
+        if observation[2] and verbose:
+            logger.debug(f">> Reward << [{observation[2]}]")
             # input()
 
         # -collision
-        # if observation[2] and verbose:
-        #     logger.debug(f">!!< Collision << [{observation[2]}]")
+        if observation[2] and verbose:
+            logger.debug(f">!!< Collision << [{observation[2]}]")
             # input()
 
         # velocity
@@ -339,7 +368,7 @@ def run_game(env: games.Environment,
 
         # -check: reset agent's brain
         if observation[3]:
-            if verbose:
+            if verbose and verbose_min:
                 logger.info(">> Game reset <<")
             running = False
             # brain.reset(position=env.agent.position)
@@ -350,14 +379,14 @@ def run_game(env: games.Environment,
                 env.render()
                 if renderer:
                     renderer.render()
-        else:
-            if env.t % plot_interval == 0 and verbose:
-                logger(f"{env.t/env.duration*100:.1f}%")
+        # else:
+        #     if env.t % plot_interval == 0 and verbose:
+        #         logger(f"{env.t/env.duration*100:.1f}%")
 
         # -check: exit
         if observation[4]:
             running = False
-            if verbose:
+            if verbose and verbose_min:
                 logger.debug(">> Game terminated <<")
 
         # pause
@@ -370,8 +399,8 @@ def run_game(env: games.Environment,
 def run_model(parameters: dict, global_parameters: dict,
               agent_settings: dict, reward_settings: dict,
               game_settings: dict, room_name: str="Flat.1011",
-              pause: int=-1,
-              verbose: bool=True) -> int:
+              pause: int=-1, verbose: bool=True,
+              verbose_min: bool=True) -> int:
 
     """
     meant to be run standalone
@@ -382,39 +411,40 @@ def run_model(parameters: dict, global_parameters: dict,
     brain = pclib.Brainv2(
                 local_scale_fine=global_parameters["local_scale_fine"],
                 local_scale_coarse=global_parameters["local_scale_coarse"],
-                          N=global_parameters["N"],
+                N=global_parameters["N"],
                 rec_threshold_fine=global_parameters["rec_threshold_fine"],
                 rec_threshold_coarse=global_parameters["rec_threshold_coarse"],
-                          speed=global_parameters["speed"],
-                          gain_fine=parameters["gain_fine"],
-                          offset_fine=parameters["offset_fine"],
-                          threshold_fine=parameters["threshold_fine"],
-                          rep_threshold_fine=parameters["rep_threshold_fine"],
-                          gain_coarse=parameters["gain_coarse"],
-                          offset_coarse=parameters["offset_coarse"],
-                          threshold_coarse=parameters["threshold_coarse"],
-                          rep_threshold_coarse=parameters["rep_threshold_coarse"],
-                          lr_da=parameters["lr_da"],
-                          threshold_da=parameters["threshold_da"],
-                          tau_v_da=parameters["tau_v_da"],
-                          lr_bnd=parameters["lr_bnd"],
-                          threshold_bnd=parameters["threshold_bnd"],
-                          tau_v_bnd=parameters["tau_v_bnd"],
-                          tau_ssry=parameters["tau_ssry"],
-                          threshold_ssry=parameters["threshold_ssry"],
-                          threshold_circuit=parameters["threshold_circuit"],
-                          rwd_weight=parameters["rwd_weight"],
-                          rwd_sigma=parameters["rwd_sigma"],
-                          col_weight=parameters["col_weight"],
-                          col_sigma=parameters["col_sigma"],
-                          action_delay=parameters["action_delay"],
-                          edge_route_interval=parameters["edge_route_interval"],
-                          forced_duration=parameters["forced_duration"],
-                fine_tuning_min_duration=parameters["fine_tuning_min_duration"])
+                speed=global_parameters["speed"],
+                gain_fine=parameters["gain_fine"],
+                offset_fine=parameters["offset_fine"],
+                threshold_fine=parameters["threshold_fine"],
+                rep_threshold_fine=parameters["rep_threshold_fine"],
+                gain_coarse=parameters["gain_coarse"],
+                offset_coarse=parameters["offset_coarse"],
+                threshold_coarse=parameters["threshold_coarse"],
+                rep_threshold_coarse=parameters["rep_threshold_coarse"],
+                lr_da=parameters["lr_da"],
+                threshold_da=parameters["threshold_da"],
+                tau_v_da=parameters["tau_v_da"],
+                lr_bnd=parameters["lr_bnd"],
+                threshold_bnd=parameters["threshold_bnd"],
+                tau_v_bnd=parameters["tau_v_bnd"],
+                tau_ssry=parameters["tau_ssry"],
+                threshold_ssry=parameters["threshold_ssry"],
+                threshold_circuit=parameters["threshold_circuit"],
+                rwd_weight=parameters["rwd_weight"],
+                rwd_sigma=parameters["rwd_sigma"],
+                col_weight=parameters["col_weight"],
+                col_sigma=parameters["col_sigma"],
+                action_delay=parameters["action_delay"],
+                edge_route_interval=parameters["edge_route_interval"],
+                forced_duration=parameters["forced_duration"],
+                fine_tuning_min_duration=parameters["fine_tuning_min_duration"],
+                min_weight_value=parameters["fine_tuning_min_duration"])
 
     """ make game environment """
 
-    if verbose:
+    if verbose and verbose_min:
         logger(f"room_name={room_name}")
 
     room = games.make_room(name=room_name,
@@ -436,6 +466,7 @@ def run_model(parameters: dict, global_parameters: dict,
     reward_obj = objects.RewardObj(
                 position=reward_settings["rw_position"],
                 radius=reward_settings["rw_radius"],
+                sigma=reward_settings["rw_sigma"],
                 fetching=reward_settings["rw_fetching"],
                 value=reward_settings["rw_value"],
                 bounds=room_bounds,
@@ -454,14 +485,27 @@ def run_model(parameters: dict, global_parameters: dict,
 
     """ run game """
 
+    # if game_settings["rendering"]:
+    #     renderer = Renderer(elements=[brain.get_da(), brain.get_bnd()],
+    #                         space=brain.get_space_fine(),
+    #                         space_coarse=brain.get_space_coarse(),
+    #                         brain=brain, colors=["Greens", "Blues"],
+    #                         names=["DA", "BND"])
+    # else:
+    #     renderer = None
 
-    # return
+    if verbose_min:
+        logger("[@simulations.py]")
     run_game(env=env,
              brain=brain,
              renderer=None,
              plot_interval=game_settings["plot_interval"],
-             pause=pause,
-             verbose=verbose)
+             pause=-1,
+             verbose=verbose,
+             verbose_min=verbose_min)
+
+    if verbose_min:
+        logger(f"rw_count={env.rw_count}")
 
     return env.rw_count
 
@@ -500,88 +544,137 @@ def main_game_rand(room_name: str="Square.v0"):
     run_game(env, brain, fps=100)
 
 
-def main_game(room_name: str="Square.v0"):
+def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
 
     """
     meant to be run standalone
     """
 
+
+    if load:
+        parameters = utils.load_parameters()
+        logger.debug(parameters)
+    else:
+        parameters = fixed_params
+
     """ make model """
 
     # ===| space |===
 
-    local_scale = 0.015
-    gcn_fine = pclib.GridNetworkSq([
-           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale, bounds=[-1, 1, -1, 1])])
+    local_scale = global_parameters["local_scale_fine"]
+    local_scale_coarse = global_parameters["local_scale_coarse"]
 
-    space = pclib.PCNNsqv2(N=model_params["N"],
-                           Nj=len(gcn_fine),
-                           gain=10.,
-                           offset=1.1,
+    use_hex = True
+    if not use_hex:
+        # gcn_fine = pclib.GridNetworkSq([
+        #        pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale),
+        #        pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale),
+        #        pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale),
+        #        pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale),
+        #        pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale),
+        #        pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale)])
+        # gcn_coarse = pclib.GridNetworkSq([
+        #        pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_coarse),
+        #        pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_coarse),
+        #        pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_coarse),
+        #        pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_coarse),
+        #        pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_coarse),
+        #        pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_coarse)])
+        gcn = pclib.GridNetworkSq([
+               pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale),
+               pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale),
+               pclib.GridLayerSq(sigma=0.04, speed=0.6*local_scale),
+               pclib.GridLayerSq(sigma=0.04, speed=0.4*local_scale),
+               pclib.GridLayerSq(sigma=0.04, speed=0.2*local_scale),
+               pclib.GridLayerSq(sigma=0.04, speed=0.1*local_scale),
+               pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale),
+               pclib.GridLayerSq(sigma=0.04, speed=0.01*local_scale)])
+    else:
+        # gcn_fine = pclib.GridHexNetwork([
+        #        pclib.GridHexLayer(sigma=0.04, speed=1.*local_scale),
+        #        pclib.GridHexLayer(sigma=0.04, speed=0.8*local_scale),
+        #        pclib.GridHexLayer(sigma=0.04, speed=0.7*local_scale),
+        #        pclib.GridHexLayer(sigma=0.04, speed=0.5*local_scale),
+        #        pclib.GridHexLayer(sigma=0.04, speed=0.3*local_scale),
+        #        pclib.GridHexLayer(sigma=0.04, speed=0.05*local_scale)])
+        # gcn_coarse = pclib.GridHexNetwork([
+        #        pclib.GridHexLayer(sigma=0.04, speed=1.*local_scale_coarse),
+        #        pclib.GridHexLayer(sigma=0.04, speed=0.8*local_scale_coarse),
+        #        pclib.GridHexLayer(sigma=0.04, speed=0.7*local_scale_coarse),
+        #        pclib.GridHexLayer(sigma=0.04, speed=0.5*local_scale_coarse),
+        #        pclib.GridHexLayer(sigma=0.04, speed=0.3*local_scale_coarse),
+        #        pclib.GridHexLayer(sigma=0.04, speed=0.05*local_scale_coarse)])
+        gcn = pclib.GridHexNetwork([
+               pclib.GridHexLayer(sigma=0.04, speed=1.*local_scale),
+               pclib.GridHexLayer(sigma=0.04, speed=0.8*local_scale),
+               pclib.GridHexLayer(sigma=0.04, speed=0.6*local_scale),
+               pclib.GridHexLayer(sigma=0.04, speed=0.4*local_scale),
+               pclib.GridHexLayer(sigma=0.04, speed=0.2*local_scale),
+               pclib.GridHexLayer(sigma=0.04, speed=0.1*local_scale),
+               pclib.GridHexLayer(sigma=0.04, speed=0.05*local_scale),
+               pclib.GridHexLayer(sigma=0.04, speed=0.01*local_scale)])
+
+    space = pclib.PCNNsqv2(N=global_parameters["N"],
+                           Nj=len(gcn),
+                           gain=parameters["gain_fine"],
+                           offset=parameters["offset_fine"],
                            clip_min=0.01,
-                           threshold=0.35,
-                           rep_threshold=0.9,
-                           rec_threshold=40.,
+                           threshold=parameters["threshold_fine"],
+                           rep_threshold=parameters["rep_threshold_fine"],
+                           rec_threshold=global_parameters["rec_threshold_fine"],
                            num_neighbors=5,
-                           xfilter=gcn_fine,
+                           xfilter=gcn,
                            name="2D")
 
-    local_scale_coarse = 0.006
-    gcn_coarse = pclib.GridNetworkSq([
-           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1])])
-    space_coarse = pclib.PCNNsqv2(N=model_params["N"],
-                           Nj=len(gcn_coarse),
-                           gain=10.,
-                           offset=1.2,
+    space_coarse = pclib.PCNNsqv2(N=global_parameters["N"],
+                           Nj=len(gcn),
+                           gain=parameters["gain_coarse"],
+                           offset=parameters["offset_coarse"],
                            clip_min=0.01,
-                           threshold=0.35,
-                           rep_threshold=0.89,
-                           rec_threshold=80.,
+                           threshold=parameters["threshold_coarse"],
+                           rep_threshold=parameters["rep_threshold_coarse"],
+                           rec_threshold=global_parameters["rec_threshold_coarse"],
                            num_neighbors=5,
-                           xfilter=gcn_coarse,
+                           xfilter=gcn,
                            name="2D")
 
     # ===| modulation |===
 
-    da = pclib.BaseModulation(name="DA", size=model_params["N"],
-                              lr=0.4, threshold=0.02, max_w=1.0,
-                              tau_v=1.0, eq_v=0.0, min_v=0.0)
-    bnd = pclib.BaseModulation(name="BND", size=model_params["N"],
-                               lr=0.4, threshold=0.04, max_w=1.0,
+    da = pclib.BaseModulation(name="DA", size=global_parameters["N"],
+                              lr=parameters["lr_da"],
+                              threshold=parameters["threshold_da"],
+                              max_w=1.0,
+                              tau_v=1.0,
+                              eq_v=0.0, min_v=0.0)
+    bnd = pclib.BaseModulation(name="BND", size=global_parameters["N"],
+                               lr=parameters["lr_bnd"],
+                               threshold=parameters["threshold_bnd"],
+                               max_w=1.0,
                                tau_v=1.0, eq_v=0.0, min_v=0.0)
-    ssry = pclib.StationarySensory(model_params["N"], 200., 0.995, 0.99)
-    circuit = pclib.Circuits(da, bnd, 0.7)
+    ssry = pclib.StationarySensory(global_parameters["N"],
+                                   parameters["tau_ssry"],
+                                   parameters["threshold_ssry"],
+                                   0.99)
+    circuit = pclib.Circuits(da, bnd, parameters["threshold_circuit"])
 
     # ===| target program |===
 
-    dpolicy = pclib.DensityPolicy(0.2, 40.0,
-                                  0.0, 2.0)
+    dpolicy = pclib.DensityPolicy(parameters["rwd_weight"],
+                                  parameters["rwd_sigma"],
+                                  parameters["col_weight"],
+                                  parameters["col_sigma"])
 
     expmd = pclib.ExplorationModule(speed=global_parameters["speed"]*2.0,
                                     circuits=circuit,
                                     space=space,
-                                    action_delay=10.,
-                                    edge_route_interval=80)
+                                    action_delay=parameters["action_delay"],
+                                    edge_route_interval=parameters["edge_route_interval"],)
     brain = pclib.Brain(circuit, space, space_coarse, expmd, ssry, dpolicy,
                         global_parameters["speed"],
                         global_parameters["speed"]*local_scale/local_scale_coarse,
-                        5, 30)
+                        parameters["forced_duration"],
+                        parameters["fine_tuning_min_duration"],
+                        global_parameters["min_weight_value"])
 
 
     """ make game environment """
@@ -605,20 +698,24 @@ def main_game(room_name: str="Square.v0"):
     reward_obj = objects.RewardObj(
                 position=reward_settings["rw_position"],
                 radius=reward_settings["rw_radius"],
+                sigma=reward_settings["rw_sigma"],
                 fetching=reward_settings["rw_fetching"],
                 value=reward_settings["rw_value"],
                 bounds=room_bounds,
                 delay=reward_settings["delay"],
                 silent_duration=reward_settings["silent_duration"],
+                fetching_duration=reward_settings["fetching_duration"],
                 transparent=reward_settings["transparent"])
 
     logger(reward_obj)
+
+    duration = game_settings["max_duration"] if duration < 0 else duration
 
     # --- env
     env = games.Environment(room=room,
                             agent=body,
                             reward_obj=reward_obj,
-                            duration=game_settings["max_duration"],
+                            duration=duration,
                             rw_event=game_settings["rw_event"],
                             verbose=False,
                             visualize=game_settings["rendering"])
@@ -847,6 +944,20 @@ def main_simple_square(duration: int):
 
 
 
+
+def main_game_v2(room_name: str="Flat.1011", load: bool=False):
+
+    if load:
+        parameters = utils.load_parameters()
+        logger.debug(parameters)
+
+    run_model(parameters, global_parameters,
+              agent_settings, reward_settings,
+              game_settings, room_name, pause=game_settings["pause"],
+              verbose=game_settings["verbose"])
+
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -863,6 +974,7 @@ if __name__ == "__main__":
                         help="[game, rand, simple]")
     parser.add_argument("--interval", type=int, default=20,
                         help="plotting interval")
+    parser.add_argument("--load", action="store_true")
 
     args = parser.parse_args()
 
@@ -880,7 +992,7 @@ if __name__ == "__main__":
 
     # --- run
     if args.main == "game":
-        main_game(room_name=args.room)
+        main_game(room_name=args.room, load=args.load, duration=args.duration)
     elif args.main == "rand":
         main_game_rand(room_name=args.room)
     elif args.main == "simple":

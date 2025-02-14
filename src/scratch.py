@@ -1,50 +1,41 @@
 import numpy as np
 import simulations as sim
-from game.constants import GAME_SCALE
 
 import os
 import json
 import argparse
 
+from game.constants import GAME_SCALE
+import utils
 
-logger = sim.logger
 
-
-def load_parameters():
-
-    files = os.listdir("cache")
-    for i, file in enumerate(files):
-        logger(f"{i}: {file}")
-
-    ans = input("Select file: ")
-    idx = -1 if ans == "" else int(ans)
-
-    with open(f"cache/{files[idx]}", "r") as f:
-        run_data = json.load(f)
-
-    return run_data["info"]["record_genome"]["0"]["genome"]
-
+logger = utils.setup_logger(name="RUN",
+                            level=2,
+                            is_debugging=True,
+                            is_warning=False)
 
 
 reward_settings = {
-    "rw_fetching": "probabilistic",
+    "rw_fetching": "deterministic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.05 * GAME_SCALE,
+    "rw_sigma": 1.5 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 5,
-    "silent_duration": 5_000,
-    "transparent": True,
+    "delay": 10,
+    "silent_duration": 3_000,
+    "fetching_duration": 5,
+    "transparent": False,
 }
 
 
 game_settings = {
-    "plot_interval": 1,
+    "plot_interval": 100,
     "rw_event": "move agent",
     "rendering": False,
     "rendering_pcnn": True,
-    "max_duration": 8_000,
+    "max_duration": 10_000,
     "room_thickness": 10,
     "seed": None,
     "pause": -1
@@ -78,7 +69,7 @@ if __name__ == "__main__":
     reward_settings["transparent"] = args.transparent
 
     if args.load:
-        parameters = load_parameters()
+        parameters = utils.load_parameters()
         logger.debug(parameters.keys())
     else:
         parameters = sim.parameters
