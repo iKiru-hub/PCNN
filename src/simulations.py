@@ -37,7 +37,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 50,
-    "silent_duration": 8_000,
+    "silent_duration": 20_000,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 30.,
@@ -75,11 +75,11 @@ model_params = {
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 30**2,
-    "rec_threshold_fine": 24.,
+    "N": 33**2,
+    "rec_threshold_fine": 25.,
     "rec_threshold_coarse": 60.,
-    "speed": 1.5,
-    "min_weight_value": 0.6
+    "speed": 2.0,
+    "min_weight_value": 0.5
 }
 
 parameters = {
@@ -89,10 +89,10 @@ parameters = {
     "threshold_fine": 0.35,
     "rep_threshold_fine": 0.9,
 
-    "gain_coarse": 8.,
-    "offset_coarse": 1.,
-    "threshold_coarse": 0.3,
-    "rep_threshold_coarse": 0.7,
+    "gain_coarse": 10.,
+    "offset_coarse": 1.2,
+    "threshold_coarse": 0.4,
+    "rep_threshold_coarse": 0.87,
 
     "lr_da": 0.3,
     "threshold_da": 0.04,
@@ -317,8 +317,7 @@ def run_game(env: games.Environment,
              renderer: object,
              plot_interval: int,
              pause: int=-1,
-             verbose: bool=True,
-             verbose_min: bool=True):
+             verbose: bool=True):
 
     # ===| setup |===
     clock = pygame.time.Clock()
@@ -339,13 +338,13 @@ def run_game(env: games.Environment,
                     running = False
 
         # -reward
-        if observation[2] and verbose:
-            logger.debug(f">> Reward << [{observation[2]}]")
+        # if observation[2] and verbose:
+        #     logger.debug(f">> Reward << [{observation[2]}]")
             # input()
 
         # -collision
-        if observation[2] and verbose:
-            logger.debug(f">!!< Collision << [{observation[2]}]")
+        # if observation[2] and verbose:
+        #     logger.debug(f">!!< Collision << [{observation[2]}]")
             # input()
 
         # velocity
@@ -368,7 +367,7 @@ def run_game(env: games.Environment,
 
         # -check: reset agent's brain
         if observation[3]:
-            if verbose and verbose_min:
+            if verbose:
                 logger.info(">> Game reset <<")
             running = False
             # brain.reset(position=env.agent.position)
@@ -386,7 +385,7 @@ def run_game(env: games.Environment,
         # -check: exit
         if observation[4]:
             running = False
-            if verbose and verbose_min:
+            if verbose:
                 logger.debug(">> Game terminated <<")
 
         # pause
@@ -399,8 +398,7 @@ def run_game(env: games.Environment,
 def run_model(parameters: dict, global_parameters: dict,
               agent_settings: dict, reward_settings: dict,
               game_settings: dict, room_name: str="Flat.1011",
-              pause: int=-1, verbose: bool=True,
-              verbose_min: bool=True) -> int:
+              pause: int=-1, verbose: bool=True) -> int:
 
     """
     meant to be run standalone
@@ -444,7 +442,7 @@ def run_model(parameters: dict, global_parameters: dict,
 
     """ make game environment """
 
-    if verbose and verbose_min:
+    if verbose:
         logger(f"room_name={room_name}")
 
     room = games.make_room(name=room_name,
@@ -494,18 +492,14 @@ def run_model(parameters: dict, global_parameters: dict,
     # else:
     #     renderer = None
 
-    if verbose_min:
-        logger("[@simulations.py]")
+    logger("[@simulations.py]")
     run_game(env=env,
              brain=brain,
              renderer=None,
              plot_interval=game_settings["plot_interval"],
-             pause=-1,
-             verbose=verbose,
-             verbose_min=verbose_min)
+             pause=-1)
 
-    if verbose_min:
-        logger(f"rw_count={env.rw_count}")
+    logger(f"rw_count={env.rw_count}")
 
     return env.rw_count
 
@@ -562,60 +556,16 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
     # ===| space |===
 
     local_scale = global_parameters["local_scale_fine"]
-    local_scale_coarse = global_parameters["local_scale_coarse"]
-
-    use_hex = True
-    if not use_hex:
-        # gcn_fine = pclib.GridNetworkSq([
-        #        pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale),
-        #        pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale),
-        #        pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale),
-        #        pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale),
-        #        pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale),
-        #        pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale)])
-        # gcn_coarse = pclib.GridNetworkSq([
-        #        pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_coarse),
-        #        pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_coarse),
-        #        pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_coarse),
-        #        pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_coarse),
-        #        pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_coarse),
-        #        pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_coarse)])
-        gcn = pclib.GridNetworkSq([
-               pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale),
-               pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale),
-               pclib.GridLayerSq(sigma=0.04, speed=0.6*local_scale),
-               pclib.GridLayerSq(sigma=0.04, speed=0.4*local_scale),
-               pclib.GridLayerSq(sigma=0.04, speed=0.2*local_scale),
-               pclib.GridLayerSq(sigma=0.04, speed=0.1*local_scale),
-               pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale),
-               pclib.GridLayerSq(sigma=0.04, speed=0.01*local_scale)])
-    else:
-        # gcn_fine = pclib.GridHexNetwork([
-        #        pclib.GridHexLayer(sigma=0.04, speed=1.*local_scale),
-        #        pclib.GridHexLayer(sigma=0.04, speed=0.8*local_scale),
-        #        pclib.GridHexLayer(sigma=0.04, speed=0.7*local_scale),
-        #        pclib.GridHexLayer(sigma=0.04, speed=0.5*local_scale),
-        #        pclib.GridHexLayer(sigma=0.04, speed=0.3*local_scale),
-        #        pclib.GridHexLayer(sigma=0.04, speed=0.05*local_scale)])
-        # gcn_coarse = pclib.GridHexNetwork([
-        #        pclib.GridHexLayer(sigma=0.04, speed=1.*local_scale_coarse),
-        #        pclib.GridHexLayer(sigma=0.04, speed=0.8*local_scale_coarse),
-        #        pclib.GridHexLayer(sigma=0.04, speed=0.7*local_scale_coarse),
-        #        pclib.GridHexLayer(sigma=0.04, speed=0.5*local_scale_coarse),
-        #        pclib.GridHexLayer(sigma=0.04, speed=0.3*local_scale_coarse),
-        #        pclib.GridHexLayer(sigma=0.04, speed=0.05*local_scale_coarse)])
-        gcn = pclib.GridHexNetwork([
-               pclib.GridHexLayer(sigma=0.04, speed=1.*local_scale),
-               pclib.GridHexLayer(sigma=0.04, speed=0.8*local_scale),
-               pclib.GridHexLayer(sigma=0.04, speed=0.6*local_scale),
-               pclib.GridHexLayer(sigma=0.04, speed=0.4*local_scale),
-               pclib.GridHexLayer(sigma=0.04, speed=0.2*local_scale),
-               pclib.GridHexLayer(sigma=0.04, speed=0.1*local_scale),
-               pclib.GridHexLayer(sigma=0.04, speed=0.05*local_scale),
-               pclib.GridHexLayer(sigma=0.04, speed=0.01*local_scale)])
+    gcn_fine = pclib.GridNetworkSq([
+           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale, bounds=[-1, 1, -1, 1])])
 
     space = pclib.PCNNsqv2(N=global_parameters["N"],
-                           Nj=len(gcn),
+                           Nj=len(gcn_fine),
                            gain=parameters["gain_fine"],
                            offset=parameters["offset_fine"],
                            clip_min=0.01,
@@ -623,11 +573,25 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
                            rep_threshold=parameters["rep_threshold_fine"],
                            rec_threshold=global_parameters["rec_threshold_fine"],
                            num_neighbors=5,
-                           xfilter=gcn,
+                           xfilter=gcn_fine,
                            name="2D")
 
+    local_scale_coarse = global_parameters["local_scale_coarse"]
+    gcn_coarse = pclib.GridNetworkSq([
+           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1])])
     space_coarse = pclib.PCNNsqv2(N=global_parameters["N"],
-                           Nj=len(gcn),
+                           Nj=len(gcn_coarse),
                            gain=parameters["gain_coarse"],
                            offset=parameters["offset_coarse"],
                            clip_min=0.01,
@@ -635,7 +599,7 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
                            rep_threshold=parameters["rep_threshold_coarse"],
                            rec_threshold=global_parameters["rec_threshold_coarse"],
                            num_neighbors=5,
-                           xfilter=gcn,
+                           xfilter=gcn_coarse,
                            name="2D")
 
     # ===| modulation |===
