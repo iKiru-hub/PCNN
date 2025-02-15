@@ -16,11 +16,7 @@ except ImportError:
     warnings.warn("pclib [c++] not found, using python version")
     import libs.pclib1 as pclib
 
-
-logger = utils.setup_logger(name="RUN",
-                           level=2,
-                           is_debugging=True,
-                           is_warning=False)
+logger = utils.setup_logger(__name__, level=-1)
 
 
 """ SETTINGS """
@@ -570,7 +566,7 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
            pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale, bounds=[-1, 1, -1, 1]),
            pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale, bounds=[-1, 1, -1, 1])])
 
-    space = pclib.PCNNsqv2(N=global_parameters["N"],
+    space = pclib.PCNN(N=global_parameters["N"],
                            Nj=len(gcn_fine),
                            gain=parameters["gain_fine"],
                            offset=parameters["offset_fine"],
@@ -596,7 +592,7 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
                              bounds=[-1, 1, -1, 1]),
            pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_coarse,
                              bounds=[-1, 1, -1, 1])])
-    space_coarse = pclib.PCNNsqv2(N=global_parameters["N"],
+    space_coarse = pclib.PCNN(N=global_parameters["N"],
                            Nj=len(gcn_coarse),
                            gain=parameters["gain_coarse"],
                            offset=parameters["offset_coarse"],
@@ -952,6 +948,12 @@ if __name__ == "__main__":
     if args.seed > 0:
         logger.debug(f"seed: {args.seed}")
         np.random.seed(args.seed)
+
+    logger = utils.setup_logger(name="RUN",
+                               level=2,
+                               is_debugging=True,
+                               is_warning=False)
+
 
     # --- settings
     game_settings["plot_interval"] = args.interval

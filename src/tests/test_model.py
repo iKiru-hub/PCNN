@@ -61,17 +61,17 @@ def test_space():
            pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale, bounds=[-1, 1, -1, 1]),
            pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale, bounds=[-1, 1, -1, 1])])
 
-    space = pclib.PCNNsqv2(N=N,
-                           Nj=len(gcn),
-                           gain=10.,
-                           offset=1.1,
-                           clip_min=0.01,
-                           threshold=0.35,
-                           rep_threshold=0.9,
-                           rec_threshold=40.,
-                           num_neighbors=5,
-                           xfilter=gcn,
-                           name="2D")
+    space = pclib.PCNN(N=N,
+                       Nj=len(gcn),
+                       gain=10.,
+                       offset=1.1,
+                       clip_min=0.01,
+                       threshold=0.35,
+                       rep_threshold=0.9,
+                       rec_threshold=40.,
+                       num_neighbors=5,
+                       xfilter=gcn,
+                       name="2D")
 
 
     assert space.get_size() == N, f"space length is {space.get_size()}"

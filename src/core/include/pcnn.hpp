@@ -1459,29 +1459,6 @@ public:
         return y;
     }
 
-    Eigen::VectorXf simulate(
-        const std::array<float, 2>& v,
-        std::vector<std::array<std::array<float, 2>, GCL_SIZE>> sim_gc_positions) {
-
-        Eigen::VectorXf yfwd = Eigen::VectorXf::Zero(N);
-        for (int i = 0; i < num_layers; i++) {
-
-            // Convert the output of layers[i].call(x) to
-            // an Eigen::VectorXf
-            Eigen::VectorXf layer_output = \
-                Eigen::Map<const Eigen::VectorXf>(
-                    /* layers[i].fwd_position(v).data(), */
-                    layers[i].simulate(v, sim_gc_positions[i]).data(),
-                    GCL_SIZE);
-
-            // Assign the converted vector to
-            // the corresponding segment of y
-            yfwd.segment(i * GCL_SIZE, GCL_SIZE) = layer_output;
-        }
-
-        return yfwd;
-    }
-
     Eigen::VectorXf simulate_one_step(std::array<float, 2> v) {
 
         Eigen::VectorXf yfwd = Eigen::VectorXf::Zero(N);

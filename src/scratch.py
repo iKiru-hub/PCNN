@@ -9,11 +9,6 @@ from game.constants import GAME_SCALE
 import utils
 
 
-logger = utils.setup_logger(name="RUN",
-                            level=2,
-                            is_debugging=True,
-                            is_warning=False)
-
 
 reward_settings = {
     "rw_fetching": "deterministic",
@@ -59,6 +54,12 @@ if __name__ == "__main__":
 
 
     """ setup """
+
+    logger = utils.setup_logger(name="RUN",
+                                level=2,
+                                is_debugging=True,
+                                is_warning=False)
+
 
     if args.duration > 0:
         game_settings["max_duration"] = args.duration
