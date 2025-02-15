@@ -60,11 +60,13 @@ global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
     "N": 30**2,
-    "rec_threshold_fine": 24.,
+    "Nc": 20**2,
+    "rec_threshold_fine": 25.,
     "rec_threshold_coarse": 60.,
     "speed": 1.5,
-    "min_weight_value": 0.6
+    "min_weight_value": 0.5
 }
+
 
 
 """ ENVIRONMENT """
@@ -216,17 +218,18 @@ class Env:
 FIXED_PARAMETERS = {
 
     "gain_fine": 11.,
-    "offset_fine": 1.2,
-    "threshold_fine": 0.4,
-    "rep_threshold_fine": 0.9,
+    "offset_fine": 1.1,
+    "threshold_fine": 0.3,
+    # "rep_threshold_fine": 0.88,
+    # "min_rep_threshold": 0.95,
 
-    "gain_coarse": 11.,
-    "offset_coarse": 1.2,
-    "threshold_coarse": 0.4,
+    # "gain_coarse": 11.,
+    "offset_coarse": 0.9,
+    "threshold_coarse": 0.3,
     "rep_threshold_coarse": 0.89,
 
-    "lr_da": 0.4,
-    "threshold_da": 0.08,
+    # "lr_da": 0.4,
+    # "threshold_da": 0.08,
     "tau_v_da": 1.0,
 
     "lr_bnd": 0.4,
@@ -234,7 +237,7 @@ FIXED_PARAMETERS = {
     "tau_v_bnd": 1.0,
 
     "tau_ssry": 100.,
-    "threshold_ssry": 0.95,
+    "threshold_ssry": 0.995,
 
     # "threshold_circuit": 0.7,
 
@@ -258,6 +261,7 @@ PARAMETERS = {
     "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_fine": lambda: round(random.uniform(0.05, 0.6), 2),
     "rep_threshold_fine": lambda: round(random.uniform(0.7, 0.95), 2),
+    "min_rep_threshold": lambda: round(random.uniform(0.89, 0.99), 2),
 
     "gain_coarse": lambda: round(random.uniform(5., 20.), 1),
     "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
@@ -265,11 +269,11 @@ PARAMETERS = {
     "rep_threshold_coarse": lambda: round(random.uniform(0.7, 0.95), 2),
 
     "lr_da": lambda: round(random.uniform(0.05, 0.9), 2),
-    "threshold_da": lambda: round(random.uniform(0.01, 0.8), 2),
+    "threshold_da": lambda: round(random.uniform(0.01, 0.5), 2),
     "tau_v_da": lambda: float(random.randint(1, 10)),
 
     "lr_bnd": lambda: round(random.uniform(0.05, 0.9), 2),
-    "threshold_bnd": lambda: round(random.uniform(0.01, 0.8), 2),
+    "threshold_bnd": lambda: round(random.uniform(0.01, 0.5), 2),
     "tau_v_bnd": lambda: float(random.randint(1, 10)),
 
     "tau_ssry": lambda: float(random.randint(1, 800)),

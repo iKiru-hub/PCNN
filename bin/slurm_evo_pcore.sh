@@ -33,7 +33,7 @@ echo "[finished]"
 # --- PUSH
 cd ~/lab/PCNN
 git add .
-git commit -m "training $agent"
+git commit -m "+evolution ex3"
 git push
 
 echo "[pushed]"

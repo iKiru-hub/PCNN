@@ -1617,3 +1617,238 @@ def run_game_2(env: Environment,
 
     pygame.quit()
 
+
+
+def main_simple_square(duration: int):
+
+    """ settings """
+
+    SPEED = 5.
+    BOUNDS = [0., 100.]
+    N = 30**2
+    action_delay = 3
+
+    """ initialization """
+    gcn = pclib.GridNetworkSq([
+           pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.08, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.05, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.005, bounds=[-1, 1, -1, 1])])
+
+    space = pclib.PCNNsqv2(N=N, Nj=len(gcn), gain=10., offset=1.1,
+           clip_min=0.01,
+           threshold=0.1,
+           rep_threshold=0.4,
+           rec_threshold=15.0,
+           num_neighbors=5,
+           xfilter=gcn, name="2D")
+
+    #
+    da = pclib.BaseModulation(name="DA", size=N, lr=0.9, threshold=0., max_w=2.0,
+                              tau_v=2.0, eq_v=0.0, min_v=0.01)
+    bnd = pclib.BaseModulation(name="BND", size=N, lr=0.99, threshold=0., max_w=2.0,
+                               tau_v=1.0, eq_v=0.0, min_v=0.01)
+    circuit = pclib.Circuits(da, bnd)
+
+    trgp = pclib.TargetProgram(space.get_connectivity(), space.get_centers(),
+                               da.get_weights(), SPEED)
+
+    expmd = pclib.ExperienceModule(speed=SPEED,
+                                   circuits=circuit,
+                                   space=space, weights=[0., 0., 0.],
+                                   max_depth=15, action_delay=action_delay)
+    brain = pclib.Brain(circuit, space, trgp, expmd)
+
+    plan_ = []
+
+    # ---
+    s = [SPEED, SPEED]
+    points = [[14., 14.5]]
+    x, y = points[0]
+
+    tra = []
+    color = "Greys"
+    collision = 0.
+    reward = 0.
+    rx, ry, rs = 85, 30000, 5
+    rt = 0
+    rdur = 100
+    nb_rw = 0
+    delay = 0
+    tplot = 10
+    offset = 14
+
+    pref = points[0]
+
+    trg_plan = np.zeros(N)
+
+    _, axs = plt.subplots(2, 2, figsize=(8, 8))
+    ax1, ax2, ax3, ax4 = axs.flatten()
+
+    for t in range(duration):
+
+        # update sim
+        x += s[0]
+        y += s[1]
+
+        # collision
+        if x <= (BOUNDS[0]) or x >= (BOUNDS[1]):
+
+            s[0] *= -1
+            x += s[0]*2.
+            #color = "Reds"
+            delay = 10
+            collision = 1.
+        elif y <= (BOUNDS[0]) or y >= (BOUNDS[1]):
+            s[1] *= -1
+            y += s[1]*2.
+            #color = "Oranges"
+            delay = 10
+            collision = 1.
+        else:
+            collision = 0.
+            if delay == 0:
+                color = "Greys"
+            else:
+                delay -= 1
+
+        # reward
+        if rt > 0:
+            rt = max((0, rt-1));
+            trigger = False;
+            reward = 0
+        else: 
+            trigger = True;
+
+        dist = np.sqrt((x-rx)**2 + (y-ry)**2)
+        if dist < rs:
+            rt = rdur
+            nb_rw += 1
+            reward = 1.
+        else:
+            reward = 0
+
+        # record
+        points += [[x, y]]
+
+        if expmd.new_plan:
+            pref = points[-1]
+
+        # fwd
+        s = brain(s, collision, reward, trigger)
+
+        # trg directive
+        if brain.get_directive() == "trg":
+            trg_idxs = brain.get_plan()
+            trg_plan *= 0
+            trg_plan[trg_idxs] = 1.
+
+        # get the plan
+        pos_plan = np.array(brain.get_plan_positions(points[-1]))
+        score_plan = np.array(brain.get_plan_scores())
+
+        # plot
+        if t % tplot == 0:
+
+            # === 1
+            ax1.clear()
+            ax1.scatter(rx+4, ry+4, alpha=0.9, color='green', s=210, marker="x")
+            if brain.get_directive() == "trg":
+                hcolor = "green"
+            else:
+                hcolor = "red"
+                # ax1.plot(*pos_plan.T, "b-", alpha=0.3)
+                ax1.scatter(*pos_plan.T, c=score_plan, cmap="RdYlGn", alpha=0.98, s=30,
+                            edgecolors="black", linewidths=1.)
+
+            ax1.scatter(points[-1][0], points[-1][1], alpha=0.9, color=hcolor,
+                        s=100)
+
+            ax1.set_xlim(BOUNDS[0]-10, BOUNDS[1]+10)
+            ax1.set_ylim(BOUNDS[0]-10, BOUNDS[1]+10)
+            ax1.set_xticks(())
+            ax1.set_yticks(())
+            ax1.set_title(f"Trajectory [{t}] | #PCs:{len(space)} [#R={nb_rw}]")
+
+            # === 2
+            ax2.clear()
+            if brain.get_directive() == "trg":
+                ax2.scatter(*space.get_centers().T+offset, color="blue", alpha=0.1)
+                ax2.scatter(*space.get_centers().T+offset, c=trg_plan, cmap="Greens", alpha=0.6)
+                ax2.plot(*np.array(points).T[:, -10:], "g-", alpha=0.9)
+            else:
+                ax2.scatter(*space.get_centers().T+offset, color="blue", alpha=0.3)
+                ax2.plot(*np.array(points).T, "r-", alpha=0.3)
+
+            ax2.scatter(points[-1][0], points[-1][1], alpha=0.9, color='red', s=10)
+
+            ax2.set_xlim(BOUNDS[0]-10, BOUNDS[1]+10)
+            ax2.set_ylim(BOUNDS[0]-10, BOUNDS[1]+10)
+            ax2.set_xticks(())
+            ax2.set_yticks(())
+            ax2.set_title(f"Map | trg: {trgp.is_active()}, {trigger=}")
+
+            # === 3
+            ax3.clear()
+            ax3.scatter(*space.get_centers().T, c=da.get_weights(), s=30, cmap="Greens", alpha=0.5,
+                        vmin=0., vmax=0.3)
+
+            ax3.set_xlim(-5, 50)
+            ax3.set_ylim(-5, 50)
+            ax3.set_xticks(())
+            ax3.set_yticks(())
+            ax3.set_title(f"DA representation | maxw={da.get_weights().max():.3f}")
+
+            # == 4
+            ax4.clear()
+            ax4.scatter(*space.get_centers().T, c=bnd.get_weights(), s=30, cmap="Blues", alpha=0.5,
+                        vmin=0., vmax=0.3)
+            ax4.scatter(points[-1][0], points[-1][1], alpha=0.9, color='red', s=10)
+
+            # ax4.set_xlim(BOUNDS[0], BOUNDS[1])
+            # ax4.set_ylim(BOUNDS[0], BOUNDS[1])
+            ax4.set_xlim(-20, 120)
+            ax4.set_ylim(-20, 120)
+            ax4.set_xticks(())
+            ax4.set_yticks(())
+            ax4.set_title(f"BND representation | maxw={bnd.get_weights().max():.3f}")
+
+            plt.pause(0.001)
+
+    plt.show()
+
+
+
+def main_game_rand(room_name: str="Square.v0"):
+
+    SCALE = 100.0
+    brain = objects.RandomAgent(scale=SCALE)
+
+    room = games.make_room(name=room_name)
+    room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
+                   room.bounds[1]+10, room.bounds[3]-10]
+
+    agent = objects.AgentBody(position=np.array([110, 110]),
+                              width=25, height=25,
+                              bounds=room_bounds,
+                              possible_positions=[
+                                    np.array([110, 110]),
+                                    np.array([110, 190]),
+                                    np.array([190, 110]),
+                                    np.array([190, 190])],
+                              max_speed=4.0)
+    reward_obj = objects.RewardObj(position=np.array([150, 150]),
+                                bounds=room_bounds)
+
+    env = games.Environment(room=room, agent=agent,
+                            reward_obj=reward_obj,
+                            rw_event="move both",
+                            duration=args.duration,
+                            scale=SCALE,
+                            visualize=True)
+
+    run_game(env, brain, fps=100)
+
+

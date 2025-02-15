@@ -32,8 +32,8 @@ reward_settings = {
     "rw_sigma": 1.5 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 50,
-    "silent_duration": 20_000,
+    "delay": 5,
+    "silent_duration": 5_000,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 30.,
@@ -71,24 +71,28 @@ model_params = {
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 33**2,
-    "rec_threshold_fine": 25.,
-    "rec_threshold_coarse": 60.,
-    "speed": 2.0,
+    "N": 30**2,
+    "Nc": 20**2,
+    "rec_threshold_fine": 28.,
+    "rec_threshold_coarse": 70.,
+    "speed": 1.5,
     "min_weight_value": 0.5
 }
 
 parameters = {
 
-    "gain_fine": 11.,
-    "offset_fine": 1.2,
-    "threshold_fine": 0.35,
-    "rep_threshold_fine": 0.9,
+    "gain_fine": 10.,
+    "offset_fine": 1.1,
+    "threshold_fine": 0.3,
+    "rep_threshold_fine": 0.88,
+    "min_rep_threshold": 0.95,
 
-    "gain_coarse": 10.,
-    "offset_coarse": 1.2,
-    "threshold_coarse": 0.4,
-    "rep_threshold_coarse": 0.87,
+    "gain_coarse": 8.,
+    "offset_coarse": 0.9,
+    "threshold_coarse": 0.3,
+    "rep_threshold_coarse": 0.8,
+
+    "tau_trace": 10.0,
 
     "lr_da": 0.3,
     "threshold_da": 0.04,
@@ -99,12 +103,12 @@ parameters = {
     "tau_v_bnd": 2.0,
 
     "tau_ssry": 100.,
-    "threshold_ssry": 0.95,
+    "threshold_ssry": 0.998,
 
-    "threshold_circuit": 0.2,
+    "threshold_circuit": 0.1,
 
-    "rwd_weight": 0.03,
-    "rwd_sigma": 10.0,
+    "rwd_weight": 0.1,
+    "rwd_sigma": 40.0,
     "col_weight": 0.0,
     "col_sigma": 2.0,
 
@@ -120,8 +124,7 @@ fixed_params = parameters.copy()
 
 possible_positions = np.array([
     [0.25, 0.75], [0.75, 0.75],
-    [0.25, 0.25], [0.75, 0.25],
-]) * GAME_SCALE
+    [0.25, 0.25], [0.75, 0.25]]) * GAME_SCALE
 
 
 """ UTILITIES """
@@ -129,12 +132,12 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, elements, space, space_coarse,
+    def __init__(self, elements, space_fine, space_coarse,
                  brain, colors, names):
 
         self.elements = elements
         self.size = len(elements)
-        self.space = space
+        self.space_fine = space_fine
         self.space_coarse = space_coarse
         self.brain = brain
         self.colors = colors
@@ -156,15 +159,15 @@ class Renderer:
            self.brain.get_directive() == "trg ob":
 
             # space
-            self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+            self.axs[0, 0].scatter(*np.array(self.space_fine.get_centers()).T,
                                    color="blue", s=20, alpha=0.1)
             # current position
-            self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+            self.axs[0, 0].scatter(*np.array(self.space_fine.get_centers()).T,
                                    c = self.brain.get_representation(),
                                    cmap="Greys",
                                    s=20, alpha=0.3)
             # goal
-            self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+            self.axs[0, 0].scatter(*np.array(self.space_fine.get_centers()).T,
                                    c=self.brain.get_trg_representation(),
                                    s=100*self.brain.get_trg_representation(),
                                    cmap="Greens", alpha=0.7)
@@ -172,11 +175,11 @@ class Renderer:
             # plan
             plan = np.zeros(len(self.brain))
             plan[self.brain.get_plan_idxs_fine()] = 1.
-            self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+            self.axs[0, 0].scatter(*np.array(self.space_fine.get_centers()).T,
                         c=plan, s=40*plan, cmap="Greens", alpha=0.7)
 
             # title
-            loc_ = np.array(self.space.get_centers())[self.brain.get_trg_idx()]
+            loc_ = np.array(self.space_fine.get_centers())[self.brain.get_trg_idx()]
             self.axs[0, 0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
                 f" ({self.brain.get_trg_representation().max():.3f}, " + \
                 f"{self.brain.get_trg_representation().argmax()}) " + \
@@ -197,7 +200,7 @@ class Renderer:
             #                        cmap="Greens", alpha=0.7)
 
             # plan
-            plan = np.zeros(len(self.brain))
+            plan = np.zeros(self.space_coarse.get_size())
             plan[self.brain.get_plan_idxs_coarse()] = 1.
             self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
                         c=plan, s=50*plan, cmap="Greens", alpha=0.7)
@@ -211,7 +214,7 @@ class Renderer:
 
         else:
             # fine space
-            self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+            self.axs[0, 0].scatter(*np.array(self.space_fine.get_centers()).T,
                                    color="blue", s=20, alpha=0.4)
 
             # coarse space
@@ -228,7 +231,7 @@ class Renderer:
             #                      alpha=0.1, color="black")
 
         # current representation
-        self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
+        self.axs[0, 0].scatter(*np.array(self.space_fine.get_centers()).T,
                                c = self.brain.get_representation(), cmap="Greys",
                                s=40*self.brain.get_representation(),
                                alpha=0.9)
@@ -245,8 +248,8 @@ class Renderer:
         # fine
         # self.axs[0, 0].set_title(f"#PCs={len(self.space)} | " + \
             # f"dir:{self.brain.get_directive()}")
-        self.axs[0, 0].set_title(f"#PCs={len(self.space)}")
-        self.axs[0, 0].scatter(*np.array(self.space.get_position()).T,
+        self.axs[0, 0].set_title(f"#PCs={len(self.space_fine)}")
+        self.axs[0, 0].scatter(*np.array(self.space_fine.get_position()).T,
                                color="red", s=50, marker="v", alpha=0.8)
         self.axs[0, 0].set_xlim(self.boundsx)
         self.axs[0, 0].set_ylim(self.boundsy)
@@ -267,7 +270,7 @@ class Renderer:
         self.axs[0, 1].grid(alpha=0.1)
 
         self.axs[1, 0].clear()
-        self.axs[1, 0].scatter(*np.array(self.space.get_centers()).T,
+        self.axs[1, 0].scatter(*np.array(self.space_fine.get_centers()).T,
                                c=self.elements[1].get_weights(),
                                cmap=self.colors[1], alpha=0.5,
                                s=30, vmin=0., vmax=0.1)
@@ -277,12 +280,12 @@ class Renderer:
         self.axs[1, 0].set_yticks(())
         self.axs[1, 0].set_title(f"BND")# [{self.brain.get_leaky_v()[1]:.2f}]")
         self.axs[1, 0].set_aspect('equal', adjustable='box')
-        self.axs[1, 0].scatter(*np.array(self.space.get_position()).T,
+        self.axs[1, 0].scatter(*np.array(self.space_fine.get_position()).T,
                                    color="red", s=50, marker="v")
 
         self.axs[1, 1].clear()
         daw = self.elements[0].get_weights()
-        self.axs[1, 1].scatter(*np.array(self.space.get_centers()).T,
+        self.axs[1, 1].scatter(*np.array(self.space_fine.get_centers()).T,
                                c=self.elements[0].get_weights(),
                                s=np.where(daw > 0.01, 30, 1),
                                cmap=self.colors[0], alpha=0.8,
@@ -294,7 +297,7 @@ class Renderer:
         self.axs[1, 1].set_title(f"DA")# [{self.brain.get_leaky_v()[0]:.2f}]")# + \
                     # f" | {self.elements[0].get_weights().max():.2f}")
         self.axs[1, 1].set_aspect('equal', adjustable='box')
-        self.axs[1, 1].scatter(*np.array(self.space.get_position()).T,
+        self.axs[1, 1].scatter(*np.array(self.space_fine.get_position()).T,
                                    color="red", s=50, marker="v")
             # if i == 1:
             # self.axs[i].set_title(f"")
@@ -408,9 +411,12 @@ def run_model(parameters: dict, global_parameters: dict,
                 local_scale_fine=global_parameters["local_scale_fine"],
                 local_scale_coarse=global_parameters["local_scale_coarse"],
                 N=global_parameters["N"],
+                Nc=global_parameters["Nc"],
+                min_rep_threshold=parameters["min_rep_threshold"],
                 rec_threshold_fine=global_parameters["rec_threshold_fine"],
                 rec_threshold_coarse=global_parameters["rec_threshold_coarse"],
                 speed=global_parameters["speed"],
+                tau_trace=global_parameters["tau_trace"],
                 gain_fine=parameters["gain_fine"],
                 offset_fine=parameters["offset_fine"],
                 threshold_fine=parameters["threshold_fine"],
@@ -509,37 +515,6 @@ def run_model(parameters: dict, global_parameters: dict,
 """ MAIN """
 
 
-def main_game_rand(room_name: str="Square.v0"):
-
-    SCALE = 100.0
-    brain = objects.RandomAgent(scale=SCALE)
-
-    room = games.make_room(name=room_name)
-    room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
-                   room.bounds[1]+10, room.bounds[3]-10]
-
-    agent = objects.AgentBody(position=np.array([110, 110]),
-                              width=25, height=25,
-                              bounds=room_bounds,
-                              possible_positions=[
-                                    np.array([110, 110]),
-                                    np.array([110, 190]),
-                                    np.array([190, 110]),
-                                    np.array([190, 190])],
-                              max_speed=4.0)
-    reward_obj = objects.RewardObj(position=np.array([150, 150]),
-                                bounds=room_bounds)
-
-    env = games.Environment(room=room, agent=agent,
-                            reward_obj=reward_obj,
-                            rw_event="move both",
-                            duration=args.duration,
-                            scale=SCALE,
-                            visualize=True)
-
-    run_game(env, brain, fps=100)
-
-
 def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
 
     """
@@ -557,52 +532,57 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
 
     # ===| space |===
 
-    local_scale = global_parameters["local_scale_fine"]
-    gcn_fine = pclib.GridNetworkSq([
-           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale, bounds=[-1, 1, -1, 1])])
-
-    space = pclib.PCNN(N=global_parameters["N"],
-                           Nj=len(gcn_fine),
-                           gain=parameters["gain_fine"],
-                           offset=parameters["offset_fine"],
-                           clip_min=0.01,
-                           threshold=parameters["threshold_fine"],
-                           rep_threshold=parameters["rep_threshold_fine"],
-                           rec_threshold=global_parameters["rec_threshold_fine"],
-                           num_neighbors=5,
-                           xfilter=gcn_fine,
-                           name="2D")
-
+    local_scale_fine = global_parameters["local_scale_fine"]
     local_scale_coarse = global_parameters["local_scale_coarse"]
-    gcn_coarse = pclib.GridNetworkSq([
-           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_coarse,
-                             bounds=[-1, 1, -1, 1])])
-    space_coarse = pclib.PCNN(N=global_parameters["N"],
-                           Nj=len(gcn_coarse),
-                           gain=parameters["gain_coarse"],
-                           offset=parameters["offset_coarse"],
-                           clip_min=0.01,
-                           threshold=parameters["threshold_coarse"],
-                           rep_threshold=parameters["rep_threshold_coarse"],
-                           rec_threshold=global_parameters["rec_threshold_coarse"],
-                           num_neighbors=5,
-                           xfilter=gcn_coarse,
-                           name="2D")
+
+    gcn = pclib.GridNetworkSq([
+           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_fine, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_fine, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_fine, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_fine, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_fine, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_fine, bounds=[-1, 1, -1, 1])])
+
+    space_fine = pclib.PCNN(N=global_parameters["N"],
+                            Nj=len(gcn),
+                            gain=parameters["gain_fine"],
+                            offset=parameters["offset_fine"],
+                            clip_min=0.01,
+                            threshold=parameters["threshold_fine"],
+                            rep_threshold=parameters["rep_threshold_fine"],
+                            rec_threshold=global_parameters["rec_threshold_fine"],
+                            min_rep_threshold=parameters["min_rep_threshold"],
+                            xfilter=gcn,
+                            tau_trace=parameters["tau_trace"],
+                            name="fine")
+
+    # gcn_coarse = pclib.GridNetworkSq([
+    #        pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_coarse,
+    #                          bounds=[-1, 1, -1, 1]),
+    #        pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_coarse,
+    #                          bounds=[-1, 1, -1, 1]),
+    #        pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_coarse,
+    #                          bounds=[-1, 1, -1, 1]),
+    #        pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_coarse,
+    #                          bounds=[-1, 1, -1, 1]),
+    #        pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_coarse,
+    #                          bounds=[-1, 1, -1, 1]),
+    #        pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_coarse,
+    #                          bounds=[-1, 1, -1, 1])])
+
+
+    space_coarse = pclib.PCNN(N=global_parameters["Nc"],
+                             Nj=len(gcn),
+                             gain=parameters["gain_coarse"],
+                             offset=parameters["offset_coarse"],
+                             clip_min=0.01,
+                             threshold=parameters["threshold_coarse"],
+                             rep_threshold=parameters["rep_threshold_coarse"],
+                             rec_threshold=global_parameters["rec_threshold_coarse"],
+                             min_rep_threshold=parameters["min_rep_threshold"],
+                             xfilter=gcn,
+                             tau_trace=parameters["tau_trace"],
+                             name="coarse")
 
     # ===| modulation |===
 
@@ -632,12 +612,12 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
 
     expmd = pclib.ExplorationModule(speed=global_parameters["speed"]*2.0,
                                     circuits=circuit,
-                                    space=space,
+                                    space_fine=space_fine,
                                     action_delay=parameters["action_delay"],
                                     edge_route_interval=parameters["edge_route_interval"],)
-    brain = pclib.Brain(circuit, space, space_coarse, expmd, ssry, dpolicy,
+    brain = pclib.Brain(circuit, space_fine, space_coarse, expmd, ssry, dpolicy,
                         global_parameters["speed"],
-                        global_parameters["speed"]*local_scale/local_scale_coarse,
+                        global_parameters["speed"]*local_scale_fine/local_scale_coarse,
                         parameters["forced_duration"],
                         parameters["fine_tuning_min_duration"],
                         global_parameters["min_weight_value"])
@@ -691,7 +671,7 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
     """ run game """
 
     if game_settings["rendering"]:
-        renderer = Renderer(elements=[da, bnd], space=space,
+        renderer = Renderer(elements=[da, bnd], space_fine=space_fine,
                             space_coarse=space_coarse,
                             brain=brain, colors=["Greens", "Blues"],
                             names=["DA", "BND"])
@@ -706,209 +686,6 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
              pause=-1)
 
     logger(f"rw_count={env.rw_count}")
-
-
-def main_simple_square(duration: int):
-
-    """ settings """
-
-    SPEED = 5.
-    BOUNDS = [0., 100.]
-    N = 30**2
-    action_delay = 3
-
-    """ initialization """
-    gcn = pclib.GridNetworkSq([
-           pclib.GridLayerSq(sigma=0.04, speed=0.1, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.08, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.07, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.05, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.03, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.005, bounds=[-1, 1, -1, 1])])
-
-    space = pclib.PCNNsqv2(N=N, Nj=len(gcn), gain=10., offset=1.1,
-           clip_min=0.01,
-           threshold=0.1,
-           rep_threshold=0.4,
-           rec_threshold=15.0,
-           num_neighbors=5,
-           xfilter=gcn, name="2D")
-
-    #
-    da = pclib.BaseModulation(name="DA", size=N, lr=0.9, threshold=0., max_w=2.0,
-                              tau_v=2.0, eq_v=0.0, min_v=0.01)
-    bnd = pclib.BaseModulation(name="BND", size=N, lr=0.99, threshold=0., max_w=2.0,
-                               tau_v=1.0, eq_v=0.0, min_v=0.01)
-    circuit = pclib.Circuits(da, bnd)
-
-    trgp = pclib.TargetProgram(space.get_connectivity(), space.get_centers(),
-                               da.get_weights(), SPEED)
-
-    expmd = pclib.ExperienceModule(speed=SPEED,
-                                   circuits=circuit,
-                                   space=space, weights=[0., 0., 0.],
-                                   max_depth=15, action_delay=action_delay)
-    brain = pclib.Brain(circuit, space, trgp, expmd)
-
-    plan_ = []
-
-    # ---
-    s = [SPEED, SPEED]
-    points = [[14., 14.5]]
-    x, y = points[0]
-
-    tra = []
-    color = "Greys"
-    collision = 0.
-    reward = 0.
-    rx, ry, rs = 85, 30000, 5
-    rt = 0
-    rdur = 100
-    nb_rw = 0
-    delay = 0
-    tplot = 10
-    offset = 14
-
-    pref = points[0]
-
-    trg_plan = np.zeros(N)
-
-    _, axs = plt.subplots(2, 2, figsize=(8, 8))
-    ax1, ax2, ax3, ax4 = axs.flatten()
-
-    for t in range(duration):
-
-        # update sim
-        x += s[0]
-        y += s[1]
-
-        # collision
-        if x <= (BOUNDS[0]) or x >= (BOUNDS[1]):
-
-            s[0] *= -1
-            x += s[0]*2.
-            #color = "Reds"
-            delay = 10
-            collision = 1.
-        elif y <= (BOUNDS[0]) or y >= (BOUNDS[1]):
-            s[1] *= -1
-            y += s[1]*2.
-            #color = "Oranges"
-            delay = 10
-            collision = 1.
-        else:
-            collision = 0.
-            if delay == 0:
-                color = "Greys"
-            else:
-                delay -= 1
-
-        # reward
-        if rt > 0:
-            rt = max((0, rt-1));
-            trigger = False;
-            reward = 0
-        else: 
-            trigger = True;
-
-        dist = np.sqrt((x-rx)**2 + (y-ry)**2)
-        if dist < rs:
-            rt = rdur
-            nb_rw += 1
-            reward = 1.
-        else:
-            reward = 0
-
-        # record
-        points += [[x, y]]
-
-        if expmd.new_plan:
-            pref = points[-1]
-
-        # fwd
-        s = brain(s, collision, reward, trigger)
-
-        # trg directive
-        if brain.get_directive() == "trg":
-            trg_idxs = brain.get_plan()
-            trg_plan *= 0
-            trg_plan[trg_idxs] = 1.
-
-        # get the plan
-        pos_plan = np.array(brain.get_plan_positions(points[-1]))
-        score_plan = np.array(brain.get_plan_scores())
-
-        # plot
-        if t % tplot == 0:
-
-            # === 1
-            ax1.clear()
-            ax1.scatter(rx+4, ry+4, alpha=0.9, color='green', s=210, marker="x")
-            if brain.get_directive() == "trg":
-                hcolor = "green"
-            else:
-                hcolor = "red"
-                # ax1.plot(*pos_plan.T, "b-", alpha=0.3)
-                ax1.scatter(*pos_plan.T, c=score_plan, cmap="RdYlGn", alpha=0.98, s=30,
-                            edgecolors="black", linewidths=1.)
-
-            ax1.scatter(points[-1][0], points[-1][1], alpha=0.9, color=hcolor,
-                        s=100)
-
-            ax1.set_xlim(BOUNDS[0]-10, BOUNDS[1]+10)
-            ax1.set_ylim(BOUNDS[0]-10, BOUNDS[1]+10)
-            ax1.set_xticks(())
-            ax1.set_yticks(())
-            ax1.set_title(f"Trajectory [{t}] | #PCs:{len(space)} [#R={nb_rw}]")
-
-            # === 2
-            ax2.clear()
-            if brain.get_directive() == "trg":
-                ax2.scatter(*space.get_centers().T+offset, color="blue", alpha=0.1)
-                ax2.scatter(*space.get_centers().T+offset, c=trg_plan, cmap="Greens", alpha=0.6)
-                ax2.plot(*np.array(points).T[:, -10:], "g-", alpha=0.9)
-            else:
-                ax2.scatter(*space.get_centers().T+offset, color="blue", alpha=0.3)
-                ax2.plot(*np.array(points).T, "r-", alpha=0.3)
-
-            ax2.scatter(points[-1][0], points[-1][1], alpha=0.9, color='red', s=10)
-
-            ax2.set_xlim(BOUNDS[0]-10, BOUNDS[1]+10)
-            ax2.set_ylim(BOUNDS[0]-10, BOUNDS[1]+10)
-            ax2.set_xticks(())
-            ax2.set_yticks(())
-            ax2.set_title(f"Map | trg: {trgp.is_active()}, {trigger=}")
-
-            # === 3
-            ax3.clear()
-            ax3.scatter(*space.get_centers().T, c=da.get_weights(), s=30, cmap="Greens", alpha=0.5,
-                        vmin=0., vmax=0.3)
-
-            ax3.set_xlim(-5, 50)
-            ax3.set_ylim(-5, 50)
-            ax3.set_xticks(())
-            ax3.set_yticks(())
-            ax3.set_title(f"DA representation | maxw={da.get_weights().max():.3f}")
-
-            # == 4
-            ax4.clear()
-            ax4.scatter(*space.get_centers().T, c=bnd.get_weights(), s=30, cmap="Blues", alpha=0.5,
-                        vmin=0., vmax=0.3)
-            ax4.scatter(points[-1][0], points[-1][1], alpha=0.9, color='red', s=10)
-
-            # ax4.set_xlim(BOUNDS[0], BOUNDS[1])
-            # ax4.set_ylim(BOUNDS[0], BOUNDS[1])
-            ax4.set_xlim(-20, 120)
-            ax4.set_ylim(-20, 120)
-            ax4.set_xticks(())
-            ax4.set_yticks(())
-            ax4.set_title(f"BND representation | maxw={bnd.get_weights().max():.3f}")
-
-            plt.pause(0.001)
-
-    plt.show()
-
-
 
 
 def main_game_v2(room_name: str="Flat.1011", load: bool=False):

@@ -3471,3 +3471,60 @@ struct ConsecutiveLocationsHandler {
 
     /*     return {cx, cy}; */
     /* } */
+
+
+
+/* IN EXPLORATION MODULE */
+
+    /* int make_plan(int rejected_idx) { */
+
+    /*     // check: the current position is at an open boundary */
+    /*     int curr_idx = space.calculate_closest_index(space.get_position()); */
+    /*     float value = open_boundary_value(curr_idx, circuits.get_bnd_weights(), */
+    /*                                       space.get_node_degrees()); */
+
+    /*     // [+] new random walk plan at an open boundary */
+    /*     if (value < open_threshold || rejected_idx == 404 || \ */
+    /*         edge_route_time < edge_route_interval) { return -1; } */
+
+    /*     // check: there are points at the open boundary */
+    /*     int open_boundary_idx = get_open_boundary_idx(rejected_idx); */
+
+    /*     // [+] new random walk plan at an open boundary */
+    /*     if (open_boundary_idx < 1) { */
+    /*         return -1; } */
+
+    /*     // [+] new trg plan to reach the open boundary */
+    /*     LOG("[Exp] new trg plan to reach the open boundary"); */
+    /*     return open_boundary_idx; */
+    /* } */
+
+    /* int get_open_boundary_idx(int rejected_idx) { */
+
+    /*     Eigen::VectorXf& bnd_weights = circuits.get_bnd_weights(); */
+    /*     Eigen::VectorXf& node_degrees = space.get_node_degrees(); */
+
+    /*     if (rejected_idx > -1) { rejected_indexes(rejected_idx) = 1.0f; } */
+
+    /*     // check each neuron */
+    /*     int idx = -1; */
+    /*     float min_value = 1000.0f; */
+
+    /*     for (int i = 1; i < space.get_size(); i++) { */
+    /*         float value = open_boundary_value( */
+    /*                 i, bnd_weights, space.get_node_degrees()); */
+    /*         if (value < min_value && value > 0) { */
+    /*             idx = i; */
+    /*             min_value = value; */
+    /*         } */
+    /*     } */
+    /*     this->edge_idx = idx; */
+    /*     return idx; */
+    /* } */
+
+    /* float open_boundary_value(int idx, Eigen::VectorXf& bnd_weights, */
+    /*                           Eigen::VectorXf& node_degrees) { */
+
+    /*     if (bnd_weights(idx) > 0.0f) { return 10000.0f; } */
+    /*     return node_degrees(idx); */
+    /* } */

@@ -13,10 +13,6 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(pclib, m) {
 
-    // function `set_debug`
-    /* m.def("set_debug", &set_debug, */
-    /*       py::arg("flag")); */
-
     /* PCNN MODEL */
     // (InputFilter) Grid Layer
     py::class_<GridLayerSq>(m, "GridLayerSq")
@@ -86,12 +82,12 @@ PYBIND11_MODULE(pclib, m) {
         .def("reset", &GridHexNetwork::reset,
              py::arg("v"));
 
-
     // PCNN network model [GridSq]
     py::class_<PCNN>(m, "PCNN")
         .def(py::init<int, int, float, float,
              float, float, float, float, \
-             int, GridNetworkSq&, std::string>(),
+             float, GridNetworkSq&, float, \
+             std::string>(),
              py::arg("N"),
              py::arg("Nj"),
              py::arg("gain"),
@@ -100,9 +96,10 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("threshold"),
              py::arg("rep_threshold"),
              py::arg("rec_threshold"),
-             py::arg("num_neighbors"),
+             py::arg("min_rep_threshold"),
              py::arg("xfilter"),
-             py::arg("name"))
+             py::arg("tau_trace") = 2.0f,
+             py::arg("name") = "fine")
         .def("__call__", &PCNN::call,
              py::arg("v"))
         .def("__str__", &PCNN::str)
@@ -167,37 +164,6 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("eq"))
         .def("reset", &LeakyVariable1D::reset);
 
-    /* py::class_<PopulationMaxProgram>(m, "PopulationMaxProgram") */
-    /*     .def(py::init<>()) */
-    /*     .def("__str__", &PopulationMaxProgram::str) */
-    /*     .def("__repr__", &PopulationMaxProgram::repr) */
-    /*     .def("__call__", &PopulationMaxProgram::call, */
-    /*          py::arg("u")) */
-    /*     .def("len", &PopulationMaxProgram::len) */
-    /*     .def("get_value", &PopulationMaxProgram::get_value); */
-
-    /* py::class_<MemoryRepresentation>(m, "MemoryRepresentation") */
-    /*     .def(py::init<int, float, float>(), */
-    /*          py::arg("size"), */
-    /*          py::arg("decay"), */
-    /*          py::arg("threshold")) */
-    /*     .def("__str__", &MemoryRepresentation::str) */
-    /*     .def("__repr__", &MemoryRepresentation::repr) */
-    /*     .def("__call__", &MemoryRepresentation::call, */
-    /*          py::arg("representation"), */
-    /*          py::arg("simulate") = false) */
-    /*     .def_readwrite("tape", &MemoryRepresentation::tape); */
-
-    /* py::class_<MemoryAction>(m, "MemoryAction") */
-    /*     .def(py::init<float>(), */
-    /*          py::arg("decay")) */
-    /*     .def("__str__", &MemoryAction::str) */
-    /*     .def("__repr__", &MemoryAction::repr) */
-    /*     .def("__call__", &MemoryAction::call, */
-    /*          py::arg("idx"), */
-    /*          py::arg("simulate") = false) */
-    /*     .def_readwrite("tape", &MemoryAction::tape); */
-
     /* MODULATION */
     py::class_<BaseModulation>(m, "BaseModulation")
         .def(py::init<std::string, int, float, float,
@@ -225,12 +191,9 @@ PYBIND11_MODULE(pclib, m) {
     py::class_<Circuits>(m, "Circuits")
         .def(py::init<BaseModulation&, BaseModulation&,
              float>(),
-             /* MemoryRepresentation&, MemoryAction&>(), */
              py::arg("da"),
              py::arg("bnd"),
              py::arg("threshold"))
-             /* py::arg("memrepr"), */
-             /* py::arg("memact")) */
         .def("__str__", &Circuits::str)
         .def("__repr__", &Circuits::repr)
         .def("__len__", &Circuits::len)
@@ -240,65 +203,25 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("reward"),
              py::arg("simulate") = false)
         .def("get_output", &Circuits::get_output)
-        /* .def("get_memory_representation", &Circuits::get_memory_representation) */
-        /* .def("get_memory_action", &Circuits::get_memory_action) */
         .def("get_leaky_v", &Circuits::get_leaky_v);
 
     /* MODULES */
 
-    /* py::class_<TargetProgram>(m, "TargetProgram") */
-    /*     /1* .def(py::init<Eigen::VectorXf&, PCNN_REF&, *1/ */
-    /*     /1*      float>(), *1/ */
-    /*     .def(py::init<PCNN_REF&, float>(), */
-    /*          /1* py::arg("wrec"), *1/ */
-    /*          /1* py::arg("centers"), *1/ */
-    /*          /1* py::arg("da_weights"), *1/ */
-    /*          py::arg("space"), */
-    /*          py::arg("speed")) */
-    /*     .def("__len__", &TargetProgram::len) */
-    /*     .def("__str__", &TargetProgram::str) */
-    /*     .def("__repr__", &TargetProgram::repr) */
-    /*     .def("is_active", &TargetProgram::is_active) */
-    /*     .def("update", &TargetProgram::update, */
-    /*          py::arg("curr_representation"), */
-    /*          py::arg("space_weights"), */
-    /*          py::arg("tmp_trg_idx") = true) */
-    /*          /1* py::arg("use_episodic_memory") = true) *1/ */
-    /*          /1* py::arg("trigger") = true) *1/ */
-    /*     .def("step_plan", &TargetProgram::step_plan) */
-    /*     /1* .def("make_shortest_path", &TargetProgram::make_shortest_path, *1/ */
-    /*     /1*      py::arg("wrec"), *1/ */
-    /*     /1*      py::arg("start_idx"), *1/ */
-    /*          /1* py::arg("end_idx")) *1/ */
-    /*     /1* .def("set_da_weights", &TargetProgram::set_da_weights, *1/ */
-    /*     /1*      py::arg("da_weights")) *1/ */
-    /*     .def("set_wrec", &TargetProgram::set_wrec, */
-    /*          py::arg("wrec")) */
-    /*     /1* .def("get_trg_idx", *1/ */
-    /*     /1*      &TargetProgram::get_trg_idx) *1/ */
-    /*     .def("get_plan", &TargetProgram::get_plan); */
-
     // 2 layer network
     py::class_<ExplorationModule>(m, "ExplorationModule")
         .def(py::init<float, Circuits&, PCNN_REF&, float, int>(),
-             /* std::array<float, CIRCUIT_SIZE>, float, int>(), */
              py::arg("speed"),
              py::arg("circuits"),
-             py::arg("space"),
-             /* py::arg("weights"), */
+             py::arg("space_fine"),
              py::arg("action_delay") = 1.0f,
              py::arg("edge_route_interval") = 100)
         .def("__call__", &ExplorationModule::call,
              py::arg("directive"),
-             py::arg("rejection"))
+             py::arg("rejection") = -1)
         .def("__str__", &ExplorationModule::str)
         .def("__repr__", &ExplorationModule::repr)
         .def("confirm_edge_walk", &ExplorationModule::confirm_edge_walk)
         .def("reset_rejected_indexes", &ExplorationModule::reset_rejected_indexes);
-        /* .def("get_actions", &ExplorationModule::get_actions); */
-        /* .def("get_plan", &ExplorationModule::get_plan) */
-        /* .def("get_all_plan_values", &ExplorationModule::get_all_plan_values) */
-        /* .def("get_all_plan_scores", &ExplorationModule::get_all_plan_scores); */
 
     // Hexagon
     py::class_<Hexagon>(m, "Hexagon")
@@ -319,8 +242,10 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("col_sigma"))
         .def("__call__", &DensityPolicy::call,
              py::arg("space"),
-             py::arg("da_weights"),
-             py::arg("bnd_weights"),
+             py::arg("circuits"),
+             py::arg("goalmd"),
+             /* py::arg("da_weights"), */
+             /* py::arg("bnd_weights"), */
              py::arg("displacement"),
              py::arg("da_value"),
              py::arg("bnd_value"),
@@ -354,7 +279,7 @@ PYBIND11_MODULE(pclib, m) {
              DensityPolicy&,
              float, float, int, int, float>(),
              py::arg("circuits"),
-             py::arg("space"),
+             py::arg("space_fine"),
              py::arg("space_coarse"),
              py::arg("expmd"),
              py::arg("ssry"),
@@ -384,8 +309,6 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_trg_idx", &Brain::get_trg_idx)
         .def("get_space_position_fine", &Brain::get_space_position_fine)
         .def("get_plan_idxs_coarse", &Brain::get_plan_idxs_coarse)
-        /* .def("get_episodic_memory", &Brain::get_episodic_memory) */
-        /* .def("make_edges_value", &Brain::make_edges_value) */
         .def("get_trg_position", &Brain::get_trg_position)
         .def("get_plan_idxs_fine", &Brain::get_plan_idxs_fine)
         .def("get_plan_idxs_coarse", &Brain::get_plan_idxs_coarse)
@@ -393,18 +316,12 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_space_position_fine", &Brain::get_space_position_fine)
         .def("get_space_position_coarse", &Brain::get_space_position_coarse)
         .def("get_edge_representation", &Brain::get_edge_representation)
-        /* .def("get_plan_positions", &Brain::get_plan_positions) */
-        /* .def("get_plan_score", &Brain::get_plan_score) */
-        /* .def("get_plan_scores", &Brain::get_plan_scores) */
-        /* .def("get_plan_values", &Brain::get_plan_values) */
-        /* .def("set_plan_positions", &Brain::set_plan_positions, */
-        /*      py::arg("position")) */
         .def("reset", &Brain::reset);
 
     py::class_<Brainv2>(m, "Brainv2")
 
         .def(py::init<
-             float, float, int, float, float, float,
+             float, float, int, int, float, float, float, float,
              float, float, float, float,
              float, float, float, float,
              float, float, float,
@@ -418,9 +335,11 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("local_scale_fine"),
              py::arg("local_scale_coarse"),
              py::arg("N"),
+             py::arg("Nc"),
              py::arg("rec_threshold_fine"),
              py::arg("rec_threshold_coarse"),
              py::arg("speed"),
+             py::arg("tau_trace"),
 
              py::arg("gain_fine"),
              py::arg("offset_fine"),

@@ -33,7 +33,8 @@ game_settings = {
     "max_duration": 10_000,
     "room_thickness": 10,
     "seed": None,
-    "pause": -1
+    "pause": -1,
+    "verbose": True
 }
 
 

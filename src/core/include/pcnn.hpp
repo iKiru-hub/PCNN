@@ -1557,14 +1557,14 @@ class PCNN {
     const int Nj;
     const float offset;
     const float clip_min;
-    const int num_neighbors;
     const std::string name;
     const float threshold_const;
     const float rep_threshold_const;
     const float gain_const;
+    const float tau_trace;
 
     float rep_threshold;
-    float min_rep_threshold = 0.93f;
+    float min_rep_threshold;
     float threshold;
     float gain;
 
@@ -1582,6 +1582,7 @@ class PCNN {
     std::vector<int> free_indexes;
     int cell_count;
     Eigen::VectorXf u;
+    Eigen::VectorXf trace;
     Eigen::VectorXf x_filtered;
 
     VelocitySpace vspace;
@@ -1622,13 +1623,15 @@ public:
 
     PCNN(int N, int Nj, float gain, float offset,
          float clip_min, float threshold, float rep_threshold,
-         float rec_threshold, int num_neighbors,
-         GridNetworkSq xfilter, std::string name = "2D")
+         float min_rep_threshold, float rec_threshold,
+         GridNetworkSq xfilter, float tau_trace = 2.0f,
+         std::string name = "fine")
         : N(N), Nj(Nj), gain(gain), gain_const(gain),
-        offset(offset), clip_min(clip_min), rep_threshold(rep_threshold),
+        offset(offset), clip_min(clip_min),
+        min_rep_threshold(min_rep_threshold), rep_threshold(rep_threshold),
         rep_threshold_const(rep_threshold), rec_threshold(rec_threshold),
         threshold_const(threshold), threshold(threshold),
-        num_neighbors(num_neighbors), xfilter(xfilter), name(name),
+        xfilter(xfilter), tau_trace(tau_trace), name(name),
         vspace(VelocitySpace(N, rec_threshold)) {
 
         // Initialize the variables
@@ -1638,6 +1641,7 @@ public:
         connectivity = Eigen::MatrixXf::Zero(N, N);
         mask = Eigen::VectorXf::Zero(N);
         u = Eigen::VectorXf::Zero(N);
+        trace = Eigen::VectorXf::Zero(N);
         delta_wff = 0.0;
         x_filtered = Eigen::VectorXf::Zero(N);
         cell_count = 0;
@@ -1665,9 +1669,13 @@ public:
         Eigen::VectorXf sigma = Eigen::VectorXf::Constant(u.size(),
                                                           0.01);
 
-        // maybe use cosine similarity?
-        u = generalized_sigmoid_vec(u, offset,
-                                           gain, clip_min);
+        u = generalized_sigmoid_vec(u, offset, gain, clip_min);
+
+        // trace
+        trace = trace - trace / tau_trace + u;
+
+        // clip trace in [0, 1]
+        trace = trace.cwiseMin(1.0f);
 
         return std::make_pair(u, x_filtered);
     }
@@ -1713,7 +1721,7 @@ public:
             Wffbackup.row(idx) = Wff.row(idx);
 
             // record new center
-            vspace.update(idx, get_size());
+            vspace.update(idx, N);
             this->Wrec = vspace.weights;
             this->connectivity = vspace.connectivity;
         }
@@ -1750,8 +1758,15 @@ public:
         if (magnitude < 0.00001f) { return; }
 
         float max_dist = 0.0f;
+        float magnitude_i;;
         for (int i = 0; i < N; i++) {
 
+            // consider the trace
+            magnitude_i = magnitude * 1.0f;// trace(i);
+
+            /* if (magnitude_i < 0.001f) { continue; } */
+
+            // skip blocked edges
             if (vspace.centers(i, 0) < -900.0f || block_weights(i) > 0.0f) { continue; }
 
             std::array<float, 2> displacement = \
@@ -1769,8 +1784,8 @@ public:
 
             // weight the displacement
             std::array<float, 2> gc_displacement = {
-                            displacement[0] * dist * magnitude - displacement[0],
-                            displacement[1] * dist * magnitude - displacement[1]};
+                            displacement[0] * dist * magnitude_i - displacement[0],
+                            displacement[1] * dist * magnitude_i - displacement[1]};
 
             // pass the input through the filter layer
             x_filtered = xfilter.simulate_one_step(gc_displacement);
@@ -1791,9 +1806,45 @@ public:
 
             // update backup and vspace
             Wffbackup.row(i) = Wff.row(i);
-            vspace.remap_center(i, N, {displacement[0] * dist * magnitude,
-                                       displacement[1] * dist * magnitude});
+            vspace.remap_center(i, N, {displacement[0] * dist * magnitude_i,
+                                       displacement[1] * dist * magnitude_i});
         }
+    }
+
+    void single_remap(int idx, std::array<float, 2> displacement,
+                      float magnitude) {
+
+        // consider the trace
+        magnitude = magnitude * trace(idx);
+
+        if (magnitude < 0.00001f) { return; }
+
+        // weight the displacement
+        std::array<float, 2> gc_displacement = {
+                        displacement[0] * magnitude - displacement[0],
+                        displacement[1] * magnitude - displacement[1]};
+
+        // pass the input through the filter layer
+        x_filtered = xfilter.simulate_one_step(gc_displacement);
+
+        // update the weights & centers
+        Wff.row(idx) += x_filtered.transpose() - Wff.row(idx).transpose();
+
+        // check similarity
+        float similarity = max_cosine_similarity_in_rows(Wff, idx);
+
+        // check repulsion (similarity) level
+        if (similarity > min_rep_threshold || std::isnan(similarity)) {
+            Wff.row(idx) = Wffbackup.row(idx);
+            return;
+        }
+
+        std::cout << "remapping with magnitude: " << magnitude << "\n";
+
+        // update backup and vspace
+        Wffbackup.row(idx) = Wff.row(idx);
+        vspace.remap_center(idx, N, {displacement[0] * magnitude,
+                                     displacement[1] * magnitude});
     }
 
     int calculate_closest_index(const std::array<float, 2>& c)
@@ -1802,18 +1853,17 @@ public:
     void reset() { u = Eigen::VectorXf::Zero(N); }
 
     // Getters
-    int len() const { return cell_count; }
-    int get_size() const { return N; }
-    std::string str() const { return "PCNN." + name; }
-    std::string repr() const {
+    int len() { return cell_count; }
+    int get_size() { return N; }
+    std::string str() { return "PCNN." + name; }
+    std::string repr() {
         return "PCNN(" + name + std::to_string(N) + \
             std::to_string(Nj) + std::to_string(gain) + \
             std::to_string(offset) + \
-            std::to_string(rec_threshold) + \
-            std::to_string(num_neighbors) + ")";
+            std::to_string(rec_threshold) + ")";
     }
     Eigen::VectorXf& get_activation() { return u; }
-    Eigen::VectorXf get_activation_gcn() const
+    Eigen::VectorXf get_activation_gcn()
         { return xfilter.get_activation(); }
     Eigen::MatrixXf& get_wff() { return Wff; }
     Eigen::MatrixXf& get_wrec() { return Wrec; }
@@ -2011,47 +2061,6 @@ struct StationarySensory {
 };
 
 
-struct DensityPolicy {
-
-    float rwd_weight;
-    float rwd_sigma;
-    float col_weight;;
-    float col_sigma;
-    float rwd_drive = 0.0f;
-    float col_drive = 0.0f;
-
-    void call(PCNN_REF& space, Eigen::VectorXf& da_weights,
-              Eigen::VectorXf& bnd_weights,
-              std::array<float, 2> displacement,
-              float curr_da, float curr_bnd,
-              float reward, float collision) {
-
-        // +reward -collision
-        if (reward > 0.1 || curr_bnd < 0.01) {
-
-            // update & remap
-            rwd_drive = rwd_weight * curr_da;
-            space.remap(bnd_weights, displacement, rwd_sigma, rwd_drive);
-
-        } else if (collision > 0.1 || curr_da < 0.01) {
-
-            // udpate & remap
-            col_drive = col_weight * curr_bnd;
-            space.remap(da_weights, displacement, col_sigma, col_drive);
-        }
-    }
-
-    DensityPolicy(float rwd_weight, float rwd_sigma,
-                  float col_weight, float col_sigma):
-        rwd_weight(rwd_weight), rwd_sigma(rwd_sigma),
-        col_sigma(col_sigma), col_weight(col_weight) {}
-    std::string str() { return "DensityPolicy"; }
-    std::string repr() { return "DensityPolicy"; }
-    float get_rwd_mod() { return rwd_drive; }
-    float get_col_mod() { return col_drive; }
-};
-
-
 class Circuits {
 
     // external components
@@ -2070,7 +2079,9 @@ public:
 
     Circuits(BaseModulation& da, BaseModulation& bnd, float threshold):
         da(da), bnd(bnd), value_mask(Eigen::VectorXf::Ones(da.len())),
-        space_size(da.len()), threshold(threshold) {}
+        space_size(da.len()), threshold(threshold) {
+        LOG("[+] Circuits created, threshold=" + std::to_string(threshold));
+    }
 
     // CALL
     std::array<float, CIRCUIT_SIZE> call(Eigen::VectorXf& representation,
@@ -2100,6 +2111,7 @@ public:
             else if (bnd_value < threshold) { 
                 value_mask(i) = 0.01f; }
             else {
+                LOG("[!] discarded value: value_mask: " + std::to_string(bnd_value));
                 value_mask(i) = -1000.0; }
         }
 
@@ -2139,7 +2151,7 @@ struct RewardObject {
     float min_weight_value;
 
     int update(Eigen::VectorXf& da_weights,
-               PCNN_REF& space,
+               PCNN_REF& space_fine,
                bool trigger = true) {
 
         // exit: no trigger
@@ -2155,7 +2167,7 @@ struct RewardObject {
         // --- update the target representation ---
 
         // method 1: take the center of mass
-        trg_idx = converge_to_trg_index(da_weights, space);
+        trg_idx = converge_to_trg_index(da_weights, space_fine);
 
         // try method 2
         if (trg_idx < 0) {
@@ -2192,7 +2204,7 @@ struct RewardObject {
 private:
 
     int converge_to_trg_index(Eigen::VectorXf& da_weights,
-                              PCNN_REF& space) {
+                              PCNN_REF& space_fine) {
 
         // weights for the centers
         float cx, cy;
@@ -2202,7 +2214,7 @@ private:
             return -1;
         }
 
-        Eigen::MatrixXf centers = space.get_centers();
+        Eigen::MatrixXf centers = space_fine.get_centers();
 
         for (int i = 0; i < da_weights.size(); i++) {
             cx += da_weights(i) * centers(i, 0);
@@ -2214,7 +2226,7 @@ private:
         cy /= sum;
 
         // get closest center
-        int closest_idx = space.calculate_closest_index({cx, cy});
+        int closest_idx = space_fine.calculate_closest_index({cx, cy});
 
         return closest_idx;
     }
@@ -2224,7 +2236,7 @@ private:
 struct Plan {
 
     // external components
-    PCNN_REF& space;
+    PCNN_REF& space_fine;
 
     // parameters
     bool is_coarse;
@@ -2258,18 +2270,18 @@ struct Plan {
         }
 
         // retrieve next position
-        this->next_position = {space.get_centers()(plan_idxs[counter], 0),
-                               space.get_centers()(plan_idxs[counter], 1)};
+        this->next_position = {space_fine.get_centers()(plan_idxs[counter], 0),
+                               space_fine.get_centers()(plan_idxs[counter], 1)};
 
         // check if it's the last point
-        if (plan_idxs[counter] == trg_idx) {
-            LOG("[plan] last point | idx=" + std::to_string(trg_idx));
-        } else if (plan_idxs[counter] < -10000 || plan_idxs[counter] > 10000) {
-            LOG("[!plan] !!! possible memory leak?? " + \
-                std::to_string(plan_idxs[counter]) + ", counter=" + \
-                std::to_string(counter) + " | plan size=" + \
-                std::to_string(plan_idxs.size()));
-        }
+        /* if (plan_idxs[counter] == trg_idx) { */
+            /* LOG("[plan] last point | idx=" + std::to_string(trg_idx)); */
+        /* } else if (plan_idxs[counter] < -10000 || plan_idxs[counter] > 10000) { */
+        /*     LOG("[!plan] !!! possible memory leak?? " + \ */
+        /*         std::to_string(plan_idxs[counter]) + ", counter=" + \ */
+        /*         std::to_string(counter) + " | plan size=" + \ */
+        /*         std::to_string(plan_idxs.size())); */
+        /* } */
 
         counter++;
         return std::make_pair(make_velocity(), true);
@@ -2284,24 +2296,24 @@ struct Plan {
         // determine velocity magnitude
         if (std::sqrt(dx * dx + dy * dy) < speed)
             {
-            LOG("[plan] just a little bit");
+            /* LOG("[plan] just a little bit"); */
             local_velocity = {dx, dy}; }
         else {
             float norm = std::sqrt(dx * dx + dy * dy);
-            LOG("[plan] norm=" + std::to_string(norm) + \
-                " | speed=" + std::to_string(speed));
+            /* LOG("[plan] norm=" + std::to_string(norm) + \ */
+            /*     " | speed=" + std::to_string(speed)); */
             local_velocity = {speed * dx / norm,
                               speed * dy / norm};
         }
-        LOG("[plan] local_velocity=" + std::to_string(local_velocity[0]) + \
-            ", " + std::to_string(local_velocity[1]));
+        /* LOG("[plan] local_velocity=" + std::to_string(local_velocity[0]) + \ */
+        /*     ", " + std::to_string(local_velocity[1])); */
         return local_velocity;
     }
 
     float calculate_distance() {
 
-        curr_position = space.get_position();
-        curr_idx = space.calculate_closest_index(curr_position);
+        curr_position = space_fine.get_position();
+        curr_idx = space_fine.calculate_closest_index(curr_position);
         return euclidean_distance(curr_position, next_position);
     }
 
@@ -2324,8 +2336,8 @@ struct Plan {
         trg_idx = -1;
     }
 
-    Plan(PCNN_REF& space, bool is_coarse, float speed):
-        space(space), is_coarse(is_coarse), speed(speed) {}
+    Plan(PCNN_REF& space_fine, bool is_coarse, float speed):
+        space_fine(space_fine), is_coarse(is_coarse), speed(speed) {}
 };
 
 
@@ -2347,18 +2359,18 @@ class GoalModule {
     int fine_tuning_time = 0;
     int final_fine_idx = -1;
 
-    std::pair<std::vector<int>, bool> make_plan(PCNN_REF& space,
+    std::pair<std::vector<int>, bool> make_plan(PCNN_REF& space_fine,
                     Eigen::VectorXf& space_weights,
                    int trg_idx, int curr_idx = -1) {
 
         // current index and value
         if (curr_idx == -1)
-            { curr_idx = space.calculate_closest_index(space.get_position()); }
+            { curr_idx = space_fine.calculate_closest_index(space_fine.get_position()); }
 
         // plan
         std::vector<int> plan_idxs = \
-            spatial_shortest_path(space.get_connectivity(),
-                                         space.get_centers(),
+            spatial_shortest_path(space_fine.get_connectivity(),
+                                         space_fine.get_centers(),
                                          space_weights,
                                          curr_idx, trg_idx);
 
@@ -2367,9 +2379,6 @@ class GoalModule {
             return std::make_pair(std::vector<int>{}, false); }
 
         LOG("[goal] new plan:");
-        /* for (int i = 0; i < plan_idxs.size(); i++) { */
-            /* std::cout << plan_idxs[i] << " "; */
-        /* } */
         LOG(" ");
 
         return std::make_pair(plan_idxs, true);
@@ -2387,7 +2396,7 @@ public:
 
     bool update(int trg_idx_fine, bool goal_directed) {
 
-        // -- make a coarse plan
+        // -- proporse a coarse plan --
 
         // extract trg_idx in the coarse space
         int trg_idx_coarse = space_coarse.calculate_closest_index(
@@ -2399,8 +2408,16 @@ public:
             make_plan(space_coarse, flat_weights,
                       trg_idx_coarse);
 
-        // check: failed planning
+        // check: failed coarse planning
         if (!res_coarse.second) { return false; }
+
+        // plan from the current position
+        std::pair<std::vector<int>, bool> res_fine_prop = \
+            make_plan(space_fine, circuits.make_value_mask(goal_directed),
+                      trg_idx_fine);
+
+        // check: failed fine planning
+        if (!res_fine_prop.second) { return false; }
 
         // -- make a fine plan from the end of the coarse plan
 
@@ -2511,6 +2528,108 @@ public:
 };
 
 
+struct DensityPolicy {
+
+    float rwd_weight;
+    float rwd_sigma;
+    float col_weight;;
+    float col_sigma;
+    float rwd_drive = 0.0f;
+    float col_drive = 0.0f;
+
+    void call(PCNN_REF& space, 
+              Circuits& circuits,
+              GoalModule& goalmd,
+              std::array<float, 2> displacement,
+              float curr_da, float curr_bnd,
+              float reward, float collision) {
+
+        // +reward -collision
+        if (reward > 0.1 || curr_bnd < 0.01) {
+
+            // update & remap
+            Eigen::VectorXf bnd_weights = circuits.get_da_weights();
+            rwd_drive = rwd_weight * curr_da;
+            space.remap(bnd_weights, displacement, rwd_sigma, rwd_drive);
+            /* remap_space(bnd_weights, space, goalmd, displacement, */
+            /*             rwd_sigma, rwd_drive); */
+
+        } else if (collision > 0.1 || curr_da < 0.01) {
+
+            // udpate & remap
+            Eigen::VectorXf da_weights = circuits.get_bnd_weights();
+            col_drive = col_weight * curr_bnd;
+            space.remap(da_weights, displacement, col_sigma, col_drive);
+        }
+    }
+
+    DensityPolicy(float rwd_weight, float rwd_sigma,
+                  float col_weight, float col_sigma):
+        rwd_weight(rwd_weight), rwd_sigma(rwd_sigma),
+        col_sigma(col_sigma), col_weight(col_weight) {}
+    std::string str() { return "DensityPolicy"; }
+    std::string repr() { return "DensityPolicy"; }
+    float get_rwd_mod() { return rwd_drive; }
+    float get_col_mod() { return col_drive; }
+
+private:
+
+    void remap_space(Eigen::VectorXf& block_weights,
+                     PCNN_REF& space,
+                     GoalModule& goalmd,
+                     std::array<float, 2> displacement,
+                     float sigma, float drive) {
+
+        // get plan
+        std::vector<int> plan_idxs = goalmd.get_plan_idxs_fine();
+
+        // check: plan is empty
+        if (plan_idxs.size() < 1) { return; }
+
+        // current vspace position
+        /* std::array<float, 2> v = space.get_position(); */
+        std::array<float, 2> curr_positions = space.get_position();
+        Eigen::MatrixXf centers = space.get_centers();
+
+        // calculate the displacement between each point of the plan
+        // and the previous one
+        Eigen::MatrixXf prev_center = centers.row(plan_idxs[0]);
+        float magnitude_i;
+        float dist;
+        float displacement_trg;
+        for (int i = 1; i < plan_idxs.size(); i++) {
+
+            // center of the current point
+            Eigen::MatrixXf curr_center = centers.row(plan_idxs[i]);
+
+            // block weights
+            if (curr_center(0) < -900.0f || block_weights(i) > 0.0f) { continue; }
+
+            // displacement from the previous point
+            std::array<float, 2> displacement = {
+                curr_center(0) - prev_center(0),
+                curr_center(1) - prev_center(1)};
+
+            // distance from the current point
+            displacement_trg = std::sqrt((curr_center(0) - curr_positions[0]) * \
+                                    (curr_center(0) - curr_positions[0]) + \
+                                    (curr_center(1) - curr_positions[1]) * \
+                                    (curr_center(1) - curr_positions[1]));
+            dist = std::exp(-displacement_trg * displacement_trg / sigma);
+
+            magnitude_i = dist * drive;
+
+            // remap the space
+            space.single_remap(plan_idxs[i], displacement, magnitude_i);
+
+            prev_center = centers.row(plan_idxs[i]);
+        }
+
+    }
+
+};
+
+
 class ExplorationModule {
 
     // external components
@@ -2545,34 +2664,11 @@ class ExplorationModule {
         LOG("[Exp] new trg plan to reach a random point");
         return rand_idx;
     }
-    /* int make_plan(int rejected_idx) { */
-
-    /*     // check: the current position is at an open boundary */
-    /*     int curr_idx = space.calculate_closest_index(space.get_position()); */
-    /*     float value = open_boundary_value(curr_idx, circuits.get_bnd_weights(), */
-    /*                                       space.get_node_degrees()); */
-
-    /*     // [+] new random walk plan at an open boundary */
-    /*     if (value < open_threshold || rejected_idx == 404 || \ */
-    /*         edge_route_time < edge_route_interval) { return -1; } */
-
-    /*     // check: there are points at the open boundary */
-    /*     int open_boundary_idx = get_open_boundary_idx(rejected_idx); */
-
-    /*     // [+] new random walk plan at an open boundary */
-    /*     if (open_boundary_idx < 1) { */
-    /*         return -1; } */
-
-    /*     // [+] new trg plan to reach the open boundary */
-    /*     LOG("[Exp] new trg plan to reach the open boundary"); */
-    /*     return open_boundary_idx; */
-    /* } */
 
     // make random plan
     void random_action_plan() {
 
         // sample a random angle
-        /* float angle = random.get_random_float(0.0f, 2.0f * M_PI); */
         float angle = random_float(0.0f, 2.0f * M_PI, SEED);
 
         // update plan
@@ -2591,35 +2687,6 @@ class ExplorationModule {
         return std::make_pair(action, false);
     }
 
-    int get_open_boundary_idx(int rejected_idx) {
-
-        Eigen::VectorXf& bnd_weights = circuits.get_bnd_weights();
-        Eigen::VectorXf& node_degrees = space.get_node_degrees();
-
-        if (rejected_idx > -1) { rejected_indexes(rejected_idx) = 1.0f; }
-
-        // check each neuron
-        int idx = -1;
-        float min_value = 1000.0f;
-
-        for (int i = 1; i < space.get_size(); i++) {
-            float value = open_boundary_value(
-                    i, bnd_weights, space.get_node_degrees());
-            if (value < min_value && value > 0) {
-                idx = i;
-                min_value = value;
-            }
-        }
-        this->edge_idx = idx;
-        return idx;
-    }
-
-    float open_boundary_value(int idx, Eigen::VectorXf& bnd_weights,
-                              Eigen::VectorXf& node_degrees) {
-
-        if (bnd_weights(idx) > 0.0f) { return 10000.0f; }
-        return node_degrees(idx);
-    }
 
     int sample_random_idx(int num_attempts) {
 
@@ -2704,7 +2771,7 @@ class Brain {
 
     // external components
     Circuits& circuits;
-    PCNN_REF& space;
+    PCNN_REF& space_fine;
     PCNN_REF& space_coarse;
     ExplorationModule& expmd;
     StationarySensory& ssry;
@@ -2766,7 +2833,7 @@ class Brain {
     void make_prediction() {
 
         // simulate a step
-        Eigen::VectorXf& next_representation = space.simulate_one_step(action);
+        Eigen::VectorXf& next_representation = space_fine.simulate_one_step(action);
 
         // make prediction
         circuits.make_prediction(next_representation);
@@ -2775,15 +2842,15 @@ class Brain {
 
 public:
 
-    Brain(Circuits& circuits, PCNN_REF& space,
+    Brain(Circuits& circuits, PCNN_REF& space_fine,
           PCNN_REF& space_coarse, ExplorationModule& expmd,
           StationarySensory& ssry, DensityPolicy& dpolicy,
           float speed, float speed_coarse, int max_attempts = 3,
           int forced_duration = 10, float min_weight_value = 0.3):
-        circuits(circuits), space(space), space_coarse(space_coarse),
+        circuits(circuits), space_fine(space_fine), space_coarse(space_coarse),
         expmd(expmd), ssry(ssry), dpolicy(dpolicy),
         rwobj(RewardObject(min_weight_value)),
-        goalmd(GoalModule(space, space_coarse, circuits, speed, speed_coarse)),
+        goalmd(GoalModule(space_fine, space_coarse, circuits, speed, speed_coarse)),
         directive("new"), clock(0), forced_duration(forced_duration) {}
 
     // CALL
@@ -2800,7 +2867,7 @@ public:
         // === STATE UPDATE ==============================================
 
         // :space
-        auto [u, _] = space.call(velocity);
+        auto [u, _] = space_fine.call(velocity);
         auto [uc, __] = space_coarse.call(velocity);
         this->curr_representation = u;
         this->curr_representation_coarse = uc;
@@ -2810,12 +2877,15 @@ public:
             circuits.call(u, collision, reward, false);
 
         // :dpolicy fine space
-        dpolicy.call(space, circuits.get_da_weights(),
-                     circuits.get_bnd_weights(),
+        dpolicy.call(space_fine,
+                     circuits,
+                     /* circuits.get_da_weights(), */
+                     /* circuits.get_bnd_weights(), */
+                     goalmd,
                      velocity,
                      internal_state[1], internal_state[0],
                      reward, collision);
-        space.update();
+        space_fine.update();
         space_coarse.update();
 
         // check: still-ness | wrt the fine space
@@ -2856,7 +2926,7 @@ public:
 
         // :reward object | new reward trg index wrt the fine space
         tmp_trg_idx = rwobj.update(circuits.get_da_weights(),
-                                   space, trigger);
+                                   space_fine, trigger);
 
         if (tmp_trg_idx > -1) {
 
@@ -2909,9 +2979,9 @@ final:
 
     std::string str() { return "Brain"; }
     std::string repr() { return "Brain"; }
-    int len() { return space.get_size(); }
+    int len() { return space_fine.get_size(); }
     Eigen::VectorXf get_trg_representation() {
-        Eigen::VectorXf trg_representation = Eigen::VectorXf::Zero(space.get_size());
+        Eigen::VectorXf trg_representation = Eigen::VectorXf::Zero(space_fine.get_size());
         trg_representation(rwobj.trg_idx) = 1.;
         return trg_representation;
     }
@@ -2921,15 +2991,15 @@ final:
     Eigen::VectorXf& get_representation_coarse()
         { return curr_representation_coarse; }
     std::array<float, 2> get_trg_position() {
-        Eigen::MatrixXf centers = space.get_centers();
+        Eigen::MatrixXf centers = space_fine.get_centers();
         return {centers(rwobj.trg_idx, 0), centers(rwobj.trg_idx, 1)};
     }
     ExplorationModule& get_expmd() { return expmd; }
-    PCNN_REF& get_space() { return space; }
+    PCNN_REF& get_space() { return space_fine; }
     std::string get_directive() { return directive; }
     std::vector<int> get_plan_idxs_fine() { return goalmd.get_plan_idxs_fine(); }
     std::vector<int> get_plan_idxs_coarse() { return goalmd.get_plan_idxs_coarse(); }
-    std::array<float, 2> get_space_position_fine() { return space.get_position(); }
+    std::array<float, 2> get_space_position_fine() { return space_fine.get_position(); }
     std::array<float, 2> get_space_position_coarse()
         { return space_coarse.get_position(); }
     Eigen::VectorXf get_edge_representation() 
@@ -2947,13 +3017,15 @@ class Brainv2 {
     // external components
     BaseModulation da;
     BaseModulation bnd;
-    std::vector<GridLayerSq> gcn_layers_fine;
-    std::vector<GridLayerSq> gcn_layers_coarse;
-    GridNetworkSq gcn_fine;
-    GridNetworkSq gcn_coarse;
+    /* std::vector<GridLayerSq> gcn_layers_fine; */
+    /* std::vector<GridLayerSq> gcn_layers_coarse; */
+    /* GridNetworkSq gcn_fine; */
+    /* GridNetworkSq gcn_coarse; */
+    std::vector<GridLayerSq> gcn_layers;
+    GridNetworkSq gcn;
 
     Circuits circuits;
-    PCNN_REF space;
+    PCNN_REF space_fine;
     PCNN_REF space_coarse;
     ExplorationModule expmd;
     StationarySensory ssry;
@@ -3015,7 +3087,7 @@ class Brainv2 {
     void make_prediction() {
 
         // simulate a step
-        Eigen::VectorXf& next_representation = space.simulate_one_step(action);
+        Eigen::VectorXf& next_representation = space_fine.simulate_one_step(action);
 
         // make prediction
         circuits.make_prediction(next_representation);
@@ -3025,45 +3097,48 @@ class Brainv2 {
 public:
 
     Brainv2(float local_scale_fine, 
-          float local_scale_coarse,
-         int N,
-         float rec_threshold_fine,
-         float rec_threshold_coarse,
-         float speed,
+            float local_scale_coarse,
+            int N,
+            int Nc,
+            float rec_threshold_fine,
+            float rec_threshold_coarse,
+            float speed,
+            float tau_trace,
+            float min_rep_threshold,
 
-         float gain_fine,
-         float offset_fine,
-         float threshold_fine,
-         float rep_threshold_fine,
+            float gain_fine,
+            float offset_fine,
+            float threshold_fine,
+            float rep_threshold_fine,
 
-         float gain_coarse,
-         float offset_coarse,
-         float threshold_coarse,
-         float rep_threshold_coarse,
+            float gain_coarse,
+            float offset_coarse,
+            float threshold_coarse,
+            float rep_threshold_coarse,
 
-         float lr_da,
-         float threshold_da,
-         float tau_v_da,
+            float lr_da,
+            float threshold_da,
+            float tau_v_da,
 
-         float lr_bnd,
-         float threshold_bnd,
-         float tau_v_bnd,
+            float lr_bnd,
+            float threshold_bnd,
+            float tau_v_bnd,
 
-         float tau_ssry,
-         float threshold_ssry,
+            float tau_ssry,
+            float threshold_ssry,
 
-         float threshold_circuit,
+            float threshold_circuit,
 
-         float rwd_weight,
-         float rwd_sigma,
-         float col_weight,
-         float col_sigma,
+            float rwd_weight,
+            float rwd_sigma,
+            float col_weight,
+            float col_sigma,
 
-         float action_delay,
-         int edge_route_interval,
+            float action_delay,
+            int edge_route_interval,
 
-         int forced_duration,
-         int fine_tuning_min_duration,
+            int forced_duration,
+            int fine_tuning_min_duration,
             float min_weight_value = 0.3):
         clock(0), forced_duration(forced_duration), directive("new"),
         da(BaseModulation("DA", N, lr_da, threshold_da, 1.0f,
@@ -3074,7 +3149,7 @@ public:
         circuits(Circuits(da, bnd, threshold_circuit)),
 
         // initialize with a set of GridLayerSq
-        gcn_layers_fine({GridLayerSq(0.04, 1.0 * local_scale_fine,
+        gcn_layers({GridLayerSq(0.04, 1.0 * local_scale_fine,
                                       {-1.0f, 1.0f, -1.0f, 1.0f}),
                             GridLayerSq(0.04, 0.8 * local_scale_fine,
                                         {-1.0f, 1.0f, -1.0f, 1.0f}),
@@ -3086,33 +3161,34 @@ public:
                                         {-1.0f, 1.0f, -1.0f, 1.0f}),
                             GridLayerSq(0.04, 0.05 * local_scale_fine,
                                         {-1.0f, 1.0f, -1.0f, 1.0f})}),
-        gcn_layers_coarse({GridLayerSq(0.04, 1.0 * local_scale_coarse,
-                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
-                            GridLayerSq(0.04, 0.8 * local_scale_coarse,
-                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
-                            GridLayerSq(0.04, 0.7 * local_scale_coarse,
-                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
-                            GridLayerSq(0.04, 0.5 * local_scale_coarse,
-                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
-                            GridLayerSq(0.04, 0.3 * local_scale_coarse,
-                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
-                            GridLayerSq(0.04, 0.05 * local_scale_coarse,
-                                        {-1.0f, 1.0f, -1.0f, 1.0f})}),
-        gcn_fine(GridNetworkSq(gcn_layers_fine)),
-        gcn_coarse(GridNetworkSq(gcn_layers_coarse)),
-        space(PCNN(N, gcn_fine.len(), gain_fine, offset_fine,
+        /* gcn_layers_coarse({GridLayerSq(0.04, 1.0 * local_scale_coarse, */
+        /*                                 {-1.0f, 1.0f, -1.0f, 1.0f}), */
+        /*                     GridLayerSq(0.04, 0.8 * local_scale_coarse, */
+        /*                                 {-1.0f, 1.0f, -1.0f, 1.0f}), */
+        /*                     GridLayerSq(0.04, 0.7 * local_scale_coarse, */
+        /*                                 {-1.0f, 1.0f, -1.0f, 1.0f}), */
+        /*                     GridLayerSq(0.04, 0.5 * local_scale_coarse, */
+        /*                                 {-1.0f, 1.0f, -1.0f, 1.0f}), */
+        /*                     GridLayerSq(0.04, 0.3 * local_scale_coarse, */
+        /*                                 {-1.0f, 1.0f, -1.0f, 1.0f}), */
+        /*                     GridLayerSq(0.04, 0.05 * local_scale_coarse, */
+        /*                                 {-1.0f, 1.0f, -1.0f, 1.0f})}), */
+        gcn(GridNetworkSq(gcn_layers)),
+        /* gcn_coarse(GridNetworkSq(gcn_layers_coarse)), */
+        space_fine(PCNN(N, gcn.len(), gain_fine, offset_fine,
                        0.01f, threshold_fine, rep_threshold_fine,
-                       rec_threshold_fine, 5, gcn_fine, "2D")),
-        space_coarse(PCNN(N, gcn_coarse.len(), gain_coarse, offset_coarse,
+                       rec_threshold_fine, min_rep_threshold, gcn,
+                        tau_trace, "fine")),
+        space_coarse(PCNN(Nc, gcn.len(), gain_coarse, offset_coarse,
                               0.01f, threshold_coarse, rep_threshold_coarse,
-                              rec_threshold_coarse, 5, gcn_coarse, "2D")),
-        goalmd(GoalModule(space, space_coarse, circuits, speed,
+                              rec_threshold_coarse, min_rep_threshold,
+                          gcn, tau_trace, "coarse")),
+        goalmd(GoalModule(space_fine, space_coarse, circuits, speed,
                           speed * local_scale_fine / local_scale_coarse)),
         rwobj(RewardObject(min_weight_value)),
         dpolicy(DensityPolicy(rwd_weight, rwd_sigma, col_weight, col_sigma)),
-        expmd(ExplorationModule(speed * 2.0f,
-                                circuits, space, action_delay,
-                                edge_route_interval)) {}
+        expmd(ExplorationModule(speed * 2.0f, circuits, space_fine,
+                                action_delay, edge_route_interval)) {}
 
     // CALL
     std::array<float, 2> call(
@@ -3128,7 +3204,7 @@ public:
         // === STATE UPDATE ==============================================
 
         // :space
-        auto [u, _] = space.call(velocity);
+        auto [u, _] = space_fine.call(velocity);
         auto [uc, __] = space_coarse.call(velocity);
         this->curr_representation = u;
         this->curr_representation_coarse = uc;
@@ -3138,14 +3214,17 @@ public:
             circuits.call(u, collision, reward, false);
 
         // :dpolicy fine space
-        dpolicy.call(space, circuits.get_da_weights(),
-                     circuits.get_bnd_weights(),
+        dpolicy.call(space_fine,
+                     circuits,
+                     /* circuits.get_da_weights(), */
+                     /* circuits.get_bnd_weights(), */
+                     goalmd,
                      velocity,
                      internal_state[1], internal_state[0],
                      reward, collision);
 
         // update spaces
-        space.update();
+        space_fine.update();
         space_coarse.update();
 
 
@@ -3188,7 +3267,7 @@ public:
 
         // :reward object | new reward trg index wrt the fine space
         tmp_trg_idx = rwobj.update(circuits.get_da_weights(),
-                                   space, trigger);
+                                   space_fine, trigger);
 
         if (tmp_trg_idx > -1) {
 
@@ -3241,8 +3320,8 @@ final:
 
     std::string str() { return "Brainv2"; }
     std::string repr() { return "Brainv2"; }
-    int len() { return space.get_size(); }
-    std::array<int, 2> get_cell_count() { return {space.len(), space_coarse.len()}; }
+    int len() { return space_fine.get_size(); }
+    std::array<int, 2> get_cell_count() { return {space_fine.len(), space_coarse.len()}; }
     void reset() {
         goalmd.reset();
         circuits.reset();
@@ -3310,10 +3389,10 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     gcn_layers.push_back(GridLayerSq(0.04, 0.005, {-1.0f, 1.0f, -1.0f, 1.0f}));
     GridNetworkSq gcn = GridNetworkSq(gcn_layers);
     PCNN space = PCNN(N, gcn.len(), 10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
-                              5.0f, 5, gcn, "2D");
+                              5.0f, 5, gcn, 2.0f, "2D");
     PCNN space_coarse = PCNN(N, gcn.len(),
                                      10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
-                                     5.0f, 5, gcn, "2D");
+                                     5.0f, 0.95, gcn, 2.0f, "fine");
 
     // MODULATION
     // name size lr threshold maxw tauv eqv minv
@@ -3327,7 +3406,6 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     // EXPERIENCE MODULE & BRAIN
     DensityPolicy dpolicy = DensityPolicy(0.5f, 40.0f, 0.5f, 20.0f);
     ExplorationModule expmd = ExplorationModule(SPEED, circuits, space, 1.0f);
-                                              /* {bnd_w, 0.0f, 0.0f, 0.0f, 0.0f}, 1.0f); */
     Brain brain = Brain(circuits, space, space_coarse, expmd, ssry, dpolicy, 
                         SPEED, SPEED * 2.0f, 5);
 
