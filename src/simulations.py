@@ -92,8 +92,6 @@ parameters = {
     "threshold_coarse": 0.3,
     "rep_threshold_coarse": 0.8,
 
-    "tau_trace": 10.0,
-
     "lr_da": 0.3,
     "threshold_da": 0.04,
     "tau_v_da": 1.0,
@@ -416,7 +414,6 @@ def run_model(parameters: dict, global_parameters: dict,
                 rec_threshold_fine=global_parameters["rec_threshold_fine"],
                 rec_threshold_coarse=global_parameters["rec_threshold_coarse"],
                 speed=global_parameters["speed"],
-                tau_trace=global_parameters["tau_trace"],
                 gain_fine=parameters["gain_fine"],
                 offset_fine=parameters["offset_fine"],
                 threshold_fine=parameters["threshold_fine"],
@@ -553,7 +550,6 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
                             rec_threshold=global_parameters["rec_threshold_fine"],
                             min_rep_threshold=parameters["min_rep_threshold"],
                             xfilter=gcn,
-                            tau_trace=parameters["tau_trace"],
                             name="fine")
 
     # gcn_coarse = pclib.GridNetworkSq([
@@ -581,7 +577,6 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
                              rec_threshold=global_parameters["rec_threshold_coarse"],
                              min_rep_threshold=parameters["min_rep_threshold"],
                              xfilter=gcn,
-                             tau_trace=parameters["tau_trace"],
                              name="coarse")
 
     # ===| modulation |===

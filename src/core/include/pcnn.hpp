@@ -1561,7 +1561,6 @@ class PCNN {
     const float threshold_const;
     const float rep_threshold_const;
     const float gain_const;
-    const float tau_trace;
 
     float rep_threshold;
     float min_rep_threshold;
@@ -1582,7 +1581,6 @@ class PCNN {
     std::vector<int> free_indexes;
     int cell_count;
     Eigen::VectorXf u;
-    Eigen::VectorXf trace;
     Eigen::VectorXf x_filtered;
 
     VelocitySpace vspace;
@@ -1624,14 +1622,14 @@ public:
     PCNN(int N, int Nj, float gain, float offset,
          float clip_min, float threshold, float rep_threshold,
          float min_rep_threshold, float rec_threshold,
-         GridNetworkSq xfilter, float tau_trace = 2.0f,
+         GridNetworkSq xfilter,
          std::string name = "fine")
         : N(N), Nj(Nj), gain(gain), gain_const(gain),
         offset(offset), clip_min(clip_min),
         min_rep_threshold(min_rep_threshold), rep_threshold(rep_threshold),
         rep_threshold_const(rep_threshold), rec_threshold(rec_threshold),
         threshold_const(threshold), threshold(threshold),
-        xfilter(xfilter), tau_trace(tau_trace), name(name),
+        xfilter(xfilter), name(name),
         vspace(VelocitySpace(N, rec_threshold)) {
 
         // Initialize the variables
@@ -1641,7 +1639,6 @@ public:
         connectivity = Eigen::MatrixXf::Zero(N, N);
         mask = Eigen::VectorXf::Zero(N);
         u = Eigen::VectorXf::Zero(N);
-        trace = Eigen::VectorXf::Zero(N);
         delta_wff = 0.0;
         x_filtered = Eigen::VectorXf::Zero(N);
         cell_count = 0;
@@ -1670,12 +1667,6 @@ public:
                                                           0.01);
 
         u = generalized_sigmoid_vec(u, offset, gain, clip_min);
-
-        // trace
-        trace = trace - trace / tau_trace + u;
-
-        // clip trace in [0, 1]
-        trace = trace.cwiseMin(1.0f);
 
         return std::make_pair(u, x_filtered);
     }
@@ -1815,7 +1806,7 @@ public:
                       float magnitude) {
 
         // consider the trace
-        magnitude = magnitude * trace(idx);
+        /* magnitude = magnitude * trace(idx); */
 
         if (magnitude < 0.00001f) { return; }
 
@@ -3103,7 +3094,6 @@ public:
             float rec_threshold_fine,
             float rec_threshold_coarse,
             float speed,
-            float tau_trace,
             float min_rep_threshold,
 
             float gain_fine,
@@ -3178,11 +3168,11 @@ public:
         space_fine(PCNN(N, gcn.len(), gain_fine, offset_fine,
                        0.01f, threshold_fine, rep_threshold_fine,
                        rec_threshold_fine, min_rep_threshold, gcn,
-                        tau_trace, "fine")),
+                       "fine")),
         space_coarse(PCNN(Nc, gcn.len(), gain_coarse, offset_coarse,
                               0.01f, threshold_coarse, rep_threshold_coarse,
                               rec_threshold_coarse, min_rep_threshold,
-                          gcn, tau_trace, "coarse")),
+                          gcn, "coarse")),
         goalmd(GoalModule(space_fine, space_coarse, circuits, speed,
                           speed * local_scale_fine / local_scale_coarse)),
         rwobj(RewardObject(min_weight_value)),
@@ -3389,10 +3379,10 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     gcn_layers.push_back(GridLayerSq(0.04, 0.005, {-1.0f, 1.0f, -1.0f, 1.0f}));
     GridNetworkSq gcn = GridNetworkSq(gcn_layers);
     PCNN space = PCNN(N, gcn.len(), 10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
-                              5.0f, 5, gcn, 2.0f, "2D");
+                              5.0f, 5, gcn, "2D");
     PCNN space_coarse = PCNN(N, gcn.len(),
                                      10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
-                                     5.0f, 0.95, gcn, 2.0f, "fine");
+                                     5.0f, 0.95, gcn, "fine");
 
     // MODULATION
     // name size lr threshold maxw tauv eqv minv

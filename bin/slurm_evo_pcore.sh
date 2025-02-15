@@ -2,10 +2,10 @@
 #SBATCH --job-name="rlpc"
 #SBATCH -p milanq #ipuq #milanq #armq #milanq #fpgaq #milanq # partition (queue)
 #SBATCH -N 1 # number of nodes
-#SBATCH --ntasks=6
-#SBATCH --cpus-per-task=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=256
 ##SBATCH --mem-per-cpu=1GB
-#SBATCH --time=0-18:00
+#SBATCH --time=0-23:00
 #SBATCH -o /home/daniekru/slurm.column.%j.%N.out # STDOUT
 #SBATCH -e /home/daniekru/slurm.column.%j.%N.err # STDERR
 
@@ -26,7 +26,7 @@ echo "[git 'main']"
 
 # --- RUN
 
-srun python3 evolution.py --cores 6 --npop 18 --ngen 200
+srun python3 evolution.py --cores 256 --npop 256 --ngen 200
 
 echo "[finished]"
 

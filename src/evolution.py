@@ -52,7 +52,7 @@ game_settings = {
     "room_thickness": 30,
     "seed": None,
     "pause": -1,
-    "verbose": False
+    "verbose": False,
     "verbose_min": False
 }
 

@@ -86,7 +86,7 @@ PYBIND11_MODULE(pclib, m) {
     py::class_<PCNN>(m, "PCNN")
         .def(py::init<int, int, float, float,
              float, float, float, float, \
-             float, GridNetworkSq&, float, \
+             float, GridNetworkSq&, \
              std::string>(),
              py::arg("N"),
              py::arg("Nj"),
@@ -98,7 +98,6 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("rec_threshold"),
              py::arg("min_rep_threshold"),
              py::arg("xfilter"),
-             py::arg("tau_trace") = 2.0f,
              py::arg("name") = "fine")
         .def("__call__", &PCNN::call,
              py::arg("v"))
@@ -321,7 +320,7 @@ PYBIND11_MODULE(pclib, m) {
     py::class_<Brainv2>(m, "Brainv2")
 
         .def(py::init<
-             float, float, int, int, float, float, float, float, float,
+             float, float, int, int, float, float, float, float,
              float, float, float, float,
              float, float, float, float,
              float, float, float,
@@ -339,7 +338,6 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("rec_threshold_fine"),
              py::arg("rec_threshold_coarse"),
              py::arg("speed"),
-             py::arg("tau_trace"),
              py::arg("min_rep_threshold"),
 
              py::arg("gain_fine"),
