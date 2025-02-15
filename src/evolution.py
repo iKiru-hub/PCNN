@@ -16,9 +16,9 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 4
-ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES, replace=False).tolist() + \
-    [ROOMS[0]]
+NUM_SAMPLES = 10
+ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-2, replace=False).tolist() + \
+    [ROOMS[0], ROOMS[0]]
 
 
 reward_settings = {
@@ -30,15 +30,14 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 50,
-    "silent_duration": 8_000,
+    "silent_duration": 6_000,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 30.,
-    "alpha": 0.06,# * GAME_SCALE,
+    "alpha": 0.06,
 }
 
 agent_settings = {
-    # "speed": 0.7,
     "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
@@ -49,11 +48,12 @@ game_settings = {
     "rw_event": "move agent",
     "rendering": False,
     "rendering_pcnn": False,
-    "max_duration": 14_000,
+    "max_duration": 8_000,
     "room_thickness": 30,
     "seed": None,
     "pause": -1,
     "verbose": False
+    "verbose_min": False
 }
 
 global_parameters = {
@@ -61,7 +61,7 @@ global_parameters = {
     "local_scale_coarse": 0.006,
     "N": 30**2,
     "Nc": 20**2,
-    "rec_threshold_fine": 25.,
+    "rec_threshold_fine": 26.,
     "rec_threshold_coarse": 60.,
     "speed": 1.5,
     "min_weight_value": 0.5
@@ -110,7 +110,8 @@ result = simulations.run_model(
     reward_settings=reward_settings,
     game_settings=game_settings,
     room_name='{room_name}',
-    verbose=False
+    verbose=False,
+    verbose_min=False
 )
 print(result)
             """
@@ -124,10 +125,10 @@ print(result)
         return float(last_line)
 
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
+        #logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
         return 0
     except ValueError as e:
-        logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
+        #logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
         return 0
 
 
@@ -135,6 +136,7 @@ class Model:
 
     def __init__(self, gain_fine, offset_fine, threshold_fine, rep_threshold_fine,
                  gain_coarse, offset_coarse, threshold_coarse, rep_threshold_coarse,
+                 min_rep_threshold,
                  lr_da, threshold_da, tau_v_da,
                  lr_bnd, threshold_bnd, tau_v_bnd,
                  tau_ssry, threshold_ssry,
@@ -148,6 +150,7 @@ class Model:
             "offset_fine": offset_fine,
             "threshold_fine": threshold_fine,
             "rep_threshold_fine": rep_threshold_fine,
+            "min_rep_threshold": min_rep_threshold,
             "gain_coarse": gain_coarse,
             "offset_coarse": offset_coarse,
             "threshold_coarse": threshold_coarse,
@@ -187,8 +190,6 @@ class Env:
     def __init__(self, num_samples: int, npop: int):
         self._num_samples = num_samples
         self._npop = npop
-        # self._rooms = np.random.choice(ROOMS, size=self._num_samples,
-        #                                replace=False)
         self._counter = 0
 
     def __repr__(self):
@@ -196,15 +197,8 @@ class Env:
 
     def run(self, agent: object) -> tuple:
 
-        # self._counter += 1
-        # logger(f"Env counter: {self._counter}")
-        # if self._counter % self._npop == 0:
-        #     self._rooms = np.random.choice(ROOMS, size=self._num_samples,
-        #                                    replace=False)
-
         fitness = 0
         for i in range(self._num_samples):
-            # fitness += safe_run_model(agent, self._rooms[i])
             fitness += safe_run_model(agent, ROOM_LIST[i])
 
         return fitness / self._num_samples,
