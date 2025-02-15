@@ -95,22 +95,22 @@ def safe_run_model(agent, room_name):
         command = [
             "python3", "-c",
             f"""
-import json, simulations, numpy as np
-params = json.loads('{params}')
-global_parameters = json.loads('{global_params_json}')
-agent_settings = json.loads('{agent_settings_json}')
-reward_settings = json.loads('{reward_settings_json}')
-game_settings = json.loads('{game_settings_json}')
-result = simulations.run_model(
-    parameters=params,
-    global_parameters=global_parameters,
-    agent_settings=agent_settings,
-    reward_settings=reward_settings,
-    game_settings=game_settings,
-    room_name='{room_name}',
-    verbose=False
-)
-print(result)
+            import json, simulations, numpy as np
+            params = json.loads('{params}')
+            global_parameters = json.loads('{global_params_json}')
+            agent_settings = json.loads('{agent_settings_json}')
+            reward_settings = json.loads('{reward_settings_json}')
+            game_settings = json.loads('{game_settings_json}')
+            result = simulations.run_model(
+                parameters=params,
+                global_parameters=global_parameters,
+                agent_settings=agent_settings,
+                reward_settings=reward_settings,
+                game_settings=game_settings,
+                room_name='{room_name}',
+                verbose=False
+            )
+            print(result)
             """
         ]
 

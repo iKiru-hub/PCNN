@@ -6,7 +6,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 
-#define PCNN_REF PCNNsqv2
+#define PCNN_REF PCNN
 #define CIRCUIT_SIZE 5
 
 namespace py = pybind11;
@@ -29,9 +29,6 @@ PYBIND11_MODULE(pclib, m) {
         .def("__str__", &GridLayerSq::str)
         .def("__repr__", &GridLayerSq::repr)
         .def("__len__", &GridLayerSq::len)
-        .def("simulate", &GridLayerSq::simulate,
-             py::arg("v"),
-             py::arg("sim_gc_positions"))
         .def("simulate_one_step", &GridLayerSq::simulate_one_step,
              py::arg("v"))
         .def("get_centers", &GridLayerSq::get_centers)
@@ -49,9 +46,6 @@ PYBIND11_MODULE(pclib, m) {
         .def("__str__", &GridNetworkSq::str)
         .def("__repr__", &GridNetworkSq::repr)
         .def("__len__", &GridNetworkSq::len)
-        .def("simulate", &GridNetworkSq::simulate,
-             py::arg("v"),
-             py::arg("sim_gc_positions"))
         .def("simulate_one_step", &GridNetworkSq::simulate_one_step,
              py::arg("v"))
         .def("get_activation", &GridNetworkSq::get_activation)
@@ -85,8 +79,6 @@ PYBIND11_MODULE(pclib, m) {
         .def("__str__", &GridHexNetwork::str)
         .def("__repr__", &GridHexNetwork::repr)
         .def("__len__", &GridHexNetwork::len)
-        .def("fwd_position", &GridHexNetwork::fwd_position,
-                py::arg("v"))
         .def("get_activation", &GridHexNetwork::get_activation)
         .def("get_centers", &GridHexNetwork::get_centers)
         .def("get_num_layers", &GridHexNetwork::get_num_layers)
@@ -94,107 +86,9 @@ PYBIND11_MODULE(pclib, m) {
         .def("reset", &GridHexNetwork::reset,
              py::arg("v"));
 
-    // PCNN network model [Grid]
-    py::class_<PCNNgridhex>(m, "PCNNgridhex")
-        .def(py::init<int, int, float, float,
-             float, float, float, float, \
-             int, float, GridHexNetwork, std::string>(),
-             py::arg("N"),
-             py::arg("Nj"),
-             py::arg("gain"),
-             py::arg("offset"),
-             py::arg("clip_min"),
-             py::arg("threshold"),
-             py::arg("rep_threshold"),
-             py::arg("rec_threshold"),
-             py::arg("num_neighbors"),
-             py::arg("trace_tau"),
-             py::arg("xfilter"),
-             py::arg("name"))
-        .def("__call__", &PCNNgridhex::call,
-             py::arg("v"),
-             py::arg("frozen") = false,
-             py::arg("traced") = false)
-        .def("__str__", &PCNNgridhex::str)
-        .def("__len__", &PCNNgridhex::len)
-        .def("__repr__", &PCNNgridhex::repr)
-        .def("update", &PCNNgridhex::update,
-             py::arg("x") = -1.0,
-             py::arg("y") = -1.0)
-        /* .def("ach_modulation", &PCNNgridhex::ach_modulation, */
-        /*      py::arg("ach")) */
-        .def("get_activation", &PCNNgridhex::get_activation)
-        .def("get_activation_gcn",
-             &PCNNgridhex::get_activation_gcn)
-        .def("get_size", &PCNNgridhex::get_size)
-        .def("get_trace", &PCNNgridhex::get_trace)
-        .def("get_wff", &PCNNgridhex::get_wff)
-        .def("get_wrec", &PCNNgridhex::get_wrec)
-        .def("get_connectivity",\
-             &PCNNgridhex::get_connectivity)
-        .def("get_centers", &PCNNgridhex::get_centers,
-             py::arg("nonzero") = false)
-        .def("get_delta_update",\
-             &PCNNgridhex::get_delta_update)
-        .def("get_positions_gcn", \
-             &PCNNgridhex::get_positions_gcn)
-        .def("fwd_ext", &PCNNgridhex::fwd_ext,
-             py::arg("x"))
-        .def("fwd_int", &PCNNgridhex::fwd_int,
-             py::arg("a"))
-        .def("reset_gcn", &PCNNgridhex::reset_gcn,
-             py::arg("v"));
 
     // PCNN network model [GridSq]
-    py::class_<PCNNbase>(m, "PCNNbase")
-        .def(py::init<int, int, float, float,
-             float, float, float, float, \
-             int, int, std::string>(),
-             py::arg("N"),
-             py::arg("Nj"),
-             py::arg("gain") = 10.0f,
-             py::arg("offset") = 0.5f,
-             py::arg("clip_min") = 0.001f,
-             py::arg("threshold") = 0.5f,
-             py::arg("rep_threshold") = 0.5f,
-             py::arg("rec_threshold") = 0.5f,
-             py::arg("num_neighbors") = 8,
-             py::arg("length"),
-             py::arg("name") = "PCNNbase")
-        .def("__call__", &PCNNbase::call,
-             py::arg("v"),
-             py::arg("frozen") = false,
-             py::arg("traced") = true)
-        .def("__str__", &PCNNbase::str)
-        .def("__len__", &PCNNbase::len)
-        .def("__repr__", &PCNNbase::repr)
-        .def("update", &PCNNbase::update,
-             py::arg("x") = -1.0,
-             py::arg("y") = -1.0)
-        .def("set_xfilter", &PCNNbase::set_xfilter)
-        .def("get_activation", &PCNNbase::get_activation)
-        .def("get_activation_gcn",
-             &PCNNbase::get_activation_gcn)
-        .def("ach_modulation", &PCNNbase::ach_modulation,
-             py::arg("ach"))
-        .def("get_size", &PCNNbase::get_size)
-        .def("get_trace", &PCNNbase::get_trace)
-        .def("get_wff", &PCNNbase::get_wff)
-        .def("get_wrec", &PCNNbase::get_wrec)
-        .def("get_connectivity", &PCNNbase::get_connectivity)
-        .def("get_centers", &PCNNbase::get_centers,
-             py::arg("nonzero") = false)
-        .def("get_basis", &PCNNbase::get_basis)
-        .def("get_delta_update", &PCNNbase::get_delta_update)
-        .def("fwd_ext", &PCNNbase::fwd_ext,
-             py::arg("x"))
-        .def("fwd_int", &PCNNbase::fwd_int,
-             py::arg("a"))
-        .def("reset_gcn", &PCNNbase::reset_gcn,
-             py::arg("v"));
-
-    // PCNN network model [GridSq]
-    py::class_<PCNNsqv2>(m, "PCNNsqv2")
+    py::class_<PCNN>(m, "PCNN")
         .def(py::init<int, int, float, float,
              float, float, float, float, \
              int, GridNetworkSq&, std::string>(),
@@ -209,50 +103,47 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("num_neighbors"),
              py::arg("xfilter"),
              py::arg("name"))
-        .def("__call__", &PCNNsqv2::call,
+        .def("__call__", &PCNN::call,
              py::arg("v"))
-        .def("__str__", &PCNNsqv2::str)
-        .def("__len__", &PCNNsqv2::len)
-        .def("__repr__", &PCNNsqv2::repr)
-        .def("update", &PCNNsqv2::update)
-        .def("get_activation", &PCNNsqv2::get_activation)
+        .def("__str__", &PCNN::str)
+        .def("__len__", &PCNN::len)
+        .def("__repr__", &PCNN::repr)
+        .def("update", &PCNN::update)
+        .def("get_activation", &PCNN::get_activation)
         .def("get_activation_gcn",
-             &PCNNsqv2::get_activation_gcn)
-        /* .def("ach_modulation", &PCNNsqv2::ach_modulation, */
-        /*      py::arg("ach")) */
-        .def("get_size", &PCNNsqv2::get_size)
-        .def("get_wff", &PCNNsqv2::get_wff)
-        .def("get_wrec", &PCNNsqv2::get_wrec)
-        .def("make_edges", &PCNNsqv2::make_edges)
-        .def("get_connectivity", &PCNNsqv2::get_connectivity)
-        .def("get_centers", &PCNNsqv2::get_centers,
+             &PCNN::get_activation_gcn)
+        .def("get_size", &PCNN::get_size)
+        .def("get_wff", &PCNN::get_wff)
+        .def("get_wrec", &PCNN::get_wrec)
+        .def("make_edges", &PCNN::make_edges)
+        .def("get_connectivity", &PCNN::get_connectivity)
+        .def("get_centers", &PCNN::get_centers,
              py::arg("nonzero") = false)
-        .def("get_node_degrees", &PCNNsqv2::get_node_degrees)
-        .def("get_delta_update", &PCNNsqv2::get_delta_update)
-        /* .def("get_nodes_max_angle", &PCNNsqv2::get_nodes_max_angle) */
-        .def("get_position", &PCNNsqv2::get_position)
-        .def("simulate", &PCNNsqv2::simulate,
-             py::arg("v"),
-             py::arg("sim_gc_positions"))
-        .def("simulate_one_step", &PCNNsqv2::simulate_one_step,
+        .def("get_node_degrees", &PCNN::get_node_degrees)
+        .def("get_delta_update", &PCNN::get_delta_update)
+        .def("get_position", &PCNN::get_position)
+        .def("simulate_one_step", &PCNN::simulate_one_step,
              py::arg("v"))
-        /* .def("calculate_angle_gap", &PCNNsqv2::calculate_angle_gap, */
-        /*      py::arg("idx"), */
-        /*      py::arg("centers"), */
-        /*      py::arg("connectivity")) */
-        /* .def("fwd_int", &PCNNsqv2::fwd_int, */
-        /*      py::arg("a")) */
-        .def("modulate_gain", &PCNNsqv2::modulate_gain,
-             py::arg("mod"))
-        .def("modulate_rep", &PCNNsqv2::modulate_rep,
-             py::arg("mod"))
-        .def("modulate_threshold", &PCNNsqv2::modulate_threshold,
-             py::arg("mod"))
-        .def("get_gain", &PCNNsqv2::get_gain)
-        .def("get_rep", &PCNNsqv2::get_rep)
-        .def("get_threshold", &PCNNsqv2::get_threshold)
-        .def("reset_gcn", &PCNNsqv2::reset_gcn,
+        .def("reset_gcn", &PCNN::reset_gcn,
              py::arg("v"));
+
+    py::class_<VelocitySpace>(m, "VelocitySpace")
+        .def(py::init<int, float>(),
+             py::arg("size"),
+             py::arg("threshold"))
+        .def("__call__", &VelocitySpace::call,
+             py::arg("v"))
+        .def("update", &VelocitySpace::update,
+             py::arg("idx"),
+             py::arg("current_size"),
+             py::arg("update_center") = true)
+        .def("remap_center", &VelocitySpace::remap_center,
+             py::arg("idx"),
+             py::arg("size"),
+             py::arg("displacement"))
+        .def("get_centers", &VelocitySpace::get_centers,
+             py::arg("nonzero") = false)
+        .def("make_edges", &VelocitySpace::make_edges);
 
     /* MODULATION MODULES */
 

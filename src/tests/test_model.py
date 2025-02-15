@@ -15,6 +15,40 @@ local_scale = 0.1
 
 
 
+def test_vspace():
+
+    vspace = pclib.VelocitySpace(size=N, threshold=10.)
+
+    out = vspace([0.5, 0.5])
+    assert len(out) == 2, f"output length is {len(out)}, expected 2"
+
+    vspace.update(2, N)
+    c = vspace.get_centers()
+    assert len(c) == N, f"center length is {len(c)}, expected {N}"
+
+
+def test_gcn():
+
+    local_scale_coarse = 0.1
+
+    gcn_coarse = pclib.GridNetworkSq([
+           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_coarse,
+                             bounds=[-1, 1, -1, 1])])
+
+    out = gcn_coarse([0.5, 0.5])
+
+    assert len(out) == len(gcn_coarse), f"output length is {len(out)}, expected {len(gcn_coarse)}"
+
 
 def test_space():
 

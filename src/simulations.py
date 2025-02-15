@@ -317,7 +317,8 @@ def run_game(env: games.Environment,
              renderer: object,
              plot_interval: int,
              pause: int=-1,
-             verbose: bool=True):
+             verbose: bool=True,
+             verbose_min: bool=True):
 
     # ===| setup |===
     clock = pygame.time.Clock()
@@ -338,13 +339,13 @@ def run_game(env: games.Environment,
                     running = False
 
         # -reward
-        # if observation[2] and verbose:
-        #     logger.debug(f">> Reward << [{observation[2]}]")
+        if observation[2] and verbose and verbose_min:
+            logger.debug(f">> Reward << [{observation[2]}]")
             # input()
 
         # -collision
-        # if observation[2] and verbose:
-        #     logger.debug(f">!!< Collision << [{observation[2]}]")
+        if observation[2] and verbose and verbose_min:
+            logger.debug(f">!!< Collision << [{observation[2]}]")
             # input()
 
         # velocity
@@ -367,7 +368,7 @@ def run_game(env: games.Environment,
 
         # -check: reset agent's brain
         if observation[3]:
-            if verbose:
+            if verbose and verbose_min:
                 logger.info(">> Game reset <<")
             running = False
             # brain.reset(position=env.agent.position)
@@ -385,7 +386,7 @@ def run_game(env: games.Environment,
         # -check: exit
         if observation[4]:
             running = False
-            if verbose:
+            if verbose and verbose_min:
                 logger.debug(">> Game terminated <<")
 
         # pause
@@ -398,7 +399,8 @@ def run_game(env: games.Environment,
 def run_model(parameters: dict, global_parameters: dict,
               agent_settings: dict, reward_settings: dict,
               game_settings: dict, room_name: str="Flat.1011",
-              pause: int=-1, verbose: bool=True) -> int:
+              pause: int=-1, verbose: bool=True,
+              verbose_min: bool=True) -> int:
 
     """
     meant to be run standalone
@@ -442,7 +444,7 @@ def run_model(parameters: dict, global_parameters: dict,
 
     """ make game environment """
 
-    if verbose:
+    if verbose and verbose_min:
         logger(f"room_name={room_name}")
 
     room = games.make_room(name=room_name,
@@ -492,14 +494,18 @@ def run_model(parameters: dict, global_parameters: dict,
     # else:
     #     renderer = None
 
-    logger("[@simulations.py]")
+    if verbose_min:
+        logger("[@simulations.py]")
     run_game(env=env,
              brain=brain,
              renderer=None,
              plot_interval=game_settings["plot_interval"],
-             pause=-1)
+             pause=-1,
+             verbose=verbose,
+             verbose_min=verbose_min)
 
-    logger(f"rw_count={env.rw_count}")
+    if verbose_min:
+        logger(f"rw_count={env.rw_count}")
 
     return env.rw_count
 
