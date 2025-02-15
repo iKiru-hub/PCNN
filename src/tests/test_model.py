@@ -25,12 +25,14 @@ global_parameters = {
     "min_weight_value": 0.5
 }
 
+
 parameters = {
 
     "gain_fine": 11.,
     "offset_fine": 1.2,
     "threshold_fine": 0.35,
     "rep_threshold_fine": 0.9,
+    "min_rep_threshold": 0.95,
 
     "gain_coarse": 8.,
     "offset_coarse": 0.9,
@@ -61,7 +63,6 @@ parameters = {
     "forced_duration": 100,
     "fine_tuning_min_duration": 10,
 }
-
 
 
 def test_vspace():
@@ -118,7 +119,7 @@ def test_space():
                        threshold=0.35,
                        rep_threshold=0.9,
                        rec_threshold=40.,
-                       min_rep_thresohld=0.95,
+                       min_rep_threshold=parameters["min_rep_threshold"],
                        xfilter=gcn,
                        name="2D")
 
@@ -155,7 +156,7 @@ def test_space():
                            threshold=parameters["threshold_fine"],
                            rep_threshold=parameters["rep_threshold_fine"],
                            rec_threshold=global_parameters["rec_threshold_fine"],
-                           min_rep_thresohld=0.95,
+                           min_rep_threshold=parameters["min_rep_threshold"],
                            xfilter=gcn,
                            name="2D")
 
@@ -169,7 +170,7 @@ def test_space():
                            threshold=parameters["threshold_coarse"],
                            rep_threshold=parameters["rep_threshold_coarse"],
                            rec_threshold=global_parameters["rec_threshold_coarse"],
-                           min_rep_thresohld=0.95,
+                           min_rep_threshold=0.95,
                            xfilter=gcn,
                            name="2D")
 
@@ -226,7 +227,7 @@ def test_target_program():
                            threshold=parameters["threshold_fine"],
                            rep_threshold=parameters["rep_threshold_fine"],
                            rec_threshold=global_parameters["rec_threshold_fine"],
-                           min_rep_thresohld=0.95,
+                           min_rep_threshold=parameters["min_rep_threshold"],
                            xfilter=gcn,
                            name="2D")
 
@@ -291,7 +292,7 @@ def test_brain():
                            threshold=parameters["threshold_fine"],
                            rep_threshold=parameters["rep_threshold_fine"],
                            rec_threshold=global_parameters["rec_threshold_fine"],
-                           num_neighbors=5,
+                           min_rep_threshold=parameters["min_rep_threshold"],
                            xfilter=gcn,
                            name="2D")
 
@@ -303,7 +304,7 @@ def test_brain():
                            threshold=parameters["threshold_coarse"],
                            rep_threshold=parameters["rep_threshold_coarse"],
                            rec_threshold=global_parameters["rec_threshold_coarse"],
-                           num_neighbors=5,
+                           min_rep_threshold=parameters["min_rep_threshold"],
                            xfilter=gcn,
                            name="2D")
 

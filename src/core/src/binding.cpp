@@ -321,7 +321,7 @@ PYBIND11_MODULE(pclib, m) {
     py::class_<Brainv2>(m, "Brainv2")
 
         .def(py::init<
-             float, float, int, int, float, float, float, float,
+             float, float, int, int, float, float, float, float, float,
              float, float, float, float,
              float, float, float, float,
              float, float, float,
@@ -340,6 +340,7 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("rec_threshold_coarse"),
              py::arg("speed"),
              py::arg("tau_trace"),
+             py::arg("min_rep_threshold"),
 
              py::arg("gain_fine"),
              py::arg("offset_fine"),
