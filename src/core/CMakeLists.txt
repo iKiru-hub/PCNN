@@ -11,16 +11,23 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# Find Python 3.10 and pybind11
+find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development)
+
+# If pybind11 is installed via submodule, we can use this
+add_subdirectory(extern/pybind11)
+
+# If pybind11 is installed globally, you can manually specify the path
+# set(pybind11_DIR "/path/to/pybind11/share/cmake/pybind11")
+# find_package(pybind11 REQUIRED)
+
 # Add Eigen
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-
-# Add pybind11
-add_subdirectory(extern/pybind11)
 
 # Header files
 set(HEADERS
     include/pcnn.hpp
-    # include/utils.hpp
+    include/utils.hpp
 )
 
 # Python module
@@ -87,7 +94,6 @@ if(APPLE)
         LINK_FLAGS "-stdlib=libc++ -mmacosx-version-min=10.9"
     )
 endif()
-
 
 # suppress warnings
 add_definitions(-w)
