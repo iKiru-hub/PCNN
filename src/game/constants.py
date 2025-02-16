@@ -1,5 +1,5 @@
-
 import random
+from numpy import array
 
 """ screen constants """
 
@@ -25,8 +25,14 @@ GAME_SCALE = SCREEN_WIDTH
 
 """ rooms """
 
-ROOMS = ["Square.v0", "Square.v1", "Square.v2",
-         "Hole.v0", "Flat.0000", "Flat.0001",
-         "Flat.0010", "Flat.0011", "Flat.0110",
-         "Flat.1000", "Flat.1001", "Flat.1010",
-         "Flat.1011", "Flat.1110"]
+ROOMS = ["Square.v0", "Square.v1", "Square.v2", "Hole.v0",
+         "Flat.0000", "Flat.0001", "Flat.0010", "Flat.0011",
+         "Flat.0100", "Flat.0101", "Flat.0110", "Flat.0111",
+         "Flat.1000", "Flat.1001", "Flat.1010", "Flat.1011",
+         "Flat.1100", "Flat.1101", "Flat.1110", "Flat.1111"]
+
+
+POSSIBLE_POSITIONS = array([[0.20, 0.80], [0.80, 0.80],
+                            [0.20, 0.20], [0.80, 0.20],
+                            [0.5, 0.3], [0.5, 0.8]]) * GAME_SCALE
+POSSIBLE_POSITIONS = POSSIBLE_POSITIONS.tolist()

@@ -17,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 6
+NUM_SAMPLES = 10
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-2, replace=False).tolist() + \
     [ROOMS[0], ROOMS[0]]
 
@@ -25,12 +25,12 @@ ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-2, replace=False).tolis
 reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
-    "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.1 * GAME_SCALE,
-    "rw_sigma": 1.5 * GAME_SCALE,
+    # "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
+    "rw_radius": 0.05 * GAME_SCALE,
+    "rw_sigma": 0.75 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 50,
+    "delay": 5,
     "silent_duration": 6_000,
     "fetching_duration": 1,
     "transparent": False,
@@ -38,11 +38,13 @@ reward_settings = {
     "alpha": 0.06,
 }
 
+
 agent_settings = {
-    "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
+    # "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
 }
+
 
 game_settings = {
     "plot_interval": 5,
@@ -57,6 +59,7 @@ game_settings = {
     "verbose_min": False
 }
 
+
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
@@ -64,7 +67,7 @@ global_parameters = {
     "Nc": 12**2,
     "rec_threshold_fine": 26.,
     "rec_threshold_coarse": 60.,
-    "speed": 1.2,
+    "speed": 1.0,
     "min_weight_value": 0.5
 }
 
@@ -211,7 +214,7 @@ class Env:
             fitness += score
 
         fitness /= self._num_samples
-        print(f"#Agent: {agent.model.name} - Fitness: {fitness}")
+        # print(f"#Agent: {agent.model.name} - Fitness: {fitness}")
         return fitness,
 
 
@@ -224,7 +227,7 @@ FIXED_PARAMETERS = {
 
     "gain_fine": 11.,
     "offset_fine": 1.1,
-    "threshold_fine": 0.3,
+    # "threshold_fine": 0.3,
     # "rep_threshold_fine": 0.88,
     # "min_rep_threshold": 0.95,
 
@@ -235,7 +238,7 @@ FIXED_PARAMETERS = {
 
     # "lr_da": 0.4,
     # "threshold_da": 0.08,
-    "tau_v_da": 1.0,
+    # "tau_v_da": 1.0,
 
     # "lr_bnd": 0.4,
     "threshold_bnd": 0.04,

@@ -20,8 +20,10 @@ reward_settings = {
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 10,
     "silent_duration": 3_000,
-    "fetching_duration": 5,
+    "fetching_duration": 1,
     "transparent": False,
+    "beta": 35.,
+    "alpha": 0.06,
 }
 
 
@@ -45,6 +47,8 @@ if __name__ == "__main__":
     parser.add_argument("--load", action="store_true")
     parser.add_argument("--transparent", action="store_true")
     parser.add_argument("--rendering", action="store_true")
+    parser.add_argument("--interval", type=int, default=20,
+                        help="plotting interval")
     parser.add_argument("--room", type=str, default="Square.v0",
                         help='room name: ["Square.v0", "Square.v1", "Square.v2",' + \
                          '"Hole.v0", "Flat.0000", "Flat.0001", "Flat.0010", "Flat.0011",' + \
@@ -67,6 +71,8 @@ if __name__ == "__main__":
 
     if args.rendering:
         game_settings["rendering"] = True
+
+    game_settings["plot_interval"] = args.interval
 
     reward_settings["transparent"] = args.transparent
 

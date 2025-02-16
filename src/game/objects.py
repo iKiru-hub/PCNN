@@ -179,6 +179,7 @@ class RewardObj:
                     (100, SCREEN_WIDTH-100,
                      100, SCREEN_HEIGHT-100),
                  fetching: str="probabilistic",
+                 possible_positions: List[Tuple[int, int]] = None,
                  transparent: bool = False,
                  value: str="binary",
                  silent_duration: int = 10,
@@ -196,6 +197,7 @@ class RewardObj:
 
         self.x = self.position[0]
         self.y = self.position[1]
+        self._possible_positions = possible_positions
         self.radius = radius
         self.sigma = sigma
         self.beta = kwargs.get("beta", 10)
@@ -300,10 +302,16 @@ class RewardObj:
     def set_position(self, position: np.ndarray=None):
 
         if np.all(position == None):
-            self.x = np.random.uniform(self._bounds[0],
-                                       self._bounds[1])
-            self.y = np.random.uniform(self._bounds[2],
-                                       self._bounds[3])
+            if np.all(self._possible_positions) != None:
+                position = self._possible_positions[
+                    np.random.randint(len(self._possible_positions))
+            ]
+            else:
+        # if np.all(position == None):
+                self.x = np.random.uniform(self._bounds[0],
+                                           self._bounds[1])
+                self.y = np.random.uniform(self._bounds[2],
+                                           self._bounds[3])
         self.position = np.array([self.x, self.y])
 
     def render(self, screen: pygame.Surface):

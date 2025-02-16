@@ -172,8 +172,8 @@ class Room:
                     # Move to safe position
                     new_x = x
                     new_y = y
-                    if velocity[0] != 0:
-                        new_x = x + (velocity[0] * 0.1)  # Move a small amount in the new direction
+                    if velocity[0] != 0:  # Move a small amount in the new direction
+                        new_x = x + (velocity[0] * 0.1)
                     if velocity[1] != 0:
                         new_y = y + (velocity[1] * 0.1)
                     new_pos = (new_x, new_y)
@@ -274,12 +274,35 @@ def make_room(name: str="square", thickness: float=10.,
             Wall(SCREEN_WIDTH//3+1*OFFSET, 2*SCREEN_HEIGHT//3,
                  2*SCREEN_WIDTH//3-2*OFFSET, thickness),
         ]
-    elif name == "Flat.0110":
+    elif name == "Flat.0100":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//2-2*OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//2+OFFSET,
+                 2*SCREEN_WIDTH//3-3*OFFSET, thickness),
+        ]
+    elif name == "Flat.0101":
         walls_extra += [
             Wall(SCREEN_WIDTH//3+OFFSET, SCREEN_HEIGHT//3+OFFSET,
                  2*SCREEN_WIDTH//3-2*OFFSET, thickness),
             Wall(OFFSET, 2*SCREEN_HEIGHT//3,
                  2*SCREEN_WIDTH//3-OFFSET, thickness),
+        ]
+    elif name == "Flat.0110":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-2*OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//2+OFFSET,
+                 2*SCREEN_WIDTH//3-4*OFFSET, thickness),
+        ]
+    elif name == "Flat.0111":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-2*OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//2+2*OFFSET,
+                 2*SCREEN_WIDTH//3-4*OFFSET, thickness),
+            Wall(2*SCREEN_WIDTH//3-OFFSET, SCREEN_HEIGHT//3+1*OFFSET,
+                 2*SCREEN_WIDTH//3-4*OFFSET, thickness),
         ]
     elif name == "Flat.1000":
         walls_extra += [
@@ -300,8 +323,26 @@ def make_room(name: str="square", thickness: float=10.,
         ]
     elif name == "Flat.1011":
         walls_extra += [
-            Wall(SCREEN_WIDTH//3, 2*OFFSET-thickness,
+            Wall(OFFSET, SCREEN_HEIGHT//2+OFFSET,
+                 2*SCREEN_WIDTH//3-3*OFFSET, thickness),
+            Wall(2*SCREEN_WIDTH//3, SCREEN_HEIGHT//3+thickness,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+        ]
+    elif name == "Flat.1100":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-2*OFFSET,
+                 thickness, SCREEN_HEIGHT//3-OFFSET),
+            Wall(OFFSET, SCREEN_HEIGHT//2+OFFSET,
+                 2*SCREEN_WIDTH//3-3*OFFSET, thickness),
+            Wall(2*SCREEN_WIDTH//3, SCREEN_HEIGHT//3+thickness,
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+        ]
+    elif name == "Flat.1101":
+        walls_extra += [
+            Wall(4*OFFSET, SCREEN_HEIGHT//2+0*OFFSET,
+                 1*SCREEN_WIDTH//3-0*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//3, 4*OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-3*OFFSET),
             Wall(2*SCREEN_WIDTH//3, SCREEN_HEIGHT//3+thickness,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
@@ -311,6 +352,13 @@ def make_room(name: str="square", thickness: float=10.,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
             Wall(2*SCREEN_WIDTH//3, 2*OFFSET, 
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+        ]
+    elif name == "Flat.1111":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-2*OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+            Wall(SCREEN_WIDTH//2+0.5*OFFSET, SCREEN_HEIGHT//3+OFFSET,
+                 2*SCREEN_WIDTH//3-3.5*OFFSET, thickness),
         ]
     else:
         name = "Square.v0"
@@ -400,7 +448,7 @@ class Environment:
         self.t += 1
 
         if (self.t == self.rw_time): #> self.reward_obj.fetching_duration:
-            # print(f"[ENV] [t={self.t} = {self.rw_time}")
+            print(f"[ENV] [t={self.t} = {self.rw_time}")
             terminated = self._reward_event(brain=brain)
             # self.trajectory_set += [self.trajectory]
             self.trajectory_set += [[]]
@@ -414,7 +462,7 @@ class Environment:
         # Check reward collisions
         reward = self.reward_obj(self.agent.rect.center)
         terminated = False
-        if reward:
+        if reward and self.rw_time <= self.t:
             self.rw_time = self.t + self.reward_obj.fetching_duration
             # print(f"[ENV] [t={self.t}] +reward [{self.rw_time=}, {self.t=}]")
             self.rw_count += 1
@@ -442,7 +490,7 @@ class Environment:
         logic for when the reward is collected
         """
 
-        # print("[ENV] reward event: ", self.rw_event)
+        print("[ENV] reward event: ", self.rw_event)
 
         if self.rw_event == "move reward":
             self.reward_obj.set_position()

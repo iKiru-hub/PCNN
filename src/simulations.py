@@ -7,6 +7,7 @@ import pygame
 import utils
 import game.envs as games
 import game.objects as objects
+import game.constants as constants
 
 try:
     # import libs.pclib as pclib
@@ -28,12 +29,12 @@ reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.1 * GAME_SCALE,
-    "rw_sigma": 1.5 * GAME_SCALE,
+    "rw_radius": 0.03 * GAME_SCALE,
+    "rw_sigma": 0.75 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 6_000,
+    "silent_duration": 4_000,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 35.,
@@ -142,8 +143,8 @@ class Renderer:
         self.names = names
         self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
         self.fig.set_tight_layout(True)
-        self.boundsx = (-100, 440)
-        self.boundsy = (-440, 100)
+        self.boundsx = (-600, 600)
+        self.boundsy = (-600, 600)
 
     def render(self):
 
@@ -454,16 +455,16 @@ def run_model(parameters: dict, global_parameters: dict,
 
     # ===| objects |===
 
-    body = objects.AgentBody(
-                position=agent_settings["init_position"],
-                speed=global_parameters["speed"],
-                possible_positions=possible_positions,
-                bounds=agent_settings["agent_bounds"],
-                room=room,
-                color=(10, 10, 10))
+    rw_position_idx = np.random.randint(0, len(constants.POSSIBLE_POSITIONS))
+    rw_position = constants.POSSIBLE_POSITIONS[rw_position_idx]
+    agent_possible_positions = constants.POSSIBLE_POSITIONS.copy()
+    del agent_possible_positions[rw_position_idx]
+    agent_position = agent_possible_positions[np.random.randint(0,
+                                                len(agent_possible_positions))]
 
     reward_obj = objects.RewardObj(
-                position=reward_settings["rw_position"],
+                position=rw_position,
+                possible_positions=constants.POSSIBLE_POSITIONS.copy(),
                 radius=reward_settings["rw_radius"],
                 sigma=reward_settings["rw_sigma"],
                 fetching=reward_settings["rw_fetching"],
@@ -472,6 +473,15 @@ def run_model(parameters: dict, global_parameters: dict,
                 delay=reward_settings["delay"],
                 silent_duration=reward_settings["silent_duration"],
                 transparent=reward_settings["transparent"])
+
+    body = objects.AgentBody(
+                position=agent_position,
+                speed=global_parameters["speed"],
+                possible_positions=agent_possible_positions,
+                bounds=agent_settings["agent_bounds"],
+                room=room,
+                color=(10, 10, 10))
+
 
     # --- env
     env = games.Environment(room=room,
@@ -628,16 +638,17 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
 
     # ===| objects |===
 
-    body = objects.AgentBody(
-                position=agent_settings["init_position"],
-                speed=global_parameters["speed"],
-                possible_positions=possible_positions,
-                bounds=agent_settings["agent_bounds"],
-                room=room,
-                color=(10, 10, 10))
+    rw_position_idx = np.random.randint(0, len(constants.POSSIBLE_POSITIONS))
+    rw_position = constants.POSSIBLE_POSITIONS[rw_position_idx]
+    agent_possible_positions = constants.POSSIBLE_POSITIONS.copy()
+    del agent_possible_positions[rw_position_idx]
+    agent_position = agent_possible_positions[np.random.randint(0,
+                                                len(agent_possible_positions))]
 
     reward_obj = objects.RewardObj(
-                position=reward_settings["rw_position"],
+                # position=reward_settings["rw_position"],
+                position=rw_position,
+                possible_positions=constants.POSSIBLE_POSITIONS.copy(),
                 radius=reward_settings["rw_radius"],
                 sigma=reward_settings["rw_sigma"],
                 fetching=reward_settings["rw_fetching"],
@@ -647,6 +658,15 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
                 silent_duration=reward_settings["silent_duration"],
                 fetching_duration=reward_settings["fetching_duration"],
                 transparent=reward_settings["transparent"])
+
+    body = objects.AgentBody(
+                # position=agent_settings["init_position"],
+                position=agent_position,
+                speed=global_parameters["speed"],
+                possible_positions=agent_possible_positions,
+                bounds=agent_settings["agent_bounds"],
+                room=room,
+                color=(10, 10, 10))
 
     logger(reward_obj)
 
@@ -704,10 +724,7 @@ if __name__ == "__main__":
                         help="random seed: -1 for random seed.")
     parser.add_argument("--plot", action="store_true")
     parser.add_argument("--room", type=str, default="Square.v0",
-                        help='room name: ["Square.v0", "Square.v1", "Square.v2",' + \
-                         '"Hole.v0", "Flat.0000", "Flat.0001", "Flat.0010", "Flat.0011",' + \
-                         '"Flat.0110", "Flat.1000", "Flat.1001", "Flat.1010",' + \
-                         '"Flat.1011", "Flat.1110"] or `random`')
+                        help=f'room name: {constants.ROOMS} or `random`')
     parser.add_argument("--main", type=str, default="game",
                         help="[game, rand, simple]")
     parser.add_argument("--interval", type=int, default=20,
