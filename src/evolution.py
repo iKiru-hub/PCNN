@@ -17,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 10
+NUM_SAMPLES = 8
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-2, replace=False).tolist() + \
     [ROOMS[0], ROOMS[0]]
 
@@ -31,7 +31,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 6_000,
+    "silent_duration": 2_000,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 35.,
@@ -209,11 +209,13 @@ class Env:
     def run(self, agent: object) -> tuple:
 
         fitness = 0
+        zero_scores = 0
         for i in range(self._num_samples):
             score = safe_run_model(agent, ROOM_LIST[i])
-            #if score == 0:
-            #    fitness = 0
-            #    break
+            if score == 0: zero_scores += 1
+            if zero_scores == 4:
+                fitness = 0
+                break
             fitness += score
 
         fitness /= self._num_samples
