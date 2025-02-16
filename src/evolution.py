@@ -60,11 +60,11 @@ game_settings = {
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 30**2,
-    "Nc": 20**2,
+    "N": 22**2,
+    "Nc": 12**2,
     "rec_threshold_fine": 26.,
     "rec_threshold_coarse": 60.,
-    "speed": 1.5,
+    "speed": 1.2,
     "min_weight_value": 0.5
 }
 
@@ -252,7 +252,7 @@ FIXED_PARAMETERS = {
     # "col_sigma": 2.0,
 
     # "action_delay": 30.,
-    "edge_route_interval": 50,
+    #"edge_route_interval": 50,
 
     "forced_duration": 100,
     "fine_tuning_min_duration": 20
@@ -287,7 +287,7 @@ PARAMETERS = {
     "threshold_circuit": lambda: round(random.uniform(0.2, 0.9), 2),
 
     "rwd_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
-    "rwd_sigma": lambda: round(random.uniform(1.0, 80.0), 1),
+    "rwd_sigma": lambda: round(random.uniform(1.0, 100.0), 1),
     "col_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 30.0), 1),
 
