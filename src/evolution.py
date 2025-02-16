@@ -5,6 +5,7 @@ from deap import base, creator, tools, cma
 import argparse
 import json
 import subprocess
+import string
 
 import tools.evolutions as me
 from utils import setup_logger
@@ -16,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 10
+NUM_SAMPLES = 4
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-2, replace=False).tolist() + \
     [ROOMS[0], ROOMS[0]]
 
@@ -30,7 +31,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 50,
-    "silent_duration": 6_000,
+    "silent_duration": 2_000,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 30.,
@@ -48,7 +49,7 @@ game_settings = {
     "rw_event": "move agent",
     "rendering": False,
     "rendering_pcnn": False,
-    "max_duration": 8_000,
+    "max_duration": 5_000,
     "room_thickness": 30,
     "seed": None,
     "pause": -1,
@@ -122,6 +123,8 @@ print(result)
         # Extract the last line of output (assuming sim.run_model() prints only the result last)
         last_line = result.stdout.strip().split("\n")[-1]
 
+        print(f"\t{agent.model.name} - {room_name} : {last_line}")
+
         return float(last_line)
 
     except subprocess.CalledProcessError as e:
@@ -174,6 +177,8 @@ class Model:
             "fine_tuning_min_duration": fine_tuning_min_duration
         }
 
+        self.name = "".join(np.random.choice(list(string.ascii_uppercase), 5))
+
     def __repr__(self):
         return "ModelShell"
 
@@ -201,7 +206,10 @@ class Env:
         for i in range(self._num_samples):
             fitness += safe_run_model(agent, ROOM_LIST[i])
 
-        return fitness / self._num_samples,
+
+        fitness /= self._num_samples
+        print(f"#Agent: {agent.model.name} - Fitness: {fitness}")
+        return fitness,
 
 
 
@@ -220,13 +228,13 @@ FIXED_PARAMETERS = {
     # "gain_coarse": 11.,
     "offset_coarse": 0.9,
     "threshold_coarse": 0.3,
-    "rep_threshold_coarse": 0.89,
+    # "rep_threshold_coarse": 0.89,
 
     # "lr_da": 0.4,
     # "threshold_da": 0.08,
     "tau_v_da": 1.0,
 
-    "lr_bnd": 0.4,
+    # "lr_bnd": 0.4,
     "threshold_bnd": 0.04,
     "tau_v_bnd": 1.0,
 
@@ -240,11 +248,11 @@ FIXED_PARAMETERS = {
     # "col_weight": 0.0,
     # "col_sigma": 2.0,
 
-    "action_delay": 15.,
-    "edge_route_interval": 80,
+    # "action_delay": 30.,
+    "edge_route_interval": 50,
 
     "forced_duration": 100,
-    "fine_tuning_min_duration": 15
+    "fine_tuning_min_duration": 20
 }
 
 
@@ -262,11 +270,11 @@ PARAMETERS = {
     "threshold_coarse": lambda: round(random.uniform(0.05, 0.6), 2),
     "rep_threshold_coarse": lambda: round(random.uniform(0.7, 0.95), 2),
 
-    "lr_da": lambda: round(random.uniform(0.05, 0.9), 2),
+    "lr_da": lambda: round(random.uniform(0.05, 0.99), 2),
     "threshold_da": lambda: round(random.uniform(0.01, 0.5), 2),
     "tau_v_da": lambda: float(random.randint(1, 10)),
 
-    "lr_bnd": lambda: round(random.uniform(0.05, 0.9), 2),
+    "lr_bnd": lambda: round(random.uniform(0.05, 0.99), 2),
     "threshold_bnd": lambda: round(random.uniform(0.01, 0.5), 2),
     "tau_v_bnd": lambda: float(random.randint(1, 10)),
 
@@ -280,7 +288,7 @@ PARAMETERS = {
     "col_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 30.0), 1),
 
-    "action_delay": lambda: round(random.uniform(1., 80.), 1),
+    "action_delay": lambda: round(random.uniform(1., 200.), 1),
     "edge_route_interval": lambda: random.randint(1, 200),
 
     "forced_duration": lambda: random.randint(1, 1500),
@@ -295,6 +303,7 @@ if __name__ == "__main__" :
     parser.add_argument("--cores", type=int, default=1)
     parser.add_argument("--ngen", type=int, default=20)
     parser.add_argument("--npop", type=int, default=1)
+    parser.add_argument("--save", type=bool, default=True)
     parser.add_argument("--visualize", action="store_true")
 
     args = parser.parse_args()
@@ -368,7 +377,7 @@ if __name__ == "__main__" :
                                ylims=None)
 
     # ---| save |---
-    save = bool(1)
+    save = args.save
 
     # filename as best_DDMM_HHMM_r3
     path = "cache/"
