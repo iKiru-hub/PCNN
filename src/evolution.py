@@ -31,10 +31,10 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 50,
-    "silent_duration": 2_000,
+    "silent_duration": 6_000,
     "fetching_duration": 1,
     "transparent": False,
-    "beta": 30.,
+    "beta": 35.,
     "alpha": 0.06,
 }
 
@@ -49,7 +49,7 @@ game_settings = {
     "rw_event": "move agent",
     "rendering": False,
     "rendering_pcnn": False,
-    "max_duration": 5_000,
+    "max_duration": 8_000,
     "room_thickness": 30,
     "seed": None,
     "pause": -1,
@@ -123,7 +123,7 @@ print(result)
         # Extract the last line of output (assuming sim.run_model() prints only the result last)
         last_line = result.stdout.strip().split("\n")[-1]
 
-        print(f"\t{agent.model.name} - {room_name} : {last_line}")
+        # print(f"\t{agent.model.name} - {room_name} : {last_line}")
 
         return float(last_line)
 
@@ -204,11 +204,12 @@ class Env:
 
         fitness = 0
         for i in range(self._num_samples):
-            fitness += safe_run_model(agent, ROOM_LIST[i])
-
+            score = safe_run_model(agent, ROOM_LIST[i])
+            if score < 2: break
+            fitness += score
 
         fitness /= self._num_samples
-        print(f"#Agent: {agent.model.name} - Fitness: {fitness}")
+        # print(f"#Agent: {agent.model.name} - Fitness: {fitness}")
         return fitness,
 
 
