@@ -65,8 +65,8 @@ global_parameters = {
     "local_scale_coarse": 0.006,
     "N": 22**2,
     "Nc": 12**2,
-    "rec_threshold_fine": 26.,
-    "rec_threshold_coarse": 60.,
+    # "rec_threshold_fine": 26.,
+    # "rec_threshold_coarse": 60.,
     "speed": 1.0,
     "min_weight_value": 0.5
 }
@@ -143,6 +143,7 @@ class Model:
     def __init__(self, gain_fine, offset_fine, threshold_fine, rep_threshold_fine,
                  gain_coarse, offset_coarse, threshold_coarse, rep_threshold_coarse,
                  min_rep_threshold,
+                 rec_threshold_fine, rec_threshold_coarse,
                  lr_da, threshold_da, tau_v_da,
                  lr_bnd, threshold_bnd, tau_v_bnd,
                  tau_ssry, threshold_ssry,
@@ -156,11 +157,13 @@ class Model:
             "offset_fine": offset_fine,
             "threshold_fine": threshold_fine,
             "rep_threshold_fine": rep_threshold_fine,
+            "rec_threshold_fine": rec_threshold_fine,
             "min_rep_threshold": min_rep_threshold,
             "gain_coarse": gain_coarse,
             "offset_coarse": offset_coarse,
             "threshold_coarse": threshold_coarse,
             "rep_threshold_coarse": rep_threshold_coarse,
+            "rec_threshold_coarse": rec_threshold_coarse,
             "lr_da": lr_da,
             "threshold_da": threshold_da,
             "tau_v_da": tau_v_da,
@@ -225,16 +228,18 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
 
-    "gain_fine": 11.,
+    # "gain_fine": 11.,
     "offset_fine": 1.1,
-    # "threshold_fine": 0.3,
+    "threshold_fine": 0.35,
     # "rep_threshold_fine": 0.88,
+    # "rec_threshold_fine": 26.,
     # "min_rep_threshold": 0.95,
 
     # "gain_coarse": 11.,
-    "offset_coarse": 0.9,
-    "threshold_coarse": 0.3,
+    "offset_coarse": 1.1,
+    "threshold_coarse": 0.35,
     # "rep_threshold_coarse": 0.89,
+    # "rec_threshold_coarse": 60.,
 
     # "lr_da": 0.4,
     # "threshold_da": 0.08,
@@ -269,12 +274,14 @@ PARAMETERS = {
     "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_fine": lambda: round(random.uniform(0.05, 0.5), 2),
     "rep_threshold_fine": lambda: round(random.uniform(0.7, 0.95), 2),
+    "rec_threshold_fine": lambda: round(random.uniform(20., 80.)),
     "min_rep_threshold": lambda: round(random.uniform(0.89, 0.99), 2),
 
     "gain_coarse": lambda: round(random.uniform(5., 20.), 1),
     "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_coarse": lambda: round(random.uniform(0.05, 0.5), 2),
     "rep_threshold_coarse": lambda: round(random.uniform(0.7, 0.95), 2),
+    "rec_threshold_coarse": lambda: round(random.uniform(30., 130.)),
 
     "lr_da": lambda: round(random.uniform(0.05, 0.99), 2),
     "threshold_da": lambda: round(random.uniform(0.01, 0.5), 2),

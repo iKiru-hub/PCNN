@@ -858,7 +858,8 @@ public:
                 this->weights(j, idx) = dist;
                 this->connectivity(idx, j) = 1.0;
                 this->connectivity(j, idx) = 1.0;
-            }
+            } 
+            /* else { LOG("[VS] distance too large: " + std::to_string(dist)); } */
         }
 
         // update the node angles
@@ -1621,7 +1622,7 @@ public:
 
     PCNN(int N, int Nj, float gain, float offset,
          float clip_min, float threshold, float rep_threshold,
-         float min_rep_threshold, float rec_threshold,
+         float rec_threshold, float min_rep_threshold,
          GridNetworkSq xfilter,
          std::string name = "fine")
         : N(N), Nj(Nj), gain(gain), gain_const(gain),
@@ -1712,6 +1713,7 @@ public:
             Wffbackup.row(idx) = Wff.row(idx);
 
             // record new center
+            LOG("Updating space " + name);
             vspace.update(idx, N);
             this->Wrec = vspace.weights;
             this->connectivity = vspace.connectivity;
@@ -2400,7 +2402,10 @@ public:
                       trg_idx_coarse);
 
         // check: failed coarse planning
-        if (!res_coarse.second) { return false; }
+        if (!res_coarse.second) {
+            LOG("[Goal] failed coarse planning");
+            return false; 
+        }
 
         // plan from the current position
         std::pair<std::vector<int>, bool> res_fine_prop = \
@@ -2408,7 +2413,10 @@ public:
                       trg_idx_fine);
 
         // check: failed fine planning
-        if (!res_fine_prop.second) { return false; }
+        if (!res_fine_prop.second) { 
+            LOG("[Goal] failed fine planning");
+            return false; 
+        }
 
         // -- make a fine plan from the end of the coarse plan
 

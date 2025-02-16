@@ -29,12 +29,12 @@ reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.03 * GAME_SCALE,
+    "rw_radius": 0.1 * GAME_SCALE,
     "rw_sigma": 0.75 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 4_000,
+    "silent_duration": 3_000,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 35.,
@@ -53,7 +53,7 @@ game_settings = {
     "rw_event": "move agent",
     "rendering": True,
     "rendering_pcnn": True,
-    "max_duration": 8_000,
+    "max_duration": 10_000,
     "room_thickness": 30,
     "seed": None,
     "pause": -1,
@@ -74,8 +74,8 @@ global_parameters = {
     "local_scale_coarse": 0.006,
     "N": 30**2,
     "Nc": 20**2,
-    "rec_threshold_fine": 28.,
-    "rec_threshold_coarse": 70.,
+    # "rec_threshold_fine": 60.,
+    # "rec_threshold_coarse": 100.,
     "speed": 1.5,
     "min_weight_value": 0.5
 }
@@ -86,15 +86,17 @@ parameters = {
     "offset_fine": 1.1,
     "threshold_fine": 0.3,
     "rep_threshold_fine": 0.88,
+    "rec_threshold_fine": 60.,
     "min_rep_threshold": 0.95,
 
-    "gain_coarse": 8.,
-    "offset_coarse": 0.9,
+    "gain_coarse": 9.,
+    "offset_coarse": 1.1,
     "threshold_coarse": 0.3,
-    "rep_threshold_coarse": 0.8,
+    "rep_threshold_coarse": 0.9,
+    "rec_threshold_coarse": 100.,
 
-    "lr_da": 0.3,
-    "threshold_da": 0.04,
+    "lr_da": 0.8,
+    "threshold_da": 0.03,
     "tau_v_da": 1.0,
 
     "lr_bnd": 0.4,
@@ -215,19 +217,19 @@ class Renderer:
             # fine space
             self.axs[0, 0].scatter(*np.array(self.space_fine.get_centers()).T,
                                    color="blue", s=20, alpha=0.4)
+            for edge in self.space_fine.make_edges():
+                self.axs[0, 0].plot((edge[0][0], edge[1][0]),
+                                    (edge[0][1], edge[1][1]),
+                                 alpha=0.3, color="black")
 
             # coarse space
-            # for edge in self.space_coarse.make_edges():
-            #     self.axs[0, 1].plot((edge[0][0], edge[1][0]),
-            #                         (edge[0][1], edge[1][1]),
-            #                      alpha=0.1, color="black")
+            for edge in self.space_coarse.make_edges():
+                self.axs[0, 1].plot((edge[0][0], edge[1][0]),
+                                    (edge[0][1], edge[1][1]),
+                                 alpha=0.3, color="black")
+
             self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
                                    color="blue", s=40, alpha=0.4)
-
-            # for edge in self.space.make_edges():
-            #     self.axs[0, 0].plot((edge[0][0], edge[1][0]),
-            #                         (edge[0][1], edge[1][1]),
-            #                      alpha=0.1, color="black")
 
         # current representation
         self.axs[0, 0].scatter(*np.array(self.space_fine.get_centers()).T,
@@ -412,8 +414,8 @@ def run_model(parameters: dict, global_parameters: dict,
                 N=global_parameters["N"],
                 Nc=global_parameters["Nc"],
                 min_rep_threshold=parameters["min_rep_threshold"],
-                rec_threshold_fine=global_parameters["rec_threshold_fine"],
-                rec_threshold_coarse=global_parameters["rec_threshold_coarse"],
+                rec_threshold_fine=parameters["rec_threshold_fine"],
+                rec_threshold_coarse=parameters["rec_threshold_coarse"],
                 speed=global_parameters["speed"],
                 gain_fine=parameters["gain_fine"],
                 offset_fine=parameters["offset_fine"],
@@ -545,10 +547,12 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
     gcn = pclib.GridNetworkSq([
            pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_fine, bounds=[-1, 1, -1, 1]),
            pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_fine, bounds=[-1, 1, -1, 1]),
+           # pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_fine, bounds=[-1, 1, -1, 1]),
            pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_fine, bounds=[-1, 1, -1, 1]),
            pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_fine, bounds=[-1, 1, -1, 1])])
+           pclib.GridLayerSq(sigma=0.04, speed=0.1*local_scale_fine, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_fine, bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.01*local_scale_fine, bounds=[-1, 1, -1, 1])])
 
     space_fine = pclib.PCNN(N=global_parameters["N"],
                             Nj=len(gcn),
@@ -557,7 +561,7 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
                             clip_min=0.01,
                             threshold=parameters["threshold_fine"],
                             rep_threshold=parameters["rep_threshold_fine"],
-                            rec_threshold=global_parameters["rec_threshold_fine"],
+                            rec_threshold=parameters["rec_threshold_fine"],
                             min_rep_threshold=parameters["min_rep_threshold"],
                             xfilter=gcn,
                             name="fine")
@@ -584,7 +588,7 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
                              clip_min=0.01,
                              threshold=parameters["threshold_coarse"],
                              rep_threshold=parameters["rep_threshold_coarse"],
-                             rec_threshold=global_parameters["rec_threshold_coarse"],
+                             rec_threshold=parameters["rec_threshold_coarse"],
                              min_rep_threshold=parameters["min_rep_threshold"],
                              xfilter=gcn,
                              name="coarse")
