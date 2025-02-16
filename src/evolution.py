@@ -132,10 +132,10 @@ print(result)
 
     except subprocess.CalledProcessError as e:
         #logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
-        return -1
+        return 0
     except ValueError as e:
         #logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
-        return -1
+        return 0
 
 
 class Model:
@@ -208,9 +208,9 @@ class Env:
         fitness = 0
         for i in range(self._num_samples):
             score = safe_run_model(agent, ROOM_LIST[i])
-            if score == 0:
-                fitness = 0
-                break
+            #if score == 0:
+            #    fitness = 0
+            #    break
             fitness += score
 
         fitness /= self._num_samples
@@ -267,13 +267,13 @@ PARAMETERS = {
 
     "gain_fine": lambda: round(random.uniform(5., 20.), 1),
     "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
-    "threshold_fine": lambda: round(random.uniform(0.05, 0.6), 2),
+    "threshold_fine": lambda: round(random.uniform(0.05, 0.5), 2),
     "rep_threshold_fine": lambda: round(random.uniform(0.7, 0.95), 2),
     "min_rep_threshold": lambda: round(random.uniform(0.89, 0.99), 2),
 
     "gain_coarse": lambda: round(random.uniform(5., 20.), 1),
     "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
-    "threshold_coarse": lambda: round(random.uniform(0.05, 0.6), 2),
+    "threshold_coarse": lambda: round(random.uniform(0.05, 0.5), 2),
     "rep_threshold_coarse": lambda: round(random.uniform(0.7, 0.95), 2),
 
     "lr_da": lambda: round(random.uniform(0.05, 0.99), 2),
