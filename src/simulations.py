@@ -33,10 +33,10 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 5_000,
+    "silent_duration": 6_000,
     "fetching_duration": 1,
     "transparent": False,
-    "beta": 30.,
+    "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
 }
 

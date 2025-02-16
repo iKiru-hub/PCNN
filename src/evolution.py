@@ -129,10 +129,10 @@ print(result)
 
     except subprocess.CalledProcessError as e:
         #logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
-        return 0
+        return -1
     except ValueError as e:
         #logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
-        return 0
+        return -1
 
 
 class Model:
@@ -205,11 +205,13 @@ class Env:
         fitness = 0
         for i in range(self._num_samples):
             score = safe_run_model(agent, ROOM_LIST[i])
-            if score < 2: break
+            if score == 0:
+                fitness = 0
+                break
             fitness += score
 
         fitness /= self._num_samples
-        # print(f"#Agent: {agent.model.name} - Fitness: {fitness}")
+        print(f"#Agent: {agent.model.name} - Fitness: {fitness}")
         return fitness,
 
 
