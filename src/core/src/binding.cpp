@@ -7,6 +7,7 @@
 #include <Eigen/Dense>
 
 #define PCNN_REF PCNN
+#define GCN_REF GridNetworkSq
 #define CIRCUIT_SIZE 5
 
 namespace py = pybind11;
@@ -50,43 +51,45 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_positions", &GridNetworkSq::get_positions);
 
     // Grid layer with pre-defined hexagon layer
-    py::class_<GridHexLayer>(m, "GridHexLayer")
+    py::class_<GridLayerHex>(m, "GridLayerHex")
         .def(py::init<float, float, float, float>(),
              py::arg("sigma"),
              py::arg("speed"),
              py::arg("offset_dx") = 0.0f,
              py::arg("offset_dy") = 0.0f)
-        .def("__str__", &GridHexLayer::str)
-        .def("__repr__", &GridHexLayer::repr)
-        .def("__len__", &GridHexLayer::len)
-        .def("__call__", &GridHexLayer::call,
+        .def("__str__", &GridLayerHex::str)
+        .def("__repr__", &GridLayerHex::repr)
+        .def("__len__", &GridLayerHex::len)
+        .def("__call__", &GridLayerHex::call,
              py::arg("v"))
-        .def("get_positions", &GridHexLayer::get_positions)
-        .def("get_centers", &GridHexLayer::get_centers)
-        .def("reset", &GridHexLayer::reset,
+        .def("get_positions", &GridLayerHex::get_positions)
+        .def("get_centers", &GridLayerHex::get_centers)
+        .def("reset", &GridLayerHex::reset,
              py::arg("v"));
 
     // Grid Hexagonal Layer Network
-    py::class_<GridHexNetwork>(m, "GridHexNetwork")
-        .def(py::init<std::vector<GridHexLayer>>(),
+    py::class_<GridNetworkHex>(m, "GridNetworkHex")
+        .def(py::init<std::vector<GridLayerHex>>(),
              py::arg("layers"))
-        .def("__call__", &GridHexNetwork::call,
+        .def("__call__", &GridNetworkHex::call,
                 py::arg("v"))
-        .def("__str__", &GridHexNetwork::str)
-        .def("__repr__", &GridHexNetwork::repr)
-        .def("__len__", &GridHexNetwork::len)
-        .def("get_activation", &GridHexNetwork::get_activation)
-        .def("get_centers", &GridHexNetwork::get_centers)
-        .def("get_num_layers", &GridHexNetwork::get_num_layers)
-        .def("get_positions", &GridHexNetwork::get_positions)
-        .def("reset", &GridHexNetwork::reset,
+        .def("__str__", &GridNetworkHex::str)
+        .def("__repr__", &GridNetworkHex::repr)
+        .def("__len__", &GridNetworkHex::len)
+        .def("simulate_one_step", &GridNetworkHex::simulate_one_step,
+             py::arg("v"))
+        .def("get_activation", &GridNetworkHex::get_activation)
+        .def("get_centers", &GridNetworkHex::get_centers)
+        .def("get_num_layers", &GridNetworkHex::get_num_layers)
+        .def("get_positions", &GridNetworkHex::get_positions)
+        .def("reset", &GridNetworkHex::reset,
              py::arg("v"));
 
     // PCNN network model [GridSq]
     py::class_<PCNN>(m, "PCNN")
         .def(py::init<int, int, float, float,
              float, float, float, float, \
-             float, GridNetworkSq&, \
+             float, GCN_REF, \
              float, std::string>(),
              py::arg("N"),
              py::arg("Nj"),

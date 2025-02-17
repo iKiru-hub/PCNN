@@ -1,5 +1,6 @@
 import logging, coloredlogs
 import os, json
+import numpy as np
 
 
 def setup_logger(name: str="MAIN",
@@ -103,11 +104,6 @@ def setup_logger(name: str="MAIN",
                          is_warning=is_warning)
 
 
-logger = setup_logger(name="UTILS", colored=True,
-                      level=0, is_debugging=True,
-                      is_warning=False)
-
-
 def edit_logger(level: int=-1,
                 is_debugging: bool=True,
                 is_warning: bool=False):
@@ -119,9 +115,17 @@ def edit_logger(level: int=-1,
 
 def load_parameters():
 
-    print("\n----\nLoading from evolution")
+    logger = setup_logger(name="UTILS", colored=True,
+                          level=2, is_debugging=True,
+                          is_warning=False)
+
+    logger("\n----\nLoading from evolution")
 
     files = os.listdir("cache")
+
+    # sort the files by name
+    files = sorted(files, key=lambda x: int(x.split("_")[0]))
+
     for i, file in enumerate(files):
         print(f"{i}: {file}")
 
@@ -131,7 +135,35 @@ def load_parameters():
     with open(f"cache/{files[idx]}", "r") as f:
         run_data = json.load(f)
 
+    logger(f"Loaded {files[idx]}")
+    logger(f"Agent fitness={run_data['info']['record_genome']['0']['fitness']:.3f}")
+
     return run_data["info"]["record_genome"]["0"]["genome"]
 
 
+
+def create_lattice(L, dx):
+    # Calculate the number of points
+    num_points = int(L / dx) + 1
+
+    # Create a 1D array of points
+    points = np.arange(0, L + dx, dx)
+
+    # Create a 2D grid from the 1D array of points
+    X, Y = np.meshgrid(points, points)
+
+    points = []
+    num_rows = X.shape[0]
+
+    for i in range(num_rows):
+        if i % 2 == 0:
+            # Even row: left to right
+            row_points = list(zip(X[i], Y[i]))
+        else:
+            # Odd row: right to left
+            row_points = list(zip(X[i][::-1], Y[i][::-1]))
+
+        points.extend(row_points)
+
+    return points
 

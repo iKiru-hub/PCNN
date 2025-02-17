@@ -122,6 +122,7 @@ parameters = {
     "fine_tuning_min_duration": 10,
 }
 
+
 fixed_params = parameters.copy()
 
 
@@ -142,8 +143,8 @@ class Renderer:
         self.names = names
         self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
         self.fig.set_tight_layout(True)
-        self.boundsx = (-400, 400)
-        self.boundsy = (-400, 400)
+        self.boundsx = (-400, 500)
+        self.boundsy = (-500, 400)
 
     def render(self):
 

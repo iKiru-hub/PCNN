@@ -37,6 +37,7 @@
 #define GCL_SIZE_SQRT 6
 #define PCNN_REF PCNN
 #define GCN_REF GridNetworkSq
+#define GCL_REF GridLayerSq
 #define CIRCUIT_SIZE 2
 #define ACTION_SPACE_SIZE 16
 #define POLICY_INPUT 5
@@ -47,7 +48,7 @@
 
 // blank log function
 void LOG(const std::string& msg) {
-    /* return; */
+    return;
     std::cout << msg << std::endl;
 }
 
@@ -662,8 +663,6 @@ class Hexagon {
         float rx = x * -1;
         float ry = y * -1;
 
-        /* printf("Reflection: rx %f, ry %f\n", rx, ry); */
-
         // calculate and sort the distances to the centers
         std::array<float, 6> distances;
         for (int i = 0; i < 6; i++) {
@@ -688,9 +687,6 @@ class Hexagon {
         float mx = (ax + bx) / 2.0f;
         float my = (ay + by) / 2.0f;
 
-        //
-        /* printf("A: %f, %f\n", ax, ay); */
-        /* printf("B: %f, %f\n", bx, by); */
         // calculate the intersection s between ab and ro
         float sx, sy;
         if (get_segments_intersection(
@@ -704,8 +700,6 @@ class Hexagon {
         }
 
         // reflect the point r wrt the intersection s
-        /* *p_new_x = 2 * sx - rx; */
-        /* *p_new_y = 2 * sy - ry; */
         rx = 2 * sx - rx;
         ry = 2 * sy - ry;
 
@@ -734,8 +728,6 @@ public:
         centers[3] = {0.5f, 0.86602540378f};
         centers[4] = {-0.5, 0.86602540378f};
         centers[5] = {-1.0f, 0.0f};
-
-        /* LOG("[+] hexagon created"); */
     }
 
     // @brief call: apply the boundary conditions
@@ -745,16 +737,9 @@ public:
 
         if (!apothem_checkpoint(x, y)) {
             if (wrap(x, y, &new_x, &new_y)) {
-                /* LOG("[+] point wrapped to boundary"); */
                 return {new_x, new_y};
-            } else {
-                /* LOG("[+] point within the hexagon"); */
-                return {x, y};
-            }
-        } else {
-            /* LOG("[+] within the apothem"); */
-            return {x, y};
-        }
+            } else { return {x, y}; }
+        } else { return {x, y}; }
     }
 
     std::string str() { return "hexagon"; }
@@ -949,100 +934,7 @@ public:
 
 // === purely hexagonal grid network ===
 
-class GridHexLayer {
-
-public:
-
-    GridHexLayer(float sigma, float speed,
-                 float offset_dx = 0.0f,
-                 float offset_dy = 0.0f):
-        sigma(sigma), speed(speed), hexagon(Hexagon()){
-
-        // make matrix
-        /* LOG("[+] GridHexLayer created"); */
-
-        // apply the offset by stepping
-        if (offset_dx != 0.0f && offset_dy != 0.0f) {
-            call({offset_dx, offset_dy});
-        }
-    }
-
-    ~GridHexLayer() {} //LOG("[-] GridHexLayer destroyed"); }
-
-    // @brief call the GridLayer with a 2D input
-    Eigen::VectorXf \
-    call(const std::array<float, 2>& v) {
-
-        // update position with velociy
-        for (int i = 0; i < N; i++) {
-            positions[i][0] = positions[i][0] + speed * v[0];
-            positions[i][1] = positions[i][1] + speed * v[1];
-        }
-
-        // apply boundary conditions
-        boundary_conditions();
-
-        // compute the activation
-        calc_activation();
-        return y;
-    }
-
-    Eigen::VectorXf fwd_position(
-        const std::array<float, 2>& v) {
-
-        /* Eigen::MatrixXf new_positions = Eigen::MatrixXf::Zero(N, 2); */
-        std::array<std::array<float, 2>, 25> new_positions;
-        /* new_positions.col(0) = positions.col(0) + speed * \ */
-            /* v[0]; */
-        /* new_positions.col(1) = positions.col(1) + speed * \ */
-            /* v[1]; */
-        for (int i = 0; i < N; i++) {
-            new_positions[i][0] = positions[i][0] + \
-                speed * (v[0] - positions[i][0]);
-            new_positions[i][1] = positions[i][1] + \
-                speed * (v[1] - positions[i][1]);
-        }
-
-        // check boundary conditions
-        for (int i = 0; i < N; i++) {
-            std::array<float, 2> new_position = hexagon.call(
-                new_positions[i][0], new_positions[i][1]);
-            new_positions[i][0] = new_position[0];
-            new_positions[i][1] = new_position[1];
-            /* std::array<float, 2> new_position = hexagon.call( */
-            /*     new_positions(i, 0), new_positions(i, 1)); */
-            /* new_positions(i, 0) = new_position[0]; */
-            /* new_positions(i, 1) = new_position[1]; */
-        }
-
-        // compute the activation
-        Eigen::VectorXf yfwd = Eigen::VectorXf::Zero(N);
-        float dist_squared;
-        for (int i = 0; i < N; i++) {
-            /* dist_squared = std::pow(new_positions(i, 0), 2) + \ */
-            /*     std::pow(new_positions(i, 1), 2); */
-            dist_squared = std::pow(new_positions[i][0], 2) + \
-                std::pow(new_positions[i][1], 2);
-            yfwd(i) = std::exp(-dist_squared / sigma);
-        }
-
-        return yfwd;
-    }
-
-    int len() const { return N; }
-    std::string str() const { return "GridHexLayer"; }
-    std::string repr() const { return "GridHexLayer"; }
-    std::array<std::array<float, 2>, 25> get_positions()
-    { return positions; }
-    std::array<std::array<float, 2>, 25> get_centers()
-    { return basis; }
-    void reset(std::array<float, 2> v) {
-        this->positions = basis;
-        call(v);
-    }
-
-
-private:
+class GridLayerHex {
 
     const int N = 25;
 
@@ -1103,11 +995,23 @@ private:
         {0.0f, 0.0f}
     }};
 
-    /* std::array<float, 7> y; */
-    Eigen::VectorXf y = Eigen::VectorXf::Zero(25);
+    /* Eigen::VectorXf y = Eigen::VectorXf::Zero(25); */
+    std::array<float, 25> y = {0.0f};
     float sigma;
     float speed;
     Hexagon hexagon;
+
+    // define boundary type
+    void boundary_conditions(std::array<std::array<float, 2>,
+                             25>& _positions) {
+        for (int i = 0; i < 25; i++) {
+            std::array<float, 2> new_position = \
+                hexagon.call(_positions[i][0],
+                             _positions[i][1]);
+            _positions[i][0] = new_position[0];
+            _positions[i][1] = new_position[1];
+        }
+    }
 
     // define boundary type
     void boundary_conditions() {
@@ -1125,18 +1029,94 @@ private:
         for (int i = 0; i < N; i++) {
             dist_squared = std::pow(positions[i][0], 2) + \
                 std::pow(positions[i][1], 2);
-            y(i) = std::exp(-dist_squared / sigma);
+            y[i] = std::exp(-dist_squared / sigma);
         }
     }
 
+public:
+
+    GridLayerHex(float sigma, float speed,
+                 float offset_dx = 0.0f,
+                 float offset_dy = 0.0f):
+        sigma(sigma), speed(speed), hexagon(Hexagon()){
+
+        // apply the offset by stepping
+        if (offset_dx != 0.0f && offset_dy != 0.0f) {
+            call({offset_dx, offset_dy});
+        }
+    }
+
+    // CALL
+    std::array<float, 25> \
+    call(std::array<float, 2> v) {
+
+        // update position with velociy
+        for (int i = 0; i < N; i++) {
+            positions[i][0] = positions[i][0] + speed * v[0];
+            positions[i][1] = positions[i][1] + speed * v[1];
+        }
+
+        // apply boundary conditions
+        boundary_conditions();
+
+        // compute the activation
+        calc_activation();
+        return y;
+    }
+
+    // SIMULATE
+    std::array<float, 25> simulate_one_step(
+        std::array<float, 2> v) {
+
+        std::array<std::array<float, 2>, 25> new_positions;
+        for (int i = 0; i < GCL_SIZE; i++) {
+            new_positions[i][0] = positions[i][0] + speed * v[0];
+            new_positions[i][1] = positions[i][1] + speed * v[1];
+        }
+
+        boundary_conditions(new_positions);
+
+        // compute the activation
+        std::array<float, 25> yfwd = {0.0f};
+        float dist_squared;
+        for (int i = 0; i < 25; i++) {
+            dist_squared = std::pow(new_positions[i][0],
+                                    2) + \
+                std::pow(new_positions[i][1], 2);
+            yfwd[i] = std::exp(-dist_squared / sigma);
+        }
+
+        return yfwd;
+    }
+
+    int len() { return N; }
+    std::string str() { return "GridLayerHex"; }
+    std::string repr() { return "GridLayerHex"; }
+    std::array<std::array<float, 2>, 25> get_positions()
+    { return positions; }
+    std::array<std::array<float, 2>, 25> get_centers()
+    { return basis; }
+    std::array<float, 25> get_activation() { return y; }
+    void reset(std::array<float, 2> v) {
+        this->positions = basis;
+        call(v);
+    }
 };
 
 
-class GridHexNetwork {
+class GridNetworkHex {
+
+    std::vector<GridLayerHex> layers;
+    int N;
+    int num_layers;
+    std::string full_repr;
+    Eigen::VectorXf y;
+    Eigen::MatrixXf basis;
+    Eigen::MatrixXf positions;
 
 public:
 
-    GridHexNetwork(std::vector<GridHexLayer> layers)
+    GridNetworkHex(std::vector<GridLayerHex> layers)
         : layers(layers) {
 
         // Initialize the variables
@@ -1153,28 +1133,40 @@ public:
         y = Eigen::VectorXf::Zero(N);
         basis = Eigen::MatrixXf::Zero(total_size, 2);
         positions = Eigen::MatrixXf::Zero(total_size, 2);
-
-        /* LOG("[+] GridHexNetwork created"); */
     }
 
-    ~GridHexNetwork() {} // LOG("[-] GridHexNetwork destroyed"); }
+    // CALL
+    Eigen::VectorXf call(const std::array<float, 2> x) {
 
-    Eigen::VectorXf call(const std::array<float, 2>& x) {
         for (int i = 0; i < num_layers; i++) {
-            y.segment(i*layers[i].len(), layers[i].len()) = \
-                layers[i].call(x);
+            // Convert the output of layers[i].call(x) to
+            // an Eigen::VectorXf
+            Eigen::VectorXf layer_output = \
+                Eigen::Map<const Eigen::VectorXf>(
+                    layers[i].call(x).data(), 25);
+
+            // Assign the converted vector to
+            // the corresponding segment of y
+            y.segment(i * 25, 25) = layer_output;
         }
 
         return y;
     }
 
-    Eigen::VectorXf fwd_position(
-        const std::array<float, 2>& x) {
+    Eigen::VectorXf simulate_one_step(std::array<float, 2> v) {
 
         Eigen::VectorXf yfwd = Eigen::VectorXf::Zero(N);
         for (int i = 0; i < num_layers; i++) {
-            yfwd.segment(i*layers[i].len(), layers[i].len()) = \
-                layers[i].fwd_position(x);
+
+            // Convert the output of layers[i].call(x) to
+            // an Eigen::VectorXf
+            Eigen::VectorXf layer_output = \
+                Eigen::Map<const Eigen::VectorXf>(
+                    layers[i].simulate_one_step(v).data(), 25);
+
+            // Assign the converted vector to
+            // the corresponding segment of y
+            yfwd.segment(i * 25, 25) = layer_output;
         }
 
         return yfwd;
@@ -1215,20 +1207,19 @@ public:
         return basis;
     }
 
+    std::vector<std::array<std::array<float, 2>, 25>> get_positions_vec() {
+        std::vector<std::array<std::array<float, 2>, 25>> positions_vec;
+        for (int i = 0; i < num_layers; i++) {
+            positions_vec.push_back(layers[i].get_positions());
+        }
+        return positions_vec;
+    }
+
     void reset(std::array<float, 2> v) {
         for (int i = 0; i < num_layers; i++) {
             layers[i].reset(v);
         }
     }
-
-private:
-    std::vector<GridHexLayer> layers;
-    int N;
-    int num_layers;
-    std::string full_repr;
-    Eigen::VectorXf y;
-    Eigen::MatrixXf basis;
-    Eigen::MatrixXf positions;
 };
 
 
@@ -1327,8 +1318,6 @@ public:
         positions = basis;
     }
 
-    ~GridLayerSq() {} // LOG("[-] GridLayer destroyed"); }
-
     // CALL
     std::array<float, GCL_SIZE> call(std::array<float, 2> v) {
 
@@ -1348,7 +1337,7 @@ public:
 
     // SIMULATE
     std::array<float, GCL_SIZE> simulate_one_step(
-        const std::array<float, 2>& v) {
+        std::array<float, 2>& v) {
 
         std::array<std::array<float, 2>, GCL_SIZE> new_positions;
         for (int i = 0; i < GCL_SIZE; i++) {
@@ -1371,9 +1360,9 @@ public:
         return yfwd;
     }
 
-    int len() const { return GCL_SIZE; }
-    std::string str() const { return "GridLayerSq"; }
-    std::string repr() const { return "GridLayerSq"; }
+    int len() { return GCL_SIZE; }
+    std::string str() { return "GridLayerSq"; }
+    std::string repr() { return "GridLayerSq"; }
     std::array<std::array<float, 2>, GCL_SIZE> \
         get_positions() { return positions; }
     std::array<std::array<float, 2>, GCL_SIZE> \
@@ -1390,6 +1379,13 @@ public:
 
 
 class GridNetworkSq {
+
+    std::vector<GridLayerSq> layers;
+    int N;
+    int num_layers;
+    std::string full_repr;
+    Eigen::VectorXf y;
+    Eigen::MatrixXf basis;
 
 public:
 
@@ -1409,12 +1405,9 @@ public:
         this->N = total_size;
         y = Eigen::VectorXf::Zero(N);
         basis = Eigen::MatrixXf::Zero(total_size, 2);
-
-        LOG("[+] GridNetwork created");
     }
 
-    ~GridNetworkSq() {} // LOG("[-] GridNetworkSq destroyed"); }
-
+    // CALL
     Eigen::VectorXf call(const std::array<float, 2> x) {
 
         for (int i = 0; i < num_layers; i++) {
@@ -1451,10 +1444,10 @@ public:
         return yfwd;
     }
 
-    int len() const { return N; }
-    int get_num_layers() const { return num_layers; }
-    std::string str() const { return "GridNetworkSq"; }
-    std::string repr() const {
+    int len() { return N; }
+    int get_num_layers() { return num_layers; }
+    std::string str()  { return "GridNetworkSq"; }
+    std::string repr() {
         return str() + "(" + full_repr + ", N=" + \
         std::to_string(N) + ")"; }
     Eigen::VectorXf get_activation() const { return y; }
@@ -1507,14 +1500,6 @@ public:
             layers[i].reset(v);
         }
     }
-
-private:
-    std::vector<GridLayerSq> layers;
-    int N;
-    int num_layers;
-    std::string full_repr;
-    Eigen::VectorXf y;
-    Eigen::MatrixXf basis;
 };
 
 
@@ -1541,7 +1526,7 @@ class PCNN {
     float threshold;
     float gain;
 
-    GridNetworkSq xfilter;
+    GCN_REF xfilter;
 
     // variables
     Eigen::MatrixXf Wff;
@@ -1597,7 +1582,7 @@ public:
     PCNN(int N, int Nj, float gain, float offset,
          float clip_min, float threshold, float rep_threshold,
          float rec_threshold, float min_rep_threshold,
-         GridNetworkSq xfilter, float tau_trace = 2.0f,
+         GCN_REF xfilter, float tau_trace = 2.0f,
          std::string name = "fine")
         : N(N), Nj(Nj), gain(gain), gain_const(gain),
         offset(offset), clip_min(clip_min),
@@ -1847,8 +1832,8 @@ public:
         { return xfilter.get_positions(); }
     std::array<float, 2> get_position()
         { return vspace.position; }
-    std::vector<std::array<std::array<float, 2>, GCL_SIZE>> get_gc_positions_vec()
-        { return xfilter.get_positions_vec(); }
+    /* std::vector<std::array<std::array<float, 2>, GCL_SIZE>> get_gc_positions_vec() */
+    /*     { return xfilter.get_positions_vec(); } */
     void reset_gcn(std::array<float, 2> v) { xfilter.reset(v); }
 
 };
@@ -2748,8 +2733,8 @@ class Brain {
     // external components
     BaseModulation da;
     BaseModulation bnd;
-    std::vector<GridLayerSq> gcn_layers;
-    GridNetworkSq gcn;
+    std::vector<GCL_REF> gcn_layers;
+    GCN_REF gcn;
 
     // external components
     Circuits circuits;
@@ -2879,19 +2864,14 @@ public:
         circuits(Circuits(da, bnd, threshold_circuit)),
 
         // initialize with a set of GridLayerSq
-        gcn_layers({GridLayerSq(0.04, 1.0 * local_scale_fine,
-                                      {-1.0f, 1.0f, -1.0f, 1.0f}),
-                            GridLayerSq(0.04, 0.8 * local_scale_fine,
-                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
-                            GridLayerSq(0.04, 0.7 * local_scale_fine,
-                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
-                            GridLayerSq(0.04, 0.5 * local_scale_fine,
-                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
-                            GridLayerSq(0.04, 0.3 * local_scale_fine,
-                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
-                            GridLayerSq(0.04, 0.05 * local_scale_fine,
-                                        {-1.0f, 1.0f, -1.0f, 1.0f})}),
-        gcn(GridNetworkSq(gcn_layers)),
+        gcn_layers({GCL_REF(0.04, 1.0 * local_scale_fine),
+                    GCL_REF(0.04, 0.8 * local_scale_fine),
+                    GCL_REF(0.04, 0.7 * local_scale_fine),
+                    GCL_REF(0.04, 0.5 * local_scale_fine),
+                    GCL_REF(0.04, 0.3 * local_scale_fine),
+                    GCL_REF(0.04, 0.2 * local_scale_fine),
+                    GCL_REF(0.04, 0.1 * local_scale_fine)}),
+        gcn(GCN_REF(gcn_layers)),
         space_fine(PCNN(N, gcn.len(), gain_fine, offset_fine,
                         0.01f, threshold_fine, rep_threshold_fine,
                         rec_threshold_fine, min_rep_threshold, gcn,
@@ -3133,12 +3113,12 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     int N = std::pow(25, 2);
 
     // SPACE
-    std::vector<GridLayerSq> gcn_layers;
-    gcn_layers.push_back(GridLayerSq(0.04, 0.1, {-1.0f, 1.0f, -1.0f, 1.0f}));
-    gcn_layers.push_back(GridLayerSq(0.04, 0.07, {-1.0f, 1.0f, -1.0f, 1.0f}));
-    gcn_layers.push_back(GridLayerSq(0.04, 0.03, {-1.0f, 1.0f, -1.0f, 1.0f}));
-    gcn_layers.push_back(GridLayerSq(0.04, 0.005, {-1.0f, 1.0f, -1.0f, 1.0f}));
-    GridNetworkSq gcn = GridNetworkSq(gcn_layers);
+    std::vector<GCL_REF> gcn_layers;
+    gcn_layers.push_back(GCL_REF(0.04, 0.1));
+    gcn_layers.push_back(GCL_REF(0.04, 0.07));
+    gcn_layers.push_back(GCL_REF(0.04, 0.03));
+    gcn_layers.push_back(GCL_REF(0.04, 0.005));
+    GCN_REF gcn = GCN_REF(gcn_layers);
     PCNN space = PCNN(N, gcn.len(), 10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
                               5.0f, 5, gcn, 10.0f, "fine");
     PCNN space_coarse = PCNN(N, gcn.len(),

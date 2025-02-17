@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import utils
 try:
     # import libs.pclib as pclib
     import core.build.pclib as pclib
@@ -14,7 +15,7 @@ except ImportError:
         import libs.pclib1 as pclib
 
 
-
+logger = utils.setup_logger(__name__, level=3)
 
 
 
@@ -71,7 +72,8 @@ class PCNNwrapper:
     def __call__(self, x: list, position: list=[-1., -1.]):
 
         u, y = self.pcnn2D(x)
-        self.pcnn2D.update(*position)
+        # self.pcnn2D.update(*position)
+        self.pcnn2D.update()
         self.record_pcnn.append(u.tolist())
         self.record_xfl.append(y.tolist())
         # if len(self.record_pcnn) > self.max_iter:
@@ -317,30 +319,32 @@ def run_pcnn(duration=100000):
 
 def run_pcnn_hex(duration: int=100_000):
 
-    gcn = pclib.GridHexNetwork([
-                pclib.GridHexLayer(sigma=0.04, speed=0.1),
-                pclib.GridHexLayer(sigma=0.04, speed=0.09),
-                pclib.GridHexLayer(sigma=0.04, speed=0.08),
-                pclib.GridHexLayer(sigma=0.04, speed=0.07),
-                pclib.GridHexLayer(sigma=0.04, speed=0.06),
-                pclib.GridHexLayer(sigma=0.04, speed=0.04)])
+    gcn = pclib.GridNetworkHex([
+                pclib.GridLayerHex(sigma=0.04, speed=0.6),
+                pclib.GridLayerHex(sigma=0.04, speed=0.4),
+                pclib.GridLayerHex(sigma=0.04, speed=0.3),
+                pclib.GridLayerHex(sigma=0.04, speed=0.2),
+                pclib.GridLayerHex(sigma=0.04, speed=0.1),
+                pclib.GridLayerHex(sigma=0.04, speed=0.08),
+                pclib.GridLayerHex(sigma=0.04, speed=0.06),
+                pclib.GridLayerHex(sigma=0.04, speed=0.03)])
 
-    pcnn_ = pclib.PCNNgridhex(N=100,
-                              Nj=len(gcn),
-                              gain=10.,
-                              offset=1.2,
-                              clip_min=0.01,
-                              threshold=0.1,
-                              rep_threshold=0.7,
-                              rec_threshold=0.1,
-                              num_neighbors=8, trace_tau=0.1,
-                              xfilter=gcn, name="2D")
+    pcnn_ = pclib.PCNN(N=100,
+                       Nj=len(gcn),
+                       gain=10.,
+                       offset=1.2,
+                       clip_min=0.01,
+                       threshold=0.3,
+                       rep_threshold=0.8,
+                       rec_threshold=1.0,
+                       min_rep_threshold=0.99,
+                       xfilter=gcn,
+                       tau_trace=2.0,
+                       name="2D")
 
     pcnn2d = PCNNwrapper(pcnn_,
                          max_iter=duration)
  
-    print(pcnn2d)
-
     a = []
     x, y = 0.2, 0.2
     x0, y0 = 0.2, 0.2
@@ -350,13 +354,15 @@ def run_pcnn_hex(duration: int=100_000):
     size = 30
     s = np.array([0.005, 0.005])
 
+    logger("[running pcnn hex]")
+
     for t in tqdm(range(duration)):
 
         x += s[0]
         y += s[1]
 
         # hexagon boundaries & gc
-        pcnn2d([x - x0, y - y0], [x, y])
+        pcnn2d([x - x0, y - y0])#, [x, y])
         # pcnn2d([s[0], s[1]], [x, y])
 
         x0 = x
@@ -378,9 +384,9 @@ def run_pcnn_hex(duration: int=100_000):
         if t % 10000 == 0:
             pcnn2d.render(traj)
 
-    print("done")
-    print(pcnn2d.pcnn2D.get_centers(),
-          pcnn2d.pcnn2D.get_centers().shape)
+    logger("[done]")
+    # logger(pcnn2d.pcnn2D.get_centers(),
+    #       pcnn2d.pcnn2D.get_centers().shape)
     pcnn2d.render(traj)
 
     centers = []

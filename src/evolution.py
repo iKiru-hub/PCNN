@@ -38,13 +38,11 @@ reward_settings = {
     "alpha": 0.06,
 }
 
-
 agent_settings = {
     # "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
 }
-
 
 game_settings = {
     "plot_interval": 5,
@@ -59,7 +57,6 @@ game_settings = {
     "verbose_min": False
 }
 
-
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
@@ -70,7 +67,6 @@ global_parameters = {
     "speed": 0.75,
     "min_weight_value": 0.5
 }
-
 
 
 """ ENVIRONMENT """

@@ -17,21 +17,21 @@ import simulations as sim
 logger = utils.setup_logger(__name__, level=3)
 
 
-""" settings """
+""" SETTINGS """
 
 reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
-    "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.1 * GAME_SCALE,
-    "rw_sigma": 1.5 * GAME_SCALE,
+    # "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
+    "rw_radius": 0.05 * GAME_SCALE,
+    "rw_sigma": 0.75 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 150,
-    "silent_duration": 5_000,
+    "delay": 5,
+    "silent_duration": 2_000,
     "fetching_duration": 1,
     "transparent": False,
-    "beta": 30.,
+    "beta": 35.,
     "alpha": 0.06,
 }
 
@@ -47,64 +47,71 @@ game_settings = {
     "rendering": False,
     "rendering_pcnn": False,
     "max_duration": 8_000,
-    "room_thickness": 30,
+    "room_thickness": 5,
     "seed": None,
     "pause": -1,
-    "verbose": False
+    "verbose": False,
+    "verbose_min": False
 }
 
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 28**2,
-    "rec_threshold_fine": 24.,
-    "rec_threshold_coarse": 70.,
-    "speed": 1.5,
-    "min_weight_value": 0.6
+    "N": 22**2,
+    "Nc": 12**2,
+    # "rec_threshold_fine": 26.,
+    # "rec_threshold_coarse": 60.,
+    "speed": 0.75,
+    "min_weight_value": 0.5
 }
 
 PARAMETERS = {
 
-    "gain_fine": 11.,
-    "offset_fine": 1.2,
-    "threshold_fine": 0.4,
-    "rep_threshold_fine": 0.9,
+    "gain_fine": 10.,
+    "offset_fine": 1.0,
+    "threshold_fine": 0.3,
+    "rep_threshold_fine": 0.88,
+    "rec_threshold_fine": 60.,
+    "tau_trace_fine": 10.0,
+    "min_rep_threshold": 0.95,
 
-    "gain_coarse": 11.,
-    "offset_coarse": 1.2,
-    "threshold_coarse": 0.4,
-    "rep_threshold_coarse": 0.89,
+    "gain_coarse": 9.,
+    "offset_coarse": 1.0,
+    "threshold_coarse": 0.3,
+    "rep_threshold_coarse": 0.9,
+    "rec_threshold_coarse": 100.,
+    "tau_trace_coarse": 20.0,
 
-    "lr_da": 0.4,
-    "threshold_da": 0.08,
+    "lr_da": 0.8,
+    "threshold_da": 0.03,
     "tau_v_da": 1.0,
 
     "lr_bnd": 0.4,
-    "threshold_bnd": 0.04,
-    "tau_v_bnd": 1.0,
+    "threshold_bnd": 0.05,
+    "tau_v_bnd": 2.0,
 
     "tau_ssry": 100.,
-    "threshold_ssry": 0.95,
+    "threshold_ssry": 0.998,
 
-    "threshold_circuit": 0.7,
+    "threshold_circuit": 0.1,
 
-    "rwd_weight": 0.0,
+    "rwd_weight": 0.1,
     "rwd_sigma": 40.0,
     "col_weight": 0.0,
-    "col_sigma": 30.0,
+    "col_sigma": 2.0,
 
-    "action_delay": 15.,
-    "edge_route_interval": 80,
+    "action_delay": 50.,
+    "edge_route_interval": 50,
 
     "forced_duration": 100,
-    "fine_tuning_min_duration": 15
+    "fine_tuning_min_duration": 10,
 }
 
 
 TOT_VALUES = 4
 
 
-""" functions """
+""" FUNCTIONS """
 
 
 def convert_numpy(obj):
@@ -187,15 +194,6 @@ def run_local_model(args):
 
             result = safe_run_model(params, "Square.v0")
 
-            # result = sim.run_model(
-            #             parameters=params,
-            #             global_parameters=global_parameters,
-            #             agent_settings=agent_settings,
-            #             reward_settings=reward_settings,
-            #             game_settings=game_settings,
-            #             room_name="Square.v0",
-            #             verbose=False,
-            #             verbose_min=False)
             res[i, j] = result
 
     return res
