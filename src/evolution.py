@@ -17,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 8
+NUM_SAMPLES = 6
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-2, replace=False).tolist() + \
     [ROOMS[0], ROOMS[0]]
 
@@ -67,7 +67,7 @@ global_parameters = {
     "Nc": 12**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
-    "speed": 1.0,
+    "speed": 0.75,
     "min_weight_value": 0.5
 }
 
@@ -217,7 +217,7 @@ class Env:
         for i in range(self._num_samples):
             score = safe_run_model(agent, ROOM_LIST[i])
             if score == 0: zero_scores += 1
-            if zero_scores == 4:
+            if zero_scores == 3:
                 fitness = 0
                 break
             fitness += score
