@@ -18,8 +18,7 @@ from game.constants import ROOMS, GAME_SCALE
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
 NUM_SAMPLES = 6
-ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-2, replace=False).tolist() + \
-    [ROOMS[0], ROOMS[0]]
+ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES, replace=False).tolist()
 
 
 reward_settings = {
