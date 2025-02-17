@@ -117,7 +117,6 @@ def edit_logger(level: int=-1,
     logger.set_warning(is_warning)
 
 
-
 def load_parameters():
 
     print("\n----\nLoading from evolution")

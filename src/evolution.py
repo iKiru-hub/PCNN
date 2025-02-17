@@ -52,7 +52,7 @@ game_settings = {
     "rendering": False,
     "rendering_pcnn": False,
     "max_duration": 8_000,
-    "room_thickness": 30,
+    "room_thickness": 5,
     "seed": None,
     "pause": -1,
     "verbose": False,

@@ -47,7 +47,7 @@
 
 // blank log function
 void LOG(const std::string& msg) {
-    return;
+    /* return; */
     std::cout << msg << std::endl;
 }
 
@@ -196,6 +196,8 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matri
                                        const Eigen::MatrixXf& node_coordinates,  // Nx2 matrix with (x,y) coordinates
                                        const Eigen::VectorXf& node_weights,      // Optional node penalties/costs
                                        int start_node, int end_node) {
+
+    LOG("calculating spatial shortest path...");
 
     int num_nodes = connectivity_matrix.rows();
     std::vector<float> distances(num_nodes, std::numeric_limits<float>::infinity());
@@ -1688,7 +1690,6 @@ public:
             Wffbackup.row(idx) = Wff.row(idx);
 
             // record new center
-            LOG("Updating space " + name);
             vspace.update(idx, N, traces);
             this->Wrec = vspace.weights;
             this->connectivity = vspace.connectivity;
@@ -2262,17 +2263,17 @@ struct Plan {
         // determine velocity magnitude
         if (std::sqrt(dx * dx + dy * dy) < speed)
             {
-            /* LOG("[plan] just a little bit"); */
+            LOG("[plan] just a little bit");
             local_velocity = {dx, dy}; }
         else {
             float norm = std::sqrt(dx * dx + dy * dy);
-            /* LOG("[plan] norm=" + std::to_string(norm) + \ */
-            /*     " | speed=" + std::to_string(speed)); */
+            LOG("[plan] norm=" + std::to_string(norm) + \
+                " | speed=" + std::to_string(speed));
             local_velocity = {speed * dx / norm,
                               speed * dy / norm};
         }
-        /* LOG("[plan] local_velocity=" + std::to_string(local_velocity[0]) + \ */
-        /*     ", " + std::to_string(local_velocity[1])); */
+        LOG("[plan] local_velocity=" + std::to_string(local_velocity[0]) + \
+            ", " + std::to_string(local_velocity[1]));
         return local_velocity;
     }
 
@@ -2432,7 +2433,10 @@ public:
             LOG("[Goal] coarse_progress=" + std::to_string(coarse_progress.second));
 
             // exit: coarse action
-            if (coarse_progress.second) { return coarse_progress; }
+            if (coarse_progress.second) { 
+                LOG("[Goal] coarse action" + std::to_string(coarse_progress.second));
+                return coarse_progress; 
+            }
         }
         LOG("[Goal] obstacle=" + std::to_string(obstacle));
 
@@ -2953,7 +2957,7 @@ public:
 
         // check: current trg plan
         if (goalmd.is_active()) {
-            /* LOG("[Brain] active goal plan"); */
+            LOG("[Brain] active goal plan");
             trg_plan_end = 0;
             std::pair<std::array<float, 2>, bool> progress = \
                 goalmd.step_plan(collision > 0.0f);
@@ -2965,6 +2969,7 @@ public:
             }
             // end or fail -> random walk
             forced_exploration = 0;
+            LOG("[Brain] end or fail -> random walk");
         }
 
         // time since the last trg plan ended

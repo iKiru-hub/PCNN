@@ -142,8 +142,8 @@ class Renderer:
         self.names = names
         self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
         self.fig.set_tight_layout(True)
-        self.boundsx = (-300, 400)
-        self.boundsy = (-300, 400)
+        self.boundsx = (-400, 400)
+        self.boundsy = (-400, 400)
 
     def render(self):
 
@@ -211,16 +211,16 @@ class Renderer:
             # fine space
             self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                    color="blue", s=20, alpha=0.4)
-            for edge in self.brain.make_space_fine_edges():
-                self.axs[0, 0].plot((edge[0][0], edge[1][0]),
-                                    (edge[0][1], edge[1][1]),
-                                 alpha=0.3, color="black")
+            # for edge in self.brain.make_space_fine_edges():
+            #     self.axs[0, 0].plot((edge[0][0], edge[1][0]),
+            #                         (edge[0][1], edge[1][1]),
+            #                      alpha=0.3, color="black")
 
             # coarse space
-            for edge in self.brain.make_space_coarse_edges():
-                self.axs[0, 1].plot((edge[0][0], edge[1][0]),
-                                    (edge[0][1], edge[1][1]),
-                                 alpha=0.3, color="black")
+            # for edge in self.brain.make_space_coarse_edges():
+            #     self.axs[0, 1].plot((edge[0][0], edge[1][0]),
+            #                         (edge[0][1], edge[1][1]),
+            #                      alpha=0.3, color="black")
 
             self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
                                    color="blue", s=40, alpha=0.4)

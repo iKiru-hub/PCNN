@@ -6,6 +6,7 @@ import json
 import argparse
 
 from game.constants import GAME_SCALE
+from game.envs import get_random_room
 import utils
 
 
@@ -32,8 +33,8 @@ game_settings = {
     "rw_event": "move agent",
     "rendering": False,
     "rendering_pcnn": True,
-    "max_duration": 10_000,
-    "room_thickness": 10,
+    "max_duration": 7_000,
+    "room_thickness": 5,
     "seed": None,
     "pause": -1,
     "verbose": True
@@ -81,6 +82,10 @@ if __name__ == "__main__":
         logger.debug(parameters.keys())
     else:
         parameters = sim.parameters
+
+    if args.room == "random":
+        args.room = get_random_room()
+        logger(f"random room: {args.room}")
 
     """ run """
 
