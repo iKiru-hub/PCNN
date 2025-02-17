@@ -32,12 +32,16 @@ parameters = {
     "offset_fine": 1.2,
     "threshold_fine": 0.35,
     "rep_threshold_fine": 0.9,
+    "rec_threshold_fine": 60.,
+    "tau_trace_fine": 20.0,
     "min_rep_threshold": 0.95,
 
     "gain_coarse": 8.,
     "offset_coarse": 0.9,
     "threshold_coarse": 0.3,
     "rep_threshold_coarse": 0.8,
+    "rec_threshold_coarse": 100.,
+    "tau_trace_coarse": 20.0,
 
     "lr_da": 0.3,
     "threshold_da": 0.04,
@@ -72,7 +76,7 @@ def test_vspace():
     out = vspace([0.5, 0.5])
     assert len(out) == 2, f"output length is {len(out)}, expected 2"
 
-    vspace.update(2, N)
+    vspace.update(2, N, np.random.rand(N, 1))
     c = vspace.get_centers()
     assert len(c) == N, f"center length is {len(c)}, expected {N}"
 
@@ -121,6 +125,7 @@ def test_space():
                        rec_threshold=40.,
                        min_rep_threshold=parameters["min_rep_threshold"],
                        xfilter=gcn,
+                       tau_trace=20.,
                        name="2D")
 
 
@@ -141,24 +146,31 @@ def test_space():
     local_scale_coarse = global_parameters["local_scale_coarse"]
 
     gcn = pclib.GridNetworkSq([
-           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_fine, bounds=[-1, 1, -1, 1])])
+           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_fine,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_fine,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_fine,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_fine,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_fine,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_fine,
+                             bounds=[-1, 1, -1, 1])])
 
     space_fine = pclib.PCNN(N=global_parameters["N"],
-                           Nj=len(gcn),
-                           gain=parameters["gain_fine"],
-                           offset=parameters["offset_fine"],
-                           clip_min=0.01,
-                           threshold=parameters["threshold_fine"],
-                           rep_threshold=parameters["rep_threshold_fine"],
-                           rec_threshold=global_parameters["rec_threshold_fine"],
-                           min_rep_threshold=parameters["min_rep_threshold"],
-                           xfilter=gcn,
-                           name="2D")
+                            Nj=len(gcn),
+                            gain=parameters["gain_fine"],
+                            offset=parameters["offset_fine"],
+                            clip_min=0.01,
+                            threshold=parameters["threshold_fine"],
+                            rep_threshold=parameters["rep_threshold_fine"],
+                            rec_threshold=global_parameters["rec_threshold_fine"],
+                            min_rep_threshold=parameters["min_rep_threshold"],
+                            xfilter=gcn,
+                            tau_trace=parameters["tau_trace_fine"],
+                            name="2D")
 
     assert space_fine.get_size() == global_parameters["N"], f"space_fine length is {space_fine.get_size()}"
 
@@ -212,24 +224,31 @@ def test_target_program():
     local_scale_coarse = global_parameters["local_scale_coarse"]
 
     gcn = pclib.GridNetworkSq([
-           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_fine, bounds=[-1, 1, -1, 1])])
+           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_fine,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_fine,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_fine,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_fine,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_fine,
+                             bounds=[-1, 1, -1, 1]),
+           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_fine,
+                             bounds=[-1, 1, -1, 1])])
 
     space_fine = pclib.PCNN(N=global_parameters["N"],
-                           Nj=len(gcn),
-                           gain=parameters["gain_fine"],
-                           offset=parameters["offset_fine"],
-                           clip_min=0.01,
-                           threshold=parameters["threshold_fine"],
-                           rep_threshold=parameters["rep_threshold_fine"],
-                           rec_threshold=global_parameters["rec_threshold_fine"],
-                           min_rep_threshold=parameters["min_rep_threshold"],
-                           xfilter=gcn,
-                           name="2D")
+                            Nj=len(gcn),
+                            gain=parameters["gain_fine"],
+                            offset=parameters["offset_fine"],
+                            clip_min=0.01,
+                            threshold=parameters["threshold_fine"],
+                            rep_threshold=parameters["rep_threshold_fine"],
+                            rec_threshold=global_parameters["rec_threshold_fine"],
+                            min_rep_threshold=parameters["min_rep_threshold"],
+                            xfilter=gcn,
+                            tau_trace=20.,
+                            name="2D")
 
     da = pclib.BaseModulation(name="DA", size=global_parameters["N"],
                               lr=parameters["lr_da"],
@@ -272,82 +291,43 @@ def test_target_program():
 
 def test_brain():
 
-
-    local_scale_fine = global_parameters["local_scale_fine"]
-    local_scale_coarse = global_parameters["local_scale_coarse"]
-
-    gcn = pclib.GridNetworkSq([
-           pclib.GridLayerSq(sigma=0.04, speed=1.*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.8*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.7*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.5*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale_fine, bounds=[-1, 1, -1, 1]),
-           pclib.GridLayerSq(sigma=0.04, speed=0.05*local_scale_fine, bounds=[-1, 1, -1, 1])])
-
-    space_fine = pclib.PCNN(N=global_parameters["N"],
-                           Nj=len(gcn),
-                           gain=parameters["gain_fine"],
-                           offset=parameters["offset_fine"],
-                           clip_min=0.01,
-                           threshold=parameters["threshold_fine"],
-                           rep_threshold=parameters["rep_threshold_fine"],
-                           rec_threshold=global_parameters["rec_threshold_fine"],
-                           min_rep_threshold=parameters["min_rep_threshold"],
-                           xfilter=gcn,
-                           name="2D")
-
-    space_coarse = pclib.PCNN(N=global_parameters["Nc"],
-                           Nj=len(gcn),
-                           gain=parameters["gain_coarse"],
-                           offset=parameters["offset_coarse"],
-                           clip_min=0.01,
-                           threshold=parameters["threshold_coarse"],
-                           rep_threshold=parameters["rep_threshold_coarse"],
-                           rec_threshold=global_parameters["rec_threshold_coarse"],
-                           min_rep_threshold=parameters["min_rep_threshold"],
-                           xfilter=gcn,
-                           name="2D")
-
-    da = pclib.BaseModulation(name="DA", size=global_parameters["N"],
-                              lr=parameters["lr_da"],
-                              threshold=parameters["threshold_da"],
-                              max_w=1.0,
-                              tau_v=1.0,
-                              eq_v=0.0, min_v=0.0)
-
-
-    bnd = pclib.BaseModulation(name="BND", size=global_parameters["N"],
-                               lr=parameters["lr_bnd"],
-                               threshold=parameters["threshold_bnd"],
-                               max_w=1.0,
-                               tau_v=1.0, eq_v=0.0, min_v=0.0)
-
-
-    ssry = pclib.StationarySensory(global_parameters["N"],
-                                   parameters["tau_ssry"],
-                                   parameters["threshold_ssry"],
-                                   0.99)
-    circuit = pclib.Circuits(da, bnd, parameters["threshold_circuit"])
-
-    dpolicy = pclib.DensityPolicy(parameters["rwd_weight"],
-                                  parameters["rwd_sigma"],
-                                  parameters["col_weight"],
-                                  parameters["col_sigma"])
-
-    expmd = pclib.ExplorationModule(speed=global_parameters["speed"]*2.0,
-                                    circuits=circuit,
-                                    space_fine=space_fine,
-                                    action_delay=parameters["action_delay"],
-                                    edge_route_interval=parameters["edge_route_interval"],)
-
-    exout = expmd("new", -1)
-
-    brain = pclib.Brain(circuit, space_fine, space_coarse, expmd, ssry, dpolicy,
-                        global_parameters["speed"],
-                        global_parameters["speed"]*local_scale_fine/local_scale_coarse,
-                        parameters["forced_duration"],
-                        parameters["fine_tuning_min_duration"],
-                        global_parameters["min_weight_value"])
+    brain = pclib.Brain(
+                local_scale_fine=global_parameters["local_scale_fine"],
+                local_scale_coarse=global_parameters["local_scale_coarse"],
+                N=global_parameters["N"],
+                Nc=global_parameters["Nc"],
+                min_rep_threshold=parameters["min_rep_threshold"],
+                rec_threshold_fine=parameters["rec_threshold_fine"],
+                rec_threshold_coarse=parameters["rec_threshold_coarse"],
+                speed=global_parameters["speed"],
+                gain_fine=parameters["gain_fine"],
+                offset_fine=parameters["offset_fine"],
+                threshold_fine=parameters["threshold_fine"],
+                rep_threshold_fine=parameters["rep_threshold_fine"],
+                tau_trace_fine=parameters["tau_trace_fine"],
+                gain_coarse=parameters["gain_coarse"],
+                offset_coarse=parameters["offset_coarse"],
+                threshold_coarse=parameters["threshold_coarse"],
+                rep_threshold_coarse=parameters["rep_threshold_coarse"],
+                tau_trace_coarse=parameters["tau_trace_coarse"],
+                lr_da=parameters["lr_da"],
+                threshold_da=parameters["threshold_da"],
+                tau_v_da=parameters["tau_v_da"],
+                lr_bnd=parameters["lr_bnd"],
+                threshold_bnd=parameters["threshold_bnd"],
+                tau_v_bnd=parameters["tau_v_bnd"],
+                tau_ssry=parameters["tau_ssry"],
+                threshold_ssry=parameters["threshold_ssry"],
+                threshold_circuit=parameters["threshold_circuit"],
+                rwd_weight=parameters["rwd_weight"],
+                rwd_sigma=parameters["rwd_sigma"],
+                col_weight=parameters["col_weight"],
+                col_sigma=parameters["col_sigma"],
+                action_delay=parameters["action_delay"],
+                edge_route_interval=parameters["edge_route_interval"],
+                forced_duration=parameters["forced_duration"],
+                fine_tuning_min_duration=parameters["fine_tuning_min_duration"],
+                min_weight_value=parameters["fine_tuning_min_duration"])
 
     assert len(brain) == global_parameters["N"], f"brain length is {len(brain)}, expected {global_parameters['N']}"
 
