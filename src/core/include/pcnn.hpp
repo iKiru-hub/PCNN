@@ -1562,6 +1562,7 @@ class PCNN {
     const float threshold_const;
     const float rep_threshold_const;
     const float gain_const;
+    const float tau_trace = 2.0f;
 
     float rep_threshold;
     float min_rep_threshold;
@@ -1582,6 +1583,7 @@ class PCNN {
     std::vector<int> free_indexes;
     int cell_count;
     Eigen::VectorXf u;
+    Eigen::VectorXf trace;
     Eigen::VectorXf x_filtered;
 
     VelocitySpace vspace;
@@ -1640,6 +1642,7 @@ public:
         connectivity = Eigen::MatrixXf::Zero(N, N);
         mask = Eigen::VectorXf::Zero(N);
         u = Eigen::VectorXf::Zero(N);
+        trace = Eigen::VectorXf::Zero(N);
         delta_wff = 0.0;
         x_filtered = Eigen::VectorXf::Zero(N);
         cell_count = 0;
@@ -1668,6 +1671,8 @@ public:
                                                           0.01);
 
         u = generalized_sigmoid_vec(u, offset, gain, clip_min);
+        trace = trace - trace / tau_trace + u;
+        trace = trace.cwiseMin(1.0f);
 
         return std::make_pair(u, x_filtered);
     }
@@ -2980,7 +2985,8 @@ final:
     std::string repr() { return "Brain"; }
     int len() { return space_fine.get_size(); }
     Eigen::VectorXf get_trg_representation() {
-        Eigen::VectorXf trg_representation = Eigen::VectorXf::Zero(space_fine.get_size());
+        Eigen::VectorXf trg_representation = \
+            Eigen::VectorXf::Zero(space_fine.get_size());
         trg_representation(rwobj.trg_idx) = 1.;
         return trg_representation;
     }
@@ -2998,7 +3004,8 @@ final:
     std::string get_directive() { return directive; }
     std::vector<int> get_plan_idxs_fine() { return goalmd.get_plan_idxs_fine(); }
     std::vector<int> get_plan_idxs_coarse() { return goalmd.get_plan_idxs_coarse(); }
-    std::array<float, 2> get_space_position_fine() { return space_fine.get_position(); }
+    std::array<float, 2> get_space_position_fine()
+        { return space_fine.get_position(); }
     std::array<float, 2> get_space_position_coarse()
         { return space_coarse.get_position(); }
     Eigen::VectorXf get_edge_representation() 
@@ -3016,10 +3023,6 @@ class Brainv2 {
     // external components
     BaseModulation da;
     BaseModulation bnd;
-    /* std::vector<GridLayerSq> gcn_layers_fine; */
-    /* std::vector<GridLayerSq> gcn_layers_coarse; */
-    /* GridNetworkSq gcn_fine; */
-    /* GridNetworkSq gcn_coarse; */
     std::vector<GridLayerSq> gcn_layers;
     GridNetworkSq gcn;
 
@@ -3319,13 +3322,341 @@ final:
     std::string str() { return "Brainv2"; }
     std::string repr() { return "Brainv2"; }
     int len() { return space_fine.get_size(); }
-    std::array<int, 2> get_cell_count() { return {space_fine.len(), space_coarse.len()}; }
+    std::array<int, 2> get_cell_count()
+        { return {space_fine.len(), space_coarse.len()}; }
     void reset() {
         goalmd.reset();
         circuits.reset();
     }
 };
 
+
+
+class Brainv3 {
+
+    // external components
+    BaseModulation da;
+    BaseModulation bnd;
+    std::vector<GridLayerSq> gcn_layers;
+    GridNetworkSq gcn;
+
+    // external components
+    Circuits circuits;
+    PCNN_REF space_fine;
+    PCNN_REF space_coarse;
+    ExplorationModule expmd;
+    StationarySensory ssry;
+    DensityPolicy dpolicy;
+    GoalModule goalmd;
+    RewardObject rwobj;
+
+    // variables
+    Eigen::VectorXf curr_representation;
+    Eigen::VectorXf curr_representation_coarse;
+    std::string directive;
+    int clock;
+    int trg_plan_end = 0;
+    int forced_exploration = -1;
+    int forced_duration;
+
+    // initialize
+    std::pair<std::array<float, 2>, int> expmd_res = \
+        std::make_pair(std::array<float, 2>{0.0f, 0.0f}, 0);
+    int tmp_trg_idx = -1;
+    std::array<float, 2> action = {0.0f, 0.0f};
+
+    std::array<float, 2> attempt_boundary_plan(int idx) {
+
+        // reset the set of rejected indexes
+        expmd.reset_rejected_indexes();
+
+        // attempt for a bunch of times | use 404 as final rejection
+        for (int i = 0; i < 3; i++) {
+
+            // attempt a plan
+            goalmd.reset();
+            bool valid_plan = goalmd.update(idx, false);
+
+            // valid plan
+            if (valid_plan) {
+                this->directive = "trg ob";
+                std::pair<std::array<float, 2>, bool> progress = \
+                    goalmd.step_plan(false);
+
+                // confirm the edge walk
+                expmd.confirm_edge_walk();
+                return progress.first;
+            }
+
+            // invalid plan -> try again
+            std::pair<std::array<float, 2>, int> expmd_res = \
+                expmd.call(directive, idx);
+            idx = expmd_res.second;
+        }
+
+        // tried too many times, make a random walk plan instead
+        std::pair<std::array<float, 2>, int> expmd_res = \
+            expmd.call(directive, 404);
+
+        return expmd_res.first;
+    }
+
+    void make_prediction() {
+
+        // simulate a step
+        Eigen::VectorXf& next_representation = space_fine.simulate_one_step(action);
+
+        // make prediction
+        circuits.make_prediction(next_representation);
+    }
+
+
+public:
+
+    Brainv3(float local_scale_fine, 
+            float local_scale_coarse,
+            int N,
+            int Nc,
+            float rec_threshold_fine,
+            float rec_threshold_coarse,
+            float speed,
+            float min_rep_threshold,
+
+            float gain_fine,
+            float offset_fine,
+            float threshold_fine,
+            float rep_threshold_fine,
+
+            float gain_coarse,
+            float offset_coarse,
+            float threshold_coarse,
+            float rep_threshold_coarse,
+
+            float lr_da,
+            float threshold_da,
+            float tau_v_da,
+
+            float lr_bnd,
+            float threshold_bnd,
+            float tau_v_bnd,
+
+            float tau_ssry,
+            float threshold_ssry,
+
+            float threshold_circuit,
+
+            float rwd_weight,
+            float rwd_sigma,
+            float col_weight,
+            float col_sigma,
+
+            float action_delay,
+            int edge_route_interval,
+
+            int forced_duration,
+            int fine_tuning_min_duration,
+            float min_weight_value = 0.3):
+        clock(0), forced_duration(forced_duration), directive("new"),
+        da(BaseModulation("DA", N, lr_da, threshold_da, 1.0f,
+                                           tau_v_da, 0.0f, 0.0f)),
+        bnd(BaseModulation("BND", N, lr_bnd, threshold_bnd, 1.0f,
+                                            tau_v_bnd, 0.0f, 0.0f)),
+        ssry(StationarySensory(N, tau_ssry, threshold_ssry, 0.99)),
+        circuits(Circuits(da, bnd, threshold_circuit)),
+
+        // initialize with a set of GridLayerSq
+        gcn_layers({GridLayerSq(0.04, 1.0 * local_scale_fine,
+                                      {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.8 * local_scale_fine,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.7 * local_scale_fine,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.5 * local_scale_fine,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.3 * local_scale_fine,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f}),
+                            GridLayerSq(0.04, 0.05 * local_scale_fine,
+                                        {-1.0f, 1.0f, -1.0f, 1.0f})}),
+        gcn(GridNetworkSq(gcn_layers)),
+        space_fine(PCNN(N, gcn.len(), gain_fine, offset_fine,
+                       0.01f, threshold_fine, rep_threshold_fine,
+                       rec_threshold_fine, min_rep_threshold, gcn,
+                       "fine")),
+        space_coarse(PCNN(Nc, gcn.len(), gain_coarse, offset_coarse,
+                              0.01f, threshold_coarse, rep_threshold_coarse,
+                              rec_threshold_coarse, min_rep_threshold,
+                          gcn, "coarse")),
+        goalmd(GoalModule(space_fine, space_coarse, circuits, speed,
+                          speed * local_scale_fine / local_scale_coarse)),
+        rwobj(RewardObject(min_weight_value)),
+        dpolicy(DensityPolicy(rwd_weight, rwd_sigma, col_weight, col_sigma)),
+        expmd(ExplorationModule(speed * 2.0f, circuits, space_fine,
+                                action_delay, edge_route_interval)) {}
+
+    // CALL
+    std::array<float, 2> call(
+            const std::array<float, 2>& velocity,
+            float collision, float reward,
+            bool trigger) {
+
+        clock++;
+
+        if (collision > 0.0f) { LOG("[Brain] collision received"); }
+        if (reward > 0.0f) { LOG("[Brain] reward received"); }
+
+        // === STATE UPDATE ==============================================
+
+        // :space
+        auto [u, _] = space_fine.call(velocity);
+        auto [uc, __] = space_coarse.call(velocity);
+        this->curr_representation = u;
+        this->curr_representation_coarse = uc;
+
+        // :circuits
+        std::array<float, CIRCUIT_SIZE> internal_state = \
+            circuits.call(u, collision, reward, false);
+
+        // :dpolicy fine space
+        dpolicy.call(space_fine,
+                     circuits,
+                     goalmd,
+                     velocity,
+                     internal_state[1], internal_state[0],
+                     reward, collision);
+        space_fine.update();
+        space_coarse.update();
+
+        // check: still-ness | wrt the fine space
+        if (forced_exploration < forced_duration) {
+            forced_exploration++;
+            goalmd.reset();
+            goto explore;
+        } else if (ssry.call(curr_representation)) {
+            LOG("[Brain] forced exploration : v=" + std::to_string(ssry.get_v()));
+            forced_exploration = 0;
+            goto explore;
+        }
+
+        // === GOAL-DIRECTED BEHAVIOUR ====================================
+
+        // --- current target plan
+
+        // check: current trg plan
+        if (goalmd.is_active()) {
+            /* LOG("[Brain] active goal plan"); */
+            trg_plan_end = 0;
+            std::pair<std::array<float, 2>, bool> progress = \
+                goalmd.step_plan(collision > 0.0f);
+
+            // keep going
+            if (progress.second) {
+                this->action = progress.first; 
+                goto final;
+            }
+            // end or fail -> random walk
+            forced_exploration = 0;
+        }
+
+        // time since the last trg plan ended
+        trg_plan_end++;
+
+        // --- new target plan: REWARD
+
+        // :reward object | new reward trg index wrt the fine space
+        tmp_trg_idx = rwobj.update(circuits.get_da_weights(),
+                                   space_fine, trigger);
+
+        if (tmp_trg_idx > -1) {
+
+            // check new reward trg plan
+            bool valid_plan = goalmd.update(tmp_trg_idx, true);
+
+            // [+] reward trg plan
+            if (valid_plan) {
+                LOG("[Brain] valid goal plan");
+                this->directive = "trg";
+                std::pair<std::array<float, 2>, bool> progress = \
+                    goalmd.step_plan(collision > 0.0f);
+                if (progress.second) {
+                    this->action = progress.first;
+                    goto final;
+                }
+                forced_exploration = 0;
+            }
+            LOG("[Brain] invalid goal plan");
+        }
+
+        // === EXPLORATIVE BEHAVIOUR =======================================
+explore:
+
+        // check: collision
+        if (collision > 0.0f) { this->directive = "new"; }
+        else { this->directive = "continue"; }
+
+        // :experience module
+        expmd_res = expmd.call(directive);
+
+        // check: plan to go to the open boundary
+        if (expmd_res.second > -1) {
+            this->action = attempt_boundary_plan(expmd_res.second);
+            goto final;
+        }
+        this->action = expmd_res.first;
+
+final:
+
+        // ================================================================
+
+        // make prediction
+        make_prediction();
+
+        /* LOG("[brain] action=" + std::to_string(action[0]) + ", " + \ */
+        /*     std::to_string(action[1])); */
+        return action;
+    }
+
+    std::string str() { return "Brainv3"; }
+    std::string repr() { return "Brainv3"; }
+    int len() { return space_fine.get_size(); }
+    Eigen::VectorXf get_trg_representation() {
+        Eigen::VectorXf trg_representation = \
+            Eigen::VectorXf::Zero(space_fine.get_size());
+        trg_representation(rwobj.trg_idx) = 1.;
+        return trg_representation;
+    }
+    int get_trg_idx() { return rwobj.trg_idx; }
+    std::array<float, 2> get_leaky_v() { return circuits.get_leaky_v(); }
+    Eigen::VectorXf& get_representation_fine() { return curr_representation; }
+    Eigen::VectorXf& get_representation_coarse()
+        { return curr_representation_coarse; }
+    std::array<float, 2> get_trg_position() {
+        Eigen::MatrixXf centers = space_fine.get_centers();
+        return {centers(rwobj.trg_idx, 0), centers(rwobj.trg_idx, 1)};
+    }
+    ExplorationModule& get_expmd() { return expmd; }
+    std::string get_directive() { return directive; }
+    int get_space_fine_size() { return space_fine.get_size(); }
+    int get_space_coarse_size() { return space_coarse.get_size(); }
+    int get_space_fine_count() { return space_fine.len(); }
+    int get_space_coarse_count() { return space_coarse.len(); }
+    std::vector<int> get_plan_idxs_fine() { return goalmd.get_plan_idxs_fine(); }
+    std::vector<int> get_plan_idxs_coarse() { return goalmd.get_plan_idxs_coarse(); }
+    std::array<float, 2> get_space_fine_position()
+        { return space_fine.get_position(); }
+    std::array<float, 2> get_space_coarse_position()
+        { return space_coarse.get_position(); }
+    Eigen::MatrixXf get_space_fine_centers() { return space_fine.get_centers(); }
+    Eigen::MatrixXf get_space_coarse_centers() { return space_coarse.get_centers(); }
+    Eigen::VectorXf get_da_weights() { return circuits.get_da_weights(); }
+    Eigen::VectorXf get_bnd_weights() { return circuits.get_bnd_weights(); }
+    Eigen::VectorXf get_edge_representation() 
+        { return expmd.get_edge_representation(); }
+    void reset() {
+        goalmd.reset();
+        circuits.reset();
+    }
+
+};
 
 /* ========================================== */
 
