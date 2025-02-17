@@ -244,8 +244,6 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("space"),
              py::arg("circuits"),
              py::arg("goalmd"),
-             /* py::arg("da_weights"), */
-             /* py::arg("bnd_weights"), */
              py::arg("displacement"),
              py::arg("da_value"),
              py::arg("bnd_value"),
@@ -271,206 +269,91 @@ PYBIND11_MODULE(pclib, m) {
 
     // Brain
     py::class_<Brain>(m, "Brain")
-        .def(py::init<Circuits&,
-             PCNN_REF&,
-             PCNN_REF&,
-             ExplorationModule&,
-             StationarySensory&,
-             DensityPolicy&,
-             float, float, int, int, float>(),
-             py::arg("circuits"),
-             py::arg("space_fine"),
-             py::arg("space_coarse"),
-             py::arg("expmd"),
-             py::arg("ssry"),
-             py::arg("dpolicy"),
+
+        .def(py::init<
+             float, float, int, int, float, float, float, float,
+             float, float, float, float,
+             float, float, float, float,
+             float, float, float,
+             float, float, float,
+             float, float,
+             float,
+             float, float, float, float,
+             float, int,
+             int, int, float
+             >(),
+             py::arg("local_scale_fine"),
+             py::arg("local_scale_coarse"),
+             py::arg("N"),
+             py::arg("Nc"),
+             py::arg("rec_threshold_fine"),
+             py::arg("rec_threshold_coarse"),
              py::arg("speed"),
-             py::arg("speed_coarse"),
-             py::arg("max_attempts") = 2,
-             py::arg("forced_duration") = 10,
+             py::arg("min_rep_threshold"),
+
+             py::arg("gain_fine"),
+             py::arg("offset_fine"),
+             py::arg("threshold_fine"),
+             py::arg("rep_threshold_fine"),
+
+             py::arg("gain_coarse"),
+             py::arg("offset_coarse"),
+             py::arg("threshold_coarse"),
+             py::arg("rep_threshold_coarse"),
+
+             py::arg("lr_da"),
+             py::arg("threshold_da"),
+             py::arg("tau_v_da"),
+
+             py::arg("lr_bnd"),
+             py::arg("threshold_bnd"),
+             py::arg("tau_v_bnd"),
+
+             py::arg("tau_ssry"),
+             py::arg("threshold_ssry"),
+
+             py::arg("threshold_circuit"),
+
+             py::arg("rwd_weight"),
+             py::arg("rwd_sigma"),
+             py::arg("col_weight"),
+             py::arg("col_sigma"),
+
+             py::arg("action_delay"),
+             py::arg("edge_route_interval"),
+
+             py::arg("forced_duration"),
+             py::arg("fine_tuning_min_duration"),
              py::arg("min_weight_value") = 0.3)
         .def("__call__", &Brain::call,
              py::arg("velocity"),
              py::arg("collision"),
              py::arg("reward"),
              py::arg("trigger"))
-        .def("get_representation",
-             &Brain::get_representation)
-        .def("get_representation_coarse",
-             &Brain::get_representation_coarse)
-        .def("get_trg_representation",
-             &Brain::get_trg_representation)
-        .def("get_directive", &Brain::get_directive)
         .def("__str__", &Brain::str)
         .def("__repr__", &Brain::repr)
         .def("__len__", &Brain::len)
+        .def("get_trg_representation",&Brain::get_trg_representation)
+        .def("get_directive", &Brain::get_directive)
         .def("get_expmd", &Brain::get_expmd)
-        .def("get_space", &Brain::get_space)
         .def("get_trg_idx", &Brain::get_trg_idx)
-        .def("get_space_position_fine", &Brain::get_space_position_fine)
-        .def("get_plan_idxs_coarse", &Brain::get_plan_idxs_coarse)
         .def("get_trg_position", &Brain::get_trg_position)
+        .def("get_space_fine_size", &Brain::get_space_fine_size)
+        .def("get_space_coarse_size", &Brain::get_space_coarse_size)
         .def("get_plan_idxs_fine", &Brain::get_plan_idxs_fine)
         .def("get_plan_idxs_coarse", &Brain::get_plan_idxs_coarse)
-        .def("get_leaky_v", &Brain::get_leaky_v)
-        .def("get_space_position_fine", &Brain::get_space_position_fine)
-        .def("get_space_position_coarse", &Brain::get_space_position_coarse)
+        .def("get_representation_fine", &Brain::get_representation_fine)
+        .def("get_representation_coarse", &Brain::get_representation_coarse)
+        .def("get_space_fine_position", &Brain::get_space_fine_position)
+        .def("get_space_coarse_position", &Brain::get_space_coarse_position)
+        .def("get_space_fine_centers", &Brain::get_space_fine_centers)
+        .def("get_space_coarse_centers", &Brain::get_space_coarse_centers)
+        .def("get_space_fine_count", &Brain::get_space_fine_count)
+        .def("get_space_coarse_count", &Brain::get_space_coarse_count)
+        .def("get_da_weights", &Brain::get_da_weights)
+        .def("get_bnd_weights", &Brain::get_bnd_weights)
         .def("get_edge_representation", &Brain::get_edge_representation)
         .def("reset", &Brain::reset);
-
-    py::class_<Brainv2>(m, "Brainv2")
-        .def(py::init<
-             float, float, int, int, float, float, float, float,
-             float, float, float, float,
-             float, float, float, float,
-             float, float, float,
-             float, float, float,
-             float, float,
-             float,
-             float, float, float, float,
-             float, int,
-             int, int, float
-             >(),
-             py::arg("local_scale_fine"),
-             py::arg("local_scale_coarse"),
-             py::arg("N"),
-             py::arg("Nc"),
-             py::arg("rec_threshold_fine"),
-             py::arg("rec_threshold_coarse"),
-             py::arg("speed"),
-             py::arg("min_rep_threshold"),
-
-             py::arg("gain_fine"),
-             py::arg("offset_fine"),
-             py::arg("threshold_fine"),
-             py::arg("rep_threshold_fine"),
-
-             py::arg("gain_coarse"),
-             py::arg("offset_coarse"),
-             py::arg("threshold_coarse"),
-             py::arg("rep_threshold_coarse"),
-
-             py::arg("lr_da"),
-             py::arg("threshold_da"),
-             py::arg("tau_v_da"),
-
-             py::arg("lr_bnd"),
-             py::arg("threshold_bnd"),
-             py::arg("tau_v_bnd"),
-
-             py::arg("tau_ssry"),
-             py::arg("threshold_ssry"),
-
-             py::arg("threshold_circuit"),
-
-             py::arg("rwd_weight"),
-             py::arg("rwd_sigma"),
-             py::arg("col_weight"),
-             py::arg("col_sigma"),
-
-             py::arg("action_delay"),
-             py::arg("edge_route_interval"),
-
-             py::arg("forced_duration"),
-             py::arg("fine_tuning_min_duration"),
-             py::arg("min_weight_value") = 0.3)
-        .def("__call__", &Brainv2::call,
-             py::arg("velocity"),
-             py::arg("collision"),
-             py::arg("reward"),
-             py::arg("trigger"))
-        .def("__str__", &Brainv2::str)
-        .def("__repr__", &Brainv2::repr)
-        .def("__len__", &Brainv2::len)
-        .def("get_cell_count", &Brainv2::get_cell_count)
-        .def("reset", &Brainv2::reset);
-
-    py::class_<Brainv3>(m, "Brainv3")
-
-        .def(py::init<
-             float, float, int, int, float, float, float, float,
-             float, float, float, float,
-             float, float, float, float,
-             float, float, float,
-             float, float, float,
-             float, float,
-             float,
-             float, float, float, float,
-             float, int,
-             int, int, float
-             >(),
-             py::arg("local_scale_fine"),
-             py::arg("local_scale_coarse"),
-             py::arg("N"),
-             py::arg("Nc"),
-             py::arg("rec_threshold_fine"),
-             py::arg("rec_threshold_coarse"),
-             py::arg("speed"),
-             py::arg("min_rep_threshold"),
-
-             py::arg("gain_fine"),
-             py::arg("offset_fine"),
-             py::arg("threshold_fine"),
-             py::arg("rep_threshold_fine"),
-
-             py::arg("gain_coarse"),
-             py::arg("offset_coarse"),
-             py::arg("threshold_coarse"),
-             py::arg("rep_threshold_coarse"),
-
-             py::arg("lr_da"),
-             py::arg("threshold_da"),
-             py::arg("tau_v_da"),
-
-             py::arg("lr_bnd"),
-             py::arg("threshold_bnd"),
-             py::arg("tau_v_bnd"),
-
-             py::arg("tau_ssry"),
-             py::arg("threshold_ssry"),
-
-             py::arg("threshold_circuit"),
-
-             py::arg("rwd_weight"),
-             py::arg("rwd_sigma"),
-             py::arg("col_weight"),
-             py::arg("col_sigma"),
-
-             py::arg("action_delay"),
-             py::arg("edge_route_interval"),
-
-             py::arg("forced_duration"),
-             py::arg("fine_tuning_min_duration"),
-             py::arg("min_weight_value") = 0.3)
-        .def("__call__", &Brainv3::call,
-             py::arg("velocity"),
-             py::arg("collision"),
-             py::arg("reward"),
-             py::arg("trigger"))
-        .def("__str__", &Brainv3::str)
-        .def("__repr__", &Brainv3::repr)
-        .def("__len__", &Brainv3::len)
-        .def("get_trg_representation",&Brainv3::get_trg_representation)
-        .def("get_directive", &Brainv3::get_directive)
-        .def("get_expmd", &Brainv3::get_expmd)
-        .def("get_trg_idx", &Brainv3::get_trg_idx)
-        .def("get_trg_position", &Brainv3::get_trg_position)
-        .def("get_space_fine_size", &Brainv3::get_space_fine_size)
-        .def("get_space_coarse_size", &Brainv3::get_space_coarse_size)
-        .def("get_plan_idxs_fine", &Brainv3::get_plan_idxs_fine)
-        .def("get_plan_idxs_coarse", &Brainv3::get_plan_idxs_coarse)
-        .def("get_representation_fine", &Brainv3::get_representation_fine)
-        .def("get_representation_coarse", &Brainv3::get_representation_coarse)
-        .def("get_space_fine_position", &Brainv3::get_space_fine_position)
-        .def("get_space_coarse_position", &Brainv3::get_space_coarse_position)
-        .def("get_space_fine_centers", &Brainv3::get_space_fine_centers)
-        .def("get_space_coarse_centers", &Brainv3::get_space_coarse_centers)
-        .def("get_space_fine_count", &Brainv3::get_space_fine_count)
-        .def("get_space_coarse_count", &Brainv3::get_space_coarse_count)
-        .def("get_da_weights", &Brainv3::get_da_weights)
-        .def("get_bnd_weights", &Brainv3::get_bnd_weights)
-        .def("get_edge_representation", &Brainv3::get_edge_representation)
-        .def("reset", &Brainv3::reset);
 
 }
 
