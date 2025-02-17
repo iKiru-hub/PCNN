@@ -83,17 +83,19 @@ global_parameters = {
 parameters = {
 
     "gain_fine": 10.,
-    "offset_fine": 1.1,
+    "offset_fine": 1.0,
     "threshold_fine": 0.3,
     "rep_threshold_fine": 0.88,
     "rec_threshold_fine": 60.,
+    "tau_trace_fine": 10.0,
     "min_rep_threshold": 0.95,
 
     "gain_coarse": 9.,
-    "offset_coarse": 1.1,
+    "offset_coarse": 1.0,
     "threshold_coarse": 0.3,
     "rep_threshold_coarse": 0.9,
     "rec_threshold_coarse": 100.,
+    "tau_trace_coarse": 20.0,
 
     "lr_da": 0.8,
     "threshold_da": 0.03,
@@ -140,8 +142,8 @@ class Renderer:
         self.names = names
         self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
         self.fig.set_tight_layout(True)
-        self.boundsx = (-600, 600)
-        self.boundsy = (-600, 600)
+        self.boundsx = (-300, 400)
+        self.boundsy = (-300, 400)
 
     def render(self):
 
@@ -175,7 +177,8 @@ class Renderer:
                         c=plan, s=40*plan, cmap="Greens", alpha=0.7)
 
             # title
-            loc_ = np.array(self.brain.get_space_fine_centers())[self.brain.get_trg_idx()]
+            loc_ = np.array(self.brain.get_space_fine_centers()
+                            )[self.brain.get_trg_idx()]
             self.axs[0, 0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
                 f" ({self.brain.get_trg_representation().max():.3f}, " + \
                 f"{self.brain.get_trg_representation().argmax()}) " + \
@@ -208,16 +211,16 @@ class Renderer:
             # fine space
             self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                    color="blue", s=20, alpha=0.4)
-            # for edge in self.space_fine.make_edges():
-            #     self.axs[0, 0].plot((edge[0][0], edge[1][0]),
-            #                         (edge[0][1], edge[1][1]),
-            #                      alpha=0.3, color="black")
+            for edge in self.brain.make_space_fine_edges():
+                self.axs[0, 0].plot((edge[0][0], edge[1][0]),
+                                    (edge[0][1], edge[1][1]),
+                                 alpha=0.3, color="black")
 
             # coarse space
-            # for edge in self.space_coarse.make_edges():
-            #     self.axs[0, 1].plot((edge[0][0], edge[1][0]),
-            #                         (edge[0][1], edge[1][1]),
-            #                      alpha=0.3, color="black")
+            for edge in self.brain.make_space_coarse_edges():
+                self.axs[0, 1].plot((edge[0][0], edge[1][0]),
+                                    (edge[0][1], edge[1][1]),
+                                 alpha=0.3, color="black")
 
             self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
                                    color="blue", s=40, alpha=0.4)
@@ -401,10 +404,12 @@ def run_model(parameters: dict, global_parameters: dict,
                 offset_fine=parameters["offset_fine"],
                 threshold_fine=parameters["threshold_fine"],
                 rep_threshold_fine=parameters["rep_threshold_fine"],
+                tau_trace_fine=parameters["tau_trace_fine"],
                 gain_coarse=parameters["gain_coarse"],
                 offset_coarse=parameters["offset_coarse"],
                 threshold_coarse=parameters["threshold_coarse"],
                 rep_threshold_coarse=parameters["rep_threshold_coarse"],
+                tau_trace_coarse=parameters["tau_trace_coarse"],
                 lr_da=parameters["lr_da"],
                 threshold_da=parameters["threshold_da"],
                 tau_v_da=parameters["tau_v_da"],
@@ -527,11 +532,13 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
                 min_rep_threshold=parameters["min_rep_threshold"],
                 rec_threshold_fine=parameters["rec_threshold_fine"],
                 rec_threshold_coarse=parameters["rec_threshold_coarse"],
+                tau_trace_fine=parameters["tau_trace_fine"],
                 speed=global_parameters["speed"],
                 gain_fine=parameters["gain_fine"],
                 offset_fine=parameters["offset_fine"],
                 threshold_fine=parameters["threshold_fine"],
                 rep_threshold_fine=parameters["rep_threshold_fine"],
+                tau_trace_coarse=parameters["tau_trace_coarse"],
                 gain_coarse=parameters["gain_coarse"],
                 offset_coarse=parameters["offset_coarse"],
                 threshold_coarse=parameters["threshold_coarse"],

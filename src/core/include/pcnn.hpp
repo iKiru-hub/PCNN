@@ -796,6 +796,7 @@ public:
     Eigen::MatrixXf weights;
     Eigen::VectorXf nodes_max_angle;
     Eigen::VectorXf node_degree;
+    Eigen::VectorXf one_trace;
     std::array<float, 2> position;
     int size;
     float threshold;
@@ -807,6 +808,7 @@ public:
         centers = Eigen::MatrixXf::Constant(size, 2, -9999.0f);
         connectivity = Eigen::MatrixXf::Zero(size, size);
         weights = Eigen::MatrixXf::Zero(size, size);
+        one_trace = Eigen::VectorXf::Ones(size);
         position = {0.00124789f, 0.00147891f};
         blocked_edges = {};
         nodes_max_angle = Eigen::VectorXf::Zero(size);
@@ -820,7 +822,9 @@ public:
         return {position[0], position[1]};
     }
 
-    void update(int idx, int current_size, bool update_center = true) {
+    void update(int idx, int current_size,
+                Eigen::VectorXf& traces,
+                bool update_center = true) {
 
         // update the centers
         if (update_center) {
@@ -831,22 +835,16 @@ public:
         // add recurrent connections
         for (int j = 0; j < current_size; j++) {
 
-            // check if the edge is blocked
-            bool blocked = false;
-            for (auto& edge : blocked_edges) {
-                if (edge[0] == idx && edge[1] == j) {
-                    blocked = true;
-                    break;
-                }
-            }
-            if (blocked) { continue; }
-
             // check if the nodes exist
             if (centers(idx, 0) < -999.0f || \
                 centers(j, 0) < -999.0f || \
                 idx == j) {
                 continue;
             }
+
+            // check if neighbors was active
+            if (traces(j) < 0.0001f) { continue; }
+
             float dist = std::sqrt(
                 (centers(idx, 0) - centers(j, 0)) *
                 (centers(idx, 0) - centers(j, 0)) +
@@ -859,7 +857,6 @@ public:
                 this->connectivity(idx, j) = 1.0;
                 this->connectivity(j, idx) = 1.0;
             } 
-            /* else { LOG("[VS] distance too large: " + std::to_string(dist)); } */
         }
 
         // update the node angles
@@ -870,34 +867,7 @@ public:
         centers(idx, 0) += displacement[0];
         centers(idx, 1) += displacement[1];
 
-        update(idx, size, false);
-    }
-
-    void add_blocked_edge(int i, int j) {
-
-        // check if the edge is already blocked
-        for (auto& edge : blocked_edges) {
-            if (edge[0] == i && edge[1] == j) {
-                LOG("[VS] edge already blocked: " + std::to_string(i) + ", " + \
-                    std::to_string(j));
-
-                // show the blocked edges in the connectivity matrix
-                LOG("\t::->" + std::to_string(connectivity(i, j)));
-                return;
-            }
-        }
-
-        blocked_edges.push_back({i, j});
-        blocked_edges.push_back({j, i});
-
-        // remove the edge from the connectivity matrix
-        this->connectivity(i, j) = 0.0;
-        this->connectivity(j, i) = 0.0;
-        this->weights(i, j) = 0.0;
-        this->weights(j, i) = 0.0;
-
-        LOG("[VS] added blocked edge: " + std::to_string(i) + ", " + \
-            std::to_string(j));
+        update(idx, size, one_trace, false);
     }
 
     Eigen::MatrixXf get_centers(bool nonzero=false) {
@@ -1562,7 +1532,7 @@ class PCNN {
     const float threshold_const;
     const float rep_threshold_const;
     const float gain_const;
-    const float tau_trace = 2.0f;
+    const float tau_trace;
 
     float rep_threshold;
     float min_rep_threshold;
@@ -1583,7 +1553,7 @@ class PCNN {
     std::vector<int> free_indexes;
     int cell_count;
     Eigen::VectorXf u;
-    Eigen::VectorXf trace;
+    Eigen::VectorXf traces;
     Eigen::VectorXf x_filtered;
 
     VelocitySpace vspace;
@@ -1625,14 +1595,14 @@ public:
     PCNN(int N, int Nj, float gain, float offset,
          float clip_min, float threshold, float rep_threshold,
          float rec_threshold, float min_rep_threshold,
-         GridNetworkSq xfilter,
+         GridNetworkSq xfilter, float tau_trace = 2.0f,
          std::string name = "fine")
         : N(N), Nj(Nj), gain(gain), gain_const(gain),
         offset(offset), clip_min(clip_min),
         min_rep_threshold(min_rep_threshold), rep_threshold(rep_threshold),
         rep_threshold_const(rep_threshold), rec_threshold(rec_threshold),
         threshold_const(threshold), threshold(threshold),
-        xfilter(xfilter), name(name),
+        xfilter(xfilter), tau_trace(tau_trace), name(name),
         vspace(VelocitySpace(N, rec_threshold)) {
 
         // Initialize the variables
@@ -1642,7 +1612,7 @@ public:
         connectivity = Eigen::MatrixXf::Zero(N, N);
         mask = Eigen::VectorXf::Zero(N);
         u = Eigen::VectorXf::Zero(N);
-        trace = Eigen::VectorXf::Zero(N);
+        traces = Eigen::VectorXf::Zero(N);
         delta_wff = 0.0;
         x_filtered = Eigen::VectorXf::Zero(N);
         cell_count = 0;
@@ -1671,8 +1641,8 @@ public:
                                                           0.01);
 
         u = generalized_sigmoid_vec(u, offset, gain, clip_min);
-        trace = trace - trace / tau_trace + u;
-        trace = trace.cwiseMin(1.0f);
+        traces = traces - traces / tau_trace + u;
+        traces = traces.cwiseMin(1.0f);
 
         return std::make_pair(u, x_filtered);
     }
@@ -1719,7 +1689,7 @@ public:
 
             // record new center
             LOG("Updating space " + name);
-            vspace.update(idx, N);
+            vspace.update(idx, N, traces);
             this->Wrec = vspace.weights;
             this->connectivity = vspace.connectivity;
         }
@@ -1743,12 +1713,6 @@ public:
         return u;
     }
 
-    void add_blocked_edge(int idx, int idx2) {
-        vspace.add_blocked_edge(idx, idx2);
-        this->Wrec = vspace.weights;
-        this->connectivity = vspace.connectivity;
-    }
-
     void remap(Eigen::VectorXf& block_weights,
                std::array<float, 2> velocity,
                float width, float magnitude) {
@@ -1765,7 +1729,8 @@ public:
             /* if (magnitude_i < 0.001f) { continue; } */
 
             // skip blocked edges
-            if (vspace.centers(i, 0) < -900.0f || block_weights(i) > 0.0f) { continue; }
+            if (vspace.centers(i, 0) < -900.0f || block_weights(i) > 0.0f)
+                { continue; }
 
             std::array<float, 2> displacement = \
                 {vspace.position[0] - vspace.centers(i, 0),
@@ -1773,7 +1738,7 @@ public:
 
             // gaussian activation function centered at zero
             float dist = std::exp(-std::sqrt(displacement[0] * displacement[0] + \
-                                             displacement[1] * displacement[1]) / width);
+                                    displacement[1] * displacement[1]) / width);
 
             // cutoff
             if (dist < 0.1f) { continue; }
@@ -1796,8 +1761,8 @@ public:
                 max_cosine_similarity_in_rows(Wff, i);
 
             // check repulsion (similarity) level
-            if (similarity > (dist * min_rep_threshold + (1 - dist) * min_rep_threshold) || \
-                    std::isnan(similarity)) {
+            if (similarity > (dist * min_rep_threshold + (1 - dist) * \
+                min_rep_threshold) || std::isnan(similarity)) {
                 Wff.row(i) = Wffbackup.row(i);
                 continue;
             }
@@ -1848,7 +1813,10 @@ public:
     int calculate_closest_index(const std::array<float, 2>& c)
         { return vspace.calculate_closest_index(c); }
 
-    void reset() { u = Eigen::VectorXf::Zero(N); }
+    void reset() {
+        u = Eigen::VectorXf::Zero(N);
+        traces = Eigen::VectorXf::Zero(N);
+    }
 
     // Getters
     int len() { return cell_count; }
@@ -2770,6 +2738,7 @@ public:
 /* ================= BRAIN ================== */
 /* ========================================== */
 
+
 class Brain {
 
     // external components
@@ -2852,48 +2821,51 @@ class Brain {
 public:
 
     Brain(float local_scale_fine, 
-            float local_scale_coarse,
-            int N,
-            int Nc,
-            float rec_threshold_fine,
-            float rec_threshold_coarse,
-            float speed,
-            float min_rep_threshold,
+          float local_scale_coarse,
 
-            float gain_fine,
-            float offset_fine,
-            float threshold_fine,
-            float rep_threshold_fine,
+          int N,
+          int Nc,
+          float rec_threshold_fine,
+          float rec_threshold_coarse,
+          float speed,
+          float min_rep_threshold,
 
-            float gain_coarse,
-            float offset_coarse,
-            float threshold_coarse,
-            float rep_threshold_coarse,
+          float gain_fine,
+          float offset_fine,
+          float threshold_fine,
+          float rep_threshold_fine,
+          float tau_trace_fine,
 
-            float lr_da,
-            float threshold_da,
-            float tau_v_da,
+          float gain_coarse,
+          float offset_coarse,
+          float threshold_coarse,
+          float rep_threshold_coarse,
+          float tau_trace_coarse,
 
-            float lr_bnd,
-            float threshold_bnd,
-            float tau_v_bnd,
+          float lr_da,
+          float threshold_da,
+          float tau_v_da,
 
-            float tau_ssry,
-            float threshold_ssry,
+          float lr_bnd,
+          float threshold_bnd,
+          float tau_v_bnd,
 
-            float threshold_circuit,
+          float tau_ssry,
+          float threshold_ssry,
 
-            float rwd_weight,
-            float rwd_sigma,
-            float col_weight,
-            float col_sigma,
+          float threshold_circuit,
 
-            float action_delay,
-            int edge_route_interval,
+          float rwd_weight,
+          float rwd_sigma,
+          float col_weight,
+          float col_sigma,
 
-            int forced_duration,
-            int fine_tuning_min_duration,
-            float min_weight_value = 0.3):
+          float action_delay,
+          int edge_route_interval,
+
+          int forced_duration,
+          int fine_tuning_min_duration,
+          float min_weight_value = 0.3):
         clock(0), forced_duration(forced_duration), directive("new"),
         da(BaseModulation("DA", N, lr_da, threshold_da, 1.0f,
                                            tau_v_da, 0.0f, 0.0f)),
@@ -2917,13 +2889,13 @@ public:
                                         {-1.0f, 1.0f, -1.0f, 1.0f})}),
         gcn(GridNetworkSq(gcn_layers)),
         space_fine(PCNN(N, gcn.len(), gain_fine, offset_fine,
-                       0.01f, threshold_fine, rep_threshold_fine,
-                       rec_threshold_fine, min_rep_threshold, gcn,
-                       "fine")),
+                        0.01f, threshold_fine, rep_threshold_fine,
+                        rec_threshold_fine, min_rep_threshold, gcn,
+                        tau_trace_fine, "fine")),
         space_coarse(PCNN(Nc, gcn.len(), gain_coarse, offset_coarse,
-                              0.01f, threshold_coarse, rep_threshold_coarse,
-                              rec_threshold_coarse, min_rep_threshold,
-                          gcn, "coarse")),
+                          0.01f, threshold_coarse, rep_threshold_coarse,
+                          rec_threshold_coarse, min_rep_threshold,
+                          gcn, tau_trace_coarse, "coarse")),
         goalmd(GoalModule(space_fine, space_coarse, circuits, speed,
                           speed * local_scale_fine / local_scale_coarse)),
         rwobj(RewardObject(min_weight_value)),
@@ -3087,6 +3059,10 @@ final:
     Eigen::MatrixXf get_space_coarse_centers() { return space_coarse.get_centers(); }
     Eigen::VectorXf get_da_weights() { return circuits.get_da_weights(); }
     Eigen::VectorXf get_bnd_weights() { return circuits.get_bnd_weights(); }
+    std::vector<std::array<std::array<float, 2>, 2>> make_space_fine_edges()
+        { return space_fine.make_edges(); }
+    std::vector<std::array<std::array<float, 2>, 2>> make_space_coarse_edges()
+        { return space_coarse.make_edges(); }
     Eigen::VectorXf get_edge_representation() 
         { return expmd.get_edge_representation(); }
     void reset() {
@@ -3096,7 +3072,10 @@ final:
 
 };
 
+
 /* ========================================== */
+/* ========================================== */
+
 
 namespace pcl {
 
@@ -3156,10 +3135,10 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     gcn_layers.push_back(GridLayerSq(0.04, 0.005, {-1.0f, 1.0f, -1.0f, 1.0f}));
     GridNetworkSq gcn = GridNetworkSq(gcn_layers);
     PCNN space = PCNN(N, gcn.len(), 10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
-                              5.0f, 5, gcn, "2D");
+                              5.0f, 5, gcn, 10.0f, "fine");
     PCNN space_coarse = PCNN(N, gcn.len(),
                                      10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
-                                     5.0f, 0.95, gcn, "fine");
+                                     5.0f, 0.95, gcn, 20.0f, "coarse");
 
     // MODULATION
     // name size lr threshold maxw tauv eqv minv
@@ -3176,8 +3155,8 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     /* Brain brain = Brain(circuits, space, space_coarse, expmd, ssry, dpolicy, */ 
     /*                     SPEED, SPEED * 2.0f, 5); */
     Brain brain = Brain(0.1f, 0.1f, N, N, 0.01f, 0.01f, SPEED, 0.01f,
-                            0.5f, 0.0f, 0.2f, 0.7f,
-                            0.5f, 0.0f, 0.2f, 0.7f,
+                            0.5f, 0.0f, 0.2f, 0.7f, 10.0f,
+                            0.5f, 0.0f, 0.2f, 0.7f, 20.0f,
                             0.5f, 0.0f, 0.2f,
                             0.5f, 0.0f, 0.2f,
                             100.0f, 0.2f,

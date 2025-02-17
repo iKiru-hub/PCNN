@@ -87,7 +87,7 @@ PYBIND11_MODULE(pclib, m) {
         .def(py::init<int, int, float, float,
              float, float, float, float, \
              float, GridNetworkSq&, \
-             std::string>(),
+             float, std::string>(),
              py::arg("N"),
              py::arg("Nj"),
              py::arg("gain"),
@@ -98,6 +98,7 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("rec_threshold"),
              py::arg("min_rep_threshold"),
              py::arg("xfilter"),
+             py::arg("tau_trace") = 2.0f,
              py::arg("name") = "fine")
         .def("__call__", &PCNN::call,
              py::arg("v"))
@@ -132,6 +133,7 @@ PYBIND11_MODULE(pclib, m) {
         .def("update", &VelocitySpace::update,
              py::arg("idx"),
              py::arg("current_size"),
+             py::arg("traces"),
              py::arg("update_center") = true)
         .def("remap_center", &VelocitySpace::remap_center,
              py::arg("idx"),
@@ -272,8 +274,8 @@ PYBIND11_MODULE(pclib, m) {
 
         .def(py::init<
              float, float, int, int, float, float, float, float,
-             float, float, float, float,
-             float, float, float, float,
+             float, float, float, float, float,
+             float, float, float, float, float,
              float, float, float,
              float, float, float,
              float, float,
@@ -295,11 +297,13 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("offset_fine"),
              py::arg("threshold_fine"),
              py::arg("rep_threshold_fine"),
+             py::arg("tau_trace_fine"),
 
              py::arg("gain_coarse"),
              py::arg("offset_coarse"),
              py::arg("threshold_coarse"),
              py::arg("rep_threshold_coarse"),
+             py::arg("tau_trace_coarse"),
 
              py::arg("lr_da"),
              py::arg("threshold_da"),
@@ -350,6 +354,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_space_coarse_centers", &Brain::get_space_coarse_centers)
         .def("get_space_fine_count", &Brain::get_space_fine_count)
         .def("get_space_coarse_count", &Brain::get_space_coarse_count)
+        .def("make_space_fine_edges", &Brain::make_space_fine_edges)
+        .def("make_space_coarse_edges", &Brain::make_space_coarse_edges)
         .def("get_da_weights", &Brain::get_da_weights)
         .def("get_bnd_weights", &Brain::get_bnd_weights)
         .def("get_edge_representation", &Brain::get_edge_representation)

@@ -26,7 +26,7 @@ reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
     # "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.1 * GAME_SCALE,
+    "rw_radius": 0.05 * GAME_SCALE,
     "rw_sigma": 0.75 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
@@ -123,7 +123,8 @@ print(result)
 
         result = subprocess.run(command, check=True, capture_output=True, text=True)
 
-        # Extract the last line of output (assuming sim.run_model() prints only the result last)
+        # Extract the last line of output (assuming sim.run_model()
+        # prints only the result last)
         last_line = result.stdout.strip().split("\n")[-1]
 
         # print(f"\t{agent.model.name} - {room_name} : {last_line}")
@@ -141,7 +142,8 @@ print(result)
 class Model:
 
     def __init__(self, gain_fine, offset_fine, threshold_fine, rep_threshold_fine,
-                 gain_coarse, offset_coarse, threshold_coarse, rep_threshold_coarse,
+                 tau_trace_fine, gain_coarse, offset_coarse, threshold_coarse,
+                 rep_threshold_coarse, tau_trace_coarse,
                  min_rep_threshold,
                  rec_threshold_fine, rec_threshold_coarse,
                  lr_da, threshold_da, tau_v_da,
@@ -158,12 +160,14 @@ class Model:
             "threshold_fine": threshold_fine,
             "rep_threshold_fine": rep_threshold_fine,
             "rec_threshold_fine": rec_threshold_fine,
+            "tau_trace_fine": tau_trace_fine,
             "min_rep_threshold": min_rep_threshold,
             "gain_coarse": gain_coarse,
             "offset_coarse": offset_coarse,
             "threshold_coarse": threshold_coarse,
             "rep_threshold_coarse": rep_threshold_coarse,
             "rec_threshold_coarse": rec_threshold_coarse,
+            "tau_trace_coarse": tau_trace_coarse,
             "lr_da": lr_da,
             "threshold_da": threshold_da,
             "tau_v_da": tau_v_da,
@@ -236,12 +240,14 @@ FIXED_PARAMETERS = {
     # "rep_threshold_fine": 0.88,
     # "rec_threshold_fine": 26.,
     # "min_rep_threshold": 0.95,
+    # "tau_trace_fine": 10.0,
 
     # "gain_coarse": 11.,
     "offset_coarse": 1.1,
     "threshold_coarse": 0.35,
     # "rep_threshold_coarse": 0.89,
     # "rec_threshold_coarse": 60.,
+    # "tau_trace_coarse": 20.0,
 
     # "lr_da": 0.4,
     # "threshold_da": 0.08,
@@ -262,7 +268,7 @@ FIXED_PARAMETERS = {
     # "col_sigma": 2.0,
 
     # "action_delay": 30.,
-    #"edge_route_interval": 50,
+    "edge_route_interval": 70,
 
     "forced_duration": 100,
     "fine_tuning_min_duration": 20
@@ -277,19 +283,21 @@ PARAMETERS = {
     "threshold_fine": lambda: round(random.uniform(0.05, 0.5), 2),
     "rep_threshold_fine": lambda: round(random.uniform(0.7, 0.95), 2),
     "rec_threshold_fine": lambda: round(random.uniform(20., 80.)),
+    "tau_trace_fine": lambda: round(random.uniform(1., 200.)),
     "min_rep_threshold": lambda: round(random.uniform(0.89, 0.99), 2),
 
-    "gain_coarse": lambda: round(random.uniform(5., 20.), 1),
+    "gain_coarse": lambda: round(random.uniform(7., 20.), 1),
     "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_coarse": lambda: round(random.uniform(0.05, 0.5), 2),
     "rep_threshold_coarse": lambda: round(random.uniform(0.7, 0.95), 2),
     "rec_threshold_coarse": lambda: round(random.uniform(30., 130.)),
+    "tau_trace_coarse": lambda: round(random.uniform(1., 200.)),
 
     "lr_da": lambda: round(random.uniform(0.05, 0.99), 2),
     "threshold_da": lambda: round(random.uniform(0.01, 0.5), 2),
     "tau_v_da": lambda: float(random.randint(1, 10)),
 
-    "lr_bnd": lambda: round(random.uniform(0.05, 0.99), 2),
+    "lr_bnd": lambda: round(random.uniform(0.3, 0.99), 2),
     "threshold_bnd": lambda: round(random.uniform(0.01, 0.5), 2),
     "tau_v_bnd": lambda: float(random.randint(1, 10)),
 
@@ -408,7 +416,8 @@ if __name__ == "__main__" :
         "model": "ModelShell",
         "game": env.__repr__(),
         "evolution": settings,
-        "evolved": [key for key in PARAMETERS.keys() if key not in FIXED_PARAMETERS.keys()],
+        "evolved": [key for key in PARAMETERS.keys() if key not in \
+            FIXED_PARAMETERS.keys()],
         "data": {"game_settings": game_settings.copy(),
                  "reward_settings": reward_settings.copy(),
                  "agent_settings": agent_settings.copy(),
