@@ -61,7 +61,7 @@ global_parameters = {
     "Nc": 12**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
-    "speed": 0.75,
+    "speed": 1.5,
     "min_weight_value": 0.5
 }
 
@@ -93,15 +93,15 @@ PARAMETERS = {
     "tau_ssry": 100.,
     "threshold_ssry": 0.998,
 
-    "threshold_circuit": 0.1,
+    "threshold_circuit": 0.9,
 
-    "rwd_weight": 0.1,
+    "rwd_weight": 0.0,
     "rwd_sigma": 40.0,
     "col_weight": 0.0,
     "col_sigma": 2.0,
 
     "action_delay": 50.,
-    "edge_route_interval": 50,
+    "edge_route_interval": 5,
 
     "forced_duration": 100,
     "fine_tuning_min_duration": 10,

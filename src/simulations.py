@@ -34,7 +34,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 2_000,
+    "silent_duration": 1_000,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 35.,
@@ -53,7 +53,7 @@ game_settings = {
     "rw_event": "move agent",
     "rendering": True,
     "rendering_pcnn": True,
-    "max_duration": 10_000,
+    "max_duration": 20_000,
     "room_thickness": 5,
     "seed": None,
     "pause": -1,
@@ -72,8 +72,8 @@ model_params = {
 global_parameters = {
     "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
-    "N": 22**2,
-    "Nc": 12**2,
+    "N": 27**2,
+    "Nc": 14**2,
     # "rec_threshold_fine": 60.,
     # "rec_threshold_coarse": 100.,
     "speed": 1.5,
@@ -91,8 +91,8 @@ parameters = {
 
     "gain_coarse": 9.,
     "offset_coarse": 1.0,
-    "threshold_coarse": 0.3,
-    "rep_threshold_coarse": 0.9,
+    "threshold_coarse": 0.2,
+    "rep_threshold_coarse": 0.85,
     "rec_threshold_coarse": 100.,
     "tau_trace_coarse": 20.0,
 
@@ -100,22 +100,22 @@ parameters = {
     "threshold_da": 0.03,
     "tau_v_da": 1.0,
 
-    "lr_bnd": 0.4,
+    "lr_bnd": 0.3,
     "threshold_bnd": 0.05,
     "tau_v_bnd": 2.0,
 
     "tau_ssry": 100.,
     "threshold_ssry": 0.998,
 
-    "threshold_circuit": 0.1,
+    "threshold_circuit": 0.9,
 
     "rwd_weight": 0.1,
     "rwd_sigma": 40.0,
     "col_weight": 0.0,
     "col_sigma": 2.0,
 
-    "action_delay": 50.,
-    "edge_route_interval": 50,
+    "action_delay": 120.,
+    "edge_route_interval": 5,
 
     "forced_duration": 100,
     "fine_tuning_min_duration": 10,

@@ -59,8 +59,8 @@ game_settings = {
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 13**2,
-    "Nc": 10**2,
+    "N": 25**2,
+    "Nc": 15**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
     "speed": 0.75,
@@ -249,11 +249,11 @@ FIXED_PARAMETERS = {
     # "tau_v_da": 1.0,
 
     # "lr_bnd": 0.4,
-    "threshold_bnd": 0.04,
-    "tau_v_bnd": 1.0,
+    # "threshold_bnd": 0.04,
+    # "tau_v_bnd": 1.0,
 
-    "tau_ssry": 100.,
-    "threshold_ssry": 0.995,
+    # "tau_ssry": 100.,
+    # "threshold_ssry": 0.995,
 
     # "threshold_circuit": 0.7,
 
@@ -263,10 +263,10 @@ FIXED_PARAMETERS = {
     # "col_sigma": 2.0,
 
     # "action_delay": 30.,
-    "edge_route_interval": 70,
+    # "edge_route_interval": 70,
 
-    "forced_duration": 100,
-    "fine_tuning_min_duration": 20
+    # "forced_duration": 100,
+    # "fine_tuning_min_duration": 20
 }
 
 
@@ -309,7 +309,7 @@ PARAMETERS = {
     "action_delay": lambda: round(random.uniform(1., 200.), 1),
     "edge_route_interval": lambda: random.randint(1, 200),
 
-    "forced_duration": lambda: random.randint(1, 1500),
+    "forced_duration": lambda: random.randint(1, 500),
     "fine_tuning_min_duration": lambda: random.randint(1, 100),
 }
 
@@ -417,7 +417,7 @@ if __name__ == "__main__" :
                  "reward_settings": reward_settings.copy(),
                  "agent_settings": agent_settings.copy(),
                  "global_parameters": global_parameters.copy()},
-        "other": "limited PCfine availability",
+        "other": "plentiful PCfine availability",
     }
 
     # ---| Run |---

@@ -48,7 +48,7 @@
 
 // blank log function
 void LOG(const std::string& msg) {
-    return;
+    /* return; */
     std::cout << msg << std::endl;
 }
 
@@ -74,7 +74,6 @@ double random_float(double min, double max, unsigned int seed) {
     std::uniform_real_distribution<double> dist(min, max);
     return dist(get_rng(seed));
 }
-
 
 
 Eigen::MatrixXf generate_lattice(int N, int length) {
@@ -212,6 +211,8 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matri
     distances[start_node] = 0;  // Start with zero distance
     pq.push({0, start_node});
 
+    float new_distance = 0.0f;
+
     while (!pq.empty()) {
         int current_node = pq.top().second;
         float current_dist = -pq.top().first;
@@ -229,21 +230,25 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matri
         for (int neighbor = 0; neighbor < num_nodes; ++neighbor) {
             if (connectivity_matrix(current_node, neighbor) == 1 && !finalized[neighbor]) {
 
-                if (node_weights(neighbor) < -100.0f) {
-                    /* std::cout << "Node penalty: " << node_weights(neighbor) << std::endl; */
+                if (node_weights(neighbor) < -1000.0f) {
+                    /* continue; */
+                    new_distance = node_weights(neighbor);
+                    LOG("Distance penalty: " + std::to_string(new_distance) + " | " + std::to_string(neighbor));
                     continue;
+                } else {
+
+                    // Calculate Euclidean distance between nodes
+                    float dx = node_coordinates(current_node, 0) - node_coordinates(neighbor, 0);
+                    float dy = node_coordinates(current_node, 1) - node_coordinates(neighbor, 1);
+                    float edge_distance = std::sqrt(dx*dx + dy*dy);
+
+                    // Add optional node weight as a penalty/cost factor
+                    /* float node_penalty = node_weights(neighbor); */
+
+                    // New distance is current distance plus edge length and node penalty
+                    new_distance = distances[current_node] + edge_distance;// - node_weights(neighbor);
+                    /* LOG("Distance: " + std::to_string(new_distance) + " | nw: " + std::to_string(node_weights(neighbor))); */
                 }
-
-                // Calculate Euclidean distance between nodes
-                float dx = node_coordinates(current_node, 0) - node_coordinates(neighbor, 0);
-                float dy = node_coordinates(current_node, 1) - node_coordinates(neighbor, 1);
-                float edge_distance = std::sqrt(dx*dx + dy*dy);
-
-                // Add optional node weight as a penalty/cost factor
-                /* float node_penalty = node_weights(neighbor); */
-
-                // New distance is current distance plus edge length and node penalty
-                float new_distance = distances[current_node] + edge_distance + node_weights(neighbor);
 
                 if (new_distance < distances[neighbor]) {
                     distances[neighbor] = new_distance;
@@ -1527,9 +1532,7 @@ public:
 };
 
 
-/* ========================================== */
-/* ================= PCNN =================== */
-/* ========================================== */
+/* === PCNN === */
 
 
 class PCNN {
@@ -1823,6 +1826,19 @@ public:
     int calculate_closest_index(const std::array<float, 2>& c)
         { return vspace.calculate_closest_index(c); }
 
+    int get_neighbourhood_node_degree(int idx) {
+        int node_degree = vspace.node_degree(idx);
+        int count = 1;
+
+        for (int i = 0; i < N; i++) {
+            if (vspace.connectivity(idx, i) > 0.0f) {
+                node_degree += vspace.node_degree(i);
+                count++;
+            }
+        }
+        return node_degree / count;
+    }
+
     void reset() {
         u = Eigen::VectorXf::Zero(N);
         traces = Eigen::VectorXf::Zero(N);
@@ -1843,6 +1859,7 @@ public:
         { return xfilter.get_activation(); }
     Eigen::MatrixXf& get_wff() { return Wff; }
     Eigen::MatrixXf& get_wrec() { return Wrec; }
+    float get_trace_value(int idx) { return traces(idx); }
     std::vector<std::array<std::array<float, 2>, 2>> make_edges()
         { return vspace.make_edges(); }
     std::vector<std::array<std::array<float, 2>, 3>> make_edges_value(
@@ -2002,6 +2019,7 @@ public:
     std::string str() { return name; }
     std::string repr() { return name + "(1D)"; }
     int len() { return size; }
+    float get_modulation_value(int idx) { return weights(idx); }
     void reset() { leaky.reset(); }
 };
 
@@ -2085,10 +2103,10 @@ public:
             if (bnd_value < 0.01f) {
                 value_mask(i) = 1.0f; }
             else if (bnd_value < threshold) { 
-                value_mask(i) = 0.01f; }
+                value_mask(i) = -4000.0f; }
             else {
-                LOG("[!] discarded value: value_mask: " + std::to_string(bnd_value));
-                value_mask(i) = -1000.0; }
+                /* LOG("[!] discarded value: value_mask: " + std::to_string(bnd_value)); */
+                value_mask(i) = -10000.0f; }
         }
 
         return value_mask;
@@ -2104,6 +2122,7 @@ public:
     int len() { return CIRCUIT_SIZE; }
     std::array<float, CIRCUIT_SIZE> get_output() { return output; }
     std::array<float, 2> get_leaky_v() { return {da.get_leaky_v(), bnd.get_leaky_v()}; }
+    float get_bnd_value(int idx) { return bnd.get_modulation_value(idx); }
     Eigen::VectorXf& get_da_weights() { return da.get_weights(); }
     Eigen::VectorXf& get_bnd_weights() { return bnd.get_weights(); }
     Eigen::VectorXf get_bnd_mask() { return bnd.make_mask(); }
@@ -2234,14 +2253,14 @@ struct Plan {
 
         // same next position
         if (distance > 0.01f && counter > 0) {
-            LOG("[plan] same next position");
+            /* LOG("[plan] same next position"); */
             return std::make_pair(make_velocity(), true);
         }
 
         // check: end of the plan
         if (counter > size || curr_idx == trg_idx) {
             reset();
-            LOG("[plan] end of the plan");
+            /* LOG("[plan] end of the plan"); */
             return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
         }
 
@@ -2272,17 +2291,17 @@ struct Plan {
         // determine velocity magnitude
         if (std::sqrt(dx * dx + dy * dy) < speed)
             {
-            LOG("[plan] just a little bit");
+            /* LOG("[plan] just a little bit"); */
             local_velocity = {dx, dy}; }
         else {
             float norm = std::sqrt(dx * dx + dy * dy);
-            LOG("[plan] norm=" + std::to_string(norm) + \
-                " | speed=" + std::to_string(speed));
+            /* LOG("[plan] norm=" + std::to_string(norm) + \ */
+            /*     " | speed=" + std::to_string(speed)); */
             local_velocity = {speed * dx / norm,
                               speed * dy / norm};
         }
-        LOG("[plan] local_velocity=" + std::to_string(local_velocity[0]) + \
-            ", " + std::to_string(local_velocity[1]));
+        /* LOG("[plan] local_velocity=" + std::to_string(local_velocity[0]) + \ */
+        /*     ", " + std::to_string(local_velocity[1])); */
         return local_velocity;
     }
 
@@ -2343,7 +2362,11 @@ class GoalModule {
         if (curr_idx == -1)
             { curr_idx = space_fine.calculate_closest_index(space_fine.get_position()); }
 
-        // plan
+        // check: current position at the boundary
+        if (space_weights(curr_idx) < -1000.0f) {
+            return std::make_pair(std::vector<int>{}, false); }
+
+        // make plan path
         std::vector<int> plan_idxs = \
             spatial_shortest_path(space_fine.get_connectivity(),
                                          space_fine.get_centers(),
@@ -2354,8 +2377,14 @@ class GoalModule {
         if (plan_idxs.size() < 1) { 
             return std::make_pair(std::vector<int>{}, false); }
 
-        LOG("[goal] new plan:");
+        LOG("[goal] new plan ############################### return bnd.get_weights()(idx); :");
         LOG(" ");
+
+        // check bnd value of each index
+        for (int i = 0; i < plan_idxs.size(); i++) {
+            LOG("[goal] idx=" + std::to_string(plan_idxs[i]) + \
+                " | value=" + std::to_string(space_weights(plan_idxs[i])));
+        }
 
         return std::make_pair(plan_idxs, true);
     }
@@ -2439,21 +2468,21 @@ public:
             std::pair<std::array<float, 2>, bool> coarse_progress = \
                         coarse_plan.step_plan();
 
-            LOG("[Goal] coarse_progress=" + std::to_string(coarse_progress.second));
+            /* LOG("[Goal] coarse_progress=" + std::to_string(coarse_progress.second)); */
 
             // exit: coarse action
             if (coarse_progress.second) { 
-                LOG("[Goal] coarse action" + std::to_string(coarse_progress.second));
+                /* LOG("[Goal] coarse action" + std::to_string(coarse_progress.second)); */
                 return coarse_progress; 
             }
         }
-        LOG("[Goal] obstacle=" + std::to_string(obstacle));
+        /* LOG("[Goal] obstacle=" + std::to_string(obstacle)); */
 
         // -- fine plan
 
         // [] case 1: already fine tuning
         if (is_fine_tuning) {
-            LOG("[Goal] fine tuning..");
+            /* LOG("[Goal] fine tuning.."); */
             std::pair<std::array<float, 2>, bool> fine_progress = \
                 fine_plan.step_plan();
 
@@ -2476,14 +2505,14 @@ public:
             trg_idx_fine = space_fine.calculate_closest_index(
                         coarse_plan.get_next_position());
         }
-        LOG("[Goal] trg_idx_fine=" + std::to_string(trg_idx_fine));
+        /* LOG("[Goal] trg_idx_fine=" + std::to_string(trg_idx_fine)); */
         std::pair<std::vector<int>, bool> fine_progress = \
             make_plan(space_fine, circuits.make_value_mask(true),
                       trg_idx_fine);
 
         // check: failed planning
         if (!fine_progress.second) {
-            LOG("[Goal] failed fine planning");
+            /* LOG("[Goal] failed fine planning"); */
 
             // end coarse plan too
             coarse_plan.reset();
@@ -2627,6 +2656,8 @@ class ExplorationModule {
     const float open_threshold = 2.0f;  // radiants
     Eigen::VectorXf rejected_indexes;
 
+    const int sparsity_threshold = 5;
+
     // plan
     int t = 0;
     std::array<float, 2> action = {0.0f, 0.0f};
@@ -2638,6 +2669,9 @@ class ExplorationModule {
 
     // make new plan
     int make_plan(int rejected_idx) {
+
+        // check: evaluate current position
+        if (is_edge_position()) { return -1; }
 
         int rand_idx = sample_random_idx(0);
 
@@ -2672,7 +2706,6 @@ class ExplorationModule {
         return std::make_pair(action, false);
     }
 
-
     int sample_random_idx(int num_attempts) {
 
         if (num_attempts > 20) { return -1; }
@@ -2684,9 +2717,20 @@ class ExplorationModule {
         if (rejected_indexes(idx) > 0.0f) { return sample_random_idx(num_attempts+1); }
 
         // check is it is on the boundary
-        if (circuits.get_bnd_weights()(idx) < 0.01f) { return idx; }
+        if (circuits.get_bnd_weights()(idx) < 0.01f || space.get_trace_value(idx) > 0.001f)
+         { return idx; }
 
         return sample_random_idx(num_attempts+1);
+    }
+
+    bool is_edge_position() {
+        // get idx of the current position
+        int curr_idx = space.calculate_closest_index(space.get_position());
+
+        int neighbourhood_degree = space.get_neighbourhood_node_degree(curr_idx);
+
+        if (neighbourhood_degree < sparsity_threshold) { return true; }
+        return false;
     }
 
 public:
@@ -2950,7 +2994,7 @@ public:
             goalmd.reset();
             goto explore;
         } else if (ssry.call(curr_representation)) {
-            LOG("[Brain] forced exploration : v=" + std::to_string(ssry.get_v()));
+            /* LOG("[Brain] forced exploration : v=" + std::to_string(ssry.get_v())); */
             forced_exploration = 0;
             goto explore;
         }
@@ -2961,7 +3005,7 @@ public:
 
         // check: current trg plan
         if (goalmd.is_active()) {
-            LOG("[Brain] active goal plan");
+            /* LOG("[Brain] active goal plan"); */
             trg_plan_end = 0;
             std::pair<std::array<float, 2>, bool> progress = \
                 goalmd.step_plan(collision > 0.0f);
@@ -2973,7 +3017,7 @@ public:
             }
             // end or fail -> random walk
             forced_exploration = 0;
-            LOG("[Brain] end or fail -> random walk");
+            /* LOG("[Brain] end or fail -> random walk"); */
         }
 
         // time since the last trg plan ended
