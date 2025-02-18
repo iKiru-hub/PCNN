@@ -3528,3 +3528,159 @@ struct ConsecutiveLocationsHandler {
     /*     if (bnd_weights(idx) > 0.0f) { return 10000.0f; } */
     /*     return node_degrees(idx); */
     /* } */
+
+
+class Hexagon {
+
+    // center: (0, 0)
+    // side: 1
+    std::array<std::array<float, 2>, 6> centers;
+    std::array<size_t, 6> index = {0, 1, 2, 3, 4, 5};
+
+    // @brief check whether p is within the inner circle
+    bool apothem_checkpoint(float x, float y) {
+        float dist = std::sqrt(std::pow(x, 2) + \
+                               std::pow(y, 2));
+        bool within = dist < 0.86602540378f;
+        if (within) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // @brief wrap the point to the boundary
+    int wrap(float x, float y, float *p_new_x, float *p_new_y) {
+
+        // reflect the point p to r wrt the center (0, 0)
+        float rx = x * -1;
+        float ry = y * -1;
+
+        // calculate and sort the distances to the centers
+        std::array<float, 6> distances;
+        for (int i = 0; i < 6; i++) {
+            distances[i] = std::sqrt(std::pow(centers[i][0] - rx,
+                                              2) + \
+                                     std::pow(centers[i][1] - ry,
+                                              2));
+        }
+
+        // Sort the index array based on the
+        // values in the original array
+        std::sort(index.begin(), index.end(),
+            [&distances](const size_t& a, const size_t& b) {
+                return distances[a] < distances[b];
+            }
+        );
+
+        float ax = centers[index[0]][0];
+        float ay = centers[index[0]][1];
+        float bx = centers[index[1]][0];
+        float by = centers[index[1]][1];
+        float mx = (ax + bx) / 2.0f;
+        float my = (ay + by) / 2.0f;
+
+        // calculate the intersection s between ab and ro
+        float sx, sy;
+        if (get_segments_intersection(
+            ax, ay, bx, by, rx, ry,
+            0.0f, 0.0f, &sx, &sy)) {
+        } else {
+            // checkpoint: no intersection,
+            // point is inside the hexagon
+            /* LOG("[+] no intersection"); */
+            return 0;
+        }
+
+        // reflect the point r wrt the intersection s
+        rx = 2 * sx - rx;
+        ry = 2 * sy - ry;
+
+        // reflect wrt the line s-center
+        std::array<float, 2> z;
+        if (sy > 0) {
+             z = reflect_point_over_segment(
+                rx, ry, 0.0f, 0.0f, mx, my);
+        } else {
+            z = reflect_point_over_segment(
+                rx, ry, mx, my, 0.0f, 0.0f);
+        }
+
+        *p_new_x = z[0];
+        *p_new_y = z[1];
+
+        return 1;
+    }
+
+public:
+
+    Hexagon() {
+        centers[0] = {-0.5f, -0.86602540378f};
+        centers[1] = {0.5f, -0.86602540378f};
+        centers[2] = {1.0f, 0.0f};
+        centers[3] = {0.5f, 0.86602540378f};
+        centers[4] = {-0.5, 0.86602540378f};
+        centers[5] = {-1.0f, 0.0f};
+    }
+
+    // @brief call: apply the boundary conditions
+    std::array<float, 2> call(float x, float y) {
+
+        float new_x, new_y;
+
+        if (!apothem_checkpoint(x, y)) {
+            if (wrap(x, y, &new_x, &new_y)) {
+                return {new_x, new_y};
+            } else { return {x, y}; }
+        } else { return {x, y}; }
+    }
+
+    std::string str() { return "hexagon"; }
+    std::string repr() { return str(); }
+    std::array<std::array<float, 2>, 6> get_centers() {
+        return centers;
+    }
+};
+
+
+int get_segments_intersection(float p0_x, float p0_y,
+                              float p1_x, float p1_y,
+                              float p2_x, float p2_y,
+                              float p3_x, float p3_y,
+                              float *i_x, float *i_y) {
+
+    float s02_x, s02_y, s10_x, s10_y, s32_x;
+    float s32_y, s_numer, t_numer, denom, t;
+    s10_x = p1_x - p0_x;
+    s10_y = p1_y - p0_y;
+    s32_x = p3_x - p2_x;
+    s32_y = p3_y - p2_y;
+
+    denom = s10_x * s32_y - s32_x * s10_y;
+    if (denom == 0)
+        return 0; // Collinear
+    bool denomPositive = denom > 0;
+
+    s02_x = p0_x - p2_x;
+    s02_y = p0_y - p2_y;
+    s_numer = s10_x * s02_y - s10_y * s02_x;
+    if ((s_numer < 0) == denomPositive)
+        return 0; // No collision
+
+    t_numer = s32_x * s02_y - s32_y * s02_x;
+    if ((t_numer < 0) == denomPositive)
+        return 0; // No collision
+
+    if (((s_numer > denom) == denomPositive) || ((t_numer > denom) == denomPositive))
+        return 0; // No collision
+    //
+    // Collision detected
+    t = t_numer / denom;
+    if (i_x != NULL)
+        *i_x = p0_x + (t * s10_x);
+    if (i_y != NULL)
+        *i_y = p0_y + (t * s10_y);
+
+    return 1;
+}
+

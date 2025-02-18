@@ -2,6 +2,8 @@ import logging, coloredlogs
 import os, json
 import numpy as np
 
+CACHE_PATH = "".join((os.getcwd().split("PCNN")[0], "/PCNN/src/cache"))
+
 
 def setup_logger(name: str="MAIN",
                  colored: bool=True,
@@ -121,7 +123,7 @@ def load_parameters():
 
     logger("\n----\nLoading from evolution")
 
-    files = os.listdir("cache")
+    files = os.listdir(CACHE_PATH)
 
     # sort the files by name
     files = sorted(files, key=lambda x: int(x.split("_")[0]))
@@ -132,14 +134,13 @@ def load_parameters():
     ans = input("\n>Select file: ")
     idx = -1 if ans == "" else int(ans)
 
-    with open(f"cache/{files[idx]}", "r") as f:
+    with open(f"{CACHE_PATH}/{files[idx]}", "r") as f:
         run_data = json.load(f)
 
     logger(f"Loaded {files[idx]}")
     logger(f"Agent fitness={run_data['info']['record_genome']['0']['fitness']:.3f}")
 
     return run_data["info"]["record_genome"]["0"]["genome"]
-
 
 
 def create_lattice(L, dx):

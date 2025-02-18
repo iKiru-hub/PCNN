@@ -10,6 +10,8 @@
 #define GCN_REF GridNetworkSq
 #define CIRCUIT_SIZE 5
 
+// mJJxSxy^3W^KFZ4N*EJM
+
 namespace py = pybind11;
 
 PYBIND11_MODULE(pclib, m) {

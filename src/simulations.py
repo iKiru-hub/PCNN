@@ -54,7 +54,7 @@ game_settings = {
     "rendering": True,
     "rendering_pcnn": True,
     "max_duration": 10_000,
-    "room_thickness": 30,
+    "room_thickness": 5,
     "seed": None,
     "pause": -1,
     "verbose": True
@@ -70,10 +70,10 @@ model_params = {
 }
 
 global_parameters = {
-    "local_scale_fine": 0.015,
+    "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
-    "N": 30**2,
-    "Nc": 20**2,
+    "N": 22**2,
+    "Nc": 12**2,
     # "rec_threshold_fine": 60.,
     # "rec_threshold_coarse": 100.,
     "speed": 1.5,
@@ -81,7 +81,6 @@ global_parameters = {
 }
 
 parameters = {
-
     "gain_fine": 10.,
     "offset_fine": 1.0,
     "threshold_fine": 0.3,

@@ -230,16 +230,16 @@ class Env:
 FIXED_PARAMETERS = {
 
     # "gain_fine": 11.,
-    "offset_fine": 1.1,
-    "threshold_fine": 0.35,
+    # "offset_fine": 1.1,
+    # "threshold_fine": 0.35,
     # "rep_threshold_fine": 0.88,
     # "rec_threshold_fine": 26.,
     # "min_rep_threshold": 0.95,
     # "tau_trace_fine": 10.0,
 
     # "gain_coarse": 11.,
-    "offset_coarse": 1.1,
-    "threshold_coarse": 0.35,
+    # "offset_coarse": 1.1,
+    # "threshold_coarse": 0.35,
     # "rep_threshold_coarse": 0.89,
     # "rec_threshold_coarse": 60.,
     # "tau_trace_coarse": 20.0,

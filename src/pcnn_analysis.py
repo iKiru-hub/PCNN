@@ -408,6 +408,99 @@ def run_pcnn_hex(duration: int=100_000):
     plt.show()
 
 
+def run_pcnn_sq(duration: int=100_000):
+
+    local_scale = 0.9
+
+    gcn = pclib.GridNetworkSq([
+                pclib.GridLayerSq(sigma=0.04, speed=0.6*local_scale),
+                pclib.GridLayerSq(sigma=0.04, speed=0.4*local_scale),
+                pclib.GridLayerSq(sigma=0.04, speed=0.3*local_scale),
+                pclib.GridLayerSq(sigma=0.04, speed=0.2*local_scale),
+                pclib.GridLayerSq(sigma=0.04, speed=0.1*local_scale),
+                pclib.GridLayerSq(sigma=0.04, speed=0.08*local_scale),
+                pclib.GridLayerSq(sigma=0.04, speed=0.06*local_scale),
+                pclib.GridLayerSq(sigma=0.04, speed=0.03*local_scale)])
+
+    pcnn_ = pclib.PCNN(N=100,
+                       Nj=len(gcn),
+                       gain=10.,
+                       offset=1.2,
+                       clip_min=0.01,
+                       threshold=0.35,
+                       rep_threshold=0.8,
+                       rec_threshold=1.0,
+                       min_rep_threshold=0.99,
+                       xfilter=gcn,
+                       tau_trace=2.0,
+                       name="2D")
+
+    pcnn2d = PCNNwrapper(pcnn_,
+                         max_iter=duration)
+ 
+    a = []
+    x, y = 0.2, 0.2
+    x0, y0 = 0.2, 0.2
+    traj = [[x, y]]
+    acc = np.zeros((len(gcn), 100))
+
+    size = 100
+    s = np.array([0.005, 0.005])*100
+
+    logger("[running pcnn sq]")
+
+    for t in tqdm(range(duration)):
+
+        x += s[0]
+        y += s[1]
+
+        # hexagon boundaries & gc
+        pcnn2d([x - x0, y - y0])#, [x, y])
+        # pcnn2d([s[0], s[1]], [x, y])
+
+        x0 = x
+        y0 = y
+
+        if t % 100 == 0:
+            s = np.random.uniform(-1, 1, 2)
+            s = 0.1 * s / np.abs(s).sum()
+
+        # hit wall
+        if x <= 0 or x >= size:
+            s[0] *= -1
+            x += s[0]
+        elif y <= 0 or y >= size:
+            s[1] *= -1
+            y += s[1]
+
+        traj += [[x, y]]
+        if t % 10000 == 0:
+            pcnn2d.render(traj)
+
+    logger("[done]")
+    # logger(pcnn2d.pcnn2D.get_centers(),
+    #       pcnn2d.pcnn2D.get_centers().shape)
+    pcnn2d.render(traj)
+
+    centers = []
+    for c in pcnn2d.pcnn2D.get_centers():
+        if c[0] > 0 and c[1] > 0:
+            centers.append(c)
+
+    centers = np.array(centers)
+
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    ax.plot(*np.array(traj).T, "-k", lw=1, alpha=0.4)
+    ax.scatter(centers[:, 0], centers[:, 1], c="r", s=15)
+    ax.set_xlim(0, 20)
+    ax.set_ylim(0, 20)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_title(f"N={len(centers)}")
+
+    plt.show()
+
+
 def run_gcn():
 
     #hexagon = pcr.pclib.Hexagon()
@@ -756,7 +849,8 @@ if __name__ == '__main__':
     np.random.seed(0)
 
     # run_pcnn(duration=args.duration)
-    run_pcnn_hex(duration=args.duration)
+    # run_pcnn_hex(duration=args.duration)
+    run_pcnn_sq(duration=args.duration)
     # run_gcn_hex()
     #run_gcn()
     # run_model_sq()
