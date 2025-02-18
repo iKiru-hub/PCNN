@@ -951,6 +951,17 @@ public:
         return idx;
     }
 
+    void delete_edge(int i, int j) {
+        connectivity(i, j) = 0.0f;
+        connectivity(j, i) = 0.0f;
+        weights(i, j) = 0.0f;
+        weights(j, i) = 0.0f;
+    }
+
+    bool check_edge(int i, int j) {
+        return connectivity(i, j) == 1.0f;
+    }
+
 };
 
 
@@ -1839,6 +1850,16 @@ public:
         return node_degree / count;
     }
 
+    void delete_edge(int i, int j) {
+        vspace.delete_edge(i, j);
+        this->Wrec = vspace.weights;
+        this->connectivity = vspace.connectivity;
+    }
+
+    bool check_edge(int i, int j) {
+        return vspace.check_edge(i, j);
+    }
+
     void reset() {
         u = Eigen::VectorXf::Zero(N);
         traces = Eigen::VectorXf::Zero(N);
@@ -2416,19 +2437,19 @@ public:
         // check: failed coarse planning
         if (!res_coarse.second) {
             LOG("[Goal] failed coarse planning");
-            return false; 
+            return false;
         }
 
         // plan from the current position
-        std::pair<std::vector<int>, bool> res_fine_prop = \
-            make_plan(space_fine, circuits.make_value_mask(goal_directed),
-                      trg_idx_fine);
+        /* std::pair<std::vector<int>, bool> res_fine_prop = \ */
+        /*     make_plan(space_fine, circuits.make_value_mask(goal_directed), */
+        /*               trg_idx_fine); */
 
-        // check: failed fine planning
-        if (!res_fine_prop.second) { 
-            LOG("[Goal] failed fine planning");
-            return false; 
-        }
+        /* // check: failed fine planning */
+        /* if (!res_fine_prop.second) { */ 
+        /*     LOG("[Goal] failed fine planning"); */
+        /*     return false; */ 
+        /* } */
 
         // -- make a fine plan from the end of the coarse plan
 
@@ -2874,6 +2895,23 @@ class Brain {
         circuits.make_prediction(next_representation);
     }
 
+    void prune_bnd_edges() {
+
+        // get the current idx
+        int curr_idx = space_fine.calculate_closest_index(space_fine.get_position());
+
+        if (curr_idx < 0) { return; }
+
+        // go over the neighbourhood
+        for (int j = 0; j < space_fine.get_size(); j++) {
+            if (space_fine.check_edge(curr_idx, j)) {
+                if (circuits.get_bnd_value(j) > 0.01f) {
+                    space_fine.delete_edge(curr_idx, j);
+                }
+            }
+        }
+    }
+
 
 public:
 
@@ -2963,7 +3001,10 @@ public:
 
         clock++;
 
-        if (collision > 0.0f) { LOG("[Brain] collision received"); }
+        if (collision > 0.0f) { 
+            prune_bnd_edges();
+            LOG("[Brain] collision received"); 
+        }
         if (reward > 0.0f) { LOG("[Brain] reward received"); }
 
         // === STATE UPDATE ==============================================
