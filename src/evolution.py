@@ -59,8 +59,8 @@ game_settings = {
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 25**2,
-    "Nc": 15**2,
+    "N": 12**2,
+    "Nc": 10**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
     "speed": 0.75,
@@ -417,7 +417,7 @@ if __name__ == "__main__" :
                  "reward_settings": reward_settings.copy(),
                  "agent_settings": agent_settings.copy(),
                  "global_parameters": global_parameters.copy()},
-        "other": "plentiful PCfine availability",
+        "other": "scarce PCfine availability",
     }
 
     # ---| Run |---
