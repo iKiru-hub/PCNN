@@ -17,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 6
+NUM_SAMPLES = 5
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES, replace=False).tolist()
 
 
@@ -48,7 +48,7 @@ game_settings = {
     "rw_event": "move agent",
     "rendering": False,
     "rendering_pcnn": False,
-    "max_duration": 8_000,
+    "max_duration": 10_000,
     "room_thickness": 5,
     "seed": None,
     "pause": -1,
