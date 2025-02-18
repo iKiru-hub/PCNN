@@ -48,7 +48,7 @@
 
 // blank log function
 void LOG(const std::string& msg) {
-    /* return; */
+    return;
     std::cout << msg << std::endl;
 }
 
