@@ -59,7 +59,7 @@ game_settings = {
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 22**2,
+    "N": 12**2,
     "Nc": 12**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
@@ -277,7 +277,7 @@ PARAMETERS = {
     "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_fine": lambda: round(random.uniform(0.05, 0.5), 2),
     "rep_threshold_fine": lambda: round(random.uniform(0.7, 0.95), 2),
-    "rec_threshold_fine": lambda: round(random.uniform(20., 80.)),
+    "rec_threshold_fine": lambda: round(random.uniform(20., 100.)),
     "tau_trace_fine": lambda: round(random.uniform(1., 200.)),
     "min_rep_threshold": lambda: round(random.uniform(0.89, 0.99), 2),
 
@@ -417,7 +417,7 @@ if __name__ == "__main__" :
                  "reward_settings": reward_settings.copy(),
                  "agent_settings": agent_settings.copy(),
                  "global_parameters": global_parameters.copy()},
-        "other": "first try",
+        "other": "limited PCfine availability",
     }
 
     # ---| Run |---
