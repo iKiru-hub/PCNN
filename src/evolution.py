@@ -59,8 +59,8 @@ game_settings = {
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 12**2,
-    "Nc": 12**2,
+    "N": 13**2,
+    "Nc": 10**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
     "speed": 0.75,
