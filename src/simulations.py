@@ -72,8 +72,8 @@ model_params = {
 global_parameters = {
     "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
-    "N": 12**2,
-    "Nc": 10**2,
+    "N": 22**2,
+    "Nc": 13**2,
     # "rec_threshold_fine": 60.,
     # "rec_threshold_coarse": 100.,
     "speed": 1.5,

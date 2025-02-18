@@ -10,16 +10,12 @@
 \citation{brzoskoSequentialNeuromodulationHebbian2017}
 \citation{meiEffectsNeuromodulationinspiredMechanisms2023}
 \citation{bittnerBehavioralTimeScale2017}
-\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{3}{section.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2}Methods}{4}{section.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}Results}{5}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Cognitive map formation}{5}{subsection.3.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textsc  {Generation of a Cognitive Map} - Left: \textit  {place cells (blue dots) are formed online as the agent traverses the environment (red trajectory), supported by cholinergic activity}. Right: \textit  {a subsequent run with a reward region in the lower right corner, potentially triggering dopamine spikes.}}}{5}{figure.caption.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{2}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Methods}{3}{section.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textsc  {Model layout and spatial representations} - \textbf  {a}: \textit  {the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioural programs and a reward receiver}. \textbf  {b}: \textit  {the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to two layer of place cells with different place field granularity}. \textbf  {c}: \textit  {the neural activity of a grid cell module from a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}. \textbf  {d}: \textit  {the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}}}{3}{figure.caption.1}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:pcgen}{{1}{5}{\textsc {Generation of a Cognitive Map} - Left: \textit {place cells (blue dots) are formed online as the agent traverses the environment (red trajectory), supported by cholinergic activity}. Right: \textit {a subsequent run with a reward region in the lower right corner, potentially triggering dopamine spikes.}}{figure.caption.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Navigation and Reinforcement Learning}{5}{subsection.3.2}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textsc  {Goal-Directed Behavior} - Left: \textit  {agent trajectory in a square environment with the target in the upper right corner. Black dots represent the centers of active place cells in proximal positions, connected by blue lines}. Center: \textit  {time evolution of the current position representation, with rows corresponding to neurons and columns to time steps}. Right: \textit  {representation of the target location.}}}{6}{figure.caption.3}\protected@file@percent }
-\newlabel{fig:rl1}{{2}{6}{\textsc {Goal-Directed Behavior} - Left: \textit {agent trajectory in a square environment with the target in the upper right corner. Black dots represent the centers of active place cells in proximal positions, connected by blue lines}. Center: \textit {time evolution of the current position representation, with rows corresponding to neurons and columns to time steps}. Right: \textit {representation of the target location.}}{figure.caption.3}{}}
+\newlabel{fig:model}{{1}{3}{\textsc {Model layout and spatial representations} - \textbf {a}: \textit {the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioural programs and a reward receiver}. \textbf {b}: \textit {the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to two layer of place cells with different place field granularity}. \textbf {c}: \textit {the neural activity of a grid cell module from a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}. \textbf {d}: \textit {the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}}{figure.caption.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.0.1}Place cell map}{4}{subsubsection.2.0.1}\protected@file@percent }
 \bibdata{pcnn_refs}
 \bibcite{sorscherUnifiedTheoryOrigin2019}{1}
 \bibcite{cuevaEmergenceGridlikeRepresentations2018}{2}
@@ -28,21 +24,21 @@
 \bibcite{brzoskoSequentialNeuromodulationHebbian2017}{5}
 \bibcite{meiEffectsNeuromodulationinspiredMechanisms2023}{6}
 \bibcite{bittnerBehavioralTimeScale2017}{7}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Appendix}{8}{section.4}\protected@file@percent }
-\newlabel{sec:appendix}{{4}{8}{Appendix}{section.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Neural dynamics}{8}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.1.1}Lateral inhibition function}{8}{subsubsection.4.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.1.2}Attraction function}{9}{subsubsection.4.1.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Decision-making and RL}{9}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.1}Velocity calculation}{9}{subsubsection.4.2.1}\protected@file@percent }
-\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Position and Velocity Calculation in Neural Space}}{9}{algorithm.1}\protected@file@percent }
-\newlabel{alg:pos_vel_calc}{{1}{9}{Position and Velocity Calculation in Neural Space}{algorithm.1}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.2.2}Proximal modulation}{10}{subsubsection.4.2.2}\protected@file@percent }
-\@writefile{loa}{\contentsline {algorithm}{\numberline {2}{\ignorespaces Proximal modulation algorithm}}{10}{algorithm.2}\protected@file@percent }
-\newlabel{alg:proxalg}{{2}{10}{Proximal modulation algorithm}{algorithm.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Modulators}{11}{subsection.4.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Acetylcholine}{11}{section*.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Dopamine}{11}{section*.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Boundaries}{11}{section*.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Velocity Modulation}{11}{section*.8}\protected@file@percent }
-\gdef \@abspage@last{11}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Appendix}{6}{section.3}\protected@file@percent }
+\newlabel{sec:appendix}{{3}{6}{Appendix}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Neural dynamics}{6}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.1}Lateral inhibition function}{6}{subsubsection.3.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.1.2}Attraction function}{7}{subsubsection.3.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Decision-making and RL}{7}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.1}Velocity calculation}{7}{subsubsection.3.2.1}\protected@file@percent }
+\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Position and Velocity Calculation in Neural Space}}{7}{algorithm.1}\protected@file@percent }
+\newlabel{alg:pos_vel_calc}{{1}{7}{Position and Velocity Calculation in Neural Space}{algorithm.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.2}Proximal modulation}{8}{subsubsection.3.2.2}\protected@file@percent }
+\@writefile{loa}{\contentsline {algorithm}{\numberline {2}{\ignorespaces Proximal modulation algorithm}}{8}{algorithm.2}\protected@file@percent }
+\newlabel{alg:proxalg}{{2}{8}{Proximal modulation algorithm}{algorithm.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Modulators}{9}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Acetylcholine}{9}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Dopamine}{9}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Boundaries}{9}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Velocity Modulation}{9}{section*.6}\protected@file@percent }
+\gdef \@abspage@last{9}

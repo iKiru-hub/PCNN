@@ -1,17 +1,14 @@
 \contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
 \contentsline {section}{\numberline {2}Methods}{4}{section.2}%
-\contentsline {section}{\numberline {3}Results}{5}{section.3}%
-\contentsline {subsection}{\numberline {3.1}Cognitive map formation}{5}{subsection.3.1}%
-\contentsline {subsection}{\numberline {3.2}Navigation and Reinforcement Learning}{5}{subsection.3.2}%
-\contentsline {section}{\numberline {4}Appendix}{8}{section.4}%
-\contentsline {subsection}{\numberline {4.1}Neural dynamics}{8}{subsection.4.1}%
-\contentsline {subsubsection}{\numberline {4.1.1}Lateral inhibition function}{8}{subsubsection.4.1.1}%
-\contentsline {subsubsection}{\numberline {4.1.2}Attraction function}{9}{subsubsection.4.1.2}%
-\contentsline {subsection}{\numberline {4.2}Decision-making and RL}{9}{subsection.4.2}%
-\contentsline {subsubsection}{\numberline {4.2.1}Velocity calculation}{9}{subsubsection.4.2.1}%
-\contentsline {subsubsection}{\numberline {4.2.2}Proximal modulation}{10}{subsubsection.4.2.2}%
-\contentsline {subsection}{\numberline {4.3}Modulators}{11}{subsection.4.3}%
-\contentsline {paragraph}{Acetylcholine}{11}{section*.5}%
-\contentsline {paragraph}{Dopamine}{11}{section*.6}%
-\contentsline {paragraph}{Boundaries}{11}{section*.7}%
-\contentsline {paragraph}{Velocity Modulation}{11}{section*.8}%
+\contentsline {section}{\numberline {3}Appendix}{6}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Neural dynamics}{6}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}Lateral inhibition function}{6}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.1.2}Attraction function}{7}{subsubsection.3.1.2}%
+\contentsline {subsection}{\numberline {3.2}Decision-making and RL}{7}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}Velocity calculation}{7}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}Proximal modulation}{8}{subsubsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.3}Modulators}{9}{subsection.3.3}%
+\contentsline {paragraph}{Acetylcholine}{9}{section*.3}%
+\contentsline {paragraph}{Dopamine}{9}{section*.4}%
+\contentsline {paragraph}{Boundaries}{9}{section*.5}%
+\contentsline {paragraph}{Velocity Modulation}{9}{section*.6}%

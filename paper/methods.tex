@@ -2,5 +2,27 @@
 
 \section{Methods}
 
-The model architecture relies on the core assumption that the agent has minimal information from the environment, consisting of two binary signals: reward and collision.
+The model is constructed around the concept of a cognitive map, which an agent builds by freely navigating a closed environment and reaching a discovered goal location.
+The architecture relies on the core assumption that the agent has receives minimal external information, consisting solely of a reward and collision input as two binary values.
+These two signals are used to enrich the cognitive map with experience-dependent data, which is then used to guide the agent's behavior.
+% briefly describe where in the brain these signals are processed
+
+The formation of the spatial representation is instead based on idiothetic information, which is the agent's perception of self-motion.
+In particular, here we assume this cue to be the factual velocity vector, namely the actual displacement of the agent in the environment.
+In the brain, this signal is thought to result from the integration of inertial and relative motion cues.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/figure_model.png}
+    \caption{\textsc{Model layout and spatial representations} - \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioural programs
+    and a reward receiver}. \textbf{b}: \textit{the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to two layer of place cells with different place field granularity}. \textbf{c}: \textit{the neural activity of a grid cell module from
+a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}. \textbf{d}: \textit{the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}}
+    \label{fig:model}
+\end{figure}
+
+\subsubsection{Place cell map}
+A grid cell module $i$ has been defined as a set of $N^{\text{gc}}$ neurons with gaussian tuining curve evenly distributed over the surface of a two dimensional torus $\mathbf{T}^{2}$.
+When the agent moves in the environment, a two dimensional Euclidean space $\mathbf{R}^{2}$, with a velocity $\mathbf{v}=\{x,y\}$, its position on the torus is updated by the same vector but scaled by a speed $s^{\text{gc}}_{i}$ local to the grid cell module $i$.
+The initial position on the torus is randomly chosen at the beginning of each episode, since what matters is the sequence of displacements, and the speed is specific for each grid cell module.
+
 

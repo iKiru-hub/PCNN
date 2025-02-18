@@ -1353,6 +1353,12 @@ public:
         // record positions
         square_basis();
 
+        // scale the bounds
+        bounds[0] /= speed;
+        bounds[1] /= speed;
+        bounds[2] /= speed;
+        bounds[3] /= speed;
+
         // record initial positions in the basis
         // pass by value
         positions = basis;
