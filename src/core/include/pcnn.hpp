@@ -1922,10 +1922,7 @@ class LeakyVariable1D {
 public:
     std::string name;
 
-    /* @brief Call the LeakyVariable with an input
-     * @param input The input to the LeakyVariable
-     * with `ndim` dimensions
-    */
+    // CALL
     float call(float x = 0.0,
                bool simulate = false) {
 
@@ -2016,7 +2013,7 @@ public:
 
                 // forward, delta from current input
                 float ui = u[i] > threshold ? u[i] : 0.0;
-                float dw = lr * v * ui;
+                /* float dw = lr * v * ui; */
 
                 // backward, prediction error
                 float pred_err = lr_pred * (prediction[i] - v * ui);

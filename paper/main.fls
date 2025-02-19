@@ -179,13 +179,14 @@ INPUT ./methods.tex
 INPUT ./methods.tex
 INPUT ./methods.tex
 INPUT methods.tex
+INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
 INPUT ./figures/figure_model.png
 INPUT ./figures/figure_model.png
 INPUT ./figures/figure_model.png
 INPUT ./figures/figure_model.png
 INPUT ./figures/figure_model.png
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmcsc10.tfm
-INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
+INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmbx12.tfm
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmr6.tfm
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmmi6.tfm
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmsy6.tfm

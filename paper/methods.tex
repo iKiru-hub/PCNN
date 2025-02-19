@@ -1,6 +1,6 @@
 \section{Methods}
 
-The model is constructed around the concept of a cognitive map, which an agent builds by freely navigating a closed environment and reaching a discovered goal location.
+The model is constructed around the concept of a cognitive map, which an agent builds by freely navigating a closed environment and reaching a discovered goal location. The full schema of its components its illustrated in plot \ref{fig:model}-\textbf{a} below.
 The architecture relies on the core assumption that the agent has receives minimal external information, consisting solely of a reward and collision input as two binary values.
 These two signals are used to enrich the cognitive map with experience-dependent data, which is then used to guide the agent's behavior.
 % briefly describe where in the brain these signals are processed
@@ -18,7 +18,7 @@ a random trajectory; in blue the repeating activity of all cell, while in green 
     \label{fig:model}
 \end{figure}
 
-\subsubsection{Place cell map}
+\subsection{Place cell map}
 The formation of place cells is obtained from the activity of a set of grid cells organized into modules, or layers. This simple feed-forward architecture is depicted in plot \ref{fig:model}-\textbf{b}.
 A grid cell module $i$ has been defined as a set of $N^{\text{gc}}$ neurons with gaussian tuning curve evenly distributed over the surface of a two dimensional torus $\mathbf{T}^{2}$.
 When the agent moves in the environment, a two dimensional Euclidean space $\mathbf{R}^{2}$, with a velocity $\mathbf{v}=\{x,y\}$, its position on the torus is updated by the same vector but scaled by a speed scalar $s^{\text{gc}}_{i}$ local to the grid cell module $i$, which determines its periodicity in space.
@@ -38,13 +38,45 @@ The activity of a tuned place cell $i$ is given, again, by the cosine similarity
 \end{equation}
 \noindent where $\phi$ is a generalized sigmoid function $\phi(z)=\left[1 + \exp(-\beta(z-\alpha))\right]^{-1}$ with gain $\beta$ and threshold $\alpha$.
 The two layers of place cells differ in the size of their place fields. This feature is affected by the sensitivity of a cell tuning with respect to the grid cell activation, determined by the parameters of the sigmoid, and the strength of the lateral inhibition, determined by the similarity threshold.
+Within a layer, the connections between cells are calculated by the same cosine similariy, but compared against a different threshold $\theta^{\text{PC}}_{\text{rec}}$.
 One layer is set to be more fine-grained, with an overall higher density of place cells over the space, while the other is more coarse-grained, with overall large place field sizes.
 
 In figure \ref{fig:model}-\textbf{d} are shown the centers of one of the fine-grained layer and the activity of two cells, with their place field highlighted as an heatmap.
 
 
-\subsubsection{Neuromodulators}
+\subsection{Neuromodulators}
+The fine-grained layer of place cells constitutes the main cognitive map of the agent, since it captures the environment with greater detail.
+The neuromodulators are operationalized as analog sensors of meaningful environmental events, here reward and collision, and map directly to the place cells through plastic connections $W^{k,\text{PC}}$.
+For each neuromodulator $k$, it is defined a leaky variable $v^{k}$ that accumulates the corresponding signal $I$ over time, and decays exponentially to zero in the absence of inputs with time constant $\tau^{k}$:
+\begin{equation}
+    \dot{v}^{k}=-v^{k} / \tau^{k} + I
+\end{equation}
+
+\noindent This variable is then paired with the activity of each place cell $i$ for updating the synaptic weights in a Hebbian fashion:
+\begin{equation}
+    \Delta \textbf{W}^{k}_{i}=\eta^{k} v^{k} \textbf{u}^{\text{PC}}_{i}
+\end{equation}
+
+\noindent where $\eta^{k}$ is the neuromodulator-specific learning rate.
+
+On the one hand, the reward modulation, signed as $\textbf{W}^{\text{DA}}$, is sensitive to the instantaneous presence of reward, defined as a boolean value. Over time, its coupling with the population vector $\textbf{u}^{PC}_{t}$ delineates a region of the environment where the reward has been experienced.
+On the other hand, the collision modulation, referred to as $\textbf{W}^{\text{BND}}$, signals the occurrence of a collision with a boundary, which is again given as a boolean. After enough events, the profile of the resulting weight matrix with the place cells provides an approximation of the shape of the environment given by its boundaries. From the perspective of the agent, this intuition of the topology of its surroundings is crucial for effectively planning routes to target locations.
 
 
+At each moment during navigation, the weight matrices $\textbf{W}^{\text{DA},\text{PC}},\;\textbf{W}^{\text{BND},\text{PC}}$ act as scalar fields over the neural space of the place cells, and their simultaneous contributions delineate what in this work is referred to as a cognitive map.
 
+
+\subsection{Policy and behavior}
+Our first interest is to test the possibility of relying on a cognitive map built from minimal components for exploration and goal-directed navigation.
+To this end, we defined a simple hard-coded policy that toggles between these two behaviours according to the presence of a goal signal, externally provided, and the presence of an actual goal representation, taken care of by a special component called \textit{reward seeking}, depicted in the pink box of plot \ref{fig:model}-\textbf{a}.
+Exploration is accomplished by a random walk, with a variable number of steps in the same direction to avoid stagnation, and occasional plans to visit random positions within the known map, again for limiting stagnation.
+Goal-directed navigation, either for reaching a random position for exploration or the actual reward location, is achieved by calculating the shortest path between the closest place cells centers of the current and target positions. The place cells are hence treated as nodes of a graph, and their connections constitute its edges.
+We use a Dijkstra algorithm applied to the coarse-grained layer, which contains less and more spread out cells and it is thus cheaper to compute, to derive a coarse-grained plan.
+However, in the case the agent gets stuck or the distance to the target is shorter than the cells' distance, the planning switches to the other layer for devising a fine-grained plan, which it is followed until either the target or the next node in the coarse-grained are reached.
+
+The advantage of this dual-layer planning lies in its flexibility, as it lightens the computational load of planning by exploing the sparser and lighter map and only invokes the detailed one when necessary.
+In the process of behaviour, learning does not occur explicitly, but it is instead accounted for in the online formation of the cognitive map.
+
+
+\subsection{Remapping}
 
