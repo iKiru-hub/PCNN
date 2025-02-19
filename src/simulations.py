@@ -34,7 +34,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 1_000,
+    "silent_duration": 20_000,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 35.,
@@ -81,19 +81,19 @@ global_parameters = {
 }
 
 parameters = {
-    "gain_fine": 7.,
-    "offset_fine": 1.,
-    "threshold_fine": 0.25,
-    "rep_threshold_fine": 0.85,
+    "gain_fine": 9.,
+    "offset_fine": 1.0,
+    "threshold_fine": 0.3,
+    "rep_threshold_fine": 0.8,
     "rec_threshold_fine": 150.,
     "tau_trace_fine": 20.0,
     "min_rep_threshold": 0.95,
 
-    "gain_coarse": 9.,
-    "offset_coarse": 1.0,
-    "threshold_coarse": 0.2,
-    "rep_threshold_coarse": 0.85,
-    "rec_threshold_coarse": 100.,
+    "gain_coarse": 7.,
+    "offset_coarse": 0.8,
+    "threshold_coarse": 0.3,
+    "rep_threshold_coarse": 0.8,
+    "rec_threshold_coarse": 200.,
     "tau_trace_coarse": 20.0,
 
     "lr_da": 0.8,
@@ -142,14 +142,18 @@ class Renderer:
         self.names = names
         self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
         self.fig.set_tight_layout(True)
-        self.boundsx = (-400, 500)
-        self.boundsy = (-500, 400)
+        self.boundsx = (-400, 400)
+        self.boundsy = (-400, 400)
 
     def render(self):
 
         # -- space plots --
         self.axs[0, 0].clear()
         self.axs[0, 1].clear()
+
+        maxc = max((400, self.brain.get_space_fine_centers().max()))
+        self.boundsx = (-400, maxc)
+        self.boundsy = (-400, maxc)
 
         # -- goal-behaviour
         if self.brain.get_directive() == "trg" or \
@@ -211,29 +215,28 @@ class Renderer:
             # fine space
             self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                    color="blue", s=20, alpha=0.4)
-            # for edge in self.brain.make_space_fine_edges():
-            #     self.axs[0, 0].plot((edge[0][0], edge[1][0]),
-            #                         (edge[0][1], edge[1][1]),
-            #                      alpha=0.3, color="black")
+            for edge in self.brain.make_space_fine_edges():
+                self.axs[0, 0].plot((edge[0][0], edge[1][0]),
+                                    (edge[0][1], edge[1][1]),
+                                 alpha=0.1, lw=0.5, color="black")
 
-            # coarse space
-            # for edge in self.brain.make_space_coarse_edges():
-            #     self.axs[0, 1].plot((edge[0][0], edge[1][0]),
-            #                         (edge[0][1], edge[1][1]),
-            #                      alpha=0.3, color="black")
+            for edge in self.brain.make_space_coarse_edges():
+                self.axs[0, 1].plot((edge[0][0], edge[1][0]),
+                                    (edge[0][1], edge[1][1]),
+                                 alpha=0.1, lw=0.5, color="black")
 
             self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                                   color="blue", s=40, alpha=0.4)
+                                   color="blue", s=20, alpha=0.4)
 
         # current representation
-        self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-                               c = self.brain.get_representation_fine(), cmap="Greys",
-                               s=40*self.brain.get_representation_fine(),
-                               alpha=0.9)
-        self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                               c=self.brain.get_representation_coarse(),
-                               s=50*self.brain.get_representation_coarse(),
-                               cmap="Greys", alpha=0.9)
+        # self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+        #                        c = self.brain.get_representation_fine(), cmap="Greys",
+        #                        s=40*self.brain.get_representation_fine(),
+        #                        alpha=0.9)
+        # self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
+        #                        c=self.brain.get_representation_coarse(),
+        #                        s=50*self.brain.get_representation_coarse(),
+        #                        cmap="Greys", alpha=0.9)
 
         # plot edge representation
         # self.axs[0, 0].scatter(*np.array(self.space.get_centers()).T,
@@ -241,9 +244,10 @@ class Renderer:
         #                        cmap="Oranges", alpha=0.5)
 
         # fine
-        self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_fine_count()}")
-        self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
-                               color="red", s=50, marker="v", alpha=0.8)
+        # self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_fine_count()}")
+        self.axs[0, 0].set_title(f"Fine-grained space")
+        # self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
+        #                        color="red", s=50, marker="v", alpha=0.8)
         self.axs[0, 0].set_xlim(self.boundsx)
         self.axs[0, 0].set_ylim(self.boundsy)
         self.axs[0, 0].set_aspect('equal', adjustable='box')
@@ -252,9 +256,10 @@ class Renderer:
         self.axs[0, 0].set_yticks(())
 
         # coarse
-        self.axs[0, 1].set_title(f"#PCs={self.brain.get_space_coarse_count()}")
-        self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_position()).T,
-                               color="red", s=50, marker="v", alpha=0.8)
+        # self.axs[0, 1].set_title(f"#PCs={self.brain.get_space_coarse_count()}")
+        self.axs[0, 1].set_title(f"Coarse-grained space")
+        # self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_position()).T,
+        #                        color="red", s=50, marker="v", alpha=0.8)
         self.axs[0, 1].set_xlim(self.boundsx)
         self.axs[0, 1].set_ylim(self.boundsy)
         self.axs[0, 1].set_xticks(())
@@ -273,8 +278,8 @@ class Renderer:
         self.axs[1, 0].set_yticks(())
         self.axs[1, 0].set_title(f"BND")
         self.axs[1, 0].set_aspect('equal', adjustable='box')
-        self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
-                                   color="red", s=50, marker="v")
+        # self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
+        #                            color="red", s=50, marker="v")
 
         self.axs[1, 1].clear()
         daw = self.brain.get_da_weights()
@@ -289,8 +294,8 @@ class Renderer:
         self.axs[1, 1].set_yticks(())
         self.axs[1, 1].set_title(f"DA")
         self.axs[1, 1].set_aspect('equal', adjustable='box')
-        self.axs[1, 1].scatter(*np.array(self.brain.get_space_fine_position()).T,
-                                   color="red", s=50, marker="v")
+        # self.axs[1, 1].scatter(*np.array(self.brain.get_space_fine_position()).T,
+        #                            color="red", s=50, marker="v")
 
         plt.pause(0.00001)
 
@@ -464,7 +469,7 @@ def run_model(parameters: dict, global_parameters: dict,
     body = objects.AgentBody(
                 position=agent_position,
                 speed=global_parameters["speed"],
-                possible_positions=agent_possible_positions,
+                # possible_positions=agent_possible_positions,
                 bounds=agent_settings["agent_bounds"],
                 room=room,
                 color=(10, 10, 10))
@@ -582,7 +587,7 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
     reward_obj = objects.RewardObj(
                 # position=reward_settings["rw_position"],
                 position=rw_position,
-                possible_positions=constants.POSSIBLE_POSITIONS.copy(),
+                # possible_positions=constants.POSSIBLE_POSITIONS.copy(),
                 radius=reward_settings["rw_radius"],
                 sigma=reward_settings["rw_sigma"],
                 fetching=reward_settings["rw_fetching"],

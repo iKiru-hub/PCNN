@@ -5,18 +5,19 @@ The architecture relies on the core assumption that the agent has receives minim
 These two signals are used to enrich the cognitive map with experience-dependent data, which is then used to guide the agent's behavior.
 % briefly describe where in the brain these signals are processed
 
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/figure_model.png}
+    \caption{\textsc{Model layout and spatial representations} - \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioural programs
+    and a reward receiver}. \textbf{b}: \textit{the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to two layer of place cells with different place field granularity}. \textbf{c}: \textit{the neural activity of a grid cell module from
+a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}. \textbf{d}: \textit{the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}.
+\textbf{e}: \textit{neuromodulation activity over the place cells map, with in blue the cells tagged by the collision modulation, and in green the ones targeted by reward modulation.}}
+    \label{fig:model}
+\end{figure}
+
 The formation of the spatial representation is instead based on idiothetic information, which is the agent's perception of self-motion.
 In particular, here we assume this cue to be the factual velocity vector, namely the actual displacement of the agent in the environment.
 In the brain, this signal is thought to result from the integration of inertial and relative motion cues.
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=0.7\textwidth]{figures/figure_model.png}
-    \caption{\textsc{Model layout and spatial representations} - \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioural programs
-    and a reward receiver}. \textbf{b}: \textit{the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to two layer of place cells with different place field granularity}. \textbf{c}: \textit{the neural activity of a grid cell module from
-a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}. \textbf{d}: \textit{the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}}
-    \label{fig:model}
-\end{figure}
 
 \subsection{Place cell map}
 The formation of place cells is obtained from the activity of a set of grid cells organized into modules, or layers. This simple feed-forward architecture is depicted in plot \ref{fig:model}-\textbf{b}.
@@ -28,7 +29,7 @@ The choice of a toroidal space is motivated by consolidated experimental evidenc
 In this work, for simplicity, we consider a square tiling and thus a square torus, without much loss of generality except for the slight increase of grid cells required for a sufficiently cover.
 In plot \ref{fig:model}-\textbf{c} is shown the activity of a grid cell module over a trajectory, with the periodicity underlined by the cell in green.
 
-The activity of all grid cell modules, indicated as $\textbf{u}^{\text{GC}}$, is then projected down to two independent layers of initially un-tuned cells, whose feed-forward weights $\textbf{W}^{\text{GC},\text{PC1}},\;\textbf{W}^{\text{GC},\text{PC2}}$ are initialized at zero.
+The activity of all grid cell modules, indicated as $\textbf{u}^{\text{GC}}$, is then projected down to two independent layers of initially un-tuned cells, whose feed-forward weights $\textbf{W}^{\text{GC},\text{PC1}}$; $\textbf{W}^{\text{GC},\text{PC2}}$ are initialized at zero.
 As the agent moves and the grid cells activity changes, if no neurons within a place cell layer are active, then one is randomly chosen and its weights are set to the current (at time $t$) grid cells' population vector $\textbf{W}^{\text{GC},\text{PC}}_{i}\leftarrow \textbf{u}^{\text{GC}}_{t}$.
 For the plasticity process to be completed, it is also checked the possible overlap with other cells in the same layer, effectively accounting for lateral inhibition. This mechanism is implemented by computing the cosine similarity with the weight vector of the other tuned cells and comparing it with a threshold $\theta^{\text{PC}}_{\text{rep}}$, with the possibility of aborting the plasticity process if the similarity is too high.
 
@@ -64,10 +65,11 @@ On the other hand, the collision modulation, referred to as $\textbf{W}^{\text{B
 
 
 At each moment during navigation, the weight matrices $\textbf{W}^{\text{DA},\text{PC}},\;\textbf{W}^{\text{BND},\text{PC}}$ act as scalar fields over the neural space of the place cells, and their simultaneous contributions delineate what in this work is referred to as a cognitive map.
+In plot \ref{fig:model}-\textbf{e} is shown the activity of the two neuromodulators over the fine-grained place cells map, showcasing the bounds of the environment and the reward location.
 
 
 \subsection{Policy and behavior}
-Our first interest is to test the possibility of relying on a cognitive map built from minimal components for exploration and goal-directed navigation.
+In this work, the first interest was to test the usefulness of our simple cognitive map built from minimal assumptions for the tasks of exploration and goal-directed navigation.
 To this end, we defined a simple hard-coded policy that toggles between these two behaviours according to the presence of a goal signal, externally provided, and the presence of an actual goal representation, taken care of by a special component called \textit{reward seeking}, depicted in the pink box of plot \ref{fig:model}-\textbf{a}.
 Exploration is accomplished by a random walk, with a variable number of steps in the same direction to avoid stagnation, and occasional plans to visit random positions within the known map, again for limiting stagnation.
 Goal-directed navigation, either for reaching a random position for exploration or the actual reward location, is achieved by calculating the shortest path between the closest place cells centers of the current and target positions. The place cells are hence treated as nodes of a graph, and their connections constitute its edges.
@@ -78,5 +80,29 @@ The advantage of this dual-layer planning lies in its flexibility, as it lighten
 In the process of behaviour, learning does not occur explicitly, but it is instead accounted for in the online formation of the cognitive map.
 
 
-\subsection{Remapping}
+\subsection{Map re-configuration}
+Our second aim was to investigate the possibility of online alteration of the place cells density, in terms of its potential performance improvement.
+This action is motivated by the consolidated phenomenon of hippocampal rate remapping, for which the place cells change their firing pattern according to contextual shifts (\textbf{ref}). Additionally, there is growing experimental evidence that place fields can be moved in space following behaviourally relevant events, such as the occurrence of reward, according to a plasticity rule known as behavioural time-scale plasticity (BTSP) (\textbf{ref}).
+
+In our model, we associated this process to both collision and reward signals, whose location is set to be the center towards which the cells within a certain radius $r_{\text{BND}},\;r_{\text{DA}}$ are pulled. The centers of the cells involved are shifted with a force proportional to the Gaussian distance from the center of the signal, and the strength is weighted by a parameter $\lambda_{\text{BND}},\;\lambda_{\text{DA}}$.
+
+Our working hypothesis is that the online re-configuration of the cognitive map can lead to a representation of the environment more tailored with the agent experience. This changes introduced by this mechanism should then be reflected in the adaptability and navigation abilities.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
