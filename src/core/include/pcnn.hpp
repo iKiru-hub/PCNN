@@ -394,6 +394,18 @@ float euclidean_distance(const std::array<float, 2>& v1,
 }
 
 
+float gaussian_distance(const Eigen::VectorXf& v1,
+                        const Eigen::VectorXf& v2,
+                        float sigma = 1.0f) {
+    // Calculate the squared Euclidean distance
+    float squared_distance = (v1 - v2).squaredNorm();
+
+    // Calculate the Gaussian distance
+    float distance = std::exp(-squared_distance / (2 * sigma * sigma));
+
+    return distance;
+}
+
 
 /* MISCELLANEOUS */
 
@@ -1353,12 +1365,6 @@ public:
         // record positions
         square_basis();
 
-        // scale the bounds
-        bounds[0] /= speed;
-        bounds[1] /= speed;
-        bounds[2] /= speed;
-        bounds[3] /= speed;
-
         // record initial positions in the basis
         // pass by value
         positions = basis;
@@ -1664,7 +1670,7 @@ public:
 
         // forward it to the network by doing a dot product
         // with the feedforward weights
-        u = Wff * x_filtered;
+        /* u = Wff * x_filtered; */
         u = cosine_similarity_vector_matrix(
                 x_filtered, Wff);
 

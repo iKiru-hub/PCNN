@@ -1,5 +1,3 @@
-
-
 \section{Methods}
 
 The model is constructed around the concept of a cognitive map, which an agent builds by freely navigating a closed environment and reaching a discovered goal location.
@@ -21,8 +19,32 @@ a random trajectory; in blue the repeating activity of all cell, while in green 
 \end{figure}
 
 \subsubsection{Place cell map}
-A grid cell module $i$ has been defined as a set of $N^{\text{gc}}$ neurons with gaussian tuining curve evenly distributed over the surface of a two dimensional torus $\mathbf{T}^{2}$.
-When the agent moves in the environment, a two dimensional Euclidean space $\mathbf{R}^{2}$, with a velocity $\mathbf{v}=\{x,y\}$, its position on the torus is updated by the same vector but scaled by a speed $s^{\text{gc}}_{i}$ local to the grid cell module $i$.
-The initial position on the torus is randomly chosen at the beginning of each episode, since what matters is the sequence of displacements, and the speed is specific for each grid cell module.
+The formation of place cells is obtained from the activity of a set of grid cells organized into modules, or layers. This simple feed-forward architecture is depicted in plot \ref{fig:model}-\textbf{b}.
+A grid cell module $i$ has been defined as a set of $N^{\text{gc}}$ neurons with gaussian tuning curve evenly distributed over the surface of a two dimensional torus $\mathbf{T}^{2}$.
+When the agent moves in the environment, a two dimensional Euclidean space $\mathbf{R}^{2}$, with a velocity $\mathbf{v}=\{x,y\}$, its position on the torus is updated by the same vector but scaled by a speed scalar $s^{\text{gc}}_{i}$ local to the grid cell module $i$, which determines its periodicity in space.
+The initial position on the torus is randomly chosen at the beginning of each episode, since what matters is the sequence of displacements without any reference to a meaningful origin.
+
+The choice of a toroidal space is motivated by consolidated experimental evidence of the neural space of grid cells, which are organized in modules of different size spanning the animal's environment. However, the shape of their firing pattern is known to be hexagonal, which corresponds to the optimal tiling of a two dimensional plane, giving rise to a neural space lying on a twisted torus.
+In this work, for simplicity, we consider a square tiling and thus a square torus, without much loss of generality except for the slight increase of grid cells required for a sufficiently cover.
+In plot \ref{fig:model}-\textbf{c} is shown the activity of a grid cell module over a trajectory, with the periodicity underlined by the cell in green.
+
+The activity of all grid cell modules, indicated as $\textbf{u}^{\text{GC}}$, is then projected down to two independent layers of initially un-tuned cells, whose feed-forward weights $\textbf{W}^{\text{GC},\text{PC1}},\;\textbf{W}^{\text{GC},\text{PC2}}$ are initialized at zero.
+As the agent moves and the grid cells activity changes, if no neurons within a place cell layer are active, then one is randomly chosen and its weights are set to the current (at time $t$) grid cells' population vector $\textbf{W}^{\text{GC},\text{PC}}_{i}\leftarrow \textbf{u}^{\text{GC}}_{t}$.
+For the plasticity process to be completed, it is also checked the possible overlap with other cells in the same layer, effectively accounting for lateral inhibition. This mechanism is implemented by computing the cosine similarity with the weight vector of the other tuned cells and comparing it with a threshold $\theta^{\text{PC}}_{\text{rep}}$, with the possibility of aborting the plasticity process if the similarity is too high.
+
+The activity of a tuned place cell $i$ is given, again, by the cosine similarity between the current grid cells' population vector and the weight vector of the cell:
+\begin{equation}
+    \textbf{u}^{\text{PC}}_{i}=\phi\left(\cos\left(\textbf{u}^{\text{GC}},\textbf{W}^{\text{GC},\text{PC}}_{i}\right)\right)
+\end{equation}
+\noindent where $\phi$ is a generalized sigmoid function $\phi(z)=\left[1 + \exp(-\beta(z-\alpha))\right]^{-1}$ with gain $\beta$ and threshold $\alpha$.
+The two layers of place cells differ in the size of their place fields. This feature is affected by the sensitivity of a cell tuning with respect to the grid cell activation, determined by the parameters of the sigmoid, and the strength of the lateral inhibition, determined by the similarity threshold.
+One layer is set to be more fine-grained, with an overall higher density of place cells over the space, while the other is more coarse-grained, with overall large place field sizes.
+
+In figure \ref{fig:model}-\textbf{d} are shown the centers of one of the fine-grained layer and the activity of two cells, with their place field highlighted as an heatmap.
+
+
+\subsubsection{Neuromodulators}
+
+
 
 
