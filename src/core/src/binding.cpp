@@ -248,7 +248,8 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("col_weight"),
              py::arg("col_sigma"))
         .def("__call__", &DensityPolicy::call,
-             py::arg("space"),
+             py::arg("space_fine"),
+             py::arg("space_coarse"),
              py::arg("circuits"),
              py::arg("goalmd"),
              py::arg("displacement"),

@@ -3089,7 +3089,7 @@ public:
 
         // :dpolicy fine space
         dpolicy.call(space_fine,
-                     space_coarse
+                     space_coarse,
                      circuits,
                      goalmd,
                      velocity,
