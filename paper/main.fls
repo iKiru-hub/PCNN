@@ -174,12 +174,12 @@ INPUT introduction.tex
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmr12.tfm
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmbx12.tfm
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmti10.tfm
+INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
 INPUT ./methods.tex
 INPUT ./methods.tex
 INPUT ./methods.tex
 INPUT ./methods.tex
 INPUT methods.tex
-INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
 INPUT ./figures/figure_model.png
 INPUT ./figures/figure_model.png
 INPUT ./figures/figure_model.png

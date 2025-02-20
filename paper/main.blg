@@ -3,44 +3,46 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
 Database file #1: pcnn_refs.bib
-You've used 7 entries,
+Warning--I didn't find a database entry for "tolmanCognitiveMapsRats1948"
+You've used 8 entries,
             1791 wiz_defined-function locations,
-            502 strings with 5869 characters,
-and the built_in function-call counts, 1954 in all, are:
-= -- 134
-> -- 158
+            512 strings with 6189 characters,
+and the built_in function-call counts, 2204 in all, are:
+= -- 156
+> -- 172
 < -- 1
-+ -- 55
-- -- 48
-* -- 184
-:= -- 343
-add.period$ -- 21
-call.type$ -- 7
-change.case$ -- 7
++ -- 60
+- -- 52
+* -- 208
+:= -- 384
+add.period$ -- 24
+call.type$ -- 8
+change.case$ -- 8
 chr.to.int$ -- 0
-cite$ -- 7
-duplicate$ -- 62
-empty$ -- 161
-format.name$ -- 48
-if$ -- 401
+cite$ -- 8
+duplicate$ -- 71
+empty$ -- 183
+format.name$ -- 52
+if$ -- 453
 int.to.chr$ -- 0
-int.to.str$ -- 7
-missing$ -- 6
-newline$ -- 37
-num.names$ -- 7
-pop$ -- 17
+int.to.str$ -- 8
+missing$ -- 7
+newline$ -- 42
+num.names$ -- 8
+pop$ -- 18
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 23
+skip$ -- 26
 stack$ -- 0
-substring$ -- 110
-swap$ -- 9
+substring$ -- 129
+swap$ -- 10
 text.length$ -- 1
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 0
-while$ -- 14
-width$ -- 8
-write$ -- 77
+while$ -- 17
+width$ -- 9
+write$ -- 88
+(There was 1 warning)
