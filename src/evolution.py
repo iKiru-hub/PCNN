@@ -59,7 +59,7 @@ game_settings = {
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 12**2,
+    "N": 14**2,
     "Nc": 10**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
@@ -302,9 +302,9 @@ PARAMETERS = {
     "threshold_circuit": lambda: round(random.uniform(0.2, 0.9), 2),
 
     "rwd_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
-    "rwd_sigma": lambda: round(random.uniform(1.0, 100.0), 1),
+    "rwd_sigma": lambda: round(random.uniform(1.0, 200.0), 1),
     "col_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
-    "col_sigma": lambda: round(random.uniform(1.0, 30.0), 1),
+    "col_sigma": lambda: round(random.uniform(1.0, 70.0), 1),
 
     "action_delay": lambda: round(random.uniform(1., 200.), 1),
     "edge_route_interval": lambda: random.randint(1, 200),

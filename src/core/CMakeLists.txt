@@ -93,5 +93,5 @@ endif()
 add_definitions(-w)
 
 # print that the warning suppression is on
-message(">>> Yo sup dawg, beware that warning suppression is on <<<")
+message(">>> Hello! Beware that warning suppression is on <<<")
 

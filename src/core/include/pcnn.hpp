@@ -2651,8 +2651,8 @@ struct DensityPolicy {
             // update & remap
             Eigen::VectorXf bnd_weights = circuits.get_da_weights();
             rwd_drive = rwd_weight * curr_da;
-            /* space_fine.remap(bnd_weights, displacement, rwd_sigma, rwd_drive); */
-            space_coarse.remap(displacement, rwd_sigma, rwd_drive);
+            space_fine.remap(bnd_weights, displacement, rwd_sigma, rwd_drive);
+            /* space_coarse.remap(displacement, rwd_sigma, rwd_drive); */
             /* remap_space(bnd_weights, space, goalmd, displacement, */
             /*             rwd_sigma, rwd_drive); */
 
@@ -2661,7 +2661,7 @@ struct DensityPolicy {
             // udpate & remap
             Eigen::VectorXf da_weights = circuits.get_bnd_weights();
             col_drive = col_weight * curr_bnd;
-            space_fine.remap(da_weights, displacement, col_sigma, col_drive);
+            /* space_fine.remap(da_weights, displacement, col_sigma, col_drive); */
             space_coarse.remap(displacement, col_sigma, col_drive);
         }
     }
