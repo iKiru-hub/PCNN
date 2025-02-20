@@ -115,6 +115,42 @@ def edit_logger(level: int=-1,
     logger.set_warning(is_warning)
 
 
+def load_session():
+
+    logger = setup_logger(name="UTILS", colored=True,
+                          level=2, is_debugging=True,
+                          is_warning=False)
+
+    logger("\n----\nLoading from evolution")
+
+    # --- select file ---
+
+    files = os.listdir(CACHE_PATH)
+
+    # sort the files by name
+    files = sorted(files, key=lambda x: int(x.split("_")[0]))
+
+    for i, file in enumerate(files):
+        print(f"{i}: {file}")
+
+    ans = input("\n>Select file: ")
+    idx = -1 if ans == "" else int(ans)
+
+    # --- load file ---
+
+    with open(f"{CACHE_PATH}/{files[idx]}", "r") as f:
+        run_data = json.load(f)
+
+    logger(f"[] Loaded session: {files[idx]}")
+    logger(f"[] Note: {run_data['info']['other']}")
+    logger("[] Agent fitness=" + \
+        f"{run_data['info']['record_genome']['0']['fitness']:.3f}")
+
+    parameters = run_data["info"]["record_genome"]["0"]["genome"]
+    session_config = run_data["info"]["data"]
+
+    return parameters, session_config
+
 def load_parameters():
 
     logger = setup_logger(name="UTILS", colored=True,

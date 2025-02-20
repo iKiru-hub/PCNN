@@ -1810,6 +1810,62 @@ public:
         }
     }
 
+    void remap(std::array<float, 2> velocity,
+               float width, float magnitude) {
+
+        if (magnitude < 0.00001f) { return; }
+
+        float max_dist = 0.0f;
+        float magnitude_i;;
+        for (int i = 0; i < N; i++) {
+
+            // consider the trace
+            magnitude_i = magnitude * 1.0f;
+
+            // skip blocked edges
+            if (vspace.centers(i, 0) < -900.0f) { continue; }
+
+            std::array<float, 2> displacement = \
+                {vspace.position[0] - vspace.centers(i, 0),
+                 vspace.position[1] - vspace.centers(i, 1)};
+
+            // gaussian activation function centered at zero
+            float dist = std::exp(-std::sqrt(displacement[0] * displacement[0] + \
+                                    displacement[1] * displacement[1]) / width);
+
+            // cutoff
+            if (dist < 0.1f) { continue; }
+
+            max_dist = max_dist < dist ? dist : max_dist;
+
+            // weight the displacement
+            std::array<float, 2> gc_displacement = {
+                            displacement[0] * dist * magnitude_i - displacement[0],
+                            displacement[1] * dist * magnitude_i - displacement[1]};
+
+            // pass the input through the filter layer
+            x_filtered = xfilter.simulate_one_step(gc_displacement);
+
+            // update the weights & centers
+            Wff.row(i) += x_filtered.transpose() - Wff.row(i).transpose();
+
+            // check similarity
+            float similarity = max_cosine_similarity_in_rows(Wff, i);
+
+            // check repulsion (similarity) level
+            if (similarity > (dist * min_rep_threshold + (1 - dist) * \
+                min_rep_threshold) || std::isnan(similarity)) {
+                Wff.row(i) = Wffbackup.row(i);
+                continue;
+            }
+
+            // update backup and vspace
+            Wffbackup.row(i) = Wff.row(i);
+            vspace.remap_center(i, N, {displacement[0] * dist * magnitude_i,
+                                       displacement[1] * dist * magnitude_i});
+        }
+    }
+
     void single_remap(int idx, std::array<float, 2> displacement,
                       float magnitude) {
 
@@ -2037,6 +2093,7 @@ public:
         { for (int i = 0; i < size; i++) { prediction[i] = weights[i] * u[i]; }}
 
     float get_output() { return output; }
+
     Eigen::VectorXf& get_weights() { return weights; }
     Eigen::VectorXf& make_mask() {
 
@@ -2047,7 +2104,6 @@ public:
     }
     float get_leaky_v() { return leaky.get_v(); }
     std::string str() { return name; }
-    std::string repr() { return name + "(1D)"; }
     int len() { return size; }
     float get_modulation_value(int idx) { return weights(idx); }
     void reset() { leaky.reset(); }
@@ -2581,7 +2637,8 @@ struct DensityPolicy {
     float rwd_drive = 0.0f;
     float col_drive = 0.0f;
 
-    void call(PCNN_REF& space, 
+    void call(PCNN_REF& space_fine, 
+              PCNN_REF& space_coarse, 
               Circuits& circuits,
               GoalModule& goalmd,
               std::array<float, 2> displacement,
@@ -2594,7 +2651,8 @@ struct DensityPolicy {
             // update & remap
             Eigen::VectorXf bnd_weights = circuits.get_da_weights();
             rwd_drive = rwd_weight * curr_da;
-            space.remap(bnd_weights, displacement, rwd_sigma, rwd_drive);
+            /* space_fine.remap(bnd_weights, displacement, rwd_sigma, rwd_drive); */
+            space_coarse.remap(displacement, rwd_sigma, rwd_drive);
             /* remap_space(bnd_weights, space, goalmd, displacement, */
             /*             rwd_sigma, rwd_drive); */
 
@@ -2603,7 +2661,8 @@ struct DensityPolicy {
             // udpate & remap
             Eigen::VectorXf da_weights = circuits.get_bnd_weights();
             col_drive = col_weight * curr_bnd;
-            space.remap(da_weights, displacement, col_sigma, col_drive);
+            space_fine.remap(da_weights, displacement, col_sigma, col_drive);
+            space_coarse.remap(displacement, col_sigma, col_drive);
         }
     }
 
@@ -3030,6 +3089,7 @@ public:
 
         // :dpolicy fine space
         dpolicy.call(space_fine,
+                     space_coarse
                      circuits,
                      goalmd,
                      velocity,

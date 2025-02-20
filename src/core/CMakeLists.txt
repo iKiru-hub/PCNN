@@ -74,7 +74,7 @@ if(APPLE)
     set_target_properties(pclib PROPERTIES
         LINK_FLAGS "-stdlib=libc++ -mmacosx-version-min=10.9"
     )
-    
+
     # Flags for test executable
     target_compile_options(pcnn_test PRIVATE 
         -stdlib=libc++ 

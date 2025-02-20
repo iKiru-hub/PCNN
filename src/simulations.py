@@ -34,18 +34,11 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 20_000,
+    "silent_duration": 2_000,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
-}
-
-agent_settings = {
-    # "speed": 0.7,
-    "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
-    "agent_bounds": np.array([0.23, 0.77,
-                           0.23, 0.77]) * GAME_SCALE,
 }
 
 game_settings = {
@@ -53,11 +46,18 @@ game_settings = {
     "rw_event": "move agent",
     "rendering": True,
     "rendering_pcnn": True,
-    "max_duration": 20_000,
+    "max_duration": 10_000,
     "room_thickness": 20,
     "seed": None,
     "pause": -1,
     "verbose": True
+}
+
+agent_settings = {
+    # "speed": 0.7,
+    "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
+    "agent_bounds": np.array([0.23, 0.77,
+                           0.23, 0.77]) * GAME_SCALE,
 }
 
 model_params = {
@@ -514,7 +514,8 @@ def run_model(parameters: dict, global_parameters: dict,
 """ MAIN """
 
 
-def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
+def main_game(room_name: str="Square.v0", load: bool=False,
+              duration: int=-1):
 
     """
     meant to be run standalone
@@ -522,8 +523,18 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
 
 
     if load:
-        parameters = utils.load_parameters()
-        logger.debug(parameters)
+        # parameters = utils.load_parameters()
+        # logger.debug(parameters)
+        parameters, session_config = utils.load_session()
+
+        global_parameters = session_config["global_parameters"]
+        reward_settings = session_config["reward_settings"]
+        agent_settings = session_config["agent_settings"]
+        game_settings = session_config["game_settings"]
+        game_settings["rendering"] = True
+        game_settings["plot_interval"] = 100
+
+
     else:
         parameters = fixed_params
 

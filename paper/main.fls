@@ -198,6 +198,11 @@ INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmb10.tfm
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmbx8.tfm
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmbx6.tfm
+INPUT ./results.tex
+INPUT ./results.tex
+INPUT ./results.tex
+INPUT ./results.tex
+INPUT results.tex
 INPUT ./main.bbl
 INPUT ./main.bbl
 INPUT main.bbl

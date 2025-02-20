@@ -184,7 +184,7 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("min_v") = 0.01f,
              py::arg("mask_threshold") = 0.01f)
         .def("__str__", &BaseModulation::str)
-        .def("__repr__", &BaseModulation::repr)
+        /* .def("__repr__", &BaseModulation::repr) */
         .def("__len__", &BaseModulation::len)
         .def("__call__", &BaseModulation::call,
              py::arg("u"),

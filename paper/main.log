@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024/Homebrew) (preloaded format=pdflatex 2024.10.29)  19 FEB 2025 16:43
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024/Homebrew) (preloaded format=pdflatex 2024.10.29)  19 FEB 2025 17:06
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -470,7 +470,7 @@ Overfull \hbox (1.27606pt too wide) in paragraph at lines 67--69
 []\OT1/cmr/m/n/10 At each mo-ment dur-ing nav-i-ga-tion, the weight ma-tri-ces $[][],  [][]$
  []
 
-[5]) [6] (./main.bbl) [7] (./main.aux)
+[5]) [6] (./results.tex) (./main.bbl) [7] (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-02-20>
@@ -479,10 +479,10 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 19F7CD9CAD8A5432E746CA97D0EBC3A5;764.
  ) 
 Here is how much of TeX's memory you used:
- 12856 strings out of 474116
- 205170 string characters out of 5732612
+ 12864 strings out of 474116
+ 205298 string characters out of 5732612
  1938187 words of memory out of 5000000
- 35028 multiletter control sequences out of 15000+600000
+ 35033 multiletter control sequences out of 15000+600000
  566839 words of font info for 68 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,6n,79p,1247b,467s stack positions out of 10000i,1000n,20000p,200000b,200000s
