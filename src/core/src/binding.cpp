@@ -91,8 +91,8 @@ PYBIND11_MODULE(pclib, m) {
     py::class_<PCNN>(m, "PCNN")
         .def(py::init<int, int, float, float,
              float, float, float, float, \
-             float, GCN_REF, \
-             float, std::string>(),
+             float, GCN_REF, float,
+             int, std::string>(),
              py::arg("N"),
              py::arg("Nj"),
              py::arg("gain"),
@@ -104,6 +104,7 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("min_rep_threshold"),
              py::arg("xfilter"),
              py::arg("tau_trace") = 2.0f,
+             py::arg("remap_tag_frequency") = 1,
              py::arg("name") = "fine")
         .def("__call__", &PCNN::call,
              py::arg("v"))
@@ -280,12 +281,12 @@ PYBIND11_MODULE(pclib, m) {
 
         .def(py::init<
              float, float, int, int, float, float, float, float,
+             float, float, float, float, float, int,
              float, float, float, float, float,
-             float, float, float, float, float,
-             float, float, float,
+             float, float, float, float,
              float, float, float,
              float, float,
-             float,
+             float, int,
              float, float, float, float,
              float, int,
              int, int, float
@@ -304,6 +305,7 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("threshold_fine"),
              py::arg("rep_threshold_fine"),
              py::arg("tau_trace_fine"),
+             py::arg("remap_tag_frequency") = 5,
 
              py::arg("gain_coarse"),
              py::arg("offset_coarse"),
@@ -312,6 +314,7 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("tau_trace_coarse"),
 
              py::arg("lr_da"),
+             py::arg("lr_pred"),
              py::arg("threshold_da"),
              py::arg("tau_v_da"),
 
@@ -323,6 +326,7 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("threshold_ssry"),
 
              py::arg("threshold_circuit"),
+             py::arg("remapping_flag") = 1,
 
              py::arg("rwd_weight"),
              py::arg("rwd_sigma"),

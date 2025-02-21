@@ -1560,7 +1560,11 @@ public:
 
 class PCNN {
 
-    // parameters
+    // internal components
+    VelocitySpace vspace;
+    GCN_REF xfilter;
+
+    // constant parameters
     const int N;
     const int Nj;
     const float offset;
@@ -1571,12 +1575,15 @@ class PCNN {
     const float gain_const;
     const float tau_trace;
 
+    // ~activation
     float rep_threshold;
     float min_rep_threshold;
     float threshold;
     float gain;
 
-    GCN_REF xfilter;
+    // remappint
+    const int remap_tag_frequency;
+    int t_update = 0;
 
     // variables
     Eigen::MatrixXf Wff;
@@ -1591,9 +1598,8 @@ class PCNN {
     int cell_count;
     Eigen::VectorXf u;
     Eigen::VectorXf traces;
+    std::vector<bool> remap_tag = {};
     Eigen::VectorXf x_filtered;
-
-    VelocitySpace vspace;
 
     // @brief check if one of the fixed neurons
     int check_fixed_indexes() {
@@ -1633,6 +1639,7 @@ public:
          float clip_min, float threshold, float rep_threshold,
          float rec_threshold, float min_rep_threshold,
          GCN_REF xfilter, float tau_trace = 2.0f,
+         int remap_tag_frequency = 1,
          std::string name = "fine")
         : N(N), Nj(Nj), gain(gain), gain_const(gain),
         offset(offset), clip_min(clip_min),
@@ -1640,6 +1647,7 @@ public:
         rep_threshold_const(rep_threshold), rec_threshold(rec_threshold),
         threshold_const(threshold), threshold(threshold),
         xfilter(xfilter), tau_trace(tau_trace), name(name),
+        remap_tag_frequency(remap_tag_frequency),
         vspace(VelocitySpace(N, rec_threshold)) {
 
         // Initialize the variables
@@ -1728,6 +1736,10 @@ public:
             vspace.update(idx, N, traces);
             this->Wrec = vspace.weights;
             this->connectivity = vspace.connectivity;
+
+            // update the remap tags
+            remap_tag.push_back(t_update % remap_tag_frequency == 0);
+            t_update++;
         }
     }
 
@@ -1759,8 +1771,11 @@ public:
         float magnitude_i;;
         for (int i = 0; i < N; i++) {
 
+            // check remap tag
+            if (!remap_tag[i]) { continue; }
+
             // consider the trace
-            magnitude_i = magnitude * 1.0f;// trace(i);
+            /* magnitude_i = magnitude * 1.0f;// trace(i); */
 
             /* if (magnitude_i < 0.001f) { continue; } */
 
@@ -1782,9 +1797,8 @@ public:
             max_dist = max_dist < dist ? dist : max_dist;
 
             // weight the displacement
-            std::array<float, 2> gc_displacement = {
-                            displacement[0] * dist * magnitude_i - displacement[0],
-                            displacement[1] * dist * magnitude_i - displacement[1]};
+            std::array<float, 2> gc_displacement = {dist * magnitude,
+                                                    dist * magnitude};
 
             // pass the input through the filter layer
             x_filtered = xfilter.simulate_one_step(gc_displacement);
@@ -1793,20 +1807,22 @@ public:
             Wff.row(i) += x_filtered.transpose() - Wff.row(i).transpose();
 
             // check similarity
-            float similarity = \
-                max_cosine_similarity_in_rows(Wff, i);
+            float similarity = max_cosine_similarity_in_rows(Wff, i);
 
             // check repulsion (similarity) level
-            if (similarity > (dist * min_rep_threshold + (1 - dist) * \
-                min_rep_threshold) || std::isnan(similarity)) {
+             /* - displacement[0] */
+            /* if (similarity > min_rep_threshold || std::isnan(similarity)) { */
+            if (similarity > (dist * rep_threshold * 0. + (1 -0*dist) * min_rep_threshold) \
+                || std::isnan(similarity)) {
+                /* std::cout << "remap failed, too close" << std::endl; */
                 Wff.row(i) = Wffbackup.row(i);
                 continue;
             }
 
             // update backup and vspace
             Wffbackup.row(i) = Wff.row(i);
-            vspace.remap_center(i, N, {displacement[0] * dist * magnitude_i,
-                                       displacement[1] * dist * magnitude_i});
+            vspace.remap_center(i, N, {dist * magnitude,
+                                       dist * magnitude});
         }
     }
 
@@ -1819,8 +1835,13 @@ public:
         float magnitude_i;;
         for (int i = 0; i < N; i++) {
 
+            // check remap tag
+            if (!remap_tag[i]) { continue; }
+
             // consider the trace
-            magnitude_i = magnitude * 1.0f;
+            /* magnitude_i = magnitude * 1.0f;// trace(i); */
+
+            /* if (magnitude_i < 0.001f) { continue; } */
 
             // skip blocked edges
             if (vspace.centers(i, 0) < -900.0f) { continue; }
@@ -1839,9 +1860,8 @@ public:
             max_dist = max_dist < dist ? dist : max_dist;
 
             // weight the displacement
-            std::array<float, 2> gc_displacement = {
-                            displacement[0] * dist * magnitude_i - displacement[0],
-                            displacement[1] * dist * magnitude_i - displacement[1]};
+            std::array<float, 2> gc_displacement = {dist * magnitude,
+                                                    dist * magnitude};
 
             // pass the input through the filter layer
             x_filtered = xfilter.simulate_one_step(gc_displacement);
@@ -1853,16 +1873,74 @@ public:
             float similarity = max_cosine_similarity_in_rows(Wff, i);
 
             // check repulsion (similarity) level
-            if (similarity > (dist * min_rep_threshold + (1 - dist) * \
-                min_rep_threshold) || std::isnan(similarity)) {
+             /* - displacement[0] */
+            /* if (similarity > min_rep_threshold || std::isnan(similarity)) { */
+            if (similarity > (dist * rep_threshold * 0. + (1 -0*dist) * min_rep_threshold) \
+                || std::isnan(similarity)) {
+                /* std::cout << "remap failed, too close" << std::endl; */
                 Wff.row(i) = Wffbackup.row(i);
                 continue;
             }
 
             // update backup and vspace
             Wffbackup.row(i) = Wff.row(i);
-            vspace.remap_center(i, N, {displacement[0] * dist * magnitude_i,
-                                       displacement[1] * dist * magnitude_i});
+            vspace.remap_center(i, N, {dist * magnitude,
+                                       dist * magnitude});
+        }
+    }
+
+    //
+    void remap_no(std::array<float, 2> velocity,
+               float width, float magnitude) {
+
+        if (magnitude < 0.00001f) { return; }
+
+        float max_dist = 0.0f;
+        float magnitude_i;;
+        for (int i = 0; i < N; i++) {
+
+            // check remap tag
+            if (!remap_tag[i]) { continue; }
+
+            // skip blocked edges
+            if (vspace.centers(i, 0) < -900.0f) { continue; }
+
+            std::array<float, 2> displacement = \
+                {vspace.position[0] - vspace.centers(i, 0),
+                 vspace.position[1] - vspace.centers(i, 1)};
+
+            // gaussian activation function centered at zero
+            float dist = std::exp(-std::sqrt(displacement[0] * displacement[0] + \
+                                    displacement[1] * displacement[1]) / width);
+
+            // cutoff
+            if (dist < 0.1f) { continue; }
+
+            max_dist = max_dist < dist ? dist : max_dist;
+
+            // weight the displacement
+            std::array<float, 2> gc_displacement = {dist * magnitude,
+                                                    dist * magnitude};
+
+            // pass the input through the filter layer
+            x_filtered = xfilter.simulate_one_step(gc_displacement);
+
+            // update the weights & centers
+            Wff.row(i) += x_filtered.transpose() - Wff.row(i).transpose();
+
+            // check similarity
+            float similarity = max_cosine_similarity_in_rows(Wff, i);
+
+            // check repulsion (similarity) level
+            if (similarity > min_rep_threshold || std::isnan(similarity)) {
+                Wff.row(i) = Wffbackup.row(i);
+                continue;
+            }
+
+            // update backup and vspace
+            Wffbackup.row(i) = Wff.row(i);
+            vspace.remap_center(i, N, {dist * magnitude,
+                                       dist * magnitude});
         }
     }
 
@@ -2043,10 +2121,9 @@ public:
     float max_w;
 
     BaseModulation(std::string name, int size,
-                   float lr, float threshold, float max_w = 1.0f,
+                   float lr, float lr_pred, float threshold, float max_w = 1.0f,
                    float tau_v = 1.0f, float eq_v = 1.0f,
-                   float min_v = 0.0f, float mask_threshold = 0.01f,
-                   float lr_pred = 0.01f):
+                   float min_v = 0.0f, float mask_threshold = 0.01f):
         name(name), size(size), lr(lr), threshold(threshold),
         max_w(max_w), mask_threshold(mask_threshold),
         leaky(LeakyVariable1D(name, eq_v, tau_v, min_v)),
@@ -2074,8 +2151,11 @@ public:
                 // backward, prediction error
                 float pred_err = lr_pred * (prediction[i] - v * ui);
 
+                // clip the prediction error if within a certain range
+                pred_err = pred_err > 0.001f && pred_err < 0.075 ? 0.075 : pred_err;
+
                 // update weights
-                weights[i] += lr * v * ui + pred_err;
+                weights[i] += lr * v * ui - pred_err;
 
                 // clip the weights in (0, max_w)
                 if (weights[i] < 0.0) { weights[i] = 0.0; }
@@ -2628,6 +2708,29 @@ public:
 };
 
 
+std::array<bool, 4> remapping_options(int flag) {
+
+    switch (flag) {
+        case 0:
+            return {true, true, true, true};
+        case 1:
+            return {true, false, false, false};
+        case 2:
+            return {false, true, false, false};
+        case 3:
+            return {true, false, true, false};
+        case 4:
+            return {true, true, true, false};
+        case 5:
+            return {true, false, true, true};
+        case 6:
+            return {false, true, false, true};
+        default:
+            return {false, false, false, false};
+    }
+}
+
+
 struct DensityPolicy {
 
     float rwd_weight;
@@ -2637,6 +2740,9 @@ struct DensityPolicy {
     float rwd_drive = 0.0f;
     float col_drive = 0.0f;
 
+    bool remapping_flag;
+    std::array<bool, 4> remapping_option;
+
     void call(PCNN_REF& space_fine, 
               PCNN_REF& space_coarse, 
               Circuits& circuits,
@@ -2645,31 +2751,51 @@ struct DensityPolicy {
               float curr_da, float curr_bnd,
               float reward, float collision) {
 
+        if (remapping_flag < 0) { return; }
+
         // +reward -collision
-        if (reward > 0.1 || curr_bnd < 0.01) {
+        if (reward > 0.1 && curr_bnd < 0.01) {
 
             // update & remap
             Eigen::VectorXf bnd_weights = circuits.get_da_weights();
             rwd_drive = rwd_weight * curr_da;
-            space_fine.remap(bnd_weights, displacement, rwd_sigma, rwd_drive);
+
+            if (remapping_option[0]) {
+                space_fine.remap(bnd_weights, displacement, rwd_sigma, rwd_drive);
+            }
+            if (remapping_option[1]) {
+                space_coarse.remap(displacement, rwd_sigma, rwd_drive);
+            }
+
+            /* space_fine.remap(bnd_weights, displacement, rwd_sigma, rwd_drive); */
             /* space_coarse.remap(displacement, rwd_sigma, rwd_drive); */
             /* remap_space(bnd_weights, space, goalmd, displacement, */
             /*             rwd_sigma, rwd_drive); */
 
-        } else if (collision > 0.1 || curr_da < 0.01) {
+        } else if (collision > 0.1 && curr_da < 0.01) {
 
             // udpate & remap
             Eigen::VectorXf da_weights = circuits.get_bnd_weights();
             col_drive = col_weight * curr_bnd;
-            space_fine.remap(da_weights, displacement, col_sigma, col_drive);
+
+            if (remapping_option[2]) {
+                space_fine.remap(da_weights, displacement, col_sigma, col_drive);
+            }
+            if (remapping_option[3]) {
+                space_coarse.remap(displacement, col_sigma, col_drive);
+            }
+
+            /* space_fine.remap(da_weights, displacement, col_sigma, col_drive); */
             /* space_coarse.remap(displacement, col_sigma, col_drive); */
         }
     }
 
     DensityPolicy(float rwd_weight, float rwd_sigma,
-                  float col_weight, float col_sigma):
+                  float col_weight, float col_sigma,
+                  int remapping_flag = -1):
         rwd_weight(rwd_weight), rwd_sigma(rwd_sigma),
-        col_sigma(col_sigma), col_weight(col_weight) {}
+        col_sigma(col_sigma), col_weight(col_weight),
+        remapping_option(remapping_options(remapping_flag)) {}
     std::string str() { return "DensityPolicy"; }
     std::string repr() { return "DensityPolicy"; }
     float get_rwd_mod() { return rwd_drive; }
@@ -2998,6 +3124,7 @@ public:
           float threshold_fine,
           float rep_threshold_fine,
           float tau_trace_fine,
+          int remap_tag_frequency,
 
           float gain_coarse,
           float offset_coarse,
@@ -3006,6 +3133,7 @@ public:
           float tau_trace_coarse,
 
           float lr_da,
+          float lr_pred,
           float threshold_da,
           float tau_v_da,
 
@@ -3017,6 +3145,7 @@ public:
           float threshold_ssry,
 
           float threshold_circuit,
+          int remapping_flag,
 
           float rwd_weight,
           float rwd_sigma,
@@ -3030,10 +3159,10 @@ public:
           int fine_tuning_min_duration,
           float min_weight_value = 0.3):
         clock(0), forced_duration(forced_duration), directive("new"),
-        da(BaseModulation("DA", N, lr_da, threshold_da, 1.0f,
-                                           tau_v_da, 0.0f, 0.0f)),
-        bnd(BaseModulation("BND", N, lr_bnd, threshold_bnd, 1.0f,
-                                            tau_v_bnd, 0.0f, 0.0f)),
+        da(BaseModulation("DA", N, lr_da, lr_pred, threshold_da, 1.0f,
+                          tau_v_da, 0.0f, 0.4f, 0.1f)),
+        bnd(BaseModulation("BND", N, lr_bnd, 0.0f, threshold_bnd, 1.0f,
+                           tau_v_bnd, 0.0f, 0.1f)),
         ssry(StationarySensory(N, tau_ssry, threshold_ssry, 0.99)),
         circuits(Circuits(da, bnd, threshold_circuit)),
 
@@ -3049,15 +3178,15 @@ public:
         space_fine(PCNN(N, gcn.len(), gain_fine, offset_fine,
                         0.01f, threshold_fine, rep_threshold_fine,
                         rec_threshold_fine, min_rep_threshold, gcn,
-                        tau_trace_fine, "fine")),
+                        tau_trace_fine, remap_tag_frequency, "fine")),
         space_coarse(PCNN(Nc, gcn.len(), gain_coarse, offset_coarse,
                           0.01f, threshold_coarse, rep_threshold_coarse,
                           rec_threshold_coarse, min_rep_threshold,
-                          gcn, tau_trace_coarse, "coarse")),
+                          gcn, tau_trace_coarse, 1, "coarse")),
         goalmd(GoalModule(space_fine, space_coarse, circuits, speed,
                           speed * local_scale_fine / local_scale_coarse)),
         rwobj(RewardObject(min_weight_value)),
-        dpolicy(DensityPolicy(rwd_weight, rwd_sigma, col_weight, col_sigma)),
+        dpolicy(DensityPolicy(rwd_weight, rwd_sigma, col_weight, col_sigma, remapping_flag)),
         expmd(ExplorationModule(speed * 2.0f, circuits, space_fine,
                                 action_delay, edge_route_interval)) {}
 
@@ -3298,32 +3427,32 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     gcn_layers.push_back(GCL_REF(0.04, 0.005));
     GCN_REF gcn = GCN_REF(gcn_layers);
     PCNN space = PCNN(N, gcn.len(), 10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
-                              5.0f, 5, gcn, 10.0f, "fine");
+                              5.0f, 5, gcn, 10.0f, 1, "fine");
     PCNN space_coarse = PCNN(N, gcn.len(),
                                      10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
-                                     5.0f, 0.95, gcn, 20.0f, "coarse");
+                                     5.0f, 0.95, gcn, 20.0f, 1, "coarse");
 
     // MODULATION
     // name size lr threshold maxw tauv eqv minv
-    BaseModulation da = BaseModulation("DA", N, 0.5f, 0.0f, 1.0f,
+    BaseModulation da = BaseModulation("DA", N, 0.5f, 0.1f, 0.0f, 1.0f,
                                        2.0f, 0.0f, 0.0f, 0.01f);
-    BaseModulation bnd = BaseModulation("BND", N, 0.9f, 0.0f, 1.0f,
+    BaseModulation bnd = BaseModulation("BND", N, 0.9f, 0.0f, 0.0f, 1.0f,
                                         2.0f, 0.0f, 0.0f, 0.01f);
     StationarySensory ssry = StationarySensory(N, 100.0f, 0.2f, 0.5f);
     Circuits circuits = Circuits(da, bnd, 0.5f);
 
     // EXPERIENCE MODULE & BRAIN
-    DensityPolicy dpolicy = DensityPolicy(0.5f, 40.0f, 0.5f, 20.0f);
+    DensityPolicy dpolicy = DensityPolicy(0.5f, 40.0f, 0.5f, 20.0f, 1);
     ExplorationModule expmd = ExplorationModule(SPEED, circuits, space, 1.0f);
     /* Brain brain = Brain(circuits, space, space_coarse, expmd, ssry, dpolicy, */ 
     /*                     SPEED, SPEED * 2.0f, 5); */
     Brain brain = Brain(0.1f, 0.1f, N, N, 0.01f, 0.01f, SPEED, 0.01f,
-                            0.5f, 0.0f, 0.2f, 0.7f, 10.0f,
+                            0.5f, 0.0f, 0.2f, 0.7f, 10.0f, 1,
                             0.5f, 0.0f, 0.2f, 0.7f, 20.0f,
-                            0.5f, 0.0f, 0.2f,
+                            0.5f, 0.1f, 0.0f, 0.2f,
                             0.5f, 0.0f, 0.2f,
                             100.0f, 0.2f,
-                            0.5f,
+                            0.5f, 1,
                             0.5f, 40.0f, 0.5f, 20.0f,
                             1.0f, 100,
                             100, 50, 0.3f);

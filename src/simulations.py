@@ -39,11 +39,13 @@ reward_settings = {
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
+    "tau": 400,# * GAME_SCALE,
+    "move_threshold": 2,# * GAME_SCALE,
 }
 
 game_settings = {
     "plot_interval": 5,
-    "rw_event": "move agent",
+    "rw_event": "move both",
     "rendering": True,
     "rendering_pcnn": True,
     "max_duration": 10_000,
@@ -72,32 +74,34 @@ model_params = {
 global_parameters = {
     "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
-    "N": 22**2,
-    "Nc": 13**2,
+    "N": 30**2,
+    "Nc": 15**2,
     # "rec_threshold_fine": 60.,
     # "rec_threshold_coarse": 100.,
-    "speed": 1.5,
+    "speed": 1.0,
     "min_weight_value": 0.5
 }
 
 parameters = {
     "gain_fine": 9.,
     "offset_fine": 1.0,
-    "threshold_fine": 0.3,
-    "rep_threshold_fine": 0.8,
-    "rec_threshold_fine": 150.,
+    "threshold_fine": 0.2,
+    "rep_threshold_fine": 0.4,
+    "rec_threshold_fine": 80.,
     "tau_trace_fine": 20.0,
-    "min_rep_threshold": 0.95,
+    "min_rep_threshold": 0.7,
+    "remap_tag_frequency": 1,
 
-    "gain_coarse": 7.,
-    "offset_coarse": 0.8,
+    "gain_coarse": 9.,
+    "offset_coarse": 0.9,
     "threshold_coarse": 0.3,
     "rep_threshold_coarse": 0.8,
     "rec_threshold_coarse": 200.,
     "tau_trace_coarse": 20.0,
 
-    "lr_da": 0.8,
-    "threshold_da": 0.03,
+    "lr_da": 0.9,
+    "lr_pred": 0.5,
+    "threshold_da": 0.05,
     "tau_v_da": 1.0,
 
     "lr_bnd": 0.3,
@@ -108,9 +112,10 @@ parameters = {
     "threshold_ssry": 0.998,
 
     "threshold_circuit": 0.9,
+    "remapping_flag": 1,
 
-    "rwd_weight": 0.1,
-    "rwd_sigma": 40.0,
+    "rwd_weight": 3.,
+    "rwd_sigma": 100.0,
     "col_weight": 0.0,
     "col_sigma": 2.0,
 
@@ -215,15 +220,15 @@ class Renderer:
             # fine space
             self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                    color="blue", s=20, alpha=0.4)
-            for edge in self.brain.make_space_fine_edges():
-                self.axs[0, 0].plot((edge[0][0], edge[1][0]),
-                                    (edge[0][1], edge[1][1]),
-                                 alpha=0.1, lw=0.5, color="black")
+            # for edge in self.brain.make_space_fine_edges():
+            #     self.axs[0, 0].plot((edge[0][0], edge[1][0]),
+            #                         (edge[0][1], edge[1][1]),
+            #                      alpha=0.1, lw=0.5, color="black")
 
-            for edge in self.brain.make_space_coarse_edges():
-                self.axs[0, 1].plot((edge[0][0], edge[1][0]),
-                                    (edge[0][1], edge[1][1]),
-                                 alpha=0.1, lw=0.5, color="black")
+            # for edge in self.brain.make_space_coarse_edges():
+            #     self.axs[0, 1].plot((edge[0][0], edge[1][0]),
+            #                         (edge[0][1], edge[1][1]),
+            #                      alpha=0.1, lw=0.5, color="black")
 
             self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
                                    color="blue", s=20, alpha=0.4)
@@ -394,6 +399,10 @@ def run_model(parameters: dict, global_parameters: dict,
     meant to be run standalone
     """
 
+    remap_tag_frequency = parameters["remap_tag_frequency"] if "remap_tag_frequency" in parameters else 200
+    remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 1
+    lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.3
+
     """ make model """
 
     brain = pclib.Brain(
@@ -410,6 +419,7 @@ def run_model(parameters: dict, global_parameters: dict,
                 threshold_fine=parameters["threshold_fine"],
                 rep_threshold_fine=parameters["rep_threshold_fine"],
                 tau_trace_fine=parameters["tau_trace_fine"],
+                # remap_tag_frequency=1,
                 gain_coarse=parameters["gain_coarse"],
                 offset_coarse=parameters["offset_coarse"],
                 threshold_coarse=parameters["threshold_coarse"],
@@ -424,6 +434,7 @@ def run_model(parameters: dict, global_parameters: dict,
                 tau_ssry=parameters["tau_ssry"],
                 threshold_ssry=parameters["threshold_ssry"],
                 threshold_circuit=parameters["threshold_circuit"],
+                remapping_flag=remapping_flag,
                 rwd_weight=parameters["rwd_weight"],
                 rwd_sigma=parameters["rwd_sigma"],
                 col_weight=parameters["col_weight"],
@@ -454,6 +465,9 @@ def run_model(parameters: dict, global_parameters: dict,
     agent_position = agent_possible_positions[np.random.randint(0,
                                                 len(agent_possible_positions))]
 
+    rw_tau = reward_settings["tau"] if "tau" in reward_settings else 100
+    rw_move_threshold = reward_settings["move_threshold"] if "move_threshold" in reward_settings else 4
+
     reward_obj = objects.RewardObj(
                 position=rw_position,
                 possible_positions=constants.POSSIBLE_POSITIONS.copy(),
@@ -464,6 +478,8 @@ def run_model(parameters: dict, global_parameters: dict,
                 bounds=room_bounds,
                 delay=reward_settings["delay"],
                 silent_duration=reward_settings["silent_duration"],
+                tau=rw_tau,
+                move_threshold=rw_move_threshold,
                 transparent=reward_settings["transparent"])
 
     body = objects.AgentBody(
@@ -514,7 +530,11 @@ def run_model(parameters: dict, global_parameters: dict,
 """ MAIN """
 
 
-def main_game(room_name: str="Square.v0", load: bool=False,
+def main_game(global_parameters: dict=global_parameters,
+              agent_settings: dict=agent_settings,
+              reward_settings: dict=reward_settings,
+              game_settings: dict=game_settings,
+              room_name: str="Square.v0", load: bool=False,
               duration: int=-1):
 
     """
@@ -533,12 +553,17 @@ def main_game(room_name: str="Square.v0", load: bool=False,
         game_settings = session_config["game_settings"]
         game_settings["rendering"] = True
         game_settings["plot_interval"] = 100
+        game_settings["rw_event"] = "move both"
 
 
     else:
         parameters = fixed_params
 
     """ make model """
+
+    remap_tag_frequency = parameters["remap_tag_frequency"] if "remap_tag_frequency" in parameters else 200
+    remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 0
+    lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.2
 
     brain = pclib.Brain(
                 local_scale_fine=global_parameters["local_scale_fine"],
@@ -554,12 +579,14 @@ def main_game(room_name: str="Square.v0", load: bool=False,
                 offset_fine=parameters["offset_fine"],
                 threshold_fine=parameters["threshold_fine"],
                 rep_threshold_fine=parameters["rep_threshold_fine"],
+                remap_tag_frequency=remap_tag_frequency,
                 tau_trace_coarse=parameters["tau_trace_coarse"],
                 gain_coarse=parameters["gain_coarse"],
                 offset_coarse=parameters["offset_coarse"],
                 threshold_coarse=parameters["threshold_coarse"],
                 rep_threshold_coarse=parameters["rep_threshold_coarse"],
                 lr_da=parameters["lr_da"],
+                lr_pred=lr_pred,
                 threshold_da=parameters["threshold_da"],
                 tau_v_da=parameters["tau_v_da"],
                 lr_bnd=parameters["lr_bnd"],
@@ -568,6 +595,7 @@ def main_game(room_name: str="Square.v0", load: bool=False,
                 tau_ssry=parameters["tau_ssry"],
                 threshold_ssry=parameters["threshold_ssry"],
                 threshold_circuit=parameters["threshold_circuit"],
+                remapping_flag=remapping_flag,
                 rwd_weight=parameters["rwd_weight"],
                 rwd_sigma=parameters["rwd_sigma"],
                 col_weight=parameters["col_weight"],
@@ -589,12 +617,15 @@ def main_game(room_name: str="Square.v0", load: bool=False,
     # ===| objects |===
 
     rw_position_idx = np.random.randint(0, len(constants.POSSIBLE_POSITIONS))
-    rw_position = constants.POSSIBLE_POSITIONS[rw_position_idx]
+    # rw_position = constants.POSSIBLE_POSITIONS[rw_position_idx]
+    rw_position = np.array([0.5, 0.5]) * GAME_SCALE
     agent_possible_positions = constants.POSSIBLE_POSITIONS.copy()
     del agent_possible_positions[rw_position_idx]
     agent_position = agent_possible_positions[np.random.randint(0,
                                                 len(agent_possible_positions))]
 
+    rw_tau = reward_settings["tau"] if "tau" in reward_settings else 400
+    rw_move_threshold = reward_settings["move_threshold"] if "move_threshold" in reward_settings else 2
     reward_obj = objects.RewardObj(
                 # position=reward_settings["rw_position"],
                 position=rw_position,
@@ -607,6 +638,8 @@ def main_game(room_name: str="Square.v0", load: bool=False,
                 delay=reward_settings["delay"],
                 silent_duration=reward_settings["silent_duration"],
                 fetching_duration=reward_settings["fetching_duration"],
+                tau=rw_tau,
+                move_threshold=rw_move_threshold,
                 transparent=reward_settings["transparent"])
 
     body = objects.AgentBody(
@@ -649,6 +682,8 @@ def main_game(room_name: str="Square.v0", load: bool=False,
              pause=-1)
 
     logger(f"rw_count={env.rw_count}")
+
+    plt.show()
 
 
 def main_game_v2(room_name: str="Flat.1011", load: bool=False):

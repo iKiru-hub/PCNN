@@ -17,8 +17,9 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 5
-ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES, replace=False).tolist()
+NUM_SAMPLES = 3
+ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1, replace=False).tolist() + 
+            ["Square.v0"]
 
 
 reward_settings = {
@@ -35,6 +36,8 @@ reward_settings = {
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,
+    "tau": 300,# * GAME_SCALE,
+    "move_threshold": 2,# * GAME_SCALE,
 }
 
 agent_settings = {
@@ -45,7 +48,7 @@ agent_settings = {
 
 game_settings = {
     "plot_interval": 5,
-    "rw_event": "move agent",
+    "rw_event": "move both",
     "rendering": False,
     "rendering_pcnn": False,
     "max_duration": 10_000,
@@ -59,8 +62,8 @@ game_settings = {
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 20**2,
-    "Nc": 9**2,
+    "N": 25**2,
+    "Nc": 13**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
     "speed": 1.,
@@ -139,12 +142,12 @@ class Model:
     def __init__(self, gain_fine, offset_fine, threshold_fine, rep_threshold_fine,
                  tau_trace_fine, gain_coarse, offset_coarse, threshold_coarse,
                  rep_threshold_coarse, tau_trace_coarse,
-                 min_rep_threshold,
+                 min_rep_threshold, remap_tag_frequency,
                  rec_threshold_fine, rec_threshold_coarse,
-                 lr_da, threshold_da, tau_v_da,
+                 lr_da, lr_pred, threshold_da, tau_v_da,
                  lr_bnd, threshold_bnd, tau_v_bnd,
                  tau_ssry, threshold_ssry,
-                 threshold_circuit,
+                 threshold_circuit, remapping_flag,
                  rwd_weight, rwd_sigma, col_weight, col_sigma,
                  action_delay, edge_route_interval,
                  forced_duration, fine_tuning_min_duration):
@@ -157,27 +160,38 @@ class Model:
             "rec_threshold_fine": rec_threshold_fine,
             "tau_trace_fine": tau_trace_fine,
             "min_rep_threshold": min_rep_threshold,
+            "remap_tag_frequency": 1,
+
             "gain_coarse": gain_coarse,
             "offset_coarse": offset_coarse,
             "threshold_coarse": threshold_coarse,
             "rep_threshold_coarse": rep_threshold_coarse,
             "rec_threshold_coarse": rec_threshold_coarse,
             "tau_trace_coarse": tau_trace_coarse,
+
             "lr_da": lr_da,
+            "lr_pred": lr_pred,
             "threshold_da": threshold_da,
             "tau_v_da": tau_v_da,
+
             "lr_bnd": lr_bnd,
             "threshold_bnd": threshold_bnd,
             "tau_v_bnd": tau_v_bnd,
+
             "tau_ssry": tau_ssry,
             "threshold_ssry": threshold_ssry,
+
             "threshold_circuit": threshold_circuit,
+            "remapping_flag": remapping_flag,
+
             "rwd_weight": rwd_weight,
             "rwd_sigma": rwd_sigma,
             "col_weight": col_weight,
             "col_sigma": col_sigma,
+
             "action_delay": action_delay,
             "edge_route_interval": edge_route_interval,
+
             "forced_duration": forced_duration,
             "fine_tuning_min_duration": fine_tuning_min_duration
         }
@@ -235,6 +249,7 @@ FIXED_PARAMETERS = {
     # "rep_threshold_fine": 0.88,
     # "rec_threshold_fine": 26.,
     # "min_rep_threshold": 0.95,
+    # "remap_tag_frequency": 1,
     # "tau_trace_fine": 10.0,
 
     # "gain_coarse": 11.,
@@ -245,6 +260,7 @@ FIXED_PARAMETERS = {
     # "tau_trace_coarse": 20.0,
 
     # "lr_da": 0.4,
+    # "lr_pred": 0.4,
     # "threshold_da": 0.08,
     # "tau_v_da": 1.0,
 
@@ -256,6 +272,7 @@ FIXED_PARAMETERS = {
     # "threshold_ssry": 0.995,
 
     # "threshold_circuit": 0.7,
+    # "remapping_flag": 0,
 
     # "rwd_weight": 0.0,
     # "rwd_sigma": 40.0,
@@ -276,19 +293,21 @@ PARAMETERS = {
     "gain_fine": lambda: round(random.uniform(5., 20.), 1),
     "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_fine": lambda: round(random.uniform(0.05, 0.5), 2),
-    "rep_threshold_fine": lambda: round(random.uniform(0.7, 0.95), 2),
+    "rep_threshold_fine": lambda: round(random.uniform(0.4, 0.9), 2),
     "rec_threshold_fine": lambda: round(random.uniform(20., 100.)),
     "tau_trace_fine": lambda: round(random.uniform(1., 200.)),
-    "min_rep_threshold": lambda: round(random.uniform(0.89, 0.99), 2),
+    "remap_tag_frequency": lambda: np.clip(random.randint(-10, 70), 1, 50),
+    "min_rep_threshold": lambda: round(random.uniform(0.5, 0.95), 2),
 
     "gain_coarse": lambda: round(random.uniform(7., 20.), 1),
     "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_coarse": lambda: round(random.uniform(0.05, 0.5), 2),
-    "rep_threshold_coarse": lambda: round(random.uniform(0.7, 0.95), 2),
+    "rep_threshold_coarse": lambda: round(random.uniform(0.4, 0.95), 2),
     "rec_threshold_coarse": lambda: round(random.uniform(30., 130.)),
     "tau_trace_coarse": lambda: round(random.uniform(1., 200.)),
 
     "lr_da": lambda: round(random.uniform(0.05, 0.99), 2),
+    "lr_pred": lambda: round(random.uniform(0.05, 0.99), 2),
     "threshold_da": lambda: round(random.uniform(0.01, 0.5), 2),
     "tau_v_da": lambda: float(random.randint(1, 10)),
 
@@ -300,6 +319,7 @@ PARAMETERS = {
     "threshold_ssry": lambda: round(random.uniform(0.8, 0.9999), 3),
 
     "threshold_circuit": lambda: round(random.uniform(0.2, 0.9), 2),
+    "remapping_flag": lambda: np.random.randint(-2, 6),
 
     "rwd_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 200.0), 1),
@@ -417,7 +437,7 @@ if __name__ == "__main__" :
                  "reward_settings": reward_settings.copy(),
                  "agent_settings": agent_settings.copy(),
                  "global_parameters": global_parameters.copy()},
-        "other": "all remap all",
+        "other": "remapping, prediction, plentiful",
     }
     logger(f"Note: {info['other']}")
 

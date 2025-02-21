@@ -35,6 +35,7 @@ parameters = {
     "rec_threshold_fine": 60.,
     "tau_trace_fine": 20.0,
     "min_rep_threshold": 0.95,
+    "remap_tag_frequency": 1,
 
     "gain_coarse": 8.,
     "offset_coarse": 0.9,
@@ -126,6 +127,7 @@ def test_space():
                        min_rep_threshold=parameters["min_rep_threshold"],
                        xfilter=gcn,
                        tau_trace=20.,
+                       remap_tag_frequency=parameters["remap_tag_frequency"],
                        name="2D")
 
 
@@ -170,6 +172,7 @@ def test_space():
                             min_rep_threshold=parameters["min_rep_threshold"],
                             xfilter=gcn,
                             tau_trace=parameters["tau_trace_fine"],
+                            remap_tag_frequency=parameters["remap_tag_frequency"],
                             name="2D")
 
     assert space_fine.get_size() == global_parameters["N"], f"space_fine length is {space_fine.get_size()}"

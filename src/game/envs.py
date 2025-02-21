@@ -448,7 +448,7 @@ class Environment:
         self.t += 1
 
         if (self.t == self.rw_time): #> self.reward_obj.fetching_duration:
-            print(f"[ENV] [t={self.t} = {self.rw_time}")
+            # print(f"[ENV] [t={self.t} = {self.rw_time}")
             terminated = self._reward_event(brain=brain)
             # self.trajectory_set += [self.trajectory]
             self.trajectory_set += [[]]
@@ -500,7 +500,8 @@ class Environment:
             return False
         elif self.rw_event == "move both":
             self._reset_agent_position(brain)
-            self.reward_obj.set_position()
+            if self.reward_obj.is_ready_to_move:
+                self.reward_obj.set_position()
             return False
         elif self.rw_event == "nothing":
             return False

@@ -175,6 +175,8 @@ class RewardObj:
     def __init__(self, position: np.ndarray,
                  radius: int = 10,
                  sigma: int = 10,
+                 tau: int = 10,
+                 move_threshold: int = 10,
                  bounds: Tuple[int, int, int, int] = \
                     (100, SCREEN_WIDTH-100,
                      100, SCREEN_HEIGHT-100),
@@ -200,6 +202,9 @@ class RewardObj:
         self._possible_positions = possible_positions
         self.radius = radius
         self.sigma = sigma
+        self.tau = tau
+        self.move_threshold = move_threshold
+        self.v = 0
         self.beta = kwargs.get("beta", 10)
         self.alpha = kwargs.get("alpha", 0.6)
         self.color = color
@@ -257,6 +262,10 @@ class RewardObj:
 
     def __call__(self, agent_pos: Tuple[int, int]) -> bool:
 
+        # decay
+        self.v += -self.v / self.tau
+
+        # distance from the agent
         distance = np.sqrt((self.x - agent_pos[0])**2 +
                       (self.y - agent_pos[1])**2)
 
@@ -287,6 +296,7 @@ class RewardObj:
         if self.collected:
             self.count += 1
             self.t_collected = self.t
+            self.v += 1
 
         self.available = ((self.t - self.t_collected) > self.delay) and \
                 (self.t > self.silent_duration) and \
@@ -313,6 +323,11 @@ class RewardObj:
                 self.y = np.random.uniform(self._bounds[2],
                                            self._bounds[3])
         self.position = np.array([self.x, self.y])
+
+    @property
+    def is_ready_to_move(self) -> bool:
+        out = self.v > self.move_threshold
+        return out
 
     def render(self, screen: pygame.Surface):
 
