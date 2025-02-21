@@ -51,7 +51,7 @@ game_settings = {
     "rw_event": "move both",
     "rendering": False,
     "rendering_pcnn": False,
-    "max_duration": 10_000,
+    "max_duration": 10,
     "room_thickness": 20,
     "seed": None,
     "pause": -1,
@@ -296,7 +296,7 @@ PARAMETERS = {
     "rep_threshold_fine": lambda: round(random.uniform(0.4, 0.9), 2),
     "rec_threshold_fine": lambda: round(random.uniform(20., 100.)),
     "tau_trace_fine": lambda: round(random.uniform(1., 200.)),
-    "remap_tag_frequency": lambda: np.clip(random.randint(-10, 70), 1, 70).astype(int),
+    "remap_tag_frequency": lambda: int(np.clip(random.randint(-10, 70), 1, 70)),
     "min_rep_threshold": lambda: round(random.uniform(0.5, 0.95), 2),
 
     "gain_coarse": lambda: round(random.uniform(7., 20.), 1),
@@ -319,7 +319,7 @@ PARAMETERS = {
     "threshold_ssry": lambda: round(random.uniform(0.8, 0.9999), 3),
 
     "threshold_circuit": lambda: round(random.uniform(0.2, 0.9), 2),
-    "remapping_flag": lambda: np.random.randint(-2, 6),
+    "remapping_flag": lambda: int(np.random.randint(-2, 6)),
 
     "rwd_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 200.0), 1),
@@ -407,12 +407,15 @@ if __name__ == "__main__" :
 
     # ---| Visualisation |---
 
-    visualizer = me.Visualizer(settings=settings,
-                               online=VISUALIZE,
-                               target=None,
-                               k_average=20,
-                               fitness_size=len(fitness_weights),
-                               ylims=None)
+    if args.visualize:
+        visualizer = me.Visualizer(settings=settings,
+                                   online=VISUALIZE,
+                                   target=None,
+                                   k_average=20,
+                                   fitness_size=len(fitness_weights),
+                                   ylims=None)
+    else:
+        visualizer = None
 
     # ---| save |---
     save = args.save
