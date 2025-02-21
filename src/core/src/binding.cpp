@@ -174,10 +174,11 @@ PYBIND11_MODULE(pclib, m) {
     /* MODULATION */
     py::class_<BaseModulation>(m, "BaseModulation")
         .def(py::init<std::string, int, float, float,
-             float, float, float, float, float>(),
+             float, float, float, float, float, float>(),
              py::arg("name"),
              py::arg("size"),
              py::arg("lr") = 0.1f,
+             py::arg("lr_pred") = 0.1f,
              py::arg("threshold") = 0.0f,
              py::arg("max_w") = 1.0f,
              py::arg("tau_v") = 5.0f,
@@ -243,11 +244,12 @@ PYBIND11_MODULE(pclib, m) {
     // Density Policy
     py::class_<DensityPolicy>(m, "DensityPolicy")
         .def(py::init<float, float,
-             float, float>(),
+             float, float, int>(),
              py::arg("rwd_weight"),
              py::arg("rwd_sigma"),
              py::arg("col_weight"),
-             py::arg("col_sigma"))
+             py::arg("col_sigma"),
+             py::arg("remapping_flag") = 1)
         .def("__call__", &DensityPolicy::call,
              py::arg("space_fine"),
              py::arg("space_coarse"),

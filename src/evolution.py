@@ -296,7 +296,7 @@ PARAMETERS = {
     "rep_threshold_fine": lambda: round(random.uniform(0.4, 0.9), 2),
     "rec_threshold_fine": lambda: round(random.uniform(20., 100.)),
     "tau_trace_fine": lambda: round(random.uniform(1., 200.)),
-    "remap_tag_frequency": lambda: np.clip(random.randint(-10, 70), 1, 50),
+    "remap_tag_frequency": lambda: np.clip(random.randint(-10, 70), 1, 70),
     "min_rep_threshold": lambda: round(random.uniform(0.5, 0.95), 2),
 
     "gain_coarse": lambda: round(random.uniform(7., 20.), 1),
