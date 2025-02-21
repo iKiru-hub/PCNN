@@ -63,7 +63,7 @@ global_parameters = {
     "Nc": 10**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
-    "speed": 0.75,
+    "speed": 1.,
     "min_weight_value": 0.5
 }
 
@@ -417,8 +417,9 @@ if __name__ == "__main__" :
                  "reward_settings": reward_settings.copy(),
                  "agent_settings": agent_settings.copy(),
                  "global_parameters": global_parameters.copy()},
-        "other": "scarce PCfine availability",
+        "other": "all remap all",
     }
+    logger(f"Note: {info['other']}")
 
     # ---| Run |---
     best_ind = me.main(toolbox=toolbox, settings=settings,
