@@ -32,7 +32,7 @@ ROOMS = ["Square.v0", "Square.v1", "Square.v2", "Hole.v0",
          "Flat.1100", "Flat.1101", "Flat.1110", "Flat.1111"]
 
 
-POSSIBLE_POSITIONS = array([[0.30, 0.80], [0.80, 0.80],
-                            [0.30, 0.30], [0.80, 0.30],
-                            [0.5, 0.3], [0.5, 0.8]]) * GAME_SCALE
+POSSIBLE_POSITIONS = array([[0.20, 0.80], [0.80, 0.80],
+                            [0.20, 0.30], [0.80, 0.20],
+                            [0.5, 0.2], [0.5, 0.8]]) * GAME_SCALE
 POSSIBLE_POSITIONS = POSSIBLE_POSITIONS.tolist()
