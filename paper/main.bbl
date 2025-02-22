@@ -1,9 +1,64 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 
 \bibitem{peerStructuringKnowledgeCognitive2021}
 Michael Peer, Iva~K. Brunec, Nora~S. Newcombe, and Russell~A. Epstein.
 \newblock Structuring {{Knowledge}} with {{Cognitive Maps}} and {{Cognitive Graphs}}.
 \newblock {\em Trends in cognitive sciences}, 25(1):37--54, January 2021.
+
+\bibitem{lismanHippocampalVTALoopControlling2005}
+John~E. Lisman and Anthony~A. Grace.
+\newblock The {{Hippocampal-VTA Loop}}: {{Controlling}} the {{Entry}} of {{Information}} into {{Long-Term Memory}}.
+\newblock {\em Neuron}, 46(5):703--713, June 2005.
+
+\bibitem{edelmannDopaminergicInnervationModulation2018}
+Elke Edelmann and Volkmar Lessmann.
+\newblock Dopaminergic innervation and modulation of hippocampal networks.
+\newblock {\em Cell and Tissue Research}, 373(3):711--727, September 2018.
+
+\bibitem{wagatsumaLocusCoeruleusInput2018}
+Akiko Wagatsuma, Teruhiro Okuyama, Chen Sun, Lillian~M. Smith, Kuniya Abe, and Susumu Tonegawa.
+\newblock Locus coeruleus input to hippocampal {{CA3}} drives single-trial learning of a novel context.
+\newblock {\em Proceedings of the National Academy of Sciences}, 115(2):E310--E316, January 2018.
+
+\bibitem{kempadooDopamineReleaseLocus2016}
+Kimberly~A. Kempadoo, Eugene~V. Mosharov, Se~Joon Choi, David Sulzer, and Eric~R. Kandel.
+\newblock Dopamine release from the locus coeruleus to the dorsal hippocampus promotes spatial learning and memory.
+\newblock {\em Proceedings of the National Academy of Sciences}, 113(51):14835--14840, December 2016.
+
+\bibitem{bittnerBehavioralTimeScale2017}
+Katie~C. Bittner, Aaron~D. Milstein, Christine Grienberger, Sandro Romani, and Jeffrey~C. Magee.
+\newblock Behavioral time scale synaptic plasticity underlies {{CA1}} place fields.
+\newblock {\em Science}, 357(6355):1033--1036, September 2017.
+
+\bibitem{kaufmanRoleLocusCoeruleus2020}
+Alexandra~Mansell Kaufman, Tristan Geiller, and Attila Losonczy.
+\newblock A {{Role}} for the {{Locus Coeruleus}} in {{Hippocampal CA1 Place Cell Reorganization}} during {{Spatial Reward Learning}}.
+\newblock {\em Neuron}, 105(6):1018--1026.e4, March 2020.
+
+\bibitem{duszkiewiczNoveltyDopaminergicModulation2019}
+Adrian~J. Duszkiewicz, Colin~G. McNamara, Tomonori Takeuchi, and Lisa Genzel.
+\newblock Novelty and {{Dopaminergic Modulation}} of {{Memory Persistence}}: {{A Tale}} of {{Two Systems}}.
+\newblock {\em Trends in Neurosciences}, 42(2):102--114, February 2019.
+
+\bibitem{igarashiFunctionalDiversityTransverse2014}
+Kei~M. Igarashi, Hiroshi~T. Ito, Edvard~I. Moser, and May-Britt Moser.
+\newblock Functional diversity along the transverse axis of hippocampal area {{CA1}}.
+\newblock {\em FEBS Letters}, 588(15):2470--2476, August 2014.
+
+\bibitem{itoFunctionalDivisionHippocampal2012}
+Hiroshi~T. Ito and Erin~M. Schuman.
+\newblock Functional division of hippocampal area {{CA1}} via modulatory gating of entorhinal cortical inputs.
+\newblock {\em Hippocampus}, 22(2):372--387, 2012.
+
+\bibitem{sheynikhovichLongtermMemorySynaptic2023}
+Denis Sheynikhovich, Satoru Otani, Jing Bai, and Angelo Arleo.
+\newblock Long-term memory, synaptic plasticity and dopamine in rodent medial prefrontal cortex: {{Role}} in executive functions.
+\newblock {\em Frontiers in Behavioral Neuroscience}, 16, January 2023.
+
+\bibitem{schultzNeuralSubstratePrediction1997}
+Wolfram Schultz, Peter Dayan, and P.~Read Montague.
+\newblock A {{Neural Substrate}} of {{Prediction}} and {{Reward}}.
+\newblock {\em Science}, 275(5306):1593--1599, March 1997.
 
 \bibitem{sorscherUnifiedTheoryOrigin2019}
 Ben Sorscher, Gabriel Mel, Surya Ganguli, and Samuel Ocko.
@@ -33,10 +88,5 @@ Zuzanna Brzosko, Sara Zannone, Wolfram Schultz, Claudia Clopath, and Ole Paulsen
 Jie Mei, Rouzbeh Meshkinnejad, and Yalda Mohsenzadeh.
 \newblock Effects of neuromodulation-inspired mechanisms on the performance of deep neural networks in a spatial learning task.
 \newblock {\em iScience}, 26(2):106026, February 2023.
-
-\bibitem{bittnerBehavioralTimeScale2017}
-Katie~C. Bittner, Aaron~D. Milstein, Christine Grienberger, Sandro Romani, and Jeffrey~C. Magee.
-\newblock Behavioral time scale synaptic plasticity underlies {{CA1}} place fields.
-\newblock {\em Science}, 357(6355):1033--1036, September 2017.
 
 \end{thebibliography}
