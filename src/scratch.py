@@ -12,29 +12,31 @@ import utils
 
 
 reward_settings = {
-    "rw_fetching": "deterministic",
+    "rw_fetching": "probabilistic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.05 * GAME_SCALE,
-    "rw_sigma": 1.5 * GAME_SCALE,
+    "rw_radius": 0.075 * GAME_SCALE,
+    "rw_sigma": 0.99,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 10,
-    "silent_duration": 3_000,
+    "delay": 5,
+    "silent_duration": 0_000,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 35.,
-    "alpha": 0.06,
+    "alpha": 0.06,# * GAME_SCALE,
+    "tau": 400,# * GAME_SCALE,
+    "move_threshold": 4,# * GAME_SCALE,
 }
 
 
 game_settings = {
-    "plot_interval": 100,
-    "rw_event": "move agent",
+    "plot_interval": 5,
+    "rw_event": "move both",
     "rendering": False,
     "rendering_pcnn": True,
-    "max_duration": 7_000,
-    "room_thickness": 5,
+    "max_duration": 10_000,
+    "room_thickness": 20,
     "seed": None,
     "pause": -1,
     "verbose": True
@@ -74,7 +76,6 @@ if __name__ == "__main__":
         game_settings["rendering"] = True
 
     game_settings["plot_interval"] = args.interval
-
     reward_settings["transparent"] = args.transparent
 
     if args.load:

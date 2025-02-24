@@ -29,18 +29,18 @@ reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.05 * GAME_SCALE,
-    "rw_sigma": 0.75 * GAME_SCALE,
+    "rw_radius": 0.1 * GAME_SCALE,
+    "rw_sigma": 0.9,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 2_000,
+    "silent_duration": 0,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
     "tau": 400,# * GAME_SCALE,
-    "move_threshold": 2,# * GAME_SCALE,
+    "move_threshold": 3,# * GAME_SCALE,
 }
 
 game_settings = {
@@ -83,44 +83,45 @@ global_parameters = {
 }
 
 parameters = {
-    "gain_fine": 9.,
+
+    "gain_fine": 13.,
     "offset_fine": 1.0,
-    "threshold_fine": 0.2,
+    "threshold_fine": 0.35,
     "rep_threshold_fine": 0.4,
-    "rec_threshold_fine": 80.,
+    "rec_threshold_fine": 136.,
     "tau_trace_fine": 20.0,
-    "min_rep_threshold": 0.7,
-    "remap_tag_frequency": 1,
+    "remap_tag_frequency": 2,
+    "min_rep_threshold": 0.9,
 
     "gain_coarse": 9.,
-    "offset_coarse": 0.9,
-    "threshold_coarse": 0.3,
-    "rep_threshold_coarse": 0.8,
-    "rec_threshold_coarse": 200.,
+    "offset_coarse": 0.8,
+    "threshold_coarse": 0.25,
+    "rep_threshold_coarse": 0.45,
+    "rec_threshold_coarse": 250.,
     "tau_trace_coarse": 20.0,
 
-    "lr_da": 0.9,
+    "lr_da": 0.99,
     "lr_pred": 0.5,
-    "threshold_da": 0.05,
+    "threshold_da": 0.02,
     "tau_v_da": 1.0,
 
-    "lr_bnd": 0.3,
-    "threshold_bnd": 0.05,
-    "tau_v_bnd": 2.0,
+    "lr_bnd": 0.7,
+    "threshold_bnd": 0.01,
+    "tau_v_bnd": 1.0,
 
     "tau_ssry": 100.,
-    "threshold_ssry": 0.998,
+    "threshold_ssry": 0.995,
 
-    "threshold_circuit": 0.9,
-    "remapping_flag": 1,
+    "threshold_circuit": 0.02,
+    "remapping_flag": 3,
 
-    "rwd_weight": 3.,
-    "rwd_sigma": 100.0,
-    "col_weight": 0.0,
-    "col_sigma": 2.0,
+    "rwd_weight": 10.,
+    "rwd_sigma": 280.0,
+    "col_weight": .0,
+    "col_sigma": 20.0,
 
-    "action_delay": 120.,
-    "edge_route_interval": 5,
+    "action_delay": 100.,
+    "edge_route_interval": 3,
 
     "forced_duration": 100,
     "fine_tuning_min_duration": 10,
@@ -292,15 +293,15 @@ class Renderer:
                                c=daw,
                                s=np.where(daw > 0.01, 30, 1),
                                cmap=self.colors[0], alpha=0.8,
-                               vmin=0.)
+                               vmin=0., vmax=0.2)
         self.axs[1, 1].set_xlim(self.boundsx)
         self.axs[1, 1].set_ylim(self.boundsy)
         self.axs[1, 1].set_xticks(())
         self.axs[1, 1].set_yticks(())
         self.axs[1, 1].set_title(f"DA")
         self.axs[1, 1].set_aspect('equal', adjustable='box')
-        # self.axs[1, 1].scatter(*np.array(self.brain.get_space_fine_position()).T,
-        #                            color="red", s=50, marker="v")
+        self.axs[1, 1].scatter(*np.array(self.brain.get_space_fine_position()).T,
+                                   color="red", s=50, marker="v")
 
         plt.pause(0.00001)
 

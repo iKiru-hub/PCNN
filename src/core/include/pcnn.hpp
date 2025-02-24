@@ -48,7 +48,7 @@
 
 // blank log function
 void LOG(const std::string& msg) {
-    return;
+    /* return; */
     std::cout << msg << std::endl;
 }
 
@@ -232,9 +232,9 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matri
 
                 if (node_weights(neighbor) < -1000.0f) {
                     /* continue; */
-                    new_distance = node_weights(neighbor);
-                    LOG("Distance penalty: " + std::to_string(new_distance) + " | " + std::to_string(neighbor));
-                    continue;
+                    /* new_distance = node_weights(neighbor); */
+                    /* LOG("Distance penalty: " + std::to_string(new_distance) + " | " + std::to_string(neighbor)); */
+                    /* continue; */
                 } else {
 
                     // Calculate Euclidean distance between nodes
@@ -868,7 +868,7 @@ public:
             }
 
             // check if neighbors was active
-            if (traces(j) < 0.0001f) { continue; }
+            /* if (traces(j) < 0.0001f) { continue; } */
 
             float dist = std::sqrt(
                 (centers(idx, 0) - centers(j, 0)) *
@@ -2150,16 +2150,25 @@ public:
 
                 // backward, prediction error
                 float pred_err = lr_pred * (prediction[i] - v * ui);
+                if (pred_err < 0.0) { pred_err = 0.0; }
 
                 // clip the prediction error if within a certain range
-                pred_err = pred_err > 0.001f && pred_err < 0.075 ? 0.075 : pred_err;
+                pred_err = pred_err > 0.001f && pred_err < 0.1 ? 0.1 : pred_err;
 
                 // update weights
                 weights[i] += lr * v * ui - pred_err;
 
                 // clip the weights in (0, max_w)
-                if (weights[i] < 0.0) { weights[i] = 0.0; }
+                if (weights[i] < 0.01) { weights[i] = 0.0; }
                 else if (weights[i] > max_w) { weights[i] = max_w; }
+            }
+
+            // highest da value
+            if (name == "da") {
+                Eigen::Index maxIndex;
+                float maxValue = weights.maxCoeff(&maxIndex);
+                int trg_idx = static_cast<int>(maxIndex);
+                LOG("[+] update " + name + " target: [" + std::to_string(trg_idx) + "] " + std::to_string(maxValue));
             }
         }
 
@@ -2169,8 +2178,21 @@ public:
         return output;
     }
 
-    void make_prediction(const Eigen::VectorXf& u)
-        { for (int i = 0; i < size; i++) { prediction[i] = weights[i] * u[i]; }}
+    void make_prediction(const Eigen::VectorXf& u) {
+        int idx = -1;
+        float value = 0.0f;
+        for (int i = 0; i < size; i++) {
+            prediction[i] = weights[i] * u[i]; 
+            if (prediction[i] > value) {
+                value = prediction[i];
+                idx = i;
+            }
+        }
+
+        if (value > 0.00f) {
+            LOG("[+] " + name + " prediction: [" + std::to_string(idx) + "] " + std::to_string(value));
+        }
+    }
 
     float get_output() { return output; }
 
@@ -2271,7 +2293,6 @@ public:
             else if (bnd_value < threshold) { 
                 value_mask(i) = -4000.0f; }
             else {
-                /* LOG("[!] discarded value: value_mask: " + std::to_string(bnd_value)); */
                 value_mask(i) = -10000.0f; }
         }
 
@@ -2586,15 +2607,15 @@ public:
         }
 
         // plan from the current position
-        /* std::pair<std::vector<int>, bool> res_fine_prop = \ */
-        /*     make_plan(space_fine, circuits.make_value_mask(goal_directed), */
-        /*               trg_idx_fine); */
+        std::pair<std::vector<int>, bool> res_fine_prop = \
+            make_plan(space_fine, circuits.make_value_mask(goal_directed),
+                      trg_idx_fine);
 
-        /* // check: failed fine planning */
-        /* if (!res_fine_prop.second) { */ 
-        /*     LOG("[Goal] failed fine planning"); */
-        /*     return false; */ 
-        /* } */
+        // check: failed fine planning
+        if (!res_fine_prop.second) { 
+            LOG("[Goal] failed fine planning");
+            return false; 
+        }
 
         // -- make a fine plan from the end of the coarse plan
 
@@ -3083,7 +3104,8 @@ class Brain {
     void make_prediction() {
 
         // simulate a step
-        Eigen::VectorXf& next_representation = space_fine.simulate_one_step(action);
+        Eigen::VectorXf& next_representation = space_fine.simulate_one_step(
+            action);
 
         // make prediction
         circuits.make_prediction(next_representation);
@@ -3092,7 +3114,8 @@ class Brain {
     void prune_bnd_edges() {
 
         // get the current idx
-        int curr_idx = space_fine.calculate_closest_index(space_fine.get_position());
+        int curr_idx = space_fine.calculate_closest_index(
+            space_fine.get_position());
 
         if (curr_idx < 0) { return; }
 
@@ -3186,7 +3209,8 @@ public:
         goalmd(GoalModule(space_fine, space_coarse, circuits, speed,
                           speed * local_scale_fine / local_scale_coarse)),
         rwobj(RewardObject(min_weight_value)),
-        dpolicy(DensityPolicy(rwd_weight, rwd_sigma, col_weight, col_sigma, remapping_flag)),
+        dpolicy(DensityPolicy(rwd_weight, rwd_sigma, col_weight,
+                              col_sigma, remapping_flag)),
         expmd(ExplorationModule(speed * 2.0f, circuits, space_fine,
                                 action_delay, edge_route_interval)) {}
 
@@ -3360,6 +3384,8 @@ final:
     void reset() {
         goalmd.reset();
         circuits.reset();
+        space_fine.reset();
+        space_coarse.reset();
     }
 
 };

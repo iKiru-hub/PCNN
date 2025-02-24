@@ -19,89 +19,106 @@ logger = utils.setup_logger(__name__, level=3)
 
 """ SETTINGS """
 
+
 reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
-    # "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.05 * GAME_SCALE,
-    "rw_sigma": 0.75 * GAME_SCALE,
+    "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
+    "rw_radius": 0.07 * GAME_SCALE,
+    "rw_sigma": 0.7, #* GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 2_000,
+    "silent_duration": 0,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 35.,
-    "alpha": 0.06,
-}
-
-agent_settings = {
-    "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
-    "agent_bounds": np.array([0.23, 0.77,
-                              0.23, 0.77]) * GAME_SCALE,
+    "alpha": 0.06,# * GAME_SCALE,
+    "tau": 400,# * GAME_SCALE,
+    "move_threshold": 3,# * GAME_SCALE,
 }
 
 game_settings = {
     "plot_interval": 5,
-    "rw_event": "move agent",
+    "rw_event": "move both",
     "rendering": False,
     "rendering_pcnn": False,
-    "max_duration": 8_000,
-    "room_thickness": 5,
+    "max_duration": 10_000,
+    "room_thickness": 20,
     "seed": None,
     "pause": -1,
-    "verbose": False,
-    "verbose_min": False
+    "verbose": True
+}
+
+agent_settings = {
+    # "speed": 0.7,
+    "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
+    "agent_bounds": np.array([0.23, 0.77,
+                           0.23, 0.77]) * GAME_SCALE,
+}
+
+model_params = {
+    "N": 30**2,
+    "bnd_threshold": 0.2,
+    "bnd_tau": 1,
+    "threshold": 0.3,
+    "rep_threshold": 0.5,
+    "action_delay": 6,
 }
 
 global_parameters = {
-    "local_scale_fine": 0.015,
+    "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
-    "N": 22**2,
-    "Nc": 12**2,
-    # "rec_threshold_fine": 26.,
-    # "rec_threshold_coarse": 60.,
-    "speed": 1.5,
+    "N": 30**2,
+    "Nc": 15**2,
+    # "rec_threshold_fine": 60.,
+    # "rec_threshold_coarse": 100.,
+    "speed": 1.0,
     "min_weight_value": 0.5
 }
 
+
 PARAMETERS = {
 
-    "gain_fine": 10.,
+
+    "gain_fine": 12.,
     "offset_fine": 1.0,
-    "threshold_fine": 0.3,
-    "rep_threshold_fine": 0.88,
-    "rec_threshold_fine": 60.,
-    "tau_trace_fine": 10.0,
-    "min_rep_threshold": 0.95,
+    "threshold_fine": 0.25,
+    "rep_threshold_fine": 0.3,
+    "rec_threshold_fine": 136.,
+    "tau_trace_fine": 20.0,
+    "remap_tag_frequency": 2,
+    "min_rep_threshold": 0.7,
 
     "gain_coarse": 9.,
-    "offset_coarse": 1.0,
-    "threshold_coarse": 0.3,
-    "rep_threshold_coarse": 0.9,
-    "rec_threshold_coarse": 100.,
+    "offset_coarse": 0.8,
+    "threshold_coarse": 0.25,
+    "rep_threshold_coarse": 0.45,
+    "rec_threshold_coarse": 250.,
     "tau_trace_coarse": 20.0,
 
-    "lr_da": 0.8,
-    "threshold_da": 0.03,
+    "lr_da": 0.99,
+    "lr_pred": 0.7,
+    "threshold_da": 0.005,
     "tau_v_da": 1.0,
 
-    "lr_bnd": 0.4,
-    "threshold_bnd": 0.05,
-    "tau_v_bnd": 2.0,
+    "lr_bnd": 0.7,
+    "threshold_bnd": 0.01,
+    "tau_v_bnd": 1.0,
 
     "tau_ssry": 100.,
-    "threshold_ssry": 0.998,
+    "threshold_ssry": 0.995,
 
-    "threshold_circuit": 0.9,
+    "threshold_circuit": 0.02,
+    "remapping_flag": 3,
 
-    "rwd_weight": 0.0,
-    "rwd_sigma": 40.0,
-    "col_weight": 0.0,
-    "col_sigma": 2.0,
+    "rwd_weight": 3.,
+    "rwd_sigma": 80.0,
+    "col_weight": .0,
+    "col_sigma": 20.0,
 
-    "action_delay": 50.,
-    "edge_route_interval": 5,
+    "action_delay": 100.,
+    "edge_route_interval": 3,
 
     "forced_duration": 100,
     "fine_tuning_min_duration": 10,
@@ -117,11 +134,13 @@ ROOM_NAME = "Square.v0"
 
 def convert_numpy(obj):
 
-    """Helper function to convert NumPy arrays to lists for JSON serialization."""
+    """ Helper function to convert NumPy arrays
+    to lists for JSON serialization."""
 
     if isinstance(obj, np.ndarray):
         return obj.tolist()
-    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+    raise TypeError(f"Object of type {type(obj)}" + \
+        " is not JSON serializable")
 
 
 def safe_run_model(params, room_name):
@@ -133,10 +152,14 @@ def safe_run_model(params, room_name):
         params = json.dumps(params, default=convert_numpy)
 
         # Convert all other settings while handling NumPy arrays
-        global_params_json = json.dumps(global_parameters, default=convert_numpy)
-        agent_settings_json = json.dumps(agent_settings, default=convert_numpy)
-        reward_settings_json = json.dumps(reward_settings, default=convert_numpy)
-        game_settings_json = json.dumps(game_settings, default=convert_numpy)
+        global_params_json = json.dumps(global_parameters,
+                                        default=convert_numpy)
+        agent_settings_json = json.dumps(agent_settings,
+                                         default=convert_numpy)
+        reward_settings_json = json.dumps(reward_settings,
+                                          default=convert_numpy)
+        game_settings_json = json.dumps(game_settings,
+                                        default=convert_numpy)
 
         # Construct the command to execute sim.run_model in a subprocess
         command = [
@@ -164,9 +187,11 @@ print(result)
             """
         ]
 
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
+        result = subprocess.run(command, check=True,
+                                capture_output=True, text=True)
 
-        # Extract the last line of output (assuming sim.run_model() prints only the result last)
+        # Extract the last line of output (assuming sim.run_model()
+        # prints only the result last)
         last_line = result.stdout.strip().split("\n")[-1]
 
         return float(last_line)
@@ -175,13 +200,13 @@ print(result)
         logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
         return 0
     except ValueError as e:
-        logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
+        logger.warning("Warning: sim.run_model() " +\
+            f"returned unexpected output: {result.stdout.strip()}")
         return 0
 
 
 def run_local_model(args):
     return safe_run_model(PARAMETERS, ROOM_NAME)
-
 
 
 
@@ -193,7 +218,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='study remapping')
     parser.add_argument('--reps', type=int, default=4,
-                        help='Number of repetitions')
+                        help='Number of repetitions per core')
     parser.add_argument('--cores', type=int, default=4,
                         help='Number of cores')
     parser.add_argument('--save', action='store_true',
@@ -207,7 +232,8 @@ if __name__ == "__main__":
     """ setup """
 
     NUM_CORES = args.cores
-    NUM_REPS = args.reps
+    chunksize = args.reps
+    NUM_REPS = NUM_CORES * chunksize
 
     if args.load:
         PARAMETERS = utils.load_parameters()
@@ -224,7 +250,7 @@ if __name__ == "__main__":
 
     """ parallel computation """
 
-    chunksize = NUM_REPS // NUM_CORES  # Divide the workload evenly
+    # chunksize = NUM_REPS // NUM_CORES  # Divide the workload evenly
 
     logger(f"save={args.save}")
     logger(f"{NUM_CORES=}")
@@ -247,15 +273,17 @@ if __name__ == "__main__":
     if not args.save:
         sys.exit(0)
 
-    logger("saving results...")
-
     localtime = time.localtime()
-    name = f"results/performance_"
-    name += f"{localtime.tm_mday}{localtime.tm_mon}_{localtime.tm_hour}{localtime.tm_min}"
+    name = os.path.join(os.getcwd().split("PCNN")[0],
+                         "PCNN/src/analysis/results/performance_")
+    name += f"{localtime.tm_mday}{localtime.tm_mon}_"
+    name += f"{localtime.tm_hour}{localtime.tm_min}"
 
     # make folder
     if not os.path.exists(f"results/{name}"):
         os.makedirs(name)
+
+    logger(f"saving results in 'results/{name}'")
 
     # save data
     dataname = name + "/data.json"

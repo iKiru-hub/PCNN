@@ -17,27 +17,28 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 2
-ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1, replace=False).tolist() + \
-            ["Square.v0"]
+NUM_SAMPLES = 3
+ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES,
+                             replace=False).tolist()# + \
+            # ["Square.v0"]
 
 
 reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
-    # "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.05 * GAME_SCALE,
-    "rw_sigma": 0.75 * GAME_SCALE,
+    "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
+    "rw_radius": 0.1 * GAME_SCALE,
+    "rw_sigma": 0.9,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 2_000,
+    "silent_duration": 0,
     "fetching_duration": 1,
     "transparent": False,
     "beta": 35.,
-    "alpha": 0.06,
-    "tau": 300,# * GAME_SCALE,
-    "move_threshold": 2,# * GAME_SCALE,
+    "alpha": 0.06,# * GAME_SCALE,
+    "tau": 400,# * GAME_SCALE,
+    "move_threshold": 3,# * GAME_SCALE,
 }
 
 agent_settings = {
@@ -51,7 +52,7 @@ game_settings = {
     "rw_event": "move both",
     "rendering": False,
     "rendering_pcnn": False,
-    "max_duration": 10000,
+    "max_duration": 10_000,
     "room_thickness": 20,
     "seed": None,
     "pause": -1,
@@ -63,7 +64,7 @@ global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
     "N": 25**2,
-    "Nc": 13**2,
+    "Nc": 15**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
     "speed": 1.,
@@ -245,45 +246,45 @@ FIXED_PARAMETERS = {
 
     # "gain_fine": 11.,
     # "offset_fine": 1.1,
-    # "threshold_fine": 0.35,
+    "threshold_fine": 0.25,
     # "rep_threshold_fine": 0.88,
     # "rec_threshold_fine": 26.,
     # "min_rep_threshold": 0.95,
     # "remap_tag_frequency": 1,
-    # "tau_trace_fine": 10.0,
+    "tau_trace_fine": 10.0,
 
     # "gain_coarse": 11.,
     # "offset_coarse": 1.1,
-    # "threshold_coarse": 0.35,
+    "threshold_coarse": 0.25,
     # "rep_threshold_coarse": 0.89,
-    # "rec_threshold_coarse": 60.,
-    # "tau_trace_coarse": 20.0,
+    "rec_threshold_coarse": 140.,
+    "tau_trace_coarse": 20.0,
 
     # "lr_da": 0.4,
-    # "lr_pred": 0.4,
+    "lr_pred": 0.5,
     # "threshold_da": 0.08,
-    # "tau_v_da": 1.0,
+    "tau_v_da": 1.0,
 
-    # "lr_bnd": 0.4,
-    # "threshold_bnd": 0.04,
-    # "tau_v_bnd": 1.0,
+    "lr_bnd": 0.4,
+    "threshold_bnd": 0.04,
+    "tau_v_bnd": 1.0,
 
-    # "tau_ssry": 100.,
-    # "threshold_ssry": 0.995,
+    "tau_ssry": 100.,
+    "threshold_ssry": 0.995,
 
     # "threshold_circuit": 0.7,
-    # "remapping_flag": 0,
+    # "remapping_flag": 3,
 
     # "rwd_weight": 0.0,
     # "rwd_sigma": 40.0,
     # "col_weight": 0.0,
     # "col_sigma": 2.0,
 
-    # "action_delay": 30.,
-    # "edge_route_interval": 70,
+    "action_delay": 180.,
+    "edge_route_interval": 47,
 
-    # "forced_duration": 100,
-    # "fine_tuning_min_duration": 20
+    "forced_duration": 32,
+    "fine_tuning_min_duration": 29
 }
 
 
@@ -319,7 +320,7 @@ PARAMETERS = {
     "threshold_ssry": lambda: round(random.uniform(0.8, 0.9999), 3),
 
     "threshold_circuit": lambda: round(random.uniform(0.2, 0.9), 2),
-    "remapping_flag": lambda: int(np.random.randint(-2, 6)),
+    "remapping_flag": lambda: int(np.random.randint(0, 6)),
 
     "rwd_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 200.0), 1),
@@ -339,7 +340,7 @@ if __name__ == "__main__" :
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--cores", type=int, default=1)
-    parser.add_argument("--ngen", type=int, default=20)
+    parser.add_argument("--ngen", type=int, default=100)
     parser.add_argument("--npop", type=int, default=1)
     parser.add_argument("--save", type=bool, default=True)
     parser.add_argument("--visualize", action="store_true")
@@ -440,7 +441,7 @@ if __name__ == "__main__" :
                  "reward_settings": reward_settings.copy(),
                  "agent_settings": agent_settings.copy(),
                  "global_parameters": global_parameters.copy()},
-        "other": "remapping, prediction, plentiful",
+        "other": "forced remapping choice",
     }
     logger(f"Note: {info['other']}")
 

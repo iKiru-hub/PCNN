@@ -242,28 +242,28 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_centers", &Hexagon::get_centers);
 
     // Density Policy
-    py::class_<DensityPolicy>(m, "DensityPolicy")
-        .def(py::init<float, float,
-             float, float, int>(),
-             py::arg("rwd_weight"),
-             py::arg("rwd_sigma"),
-             py::arg("col_weight"),
-             py::arg("col_sigma"),
-             py::arg("remapping_flag") = 1)
-        .def("__call__", &DensityPolicy::call,
-             py::arg("space_fine"),
-             py::arg("space_coarse"),
-             py::arg("circuits"),
-             py::arg("goalmd"),
-             py::arg("displacement"),
-             py::arg("da_value"),
-             py::arg("bnd_value"),
-             py::arg("reward"),
-             py::arg("collision"))
-        .def("__str__", &DensityPolicy::str)
-        .def("__repr__", &DensityPolicy::repr)
-        .def("get_rwd_mod", &DensityPolicy::get_rwd_mod)
-        .def("get_col_mod", &DensityPolicy::get_col_mod);
+    /* py::class_<DensityPolicy>(m, "DensityPolicy") */
+    /*     .def(py::init<float, float, */
+    /*          float, float, int>(), */
+    /*          py::arg("rwd_weight"), */
+    /*          py::arg("rwd_sigma"), */
+    /*          py::arg("col_weight"), */
+    /*          py::arg("col_sigma"), */
+    /*          py::arg("remapping_flag") = 1) */
+    /*     .def("__call__", &DensityPolicy::call, */
+    /*          py::arg("space_fine"), */
+    /*          py::arg("space_coarse"), */
+    /*          py::arg("circuits"), */
+    /*          py::arg("goalmd"), */
+    /*          py::arg("displacement"), */
+    /*          py::arg("da_value"), */
+    /*          py::arg("bnd_value"), */
+    /*          py::arg("reward"), */
+    /*          py::arg("collision")) */
+    /*     .def("__str__", &DensityPolicy::str) */
+    /*     .def("__repr__", &DensityPolicy::repr) */
+    /*     .def("get_rwd_mod", &DensityPolicy::get_rwd_mod) */
+    /*     .def("get_col_mod", &DensityPolicy::get_col_mod); */
 
     // Stationary Sensory
     py::class_<StationarySensory>(m, "StationarySensory")
@@ -371,6 +371,7 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_da_weights", &Brain::get_da_weights)
         .def("get_bnd_weights", &Brain::get_bnd_weights)
         .def("get_edge_representation", &Brain::get_edge_representation)
+        /* .def("get_da_prediction_error", &Brain::get_da_prediction_error) */
         .def("reset", &Brain::reset);
 
 }

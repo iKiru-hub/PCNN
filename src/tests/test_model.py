@@ -275,12 +275,12 @@ def test_target_program():
                                    0.99)
     circuit = pclib.Circuits(da, bnd, parameters["threshold_circuit"])
 
-    dpolicy = pclib.DensityPolicy(parameters["rwd_weight"],
-                                  parameters["rwd_sigma"],
-                                  parameters["col_weight"],
-                                  parameters["col_sigma"])
+    # dpolicy = pclib.DensityPolicy(parameters["rwd_weight"],
+    #                               parameters["rwd_sigma"],
+    #                               parameters["col_weight"],
+    #                               parameters["col_sigma"])
 
-    assert dpolicy.__str__() == "DensityPolicy", f"dpolicy is {dpolicy.__str__()}"
+    # assert dpolicy.__str__() == "DensityPolicy", f"dpolicy is {dpolicy.__str__()}"
 
     expmd = pclib.ExplorationModule(speed=global_parameters["speed"]*2.0,
                                     circuits=circuit,

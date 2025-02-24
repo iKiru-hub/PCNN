@@ -151,6 +151,7 @@ def load_session():
 
     return parameters, session_config
 
+
 def load_parameters():
 
     logger = setup_logger(name="UTILS", colored=True,

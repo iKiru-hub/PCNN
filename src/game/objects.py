@@ -244,10 +244,10 @@ class RewardObj:
 
     def _probability_function(self, distance: float) -> float:
 
-        p = 1 / (1 + np.exp(-self.beta * ( np.exp(-distance**2 / self.sigma) - self.alpha)))
-        p = np.where(p < 0.02, 0, p)
-        # print(f"[Rw]\tproability: {p}")
-        return p
+        # p = 1 / (1 + np.exp(-self.beta * ( np.exp(-distance**2 / \
+        #     self.sigma) - self.alpha)))
+        # p = np.where(p < 0.02, 0, p)
+        return self.sigma if distance < self.radius else 0.0
 
     def _update_sprite(self):
 
@@ -274,17 +274,15 @@ class RewardObj:
             # print(f"[Rw] {distance} ({self.radius})")
 
             if self.available:
-                # print(f"[RW] collected | distance:{distance} | t:{self.t}" + \
-                #     " | silent:{self.silent_duration} av:{self.available}")
 
                 if self._fetching == "deterministic":
                     if self.reward_value == "continuous":
-                        self.collected = np.exp(-distance / self.radius)
+                        self.collected = np.exp(-distance / \
+                            self.radius)
                     else:
                         self.collected = 1.0
 
                 elif self._fetching == "probabilistic":
-                    # p = np.exp(-distance / (2 * self.radius**2))
                     p = self._probability_function(distance)
                     self.collected = np.random.binomial(1, p)
                     if self.reward_value == "continuous":
