@@ -1,9 +1,148 @@
 \begin{thebibliography}{10}
 
+\bibitem{golledgeCognitiveMapsSpatial2000}
+Reginald Golledge, Dan Jacobson, Rob Kitchin, and Mark Blades.
+\newblock Cognitive {{Maps}}, {{Spatial Abilities}}, and {{Human Wayfinding}}.
+\newblock {\em GEOGRAPHICAL REVIEW OF JAPAN SERIES B}, 73:93--104, December 2000.
+
+\bibitem{epsteinNeuralSystemsLandmarkbased2014}
+Russell~A. Epstein and Lindsay~K. Vass.
+\newblock Neural systems for landmark-based wayfinding in humans.
+\newblock {\em Philosophical Transactions of the Royal Society B: Biological Sciences}, 369(1635):20120533, February 2014.
+
+\bibitem{tolmanCOGNITIVEMAPSRATS1948}
+Edward~C Tolman.
+\newblock {{COGNITIVE MAPS IN RATS AND MEN}}.
+\newblock {\em Psychological Review}, 55(4), July 1948.
+
+\bibitem{weisbergCognitiveMapsPeople2018}
+Steven~M. Weisberg and Nora~S. Newcombe.
+\newblock Cognitive {{Maps}}: {{Some People Make Them}}, {{Some People Struggle}}.
+\newblock {\em Current Directions in Psychological Science}, 27(4):220--226, August 2018.
+
+\bibitem{schinaziHippocampalSizePredicts2013}
+Victor~R. Schinazi, Daniele Nardi, Nora~S. Newcombe, Thomas~F. Shipley, and Russell~A. Epstein.
+\newblock Hippocampal size predicts rapid learning of a cognitive map in humans.
+\newblock {\em Hippocampus}, 23(6):515--528, 2013.
+
 \bibitem{peerStructuringKnowledgeCognitive2021}
 Michael Peer, Iva~K. Brunec, Nora~S. Newcombe, and Russell~A. Epstein.
 \newblock Structuring {{Knowledge}} with {{Cognitive Maps}} and {{Cognitive Graphs}}.
 \newblock {\em Trends in cognitive sciences}, 25(1):37--54, January 2021.
+
+\bibitem{chrastilCognitiveMapsCognitive2014}
+Elizabeth~R. Chrastil and William~H. Warren.
+\newblock From {{Cognitive Maps}} to {{Cognitive Graphs}}.
+\newblock {\em PLoS ONE}, 9(11):e112544, November 2014.
+
+\bibitem{wernerModellingNavigationalKnowledge2000}
+Steffen Werner, Bernd {Krieg-Br{\"u}ckner}, and Theo Herrmann.
+\newblock Modelling {{Navigational Knowledge}} by {{Route Graphs}}.
+\newblock In Christian Freksa, Christopher Habel, Wilfried Brauer, and Karl~F. Wender, editors, {\em Spatial {{Cognition II}}: {{Integrating Abstract Theories}}, {{Empirical Studies}}, {{Formal Methods}}, and {{Practical Applications}}}, pages 295--316. Springer, Berlin, Heidelberg, 2000.
+
+\bibitem{gallistelComputationsMetricMaps1996}
+C.~R. Gallistel and Audrey~E. Cramer.
+\newblock Computations on {{Metric Maps}} in {{Mammals}}: {{Getting Oriented}} and {{Choosing}} a {{Multi-Destination Route}}.
+\newblock {\em Journal of Experimental Biology}, 199(1):211--217, January 1996.
+
+\bibitem{peerFormatCognitiveMap2024}
+Michael Peer, Catherine Nadar, and Russell~A. Epstein.
+\newblock The format of the cognitive map depends on the structure of the environment.
+\newblock {\em Journal of Experimental Psychology: General}, 153(1):224--240, January 2024.
+
+\bibitem{warrenNonEuclideanNavigation2019}
+William~H. Warren.
+\newblock Non-{{Euclidean}} navigation.
+\newblock {\em Journal of Experimental Biology}, 222(Suppl\_1):jeb187971, February 2019.
+
+\bibitem{wagnerComparingPsychophysicalGeometric2008}
+Mark Wagner.
+\newblock Comparing the psychophysical and geometric characteristics of spatial perception and cognitive maps.
+\newblock {\em Cognitive Studies: Bulletin of the Japanese Cognitive Science Society}, 15(1):6--21, 2008.
+
+\bibitem{rothkegelJudgingSpatialRelations1998}
+Rainer Rothkegel, Karl~F. Wender, and Sabine Schumacher.
+\newblock Judging {{Spatial Relations}} from {{Memory}}.
+\newblock In Christian Freksa, Christopher Habel, and Karl~F. Wender, editors, {\em Spatial {{Cognition}}: {{An Interdisciplinary Approach}} to {{Representing}} and {{Processing Spatial Knowledge}}}, pages 79--105. Springer, Berlin, Heidelberg, 1998.
+
+\bibitem{meilingerNetworkReferenceFrames2008}
+Tobias Meilinger.
+\newblock The {{Network}} of {{Reference Frames Theory}}: {{A Synthesis}} of {{Graphs}} and {{Cognitive Maps}}.
+\newblock In Christian Freksa, Nora~S. Newcombe, Peter G{\"a}rdenfors, and Stefan W{\"o}lfl, editors, {\em Spatial {{Cognition VI}}. {{Learning}}, {{Reasoning}}, and {{Talking}} about {{Space}}}, pages 344--360, Berlin, Heidelberg, 2008. Springer.
+
+\bibitem{wangLearningReinforcementLearn2017}
+Jane~X. Wang, Zeb {Kurth-Nelson}, Dhruva Tirumala, Hubert Soyer, Joel~Z. Leibo, Remi Munos, Charles Blundell, Dharshan Kumaran, and Matt Botvinick.
+\newblock Learning to reinforcement learn, January 2017.
+
+\bibitem{ishikawaSpatialKnowledgeAcquisition2006}
+Toru Ishikawa and Daniel~R. Montello.
+\newblock Spatial knowledge acquisition from direct experience in the environment: {{Individual}} differences in the development of metric knowledge and the integration of separately learned places.
+\newblock {\em Cognitive Psychology}, 52(2):93--129, March 2006.
+
+\bibitem{byrneMemoryUrbanGeography1979}
+R.~W. Byrne.
+\newblock Memory for {{Urban Geography}}.
+\newblock {\em Quarterly Journal of Experimental Psychology}, 31(1):147--154, February 1979.
+
+\bibitem{wehnerVisualNavigationInsects1996}
+R{\"u}diger Wehner, Barbara Michel, and Per Antonsen.
+\newblock Visual {{Navigation}} in {{Insects}}: {{Coupling}} of {{Egocentric}} and {{Geocentric Information}}.
+\newblock {\em Journal of Experimental Biology}, 199(1):129--140, January 1996.
+
+\bibitem{gillnerNavigationAcquisitionSpatial1998}
+Sabine Gillner and Hanspeter~A. Mallot.
+\newblock Navigation and {{Acquisition}} of {{Spatial Knowledge}} in a {{Virtual Maze}}.
+\newblock {\em Journal of Cognitive Neuroscience}, 10(4):445--463, July 1998.
+
+\bibitem{gallinaroSynapticWeightsThat2023}
+J{\'u}lia~V. Gallinaro, Benjamin Scholl, and Claudia Clopath.
+\newblock Synaptic weights that correlate with presynaptic selectivity increase decoding performance.
+\newblock {\em PLOS Computational Biology}, 19(8):e1011362, August 2023.
+
+\bibitem{sargoliniConjunctiveRepresentationPosition2006}
+Francesca Sargolini, Marianne Fyhn, Torkel Hafting, Bruce~L. McNaughton, Menno~P. Witter, May-Britt Moser, and Edvard~I. Moser.
+\newblock Conjunctive {{Representation}} of {{Position}}, {{Direction}}, and {{Velocity}} in {{Entorhinal Cortex}}.
+\newblock {\em Science}, 312(5774):758--762, May 2006.
+
+\bibitem{kropffSpeedCellsMedial2015}
+Emilio Kropff, James~E. Carmichael, May-Britt Moser, and Edvard~I. Moser.
+\newblock Speed cells in the medial entorhinal cortex.
+\newblock {\em Nature}, 523(7561):419--424, July 2015.
+
+\bibitem{solstadGridCellsPlace2006}
+Trygve Solstad, Edvard~I. Moser, and Gaute~T. Einevoll.
+\newblock From grid cells to place cells: {{A}} mathematical model.
+\newblock {\em Hippocampus}, 16(12):1026--1031, 2006.
+
+\bibitem{donatoHowYouBuild2023}
+Flavio Donato, Anja~Xu Schwartzlose, and Renan Augusto~Viana Mendes.
+\newblock How {{Do You Build}} a {{Cognitive Map}}? {{The Development}} of {{Circuits}} and {{Computations}} for the {{Representation}} of {{Space}} in the {{Brain}}.
+\newblock {\em Annual Review of Neuroscience}, 46(Volume 46, 2023):281--299, July 2023.
+
+\bibitem{bushWhatGridCells2014}
+Daniel Bush, Caswell Barry, and Neil Burgess.
+\newblock What do grid cells contribute to place cell firing?
+\newblock {\em Trends in Neurosciences}, 37(3):136--145, March 2014.
+
+\bibitem{neherGridCellsPlace2017a}
+Torsten Neher, Amir~Hossein Azizi, and Sen Cheng.
+\newblock From grid cells to place cells with realistic field sizes.
+\newblock {\em PLOS ONE}, 12(7):e0181618, July 2017.
+
+\bibitem{liModelingPlaceCells2019}
+Tianyi Li, Angelo Arleo, and Denis Sheynikhovich.
+\newblock {\em Modeling Place Cells and Grid Cells in Multi-Compartment Environments: Hippocampal-Entorhinal Loop as a Multisensory Integration Circuit}.
+\newblock April 2019.
+
+\bibitem{kubieSpatialFrequenciesGrid2015}
+John~L. Kubie and Steven~E. Fox.
+\newblock Do the spatial frequencies of grid cells mold the firing fields of place cells?
+\newblock {\em Proceedings of the National Academy of Sciences}, 112(13):3860--3861, March 2015.
+
+\bibitem{bilashLateralEntorhinalCortex2023}
+Olesia~M. Bilash, Spyridon Chavlis, Cara~D. Johnson, Panayiota Poirazi, and Jayeeta Basu.
+\newblock Lateral entorhinal cortex inputs modulate hippocampal dendritic excitability by recruiting a local disinhibitory microcircuit.
+\newblock {\em Cell Reports}, 42(1):111962, January 2023.
 
 \bibitem{lismanHippocampalVTALoopControlling2005}
 John~E. Lisman and Anthony~A. Grace.
@@ -60,6 +199,56 @@ Wolfram Schultz, Peter Dayan, and P.~Read Montague.
 \newblock A {{Neural Substrate}} of {{Prediction}} and {{Reward}}.
 \newblock {\em Science}, 275(5306):1593--1599, March 1997.
 
+\bibitem{fuchsbergerModulationHippocampalPlasticity2022}
+Tanja Fuchsberger and Ole Paulsen.
+\newblock Modulation of hippocampal plasticity in learning and memory.
+\newblock {\em Current Opinion in Neurobiology}, 75:102558, August 2022.
+
+\bibitem{sugisakiCholinergicModulationSpike2011}
+E.~Sugisaki, Y.~Fukushima, M.~Tsukada, and T.~Aihara.
+\newblock Cholinergic modulation on spike timing-dependent plasticity in hippocampal {{CA1}} network.
+\newblock {\em Neuroscience}, 192:91--101, September 2011.
+
+\bibitem{dennisActivationMuscarinicM12016}
+Siobhan~H. Dennis, Francesca Pasqui, Ellen~M. Colvin, Helen Sanger, Adrian~J. Mogg, Christian~C. Felder, Lisa~M. Broad, Steve~M. Fitzjohn, John~T.R. Isaac, and Jack~R. Mellor.
+\newblock Activation of {{Muscarinic M1 Acetylcholine Receptors Induces Long-Term Potentiation}} in the {{Hippocampus}}.
+\newblock {\em Cerebral Cortex}, 26(1):414--426, January 2016.
+
+\bibitem{hasselmoRoleAcetylcholineLearning2006}
+Michael~E Hasselmo.
+\newblock The role of acetylcholine in learning and memory.
+\newblock {\em Current Opinion in Neurobiology}, 16(6):710--715, December 2006.
+
+\bibitem{palacios-filardoAcetylcholinePrioritisesDirect2021}
+Jon {Palacios-Filardo}, Matt Udakis, Giles~A. Brown, Benjamin~G. Tehan, Miles~S. Congreve, Pradeep~J. Nathan, Alastair J.~H. Brown, and Jack~R. Mellor.
+\newblock Acetylcholine prioritises direct synaptic inputs from entorhinal cortex to {{CA1}} by differential modulation of feedforward inhibitory circuits.
+\newblock {\em Nature Communications}, 12(1):5475, September 2021.
+
+\bibitem{poucetSpatialCognitiveMaps1993}
+Bruno Poucet.
+\newblock Spatial cognitive maps in animals: {{New}} hypotheses on their structure and neural mechanisms.
+\newblock {\em Psychological Review}, 100(2):163--182, 1993.
+
+\bibitem{stoewerNeuralNetworkBased2023}
+Paul Stoewer, Achim Schilling, Andreas Maier, and Patrick Krauss.
+\newblock Neural network based formation of cognitive maps of semantic spaces and the putative emergence of abstract concepts.
+\newblock {\em Scientific Reports}, 13(1):3644, March 2023.
+
+\bibitem{decothiPredictiveMapsRats2022}
+William {de Cothi}, Nils Nyberg, Eva-Maria Griesbauer, Carole Ghanam{\'e}, Fiona Zisch, Julie~M. Lefort, Lydia Fletcher, Coco Newton, Sophie Renaudineau, Daniel Bendor, Roddy Grieves, {\'E}l{\'e}onore Duvelle, Caswell Barry, and Hugo~J. Spiers.
+\newblock Predictive maps in rats and humans for spatial navigation.
+\newblock {\em Current Biology}, 32(17):3676--3689.e5, September 2022.
+
+\bibitem{whittingtonTolmanEichenbaumMachineUnifying2020}
+James C.~R. Whittington, Timothy~H. Muller, Shirley Mark, Guifen Chen, Caswell Barry, Neil Burgess, and Timothy E.~J. Behrens.
+\newblock The {{Tolman-Eichenbaum Machine}}: {{Unifying Space}} and {{Relational Memory}} through {{Generalization}} in the {{Hippocampal Formation}}.
+\newblock {\em Cell}, 183(5):1249--1263.e23, November 2020.
+
+\bibitem{baninoVectorbasedNavigationUsing2018}
+Andrea Banino, Caswell Barry, Benigno Uria, Charles Blundell, Timothy Lillicrap, Piotr Mirowski, Alexander Pritzel, Martin~J. Chadwick, Thomas Degris, Joseph Modayil, Greg Wayne, Hubert Soyer, Fabio Viola, Brian Zhang, Ross Goroshin, Neil Rabinowitz, Razvan Pascanu, Charlie Beattie, Stig Petersen, Amir Sadik, Stephen Gaffney, Helen King, Koray Kavukcuoglu, Demis Hassabis, Raia Hadsell, and Dharshan Kumaran.
+\newblock Vector-based navigation using grid-like representations in artificial agents.
+\newblock {\em Nature}, 557(7705):429--433, May 2018.
+
 \bibitem{sorscherUnifiedTheoryOrigin2019}
 Ben Sorscher, Gabriel Mel, Surya Ganguli, and Samuel Ocko.
 \newblock A unified theory for the origin of grid cells through the lens of pattern formation.
@@ -69,10 +258,15 @@ Ben Sorscher, Gabriel Mel, Surya Ganguli, and Samuel Ocko.
 Christopher~J. Cueva and Xue-Xin Wei.
 \newblock Emergence of grid-like representations by training recurrent neural networks to perform spatial localization, March 2018.
 
-\bibitem{baninoVectorbasedNavigationUsing2018}
-Andrea Banino, Caswell Barry, Benigno Uria, Charles Blundell, Timothy Lillicrap, Piotr Mirowski, Alexander Pritzel, Martin~J. Chadwick, Thomas Degris, Joseph Modayil, Greg Wayne, Hubert Soyer, Fabio Viola, Brian Zhang, Ross Goroshin, Neil Rabinowitz, Razvan Pascanu, Charlie Beattie, Stig Petersen, Amir Sadik, Stephen Gaffney, Helen King, Koray Kavukcuoglu, Demis Hassabis, Raia Hadsell, and Dharshan Kumaran.
-\newblock Vector-based navigation using grid-like representations in artificial agents.
-\newblock {\em Nature}, 557(7705):429--433, May 2018.
+\bibitem{almePlaceCellsHippocampus2014}
+Charlotte~B. Alme, Chenglin Miao, Karel Jezek, Alessandro Treves, Edvard~I. Moser, and May-Britt Moser.
+\newblock Place cells in the hippocampus: {{Eleven}} maps for eleven rooms.
+\newblock {\em Proceedings of the National Academy of Sciences}, 111(52):18428--18435, December 2014.
+
+\bibitem{ormondPlaceFieldExpansion2015}
+Jake Ormond and Bruce~L. McNaughton.
+\newblock Place field expansion after focal {{MEC}} inactivations is consistent with loss of {{Fourier}} components and path integrator gain reduction.
+\newblock {\em Proceedings of the National Academy of Sciences of the United States of America}, 112(13):4116--4121, March 2015.
 
 \bibitem{brzoskoRetroactiveModulationSpike2015}
 Zuzanna Brzosko, Wolfram Schultz, and Ole Paulsen.
@@ -88,5 +282,48 @@ Zuzanna Brzosko, Sara Zannone, Wolfram Schultz, Claudia Clopath, and Ole Paulsen
 Jie Mei, Rouzbeh Meshkinnejad, and Yalda Mohsenzadeh.
 \newblock Effects of neuromodulation-inspired mechanisms on the performance of deep neural networks in a spatial learning task.
 \newblock {\em iScience}, 26(2):106026, February 2023.
+
+\bibitem{milsteinBidirectionalSynapticPlasticity2021}
+Aaron~D Milstein, Yiding Li, Katie~C Bittner, Christine Grienberger, Ivan Soltesz, Jeffrey~C Magee, and Sandro Romani.
+\newblock Bidirectional synaptic plasticity rapidly modifies hippocampal representations.
+\newblock {\em eLife}, 10:e73046, December 2021.
+
+\bibitem{zhouCorticalMechanismsMultisensory2022}
+Luxin Zhou and Yong Gu.
+\newblock Cortical {{Mechanisms}} of {{Multisensory Linear Self-motion Perception}}.
+\newblock {\em Neuroscience Bulletin}, 39(1):125--137, July 2022.
+
+\bibitem{jerjianSelfmotionPerceptionSequential2023}
+Steven~J. Jerjian, Devin~R. Harsch, and Christopher~R. Fetsch.
+\newblock Self-motion perception and sequential decision-making: Where are we heading?
+\newblock {\em Philosophical Transactions of the Royal Society B: Biological Sciences}, 378(1886):20220333, August 2023.
+
+\bibitem{whishawCalibratingSpaceExploration1999a}
+Ian~Q. Whishaw and Brian~L. Brooks.
+\newblock Calibrating space: {{Exploration}} is important for allothetic and idiothetic navigation.
+\newblock {\em Hippocampus}, 9(6):659--667, 1999.
+
+\bibitem{dabaghianGridCellsBorder}
+Yuri Dabaghian.
+\newblock Grid {{Cells}}, {{Border Cells}} and {{Discrete Complex Analysis}}.
+
+\bibitem{schoyenHexagonsAllWay2025}
+Vemund~Sigmundson Sch{\o}yen, Kosio Beshkov, Markus~Borud Pettersen, Erik Hermansen, Konstantin Holzhausen, Anders {Malthe-S{\o}renssen}, Marianne Fyhn, and Mikkel~Elle Lepper{\o}d.
+\newblock Hexagons all the way down: Grid cells as a conformal isometric map of space.
+\newblock {\em PLOS Computational Biology}, 21(2):e1012804, February 2025.
+
+\bibitem{andersonHeterogeneousModulationPlace2003}
+Michael~I. Anderson and Kathryn~J. Jeffery.
+\newblock Heterogeneous {{Modulation}} of {{Place Cell Firing}} by {{Changes}} in {{Context}}.
+\newblock {\em Journal of Neuroscience}, 23(26):8827--8835, October 2003.
+
+\bibitem{fentonRemappingRevisitedHow2024}
+Andr{\'e}~A. Fenton.
+\newblock Remapping revisited: How the hippocampus represents different spaces.
+\newblock {\em Nature Reviews Neuroscience}, 25(6):428--448, June 2024.
+
+\bibitem{miikkulainenEvolvingDeepNeural2017}
+Risto Miikkulainen, Jason Liang, Elliot Meyerson, Aditya Rawal, Dan Fink, Olivier Francon, Bala Raju, Hormoz Shahrzad, Arshak Navruzyan, Nigel Duffy, and Babak Hodjat.
+\newblock Evolving {{Deep Neural Networks}}, March 2017.
 
 \end{thebibliography}

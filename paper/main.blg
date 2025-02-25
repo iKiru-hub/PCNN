@@ -3,46 +3,48 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
 Database file #1: pcnn_refs.bib
-Warning--I didn't find a database entry for "tolmanCognitiveMapsRats1948"
-You've used 18 entries,
+Warning--empty publisher in liModelingPlaceCells2019
+Warning--empty journal in dabaghianGridCellsBorder
+Warning--empty year in dabaghianGridCellsBorder
+You've used 66 entries,
             1791 wiz_defined-function locations,
-            591 strings with 8907 characters,
-and the built_in function-call counts, 4845 in all, are:
-= -- 394
-> -- 297
-< -- 1
-+ -- 105
-- -- 87
-* -- 453
-:= -- 805
-add.period$ -- 54
-call.type$ -- 18
-change.case$ -- 18
+            927 strings with 21796 characters,
+and the built_in function-call counts, 17518 in all, are:
+= -- 1483
+> -- 960
+< -- 4
++ -- 343
+- -- 277
+* -- 1587
+:= -- 2838
+add.period$ -- 198
+call.type$ -- 66
+change.case$ -- 65
 chr.to.int$ -- 0
-cite$ -- 18
-duplicate$ -- 160
-empty$ -- 428
-format.name$ -- 87
-if$ -- 1014
+cite$ -- 69
+duplicate$ -- 619
+empty$ -- 1596
+format.name$ -- 277
+if$ -- 3718
 int.to.chr$ -- 0
-int.to.str$ -- 18
-missing$ -- 17
-newline$ -- 92
-num.names$ -- 18
-pop$ -- 28
+int.to.str$ -- 66
+missing$ -- 64
+newline$ -- 329
+num.names$ -- 72
+pop$ -- 112
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 59
+skip$ -- 247
 stack$ -- 0
-substring$ -- 391
-swap$ -- 20
-text.length$ -- 1
+substring$ -- 1471
+swap$ -- 92
+text.length$ -- 4
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
-warning$ -- 0
-while$ -- 43
-width$ -- 20
-write$ -- 198
-(There was 1 warning)
+warning$ -- 3
+while$ -- 169
+width$ -- 68
+write$ -- 720
+(There were 3 warnings)

@@ -244,10 +244,11 @@ class RewardObj:
 
     def _probability_function(self, distance: float) -> float:
 
-        # p = 1 / (1 + np.exp(-self.beta * ( np.exp(-distance**2 / \
-        #     self.sigma) - self.alpha)))
-        # p = np.where(p < 0.02, 0, p)
-        return self.sigma if distance < self.radius else 0.0
+        p = 1 / (1 + np.exp(-self.beta * ( np.exp(-distance**2 / \
+            self.sigma) - self.alpha)))
+        p = np.where(p < 0.02, 0, p)
+        # return self.sigma if distance < self.radius else 0.0
+        return p
 
     def _update_sprite(self):
 

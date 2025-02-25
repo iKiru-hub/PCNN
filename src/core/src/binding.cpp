@@ -92,7 +92,7 @@ PYBIND11_MODULE(pclib, m) {
         .def(py::init<int, int, float, float,
              float, float, float, float, \
              float, GCN_REF, float,
-             int, std::string>(),
+             int, int, std::string>(),
              py::arg("N"),
              py::arg("Nj"),
              py::arg("gain"),
@@ -105,6 +105,7 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("xfilter"),
              py::arg("tau_trace") = 2.0f,
              py::arg("remap_tag_frequency") = 1,
+             py::arg("num_neighbors") = 3,
              py::arg("name") = "fine")
         .def("__call__", &PCNN::call,
              py::arg("v"))
@@ -131,19 +132,18 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("v"));
 
     py::class_<VelocitySpace>(m, "VelocitySpace")
-        .def(py::init<int, float>(),
+        .def(py::init<int, float, int>(),
              py::arg("size"),
-             py::arg("threshold"))
+             py::arg("threshold"),
+             py::arg("num_neighbors") = 3)
         .def("__call__", &VelocitySpace::call,
              py::arg("v"))
         .def("update", &VelocitySpace::update,
              py::arg("idx"),
-             py::arg("current_size"),
              py::arg("traces"),
              py::arg("update_center") = true)
         .def("remap_center", &VelocitySpace::remap_center,
              py::arg("idx"),
-             py::arg("size"),
              py::arg("displacement"))
         .def("get_centers", &VelocitySpace::get_centers,
              py::arg("nonzero") = false)
@@ -282,7 +282,7 @@ PYBIND11_MODULE(pclib, m) {
     py::class_<Brain>(m, "Brain")
 
         .def(py::init<
-             float, float, int, int, float, float, float, float,
+             float, float, int, int, float, float, float, float, int,
              float, float, float, float, float, int,
              float, float, float, float, float,
              float, float, float, float,
@@ -301,6 +301,7 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("rec_threshold_coarse"),
              py::arg("speed"),
              py::arg("min_rep_threshold"),
+             py::arg("num_neighbors") = 3,
 
              py::arg("gain_fine"),
              py::arg("offset_fine"),

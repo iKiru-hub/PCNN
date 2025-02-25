@@ -48,7 +48,7 @@
 
 // blank log function
 void LOG(const std::string& msg) {
-    /* return; */
+    return;
     std::cout << msg << std::endl;
 }
 
@@ -234,7 +234,7 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matri
                     /* continue; */
                     /* new_distance = node_weights(neighbor); */
                     /* LOG("Distance penalty: " + std::to_string(new_distance) + " | " + std::to_string(neighbor)); */
-                    /* continue; */
+                    continue;
                 } else {
 
                     // Calculate Euclidean distance between nodes
@@ -272,7 +272,7 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matri
     }
     std::reverse(path.begin(), path.end());
 
-    if (path.empty() || path[0] != start_node) 
+    if (path.empty() || path[0] != start_node)
         { return {}; }
 
     return path;
@@ -424,7 +424,7 @@ IntersectionResult get_segments_intersection(
     float p0_x, float p0_y,
     float p1_x, float p1_y,
     float p2_x, float p2_y,
-    float p3_x, float p3_y) 
+    float p3_x, float p3_y)
 {
     // Calculate segment vectors
     float s10_x = p1_x - p0_x;
@@ -443,7 +443,7 @@ IntersectionResult get_segments_intersection(
     // Calculate vector between first points of each segment
     float s02_x = p0_x - p2_x;
     float s02_y = p0_y - p2_y;
-    
+
     // Calculate numerators
     float s_numer = s10_x * s02_y - s10_y * s02_x;
     if ((s_numer < 0) == denomPositive) {
@@ -455,7 +455,7 @@ IntersectionResult get_segments_intersection(
         return {false, 0.0f, 0.0f}; // No collision
     }
 
-    if (((s_numer > denom) == denomPositive) || 
+    if (((s_numer > denom) == denomPositive) ||
         ((t_numer > denom) == denomPositive)) {
         return {false, 0.0f, 0.0f}; // No collision
     }
@@ -473,9 +473,9 @@ IntersectionTuple get_segments_intersection_tuple(
     float p0_x, float p0_y,
     float p1_x, float p1_y,
     float p2_x, float p2_y,
-    float p3_x, float p3_y) 
+    float p3_x, float p3_y)
 {
-    auto result = get_segments_intersection(p0_x, p0_y, p1_x, p1_y, 
+    auto result = get_segments_intersection(p0_x, p0_y, p1_x, p1_y,
                                           p2_x, p2_y, p3_x, p3_y);
     return {result.intersects, result.x, result.y};
 }
@@ -688,7 +688,7 @@ class Hexagon {
 
     std::array<std::array<float, 2>, 6> centers;
     std::array<size_t, 6> index = {0, 1, 2, 3, 4, 5};
-    
+
     // @brief check whether p is within the inner circle
     bool apothem_checkpoint(float x, float y) const {
         float dist = std::sqrt(x * x + y * y);
@@ -706,16 +706,16 @@ class Hexagon {
         // reflect the point p to r wrt the center (0, 0)
         float rx = -x;
         float ry = -y;
-        
+
         // calculate and sort the distances to the centers
         std::array<float, 6> distances;
         for (int i = 0; i < 6; i++) {
             distances[i] = std::sqrt(
-                std::pow(centers[i][0] - rx, 2) + 
+                std::pow(centers[i][0] - rx, 2) +
                 std::pow(centers[i][1] - ry, 2)
             );
         }
-        
+
         // Sort the index array based on the values in the original array
         auto index_copy = index;
         std::sort(index_copy.begin(), index_copy.end(),
@@ -723,28 +723,28 @@ class Hexagon {
                 return distances[a] < distances[b];
             }
         );
-        
+
         float ax = centers[index_copy[0]][0];
         float ay = centers[index_copy[0]][1];
         float bx = centers[index_copy[1]][0];
         float by = centers[index_copy[1]][1];
         float mx = (ax + bx) / 2.0f;
         float my = (ay + by) / 2.0f;
-        
+
         // calculate the intersection s between ab and ro
         auto [intersects, sx, sy] = get_segments_intersection(
             ax, ay, bx, by, rx, ry, 0.0f, 0.0f);
-            
+
         if (!intersects) {
             // checkpoint: no intersection, point is inside the hexagon
             /* LOG("[+] no intersection"); */
             return {x, y, false};
         }
-        
+
         // reflect the point r wrt the intersection s
         rx = 2 * sx - rx;
         ry = 2 * sy - ry;
-        
+
         // reflect wrt the line s-center
         std::array<float, 2> z;
         if (sy > 0) {
@@ -752,7 +752,7 @@ class Hexagon {
         } else {
             z = reflect_point_over_segment(rx, ry, mx, my, 0.0f, 0.0f);
         }
-        
+
         return {z[0], z[1], true};
     }
 
@@ -781,7 +781,7 @@ public:
 
     std::string str() const { return "hexagon"; }
     std::string repr() const { return str(); }
-    
+
     const std::array<std::array<float, 2>, 6>& get_centers() const {
         return centers;
     }
@@ -824,12 +824,13 @@ public:
     Eigen::VectorXf one_trace;
     std::array<float, 2> position;
     int size;
+    int num_neighbors;
     float threshold;
 
     std::vector<std::array<int, 2>> blocked_edges;
 
-    VelocitySpace(int size, float threshold)
-        : size(size), threshold(threshold) {
+    VelocitySpace(int size, float threshold, int num_neighbors)
+        : size(size), threshold(threshold), num_neighbors(num_neighbors) {
         centers = Eigen::MatrixXf::Constant(size, 2, -9999.0f);
         connectivity = Eigen::MatrixXf::Zero(size, size);
         weights = Eigen::MatrixXf::Zero(size, size);
@@ -847,8 +848,7 @@ public:
         return {position[0], position[1]};
     }
 
-    void update(int idx, int current_size,
-                Eigen::VectorXf& traces,
+    void update(int idx, Eigen::VectorXf& traces,
                 bool update_center = true) {
 
         // update the centers
@@ -858,41 +858,89 @@ public:
         }
 
         // add recurrent connections
-        for (int j = 0; j < current_size; j++) {
+        /* int max_neighbors = 5; */
+        /* for (int j = 0; j < size; j++) { */
 
-            // check if the nodes exist
-            if (centers(idx, 0) < -999.0f || \
-                centers(j, 0) < -999.0f || \
-                idx == j) {
-                continue;
+        /*     // check if the nodes exist */
+        /*     if (centers(idx, 0) < -999.0f || \ */
+        /*         centers(j, 0) < -999.0f || \ */
+        /*         idx == j) { */
+        /*         continue; */
+        /*     } */
+
+        /*     // check if neighbors was active */
+        /*     /1* if (traces(j) < 0.0001f) { continue; } *1/ */
+
+        /*     float dist = std::sqrt( */
+        /*         (centers(idx, 0) - centers(j, 0)) * */
+        /*         (centers(idx, 0) - centers(j, 0)) + */
+        /*         (centers(idx, 1) - centers(j, 1)) * */
+        /*         (centers(idx, 1) - centers(j, 1)) */
+        /*     ); */
+        /*     if (dist < threshold) { */
+        /*         this->weights(idx, j) = dist; */
+        /*         this->weights(j, idx) = dist; */
+        /*         this->connectivity(idx, j) = 1.0; */
+        /*         this->connectivity(j, idx) = 1.0; */
+        /*     } */
+        /* } */
+
+        /* NEAREST NEIGHBORS */
+
+        // add recurrent connections based on nearest neighbors
+        for (int idx = 0; idx < size; idx++) {
+
+            // Skip invalid nodes
+            if (centers(idx, 0) < -700.0f) { continue; }
+
+            // Create a vector of pairs (distance, index) for all valid nodes
+            std::vector<std::pair<float, int>> distances;
+            for (int j = 0; j < size; j++) {
+                // Skip invalid nodes and self
+                if (centers(j, 0) < -700.0f || idx == j) { continue; }
+
+                // check if neighbors was active
+                /* if (traces(j) < 0.01f) { continue; } */
+
+                float dist = std::sqrt(
+                    (centers(idx, 0) - centers(j, 0)) * (centers(idx, 0) - centers(j, 0)) +
+                    (centers(idx, 1) - centers(j, 1)) * (centers(idx, 1) - centers(j, 1))
+                );
+
+                if (dist < threshold) { distances.push_back(std::make_pair(dist, j)); }
+
             }
 
-            // check if neighbors was active
-            /* if (traces(j) < 0.0001f) { continue; } */
+            // Sort by distance (ascending)
+            std::sort(distances.begin(), distances.end());
 
-            float dist = std::sqrt(
-                (centers(idx, 0) - centers(j, 0)) *
-                (centers(idx, 0) - centers(j, 0)) +
-                (centers(idx, 1) - centers(j, 1)) *
-                (centers(idx, 1) - centers(j, 1))
-            );
-            if (dist < threshold) {
+            // Connect to the closest max_neighbors neighbors
+            int num_connections = std::min(num_neighbors,
+                                           static_cast<int>(distances.size()));
+            this->weights.row(idx) = Eigen::VectorXf::Zero(size);
+            this->connectivity.row(idx) = Eigen::VectorXf::Zero(size);
+
+            for (int k = 0; k < num_connections; k++) {
+                int j = distances[k].second;
+                float dist = distances[k].first;
+ 
+                // Establish bidirectional connection
                 this->weights(idx, j) = dist;
                 this->weights(j, idx) = dist;
                 this->connectivity(idx, j) = 1.0;
                 this->connectivity(j, idx) = 1.0;
-            } 
+            }
         }
 
         // update the node angles
-        update_node_degree(idx, current_size);
+        update_node_degree(idx, size);
     }
 
-    void remap_center(int idx, int size, std::array<float, 2> displacement) {
+    void remap_center(int idx, std::array<float, 2> displacement) {
         centers(idx, 0) += displacement[0];
         centers(idx, 1) += displacement[1];
 
-        update(idx, size, one_trace, false);
+        update(idx, one_trace, false);
     }
 
     Eigen::MatrixXf get_centers(bool nonzero=false) {
@@ -925,7 +973,7 @@ public:
     }
 
     std::vector<std::array<std::array<float, 2>, 3>> make_edges_value(
-               Eigen::MatrixXf& values) { 
+               Eigen::MatrixXf& values) {
         // make a list of edges from the connectivity matrix
         std::vector<std::array<std::array<float, 2>, 3>> edges;
         for (int i = 0; i < size; i++) {
@@ -963,6 +1011,18 @@ public:
         return idx;
     }
 
+    void delete_node(int idx) {
+
+        // delete the node by shifting the all next nodes
+        for (int i = idx; i < size-1; i++) {
+            centers.row(i) = centers.row(i+1);
+            connectivity.row(i) = connectivity.row(i+1);
+            weights.row(i) = weights.row(i+1);
+            nodes_max_angle(i) = nodes_max_angle(i+1);
+            node_degree(i) = node_degree(i+1);
+        }
+    }
+
     void delete_edge(int i, int j) {
         connectivity(i, j) = 0.0f;
         connectivity(j, i) = 0.0f;
@@ -972,6 +1032,35 @@ public:
 
     bool check_edge(int i, int j) {
         return connectivity(i, j) == 1.0f;
+    }
+
+    bool is_too_close(int idx, std::array<float, 2> velocity,
+                      float rec_threshold = 0.1f) {
+
+        // check if the center at idx can be moved:
+        // the distance from the other centers should be greater than 0.1
+        std::array<float, 2> c = {centers(idx, 0), centers(idx, 1)};
+
+        float mind = 1000.0f;
+        for (int i = 0; i < size; i++) {
+            if (i == idx) { continue; }
+            if (centers(i, 0) < -999.0f) { continue; }
+
+            float dist = std::sqrt(
+                (c[0] - centers(i, 0)) * (c[0] - centers(i, 0)) +
+                (c[1] - centers(i, 1)) * (c[1] - centers(i, 1))
+            );
+
+            if (dist < rec_threshold) {
+                /* std::cout << "too close:)" << std::endl; */
+                return true; 
+            }
+            if (dist < mind) {
+                mind = dist;
+            }
+        }
+        /* std::cout << "not too close:)" << mind << std::endl; */
+        return false;
     }
 
 };
@@ -1639,7 +1728,7 @@ public:
          float clip_min, float threshold, float rep_threshold,
          float rec_threshold, float min_rep_threshold,
          GCN_REF xfilter, float tau_trace = 2.0f,
-         int remap_tag_frequency = 1,
+         int remap_tag_frequency = 1, int num_neighbors = 3,
          std::string name = "fine")
         : N(N), Nj(Nj), gain(gain), gain_const(gain),
         offset(offset), clip_min(clip_min),
@@ -1648,7 +1737,7 @@ public:
         threshold_const(threshold), threshold(threshold),
         xfilter(xfilter), tau_trace(tau_trace), name(name),
         remap_tag_frequency(remap_tag_frequency),
-        vspace(VelocitySpace(N, rec_threshold)) {
+        vspace(VelocitySpace(N, rec_threshold, num_neighbors)) {
 
         // Initialize the variables
         Wff = Eigen::MatrixXf::Zero(N, Nj);
@@ -1733,7 +1822,7 @@ public:
             Wffbackup.row(idx) = Wff.row(idx);
 
             // record new center
-            vspace.update(idx, N, traces);
+            vspace.update(idx, traces);
             this->Wrec = vspace.weights;
             this->connectivity = vspace.connectivity;
 
@@ -1767,12 +1856,11 @@ public:
 
         if (magnitude < 0.00001f) { return; }
 
-        float max_dist = 0.0f;
         float magnitude_i;;
         for (int i = 0; i < N; i++) {
 
             // check remap tag
-            if (!remap_tag[i]) { continue; }
+            if (!remap_tag[i] || traces(i) < 0.1) { continue; }
 
             // consider the trace
             /* magnitude_i = magnitude * 1.0f;// trace(i); */
@@ -1789,12 +1877,14 @@ public:
 
             // gaussian activation function centered at zero
             float dist = std::exp(-std::sqrt(displacement[0] * displacement[0] + \
-                                    displacement[1] * displacement[1]) / width);
+                                    displacement[1] * displacement[1]) / width) * \
+                                    magnitude;
+
+            if (vspace.is_too_close(i, {displacement[0] * magnitude, displacement[1] * magnitude},
+                                    min_rep_threshold)) { continue; }
 
             // cutoff
-            if (dist < 0.1f) { continue; }
-
-            max_dist = max_dist < dist ? dist : max_dist;
+            /* if (dist < 0.1f) { continue; } */
 
             // weight the displacement
             std::array<float, 2> gc_displacement = {dist * magnitude,
@@ -1807,36 +1897,38 @@ public:
             Wff.row(i) += x_filtered.transpose() - Wff.row(i).transpose();
 
             // check similarity
-            float similarity = max_cosine_similarity_in_rows(Wff, i);
+            /* float similarity = max_cosine_similarity_in_rows(Wff, i); */
 
             // check repulsion (similarity) level
              /* - displacement[0] */
             /* if (similarity > min_rep_threshold || std::isnan(similarity)) { */
-            if (similarity > (dist * rep_threshold * 0. + (1 -0*dist) * min_rep_threshold) \
-                || std::isnan(similarity)) {
-                /* std::cout << "remap failed, too close" << std::endl; */
-                Wff.row(i) = Wffbackup.row(i);
-                continue;
-            }
+            /* if (similarity > (dist * rep_threshold * 0. + \ */
+            /*     (1 -0*dist) * min_rep_threshold) \ */
+            /*     || std::isnan(similarity)) { */
+            /*     /1* std::cout << "remap failed, too close" << std::endl; *1/ */
+            /*     Wff.row(i) = Wffbackup.row(i); */
+            /*     continue; */
+            /* } */
 
             // update backup and vspace
             Wffbackup.row(i) = Wff.row(i);
-            vspace.remap_center(i, N, {dist * magnitude,
-                                       dist * magnitude});
+            /* vspace.remap_center(i, {dist * magnitude, dist * magnitude}); */
+            vspace.remap_center(i, {displacement[0] * magnitude, displacement[1] * magnitude});
         }
     }
 
     void remap(std::array<float, 2> velocity,
                float width, float magnitude) {
 
-        if (magnitude < 0.00001f) { return; }
 
-        float max_dist = 0.0f;
+        if (magnitude < 0.0001f && magnitude > -0.0001f) { return; }
+        LOG("remapping with magnitude: " + std::to_string(magnitude));
+
         float magnitude_i;;
         for (int i = 0; i < N; i++) {
 
             // check remap tag
-            if (!remap_tag[i]) { continue; }
+            if (!remap_tag[i] || traces(i) < 0.1) { continue; }
 
             // consider the trace
             /* magnitude_i = magnitude * 1.0f;// trace(i); */
@@ -1851,13 +1943,21 @@ public:
                  vspace.position[1] - vspace.centers(i, 1)};
 
             // gaussian activation function centered at zero
+            /* float dist = std::exp(-std::sqrt(displacement[0] * displacement[0] + \ */
+            /*                         displacement[1] * displacement[1]) / width); */
+            // Euclidean distance
+            /* float dist = std::sqrt(displacement[0] * displacement[0] + \ */
+            /*                        displacement[1] * displacement[1]); */
             float dist = std::exp(-std::sqrt(displacement[0] * displacement[0] + \
-                                    displacement[1] * displacement[1]) / width);
+                                    displacement[1] * displacement[1]) / width) * \
+                                    magnitude;
+
+            if (vspace.is_too_close(i, {displacement[0] * magnitude, displacement[1] * magnitude},
+                                    min_rep_threshold)) { continue; }
 
             // cutoff
-            if (dist < 0.1f) { continue; }
-
-            max_dist = max_dist < dist ? dist : max_dist;
+            /* if (dist > width) { continue; } */
+            /* if (dist < 0.1f) { continue; } */
 
             // weight the displacement
             std::array<float, 2> gc_displacement = {dist * magnitude,
@@ -1867,80 +1967,28 @@ public:
             x_filtered = xfilter.simulate_one_step(gc_displacement);
 
             // update the weights & centers
+            Wffbackup.row(i) = Wff.row(i);
             Wff.row(i) += x_filtered.transpose() - Wff.row(i).transpose();
 
             // check similarity
-            float similarity = max_cosine_similarity_in_rows(Wff, i);
+            /* float similarity = max_cosine_similarity_in_rows(Wff, i); */
 
-            // check repulsion (similarity) level
-             /* - displacement[0] */
+            /* // check repulsion (similarity) level */
+            /*  /1* - displacement[0] *1/ */
             /* if (similarity > min_rep_threshold || std::isnan(similarity)) { */
-            if (similarity > (dist * rep_threshold * 0. + (1 -0*dist) * min_rep_threshold) \
-                || std::isnan(similarity)) {
-                /* std::cout << "remap failed, too close" << std::endl; */
-                Wff.row(i) = Wffbackup.row(i);
-                continue;
-            }
+            /*     /1* std::cout << "remap failed, too close" << std::endl; *1/ */
+            /*     Wff.row(i) = Wffbackup.row(i); */
+            /*     continue; */
+            /* } */
+
+            /* LOG("remapping with magnitude: " + std::to_string(magnitude)); */
+            /* std::cout << "remapping with similarity: " << similarity << "\n"; */
 
             // update backup and vspace
             Wffbackup.row(i) = Wff.row(i);
-            vspace.remap_center(i, N, {dist * magnitude,
-                                       dist * magnitude});
-        }
-    }
-
-    //
-    void remap_no(std::array<float, 2> velocity,
-               float width, float magnitude) {
-
-        if (magnitude < 0.00001f) { return; }
-
-        float max_dist = 0.0f;
-        float magnitude_i;;
-        for (int i = 0; i < N; i++) {
-
-            // check remap tag
-            if (!remap_tag[i]) { continue; }
-
-            // skip blocked edges
-            if (vspace.centers(i, 0) < -900.0f) { continue; }
-
-            std::array<float, 2> displacement = \
-                {vspace.position[0] - vspace.centers(i, 0),
-                 vspace.position[1] - vspace.centers(i, 1)};
-
-            // gaussian activation function centered at zero
-            float dist = std::exp(-std::sqrt(displacement[0] * displacement[0] + \
-                                    displacement[1] * displacement[1]) / width);
-
-            // cutoff
-            if (dist < 0.1f) { continue; }
-
-            max_dist = max_dist < dist ? dist : max_dist;
-
-            // weight the displacement
-            std::array<float, 2> gc_displacement = {dist * magnitude,
-                                                    dist * magnitude};
-
-            // pass the input through the filter layer
-            x_filtered = xfilter.simulate_one_step(gc_displacement);
-
-            // update the weights & centers
-            Wff.row(i) += x_filtered.transpose() - Wff.row(i).transpose();
-
-            // check similarity
-            float similarity = max_cosine_similarity_in_rows(Wff, i);
-
-            // check repulsion (similarity) level
-            if (similarity > min_rep_threshold || std::isnan(similarity)) {
-                Wff.row(i) = Wffbackup.row(i);
-                continue;
-            }
-
-            // update backup and vspace
-            Wffbackup.row(i) = Wff.row(i);
-            vspace.remap_center(i, N, {dist * magnitude,
-                                       dist * magnitude});
+            vspace.remap_center(i, {displacement[0] * magnitude, displacement[1] * magnitude});
+            /* vspace.remap_center(i, {dist * magnitude, */
+            /*                         dist * magnitude}); */
         }
     }
 
@@ -1976,8 +2024,8 @@ public:
 
         // update backup and vspace
         Wffbackup.row(idx) = Wff.row(idx);
-        vspace.remap_center(idx, N, {displacement[0] * magnitude,
-                                     displacement[1] * magnitude});
+        vspace.remap_center(idx, {displacement[0] * magnitude,
+                                  displacement[1] * magnitude});
     }
 
     int calculate_closest_index(const std::array<float, 2>& c)
@@ -1994,6 +2042,30 @@ public:
             }
         }
         return node_degree / count;
+    }
+
+    void update_upon_collision() {
+
+        // check highest activation
+        if (u.maxCoeff() < threshold) { return; }
+
+        // get argmax
+        Eigen::Index maxIndex;
+        float maxValue = u.maxCoeff(&maxIndex);
+        int idx = static_cast<int>(maxIndex);
+
+        // delete node
+        vspace.delete_node(idx);
+        this->Wrec = vspace.weights;
+        this->connectivity = vspace.connectivity;
+
+        // update variables
+        cell_count--;
+        fixed_indexes.erase(std::remove(fixed_indexes.begin(),
+                                        fixed_indexes.end(), idx),
+                            fixed_indexes.end());
+        free_indexes.push_back(idx);
+
     }
 
     void delete_edge(int i, int j) {
@@ -2027,6 +2099,7 @@ public:
     Eigen::MatrixXf& get_wff() { return Wff; }
     Eigen::MatrixXf& get_wrec() { return Wrec; }
     float get_trace_value(int idx) { return traces(idx); }
+    float get_max_activation() { return u.maxCoeff(); }
     std::vector<std::array<std::array<float, 2>, 2>> make_edges()
         { return vspace.make_edges(); }
     std::vector<std::array<std::array<float, 2>, 3>> make_edges_value(
@@ -2155,6 +2228,8 @@ public:
                 // clip the prediction error if within a certain range
                 pred_err = pred_err > 0.001f && pred_err < 0.1 ? 0.1 : pred_err;
 
+                if (pred_err > 0.01 && name == "DA") { LOG("[+] prediction error: " + std::to_string(pred_err));}
+
                 // update weights
                 weights[i] += lr * v * ui - pred_err;
 
@@ -2164,7 +2239,8 @@ public:
             }
 
             // highest da value
-            if (name == "da") {
+            if (name == "DA") {
+                // get the max value and index (target index
                 Eigen::Index maxIndex;
                 float maxValue = weights.maxCoeff(&maxIndex);
                 int trg_idx = static_cast<int>(maxIndex);
@@ -2182,7 +2258,7 @@ public:
         int idx = -1;
         float value = 0.0f;
         for (int i = 0; i < size; i++) {
-            prediction[i] = weights[i] * u[i]; 
+            prediction[i] = weights[i] * u[i];
             if (prediction[i] > value) {
                 value = prediction[i];
                 idx = i;
@@ -2290,7 +2366,7 @@ public:
 
             if (bnd_value < 0.01f) {
                 value_mask(i) = 1.0f; }
-            else if (bnd_value < threshold) { 
+            else if (bnd_value < threshold) {
                 value_mask(i) = -4000.0f; }
             else {
                 value_mask(i) = -10000.0f; }
@@ -2309,6 +2385,7 @@ public:
     int len() { return CIRCUIT_SIZE; }
     std::array<float, CIRCUIT_SIZE> get_output() { return output; }
     std::array<float, 2> get_leaky_v() { return {da.get_leaky_v(), bnd.get_leaky_v()}; }
+    float get_bnd_leaky_v() { return bnd.get_leaky_v(); }
     float get_bnd_value(int idx) { return bnd.get_modulation_value(idx); }
     Eigen::VectorXf& get_da_weights() { return da.get_weights(); }
     Eigen::VectorXf& get_bnd_weights() { return bnd.get_weights(); }
@@ -2561,7 +2638,7 @@ class GoalModule {
                                          curr_idx, trg_idx);
 
         // check if the plan is valid, ie size > 1
-        if (plan_idxs.size() < 1) { 
+        if (plan_idxs.size() < 1) {
             return std::make_pair(std::vector<int>{}, false); }
 
         LOG("[goal] new plan ############################### return bnd.get_weights()(idx); :");
@@ -2612,9 +2689,9 @@ public:
                       trg_idx_fine);
 
         // check: failed fine planning
-        if (!res_fine_prop.second) { 
+        if (!res_fine_prop.second) {
             LOG("[Goal] failed fine planning");
-            return false; 
+            return false;
         }
 
         // -- make a fine plan from the end of the coarse plan
@@ -2658,9 +2735,9 @@ public:
             /* LOG("[Goal] coarse_progress=" + std::to_string(coarse_progress.second)); */
 
             // exit: coarse action
-            if (coarse_progress.second) { 
+            if (coarse_progress.second) {
                 /* LOG("[Goal] coarse action" + std::to_string(coarse_progress.second)); */
-                return coarse_progress; 
+                return coarse_progress;
             }
         }
         /* LOG("[Goal] obstacle=" + std::to_string(obstacle)); */
@@ -2703,7 +2780,7 @@ public:
 
             // end coarse plan too
             coarse_plan.reset();
-            return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false); 
+            return std::make_pair(std::array<float, 2>{0.0f, 0.0f}, false);
         }
 
         // record
@@ -2746,6 +2823,8 @@ std::array<bool, 4> remapping_options(int flag) {
             return {true, false, true, true};
         case 6:
             return {false, true, false, true};
+        case 7:
+            return {false, true, true, true};
         default:
             return {false, false, false, false};
     }
@@ -2764,8 +2843,8 @@ struct DensityPolicy {
     bool remapping_flag;
     std::array<bool, 4> remapping_option;
 
-    void call(PCNN_REF& space_fine, 
-              PCNN_REF& space_coarse, 
+    void call(PCNN_REF& space_fine,
+              PCNN_REF& space_coarse,
               Circuits& circuits,
               GoalModule& goalmd,
               std::array<float, 2> displacement,
@@ -2775,7 +2854,7 @@ struct DensityPolicy {
         if (remapping_flag < 0) { return; }
 
         // +reward -collision
-        if (reward > 0.1 && curr_bnd < 0.01) {
+        if (reward > 0.1) {
 
             // update & remap
             Eigen::VectorXf bnd_weights = circuits.get_da_weights();
@@ -2793,17 +2872,20 @@ struct DensityPolicy {
             /* remap_space(bnd_weights, space, goalmd, displacement, */
             /*             rwd_sigma, rwd_drive); */
 
-        } else if (collision > 0.1 && curr_da < 0.01) {
+        } else if (collision > 0.1) {
 
             // udpate & remap
             Eigen::VectorXf da_weights = circuits.get_bnd_weights();
             col_drive = col_weight * curr_bnd;
 
             if (remapping_option[2]) {
-                space_fine.remap(da_weights, displacement, col_sigma, col_drive);
+                space_fine.remap(da_weights, {-1.0f*displacement[0], -1.0f*displacement[1]},
+                                 col_sigma, col_drive);
             }
             if (remapping_option[3]) {
-                space_coarse.remap(displacement, col_sigma, col_drive);
+                LOG("[+] collision remap coarse");
+                space_coarse.remap({-1.0f*displacement[0], -1.0f*displacement[1]},
+                                   col_sigma, col_drive);
             }
 
             /* space_fine.remap(da_weights, displacement, col_sigma, col_drive); */
@@ -3132,7 +3214,7 @@ class Brain {
 
 public:
 
-    Brain(float local_scale_fine, 
+    Brain(float local_scale_fine,
           float local_scale_coarse,
 
           int N,
@@ -3141,6 +3223,7 @@ public:
           float rec_threshold_coarse,
           float speed,
           float min_rep_threshold,
+          int num_neighbors,
 
           float gain_fine,
           float offset_fine,
@@ -3201,11 +3284,13 @@ public:
         space_fine(PCNN(N, gcn.len(), gain_fine, offset_fine,
                         0.01f, threshold_fine, rep_threshold_fine,
                         rec_threshold_fine, min_rep_threshold, gcn,
-                        tau_trace_fine, remap_tag_frequency, "fine")),
+                        tau_trace_fine, remap_tag_frequency,
+                        num_neighbors, "fine")),
         space_coarse(PCNN(Nc, gcn.len(), gain_coarse, offset_coarse,
                           0.01f, threshold_coarse, rep_threshold_coarse,
                           rec_threshold_coarse, min_rep_threshold,
-                          gcn, tau_trace_coarse, 1, "coarse")),
+                          gcn, tau_trace_coarse, 1,
+                          num_neighbors, "coarse")),
         goalmd(GoalModule(space_fine, space_coarse, circuits, speed,
                           speed * local_scale_fine / local_scale_coarse)),
         rwobj(RewardObject(min_weight_value)),
@@ -3222,9 +3307,9 @@ public:
 
         clock++;
 
-        if (collision > 0.0f) { 
+        if (collision > 0.0f) {
             prune_bnd_edges();
-            LOG("[Brain] collision received"); 
+            LOG("[Brain] collision received");
         }
         if (reward > 0.0f) { LOG("[Brain] reward received"); }
 
@@ -3249,7 +3334,10 @@ public:
                      internal_state[1], internal_state[0],
                      reward, collision);
         space_fine.update();
-        space_coarse.update();
+
+        if (circuits.get_bnd_leaky_v() < 0.001 && space_fine.get_max_activation() > 0.45) {
+            space_coarse.update(); 
+        }// else if (collision > 0.01f) { space_coarse.update_upon_collision(); }
 
         // check: still-ness | wrt the fine space
         if (forced_exploration < forced_duration) {
@@ -3275,7 +3363,7 @@ public:
 
             // keep going
             if (progress.second) {
-                this->action = progress.first; 
+                this->action = progress.first;
                 goto final;
             }
             // end or fail -> random walk
@@ -3379,7 +3467,7 @@ final:
         { return space_fine.make_edges(); }
     std::vector<std::array<std::array<float, 2>, 2>> make_space_coarse_edges()
         { return space_coarse.make_edges(); }
-    Eigen::VectorXf get_edge_representation() 
+    Eigen::VectorXf get_edge_representation()
         { return expmd.get_edge_representation(); }
     void reset() {
         goalmd.reset();
@@ -3453,10 +3541,10 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     gcn_layers.push_back(GCL_REF(0.04, 0.005));
     GCN_REF gcn = GCN_REF(gcn_layers);
     PCNN space = PCNN(N, gcn.len(), 10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
-                              5.0f, 5, gcn, 10.0f, 1, "fine");
+                              5.0f, 5, gcn, 10.0f, 1, 3, "fine");
     PCNN space_coarse = PCNN(N, gcn.len(),
                                      10.0f, 1.4f, 0.01f, 0.2f, 0.7f,
-                                     5.0f, 0.95, gcn, 20.0f, 1, "coarse");
+                                     5.0f, 0.95, gcn, 20.0f, 1, 3, "coarse");
 
     // MODULATION
     // name size lr threshold maxw tauv eqv minv
@@ -3470,10 +3558,10 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     // EXPERIENCE MODULE & BRAIN
     DensityPolicy dpolicy = DensityPolicy(0.5f, 40.0f, 0.5f, 20.0f, 1);
     ExplorationModule expmd = ExplorationModule(SPEED, circuits, space, 1.0f);
-    /* Brain brain = Brain(circuits, space, space_coarse, expmd, ssry, dpolicy, */ 
+    /* Brain brain = Brain(circuits, space, space_coarse, expmd, ssry, dpolicy, */
     /*                     SPEED, SPEED * 2.0f, 5); */
     Brain brain = Brain(0.1f, 0.1f, N, N, 0.01f, 0.01f, SPEED, 0.01f,
-                            0.5f, 0.0f, 0.2f, 0.7f, 10.0f, 1,
+                            0.5f, 0.0f, 0.2f, 0.7f, 10.0f, 1, 3,
                             0.5f, 0.0f, 0.2f, 0.7f, 20.0f,
                             0.5f, 0.1f, 0.0f, 0.2f,
                             0.5f, 0.0f, 0.2f,

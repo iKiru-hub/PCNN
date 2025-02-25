@@ -19,8 +19,8 @@ logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
 NUM_SAMPLES = 3
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES,
-                             replace=False).tolist()# + \
-            # ["Square.v0"]
+                             replace=False).tolist() + \
+            ["Square.v0"]
 
 
 reward_settings = {
@@ -33,7 +33,7 @@ reward_settings = {
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
     "silent_duration": 0,
-    "fetching_duration": 1,
+    "fetching_duration": 2,
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
@@ -63,8 +63,8 @@ game_settings = {
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 25**2,
-    "Nc": 15**2,
+    "N": 30**2,
+    "Nc": 20**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
     "speed": 1.,
@@ -143,7 +143,7 @@ class Model:
     def __init__(self, gain_fine, offset_fine, threshold_fine, rep_threshold_fine,
                  tau_trace_fine, gain_coarse, offset_coarse, threshold_coarse,
                  rep_threshold_coarse, tau_trace_coarse,
-                 min_rep_threshold, remap_tag_frequency,
+                 min_rep_threshold, num_neighbors, remap_tag_frequency,
                  rec_threshold_fine, rec_threshold_coarse,
                  lr_da, lr_pred, threshold_da, tau_v_da,
                  lr_bnd, threshold_bnd, tau_v_bnd,
@@ -161,6 +161,7 @@ class Model:
             "rec_threshold_fine": rec_threshold_fine,
             "tau_trace_fine": tau_trace_fine,
             "min_rep_threshold": min_rep_threshold,
+            "num_neighbors": num_neighbors,
             "remap_tag_frequency": 1,
 
             "gain_coarse": gain_coarse,
@@ -245,35 +246,36 @@ class Env:
 FIXED_PARAMETERS = {
 
     # "gain_fine": 11.,
-    # "offset_fine": 1.1,
+    "offset_fine": 1.0,
     "threshold_fine": 0.25,
-    # "rep_threshold_fine": 0.88,
-    # "rec_threshold_fine": 26.,
-    # "min_rep_threshold": 0.95,
-    # "remap_tag_frequency": 1,
+    # "rep_threshold_fine": 0.4,
+    "rec_threshold_fine": 30.,
+    # "min_rep_threshold": 0.85,
+    "remap_tag_frequency": 1,
+    # "num_neighbors": 3,
     "tau_trace_fine": 10.0,
 
-    # "gain_coarse": 11.,
-    # "offset_coarse": 1.1,
+    # "gain_coarse": 9.,
+    "offset_coarse": 1.0,
     "threshold_coarse": 0.25,
-    # "rep_threshold_coarse": 0.89,
-    "rec_threshold_coarse": 140.,
+    "rep_threshold_coarse": 0.5,
+    "rec_threshold_coarse": 40.,
     "tau_trace_coarse": 20.0,
 
-    # "lr_da": 0.4,
-    "lr_pred": 0.5,
+    "lr_da": 0.99,
+    # "lr_pred": 0.5,
     # "threshold_da": 0.08,
     "tau_v_da": 1.0,
 
-    "lr_bnd": 0.4,
+    "lr_bnd": 0.7,
     "threshold_bnd": 0.04,
     "tau_v_bnd": 1.0,
 
     "tau_ssry": 100.,
     "threshold_ssry": 0.995,
 
-    # "threshold_circuit": 0.7,
-    # "remapping_flag": 3,
+    "threshold_circuit": 0.1,
+    "remapping_flag": 7,
 
     # "rwd_weight": 0.0,
     # "rwd_sigma": 40.0,
@@ -294,16 +296,17 @@ PARAMETERS = {
     "gain_fine": lambda: round(random.uniform(5., 20.), 1),
     "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_fine": lambda: round(random.uniform(0.05, 0.5), 2),
-    "rep_threshold_fine": lambda: round(random.uniform(0.4, 0.9), 2),
+    "rep_threshold_fine": lambda: round(random.uniform(0.1, 0.9), 2),
     "rec_threshold_fine": lambda: round(random.uniform(20., 100.)),
     "tau_trace_fine": lambda: round(random.uniform(1., 200.)),
     "remap_tag_frequency": lambda: int(np.clip(random.randint(-10, 70), 1, 70)),
-    "min_rep_threshold": lambda: round(random.uniform(0.5, 0.95), 2),
+    "num_neighbors": lambda: int(np.clip(random.randint(1, 10), 1, 10)),
+    "min_rep_threshold": lambda: round(random.uniform(0.2, 0.8), 2),
 
     "gain_coarse": lambda: round(random.uniform(7., 20.), 1),
     "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_coarse": lambda: round(random.uniform(0.05, 0.5), 2),
-    "rep_threshold_coarse": lambda: round(random.uniform(0.4, 0.95), 2),
+    "rep_threshold_coarse": lambda: round(random.uniform(0.1, 0.8), 2),
     "rec_threshold_coarse": lambda: round(random.uniform(30., 130.)),
     "tau_trace_coarse": lambda: round(random.uniform(1., 200.)),
 
@@ -322,10 +325,10 @@ PARAMETERS = {
     "threshold_circuit": lambda: round(random.uniform(0.2, 0.9), 2),
     "remapping_flag": lambda: int(np.random.randint(0, 6)),
 
-    "rwd_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
-    "rwd_sigma": lambda: round(random.uniform(1.0, 200.0), 1),
-    "col_weight": lambda: round(random.uniform(-1.0, 1.0), 2),
-    "col_sigma": lambda: round(random.uniform(1.0, 70.0), 1),
+    "rwd_weight": lambda: round(random.uniform(-2.0, 2.0), 2),
+    "rwd_sigma": lambda: round(random.uniform(1.0, 80.0), 1),
+    "col_weight": lambda: round(random.uniform(-2.0, 2.0), 2),
+    "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
 
     "action_delay": lambda: round(random.uniform(1., 200.), 1),
     "edge_route_interval": lambda: random.randint(1, 200),

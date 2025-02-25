@@ -30,17 +30,17 @@ reward_settings = {
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.1 * GAME_SCALE,
-    "rw_sigma": 0.9,# * GAME_SCALE,
+    "rw_sigma": 0.3 * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 0,
-    "fetching_duration": 1,
+    "silent_duration": 2_000,
+    "fetching_duration": 3,
     "transparent": False,
-    "beta": 35.,
+    "beta": 40.,
     "alpha": 0.06,# * GAME_SCALE,
-    "tau": 400,# * GAME_SCALE,
-    "move_threshold": 3,# * GAME_SCALE,
+    "tau": 300,# * GAME_SCALE,
+    "move_threshold": 4,# * GAME_SCALE,
 }
 
 game_settings = {
@@ -74,8 +74,8 @@ model_params = {
 global_parameters = {
     "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
-    "N": 30**2,
-    "Nc": 15**2,
+    "N": 25**2,
+    "Nc": 16**2,
     # "rec_threshold_fine": 60.,
     # "rec_threshold_coarse": 100.,
     "speed": 1.0,
@@ -84,41 +84,43 @@ global_parameters = {
 
 parameters = {
 
-    "gain_fine": 13.,
+    "gain_fine": 15.,
     "offset_fine": 1.0,
     "threshold_fine": 0.35,
-    "rep_threshold_fine": 0.4,
-    "rec_threshold_fine": 136.,
+    "rep_threshold_fine": 0.7,
+    "rec_threshold_fine": 60.,
     "tau_trace_fine": 20.0,
-    "remap_tag_frequency": 2,
-    "min_rep_threshold": 0.9,
 
-    "gain_coarse": 9.,
-    "offset_coarse": 0.8,
+    "remap_tag_frequency": 2,
+    "num_neighbors": 7,
+    "min_rep_threshold": 30,
+
+    "gain_coarse": 13.,
+    "offset_coarse": 1.0,
     "threshold_coarse": 0.25,
-    "rep_threshold_coarse": 0.45,
-    "rec_threshold_coarse": 250.,
-    "tau_trace_coarse": 20.0,
+    "rep_threshold_coarse": 0.5,
+    "rec_threshold_coarse": 70.,
+    "tau_trace_coarse": 100.0,
 
     "lr_da": 0.99,
-    "lr_pred": 0.5,
-    "threshold_da": 0.02,
-    "tau_v_da": 1.0,
+    "lr_pred": 0.34,
+    "threshold_da": 0.04,
+    "tau_v_da": 2.0,
 
-    "lr_bnd": 0.7,
-    "threshold_bnd": 0.01,
-    "tau_v_bnd": 1.0,
+    "lr_bnd": 0.2,
+    "threshold_bnd": 0.3,
+    "tau_v_bnd": 5.0,
 
     "tau_ssry": 100.,
     "threshold_ssry": 0.995,
 
     "threshold_circuit": 0.02,
-    "remapping_flag": 3,
+    "remapping_flag": 7,
 
-    "rwd_weight": 10.,
-    "rwd_sigma": 280.0,
-    "col_weight": .0,
-    "col_sigma": 20.0,
+    "rwd_weight": 2.,
+    "rwd_sigma": 80.0,
+    "col_weight": 0.0,
+    "col_sigma": 4.0,
 
     "action_delay": 100.,
     "edge_route_interval": 3,
@@ -226,10 +228,10 @@ class Renderer:
             #                         (edge[0][1], edge[1][1]),
             #                      alpha=0.1, lw=0.5, color="black")
 
-            # for edge in self.brain.make_space_coarse_edges():
-            #     self.axs[0, 1].plot((edge[0][0], edge[1][0]),
-            #                         (edge[0][1], edge[1][1]),
-            #                      alpha=0.1, lw=0.5, color="black")
+            for edge in self.brain.make_space_coarse_edges():
+                self.axs[0, 1].plot((edge[0][0], edge[1][0]),
+                                    (edge[0][1], edge[1][1]),
+                                 alpha=0.1, lw=0.5, color="black")
 
             self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
                                    color="blue", s=20, alpha=0.4)
@@ -252,8 +254,8 @@ class Renderer:
         # fine
         # self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_fine_count()}")
         self.axs[0, 0].set_title(f"Fine-grained space")
-        # self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
-        #                        color="red", s=50, marker="v", alpha=0.8)
+        self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
+                               color="red", s=50, marker="v", alpha=0.8)
         self.axs[0, 0].set_xlim(self.boundsx)
         self.axs[0, 0].set_ylim(self.boundsy)
         self.axs[0, 0].set_aspect('equal', adjustable='box')
@@ -264,8 +266,8 @@ class Renderer:
         # coarse
         # self.axs[0, 1].set_title(f"#PCs={self.brain.get_space_coarse_count()}")
         self.axs[0, 1].set_title(f"Coarse-grained space")
-        # self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_position()).T,
-        #                        color="red", s=50, marker="v", alpha=0.8)
+        self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_position()).T,
+                               color="red", s=50, marker="v", alpha=0.8)
         self.axs[0, 1].set_xlim(self.boundsx)
         self.axs[0, 1].set_ylim(self.boundsy)
         self.axs[0, 1].set_xticks(())
@@ -274,6 +276,9 @@ class Renderer:
         self.axs[0, 1].grid(alpha=0.1)
 
         self.axs[1, 0].clear()
+        self.axs[1, 0].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
+                               marker="v", facecolors='none',
+                               s=30, edgecolor="blue", alpha=0.8, vmin=0, vmax=0.5)
         self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                c=self.brain.get_bnd_weights(),
                                cmap=self.colors[1], alpha=0.5,
@@ -284,8 +289,8 @@ class Renderer:
         self.axs[1, 0].set_yticks(())
         self.axs[1, 0].set_title(f"BND")
         self.axs[1, 0].set_aspect('equal', adjustable='box')
-        # self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
-        #                            color="red", s=50, marker="v")
+        self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
+                                   color="red", s=50, marker="v")
 
         self.axs[1, 1].clear()
         daw = self.brain.get_da_weights()
@@ -347,10 +352,14 @@ def run_game(env: games.Environment,
              (-env.position[1] + prev_position[1])]
 
         # brain step
-        velocity = brain(v,
-                         observation[1],
-                         observation[2],
-                         env.reward_availability)
+        try:
+            velocity = brain(v,
+                             observation[1],
+                             observation[2],
+                             env.reward_availability)
+        except IndexError:
+            logger.debug(f"IndexError: {len(observation)}")
+            raise IndexError
         # velocity = np.around(velocity, 2)
 
         # store past position
@@ -412,6 +421,7 @@ def run_model(parameters: dict, global_parameters: dict,
                 N=global_parameters["N"],
                 Nc=global_parameters["Nc"],
                 min_rep_threshold=parameters["min_rep_threshold"],
+                num_neighbors=parameters["num_neighbors"],
                 rec_threshold_fine=parameters["rec_threshold_fine"],
                 rec_threshold_coarse=parameters["rec_threshold_coarse"],
                 speed=global_parameters["speed"],
@@ -460,19 +470,26 @@ def run_model(parameters: dict, global_parameters: dict,
 
     # ===| objects |===
 
-    rw_position_idx = np.random.randint(0, len(constants.POSSIBLE_POSITIONS))
-    rw_position = constants.POSSIBLE_POSITIONS[rw_position_idx]
-    agent_possible_positions = constants.POSSIBLE_POSITIONS.copy()
-    del agent_possible_positions[rw_position_idx]
+    possible_positions = room.get_room_positions()
+
+    rw_position_idx = np.random.randint(0, len(possible_positions))
+    rw_position = possible_positions [rw_position_idx]
+    agent_possible_positions = possible_positions.copy()
+
+    # del agent_possible_positions[rw_position_idx]
     agent_position = agent_possible_positions[np.random.randint(0,
                                                 len(agent_possible_positions))]
 
     rw_tau = reward_settings["tau"] if "tau" in reward_settings else 100
-    rw_move_threshold = reward_settings["move_threshold"] if "move_threshold" in reward_settings else 4
+    if "move_threlshold" in reward_settings:
+        rw_move_threshold = reward_settings["move_threshold"]
+    else:
+        rw_move_threshold = 2
 
     reward_obj = objects.RewardObj(
                 position=rw_position,
-                possible_positions=constants.POSSIBLE_POSITIONS.copy(),
+                # possible_positions=constants.POSSIBLE_POSITIONS.copy(),
+                possible_positions=possible_positions,
                 radius=reward_settings["rw_radius"],
                 sigma=reward_settings["rw_sigma"],
                 fetching=reward_settings["rw_fetching"],
@@ -545,17 +562,17 @@ def main_game(global_parameters: dict=global_parameters,
 
 
     if load:
-        # parameters = utils.load_parameters()
+        parameters = utils.load_parameters()
         # logger.debug(parameters)
-        parameters, session_config = utils.load_session()
+        # parameters, session_config = utils.load_session()
 
-        global_parameters = session_config["global_parameters"]
-        reward_settings = session_config["reward_settings"]
-        agent_settings = session_config["agent_settings"]
-        game_settings = session_config["game_settings"]
-        game_settings["rendering"] = True
-        game_settings["plot_interval"] = 100
-        game_settings["rw_event"] = "move both"
+        # global_parameters = session_config["global_parameters"]
+        # reward_settings = session_config["reward_settings"]
+        # agent_settings = session_config["agent_settings"]
+        # game_settings = session_config["game_settings"]
+        # game_settings["rendering"] = True
+        # game_settings["plot_interval"] = 100
+        # game_settings["rw_event"] = "move both"
 
 
     else:
@@ -569,10 +586,11 @@ def main_game(global_parameters: dict=global_parameters,
 
     brain = pclib.Brain(
                 local_scale_fine=global_parameters["local_scale_fine"],
-                local_scale_coarse=global_parameters["local_scale_coarse"],
+             local_scale_coarse=global_parameters["local_scale_coarse"],
                 N=global_parameters["N"],
                 Nc=global_parameters["Nc"],
                 min_rep_threshold=parameters["min_rep_threshold"],
+                num_neighbors=parameters["num_neighbors"],
                 rec_threshold_fine=parameters["rec_threshold_fine"],
                 rec_threshold_coarse=parameters["rec_threshold_coarse"],
                 tau_trace_fine=parameters["tau_trace_fine"],
@@ -618,20 +636,33 @@ def main_game(global_parameters: dict=global_parameters,
 
     # ===| objects |===
 
-    rw_position_idx = np.random.randint(0, len(constants.POSSIBLE_POSITIONS))
-    # rw_position = constants.POSSIBLE_POSITIONS[rw_position_idx]
-    rw_position = np.array([0.5, 0.5]) * GAME_SCALE
-    agent_possible_positions = constants.POSSIBLE_POSITIONS.copy()
-    del agent_possible_positions[rw_position_idx]
+    # rw_position_idx = np.random.randint(0, len(constants.POSSIBLE_POSITIONS))
+    # # rw_position = constants.POSSIBLE_POSITIONS[rw_position_idx]
+    # rw_position = np.array([0.5, 0.5]) * GAME_SCALE
+    # agent_possible_positions = constants.POSSIBLE_POSITIONS.copy()
+    # del agent_possible_positions[rw_position_idx]
+    # agent_position = agent_possible_positions[np.random.randint(0,
+    #                                             len(agent_possible_positions))]
+
+    possible_positions = room.get_room_positions()
+    logger.debug(f"room positions: {possible_positions }")
+
+    rw_position_idx = np.random.randint(0, len(possible_positions))
+    rw_position = possible_positions [rw_position_idx]
+    agent_possible_positions = possible_positions.copy()
     agent_position = agent_possible_positions[np.random.randint(0,
                                                 len(agent_possible_positions))]
 
     rw_tau = reward_settings["tau"] if "tau" in reward_settings else 400
-    rw_move_threshold = reward_settings["move_threshold"] if "move_threshold" in reward_settings else 2
+    if "move_threlshold" in reward_settings:
+        rw_move_threshold = reward_settings["move_threshold"]
+    else:
+        rw_move_threshold = 2
+
     reward_obj = objects.RewardObj(
                 # position=reward_settings["rw_position"],
                 position=rw_position,
-                # possible_positions=constants.POSSIBLE_POSITIONS.copy(),
+                possible_positions=possible_positions,
                 radius=reward_settings["rw_radius"],
                 sigma=reward_settings["rw_sigma"],
                 fetching=reward_settings["rw_fetching"],

@@ -6,84 +6,84 @@
 
 
 % --- catchy intro ---
-Agency in a large environment is a challenging task for any organism. Productive exploration and effective goal-directed navigation are essential in this regard, and become even more crucial when target locations are out of sight. In this scenario, often labelled as \textit{wayfinding}, an adequate understanding of one's surroundings is necessary.
+Agency in a large environment is a challenging task for any organism. Productive exploration and effective goal-directed navigation are essential in this regard, and become even more crucial when target locations are out of sight. In this scenario, often labelled as \textit{wayfinding}, an adequate understanding of one's surroundings is necessary \cite{golledgeCognitiveMapsSpatial2000, epsteinNeuralSystemsLandmarkbased2014}.
 
-For this scope, one of the tools evolved by the mammalian brain are neural spatial representations of the environment, enriched by repeated experiences. In the literature, they are often referred to as cognitive maps, which where first introduced by Tolman who noticed the reward-driven navigation ability of rats in a water maze \cite{tolmanCognitiveMapsRats1948}.
+For this scope, one of the tools evolved by the mammalian brain are neural spatial representations of the environment, enriched by repeated experiences. In the literature, they are often referred to as cognitive maps, which where first introduced by Tolman who noticed the reward-driven navigation
+ability of rats in a water maze \cite{tolmanCOGNITIVEMAPSRATS1948}.
 
 % --- cognitive map and function ---
-There are multiple approaches that can be used for solving the task of reaching a known target in its environment with a cognitive map. However, it is still debated which are the ones the brain preferred the most.
-One of straighforward possibilities is \textit{route learning}, where the gist is to memoriezed the previous paths as simple action-position pairs. This approach is effective in small environments, but it is impractical for constructing a proper map to exploit more generally, given the ambiguity at combining intersecting paths \cite{peerStructuringKnowledgeCognitive2021}.
-In contrast, a more general strategy is to rely on \textit{survey knowledge}, where the subject builds an explicitly general representation of the environment by endowing it with an Euclidean metric, namely a global coordinate system based on distances and angles in which perform vector operations.
-The resulting map is highly flexible, and allows for the computation of short-cuts and arbitrary routes. However, it lack clear and convicing experimental evidence, with several studies in humans and mice highlighting how real brain maps often violate the strict algebraic constrains.
-Another possibility is a so-called \textit{labeled graph}, which consists of a topological graph of the environment over locations in space. Importantly, it does not possess a universal metric but instead relies on local labels for supporting information about distances and angles.
+There are multiple approaches that can be used for solving the task of reaching a known target in its environment with a cognitive map, and the choice might depend on the task as well as personal traits, at least in humans \cite{weisbergCognitiveMapsPeople2018, schinaziHippocampalSizePredicts2013}.
+However, which are the ones the brain generally prefers the most is still debated.
+One of straighforward possibilities is \textit{route learning}, where the gist is to memorized the previous paths as simple action-position pairs.
+This approach is effective in small environments, but it is impractical for constructing a proper map to exploit more generally, given the ambiguity at combining intersecting paths \cite{peerStructuringKnowledgeCognitive2021, chrastilCognitiveMapsCognitive2014, wernerModellingNavigationalKnowledge2000}.
+In contrast, a more general strategy is to rely on \textit{survey knowledge}, where the subject builds an explicitly general representation of the environment by endowing it with an Euclidean metric, namely a global coordinate system based on distances and angles in which perform vector operations \cite{chrastilCognitiveMapsCognitive2014, gallistelComputationsMetricMaps1996}.
+The resulting map is highly flexible, and allows for the computation of short-cuts and arbitrary routes. However, it lacks convicing experimental evidence, with several studies in humans and mice highlighting how real brain maps often violate the strict algebraic constrains
+\cite{peerFormatCognitiveMap2024, warrenNonEuclideanNavigation2019, wagnerComparingPsychophysicalGeometric2008, rothkegelJudgingSpatialRelations1998}.
+Another possibility is a so-called \textit{labeled graph} \cite{chrastilCognitiveMapsCognitive2014, meilingerNetworkReferenceFrames2008, wangLearningReinforcementLearn2017}, which consists of a topological graph of the environment over locations in space.
+Importantly, it does not possess a universal metric but instead relies on local labels, built through experiences \cite{ishikawaSpatialKnowledgeAcquisition2006}, for supporting information about distances and angles.
 The lack of a rigid operational structure leads to more tolerance for global spatial incosistencies, while still allowing for affine vector operations, at least locally.
-Multiple studies have shown support for this type of representation, in which the graph-based map and its labels are generated and successfully exploited for goal-reaching tasks, despite clearly infringing Euclidean geometry.
+Multiple studies have shown support for this type of representation, in which the graph-based map and its labels are generated and successfully exploited for goal-reaching tasks, despite clearly infringing Euclidean geometry \cite{byrneMemoryUrbanGeography1979, warrenNonEuclideanNavigation2019, schinaziHippocampalSizePredicts2013}.
+This online formation of position nodes is also aligned with \textit{path integration}, the process of integrating velocity vectors for tracking the trajectory leading home, supported by observations in multiple species \cite{wehnerVisualNavigationInsects1996, gillnerNavigationAcquisitionSpatial1998} and theoretical analysis \cite{gallinaroSynapticWeightsThat2023}.
 
 
 % --- cognitive map and neuroanatomy ---
 Regarding the main neural substrates of the cognitive maps, a variety of neuronal types has been associated to allocentric and egocentric spatial features.
-Among others, border cells have being associated to boundary detection, speed cells with the magnitude of the perceived velocity, head-direction cells with the anglular position of the head as per vestibular perception, place cells with unimodal tuning for spatial positions, and grid cells with an hexagonal periodic tuning.
+Among others, border cells have being associated to boundary detection, speed cells with the magnitude of the perceived velocity, head-direction cells with the anglular position of the head as per vestibular perception, place cells with unimodal tuning for spatial positions, and grid cells with an
+hexagonal periodic tuning \cite{sargoliniConjunctiveRepresentationPosition2006, kropffSpeedCellsMedial2015, solstadGridCellsPlace2006}.
 Parts of this neuronal ecosystem has been found in various part of the cortex, but more predominatly in the entorhinal cortex (EC), in particular the medial region (MEC), and sub-regions of the hippocampal formation, particularly the cornus ammonis area CA3 and CA1, and the subiculum (SB).
-Specifically, place cells in CA1 have been often considered as the component of the cognitive maps.
-The origin of the spatial tuning of these cells is still debated. Some theories trace it back to competitive dynamics over projections from entorhinal grid cells through the temporo-ammonic pathway, while others point at the Schraffer's collaterals from CA3.
+Specifically, place cells in CA1 have been often considered as the component of the cognitive maps \cite{donatoHowYouBuild2023}.
+The origin of the spatial tuning of these cells is still debated. Some theories trace it back to competitive dynamics over projections from entorhinal grid cells through the temporo-ammonic pathway, while others point at the Schraffer's collaterals from CA3 \cite{bushWhatGridCells2014,
+neherGridCellsPlace2017a, liModelingPlaceCells2019, kubieSpatialFrequenciesGrid2015}.
 
 
 % --- cognitive map and neuromodulation ---
-The upstream afferences to these place cells populations carry a variety of inputs, ranging from spatial information from the medial EC and CA3, to sensory and contextual data from the lateral EC.
+\subsection{Neuromodulation of cognitive maps}
+The upstream afferences to these place cells populations carry a variety of inputs, ranging from spatial information from the medial EC and CA3, to sensory and contextual data from the lateral EC \cite{bilashLateralEntorhinalCortex2023}.
 In addition, they are also targeted by a multiple neuromodulators, molecules gating information and affecting neuronal dynamics in a multitude of ways, the most prominent of which in this context are dopamine and acetilcholine.
 
 % dopamine
 There are several set of dopaminergic innervations to the hippocampus, targeting all its main sub-components. The ones more directly involved with CA1 place cells are those from the ventral tegmental area (VTA) and locus coeruleus (LC) \cite{lismanHippocampalVTALoopControlling2005}.
-Their actions have been linked to synaptic excitation, modulation of theglutamatergic projections from EC, and regulation of long term potentiation through D1-like receptors \cite{edelmannDopaminergicInnervationModulation2018, wagatsumaLocusCoeruleusInput2018}.
-One highly documented function of dopamine concerning spatial navigation is the delivery of reward-related information, which support memory consolidation for salient locations \cite{kempadooDopamineReleaseLocus2016}, and active reshaping of the place cells tuning
-\cite{bittnerBehavioralTimeScale2017, kaufmanRoleLocusCoeruleus2020}.
+Their actions have been linked to synaptic excitation, modulation of theglutamatergic projections from EC, and regulation of long term potentiation (LTP) through D1-like receptors \cite{edelmannDopaminergicInnervationModulation2018, wagatsumaLocusCoeruleusInput2018}.
+One important function of dopamine concerning spatial navigation is the delivery of reward-related information, supporting memory consolidation of salient locations \cite{kempadooDopamineReleaseLocus2016} and active reshaping of the place cells tuning \cite{bittnerBehavioralTimeScale2017, kaufmanRoleLocusCoeruleus2020}.
+Another extensively documented role is novelty detection \cite{duszkiewiczNoveltyDopaminergicModulation2019}, especially for contextual inputs from LEC \cite{wagatsumaLocusCoeruleusInput2018, igarashiFunctionalDiversityTransverse2014, itoFunctionalDivisionHippocampal2012}, as well as encoding prediction errors of reward events \cite{sheynikhovichLongtermMemorySynaptic2023, schultzNeuralSubstratePrediction1997}
 
-Another extensively documented role is novelty detection \cite{duszkiewiczNoveltyDopaminergicModulation2019}, especially for contextual inputs from LEC \cite{wagatsumaLocusCoeruleusInput2018, igarashiFunctionalDiversityTransverse2014, itoFunctionalDivisionHippocampal2012}, as well as encoding of prediction errors of reward events \cite{sheynikhovichLongtermMemorySynaptic2023, schultzNeuralSubstratePrediction1997}
+% acetilcholine
+The cholinergic innervation to the hippocampus is mainly provided by the medial septum (MS). Through the action of different muscarinic recptors, it modulates the afferences to CA1 from MEC and CA3, and promotes both long-term synaptic potentiation and depression \cite{fuchsbergerModulationHippocampalPlasticity2022, sugisakiCholinergicModulationSpike2011, dennisActivationMuscarinicM12016}.
+Its role in spatial navigation includes the support of explorative behaviour, contributions to novelty detection, and attentional regulation by increasing the input signal-to-noise ratio \cite{hasselmoRoleAcetylcholineLearning2006, palacios-filardoAcetylcholinePrioritisesDirect2021,
+fuchsbergerModulationHippocampalPlasticity2022}.
 
 
 % --- computational models ---
 
+\subsection{Computational models}
+
+There have been several efforts for devising computational models capturing the construction and functionality of cognitive maps.
+In relation to purely spatial navigation, a notable modelling framework is the one proposed by \cite{poucetSpatialCognitiveMaps1993}, in which the hippocampus was envisoned to encode positions with directional information, while metric properties were brought by the pariental cortex.
+Later work has extended it into a route-based formalism \cite{wernerModellingNavigationalKnowledge2000}, centered on the idea of a route graph formed by concatenation of episodic routes. Further, these graphs could have different granularity, organized hierarchially in layers.
+Another direction has seen the use of the successor representation (SR) algorithm, based on predictive modeling, for learning navigation tasks in spatial and semantic spaces, with good performance \cite{stoewerNeuralNetworkBased2023}, also in comparison to humans and rats \cite{decothiPredictiveMapsRats2022}.
+A similar approach for generating task-dependent is the Tolman-Eichenbaum Machine (TEM), based on artificial neural networks \cite{whittingtonTolmanEichenbaumMachineUnifying2020}, which has been applied to navigation and relational reasoning.
+Interestingly, some of these artificial neurons resembled the firing pattern of actual hippocampal and entorhinal cells.
+Such bio-realistic neuronal tunings have also been consistently obtained in recurrent neural networks trained to solve \textit{path integration} problems, using only idiothetic information such as the agent's velocity vector \cite{baninoVectorbasedNavigationUsing2018, sorscherUnifiedTheoryOrigin2019, cuevaEmergenceGridlikeRepresentations2018}.
+This line of normative research has been particularly successful in generating a rich ecosystem of spatial cells, such as grid cells and place cells, and reasoning through their functional importance for navigation.
 
 % --- problem statement ---
+However, what these models have in common is the reliance on backpropagation for training, which is not biologically plausible, and the lack of a proper real-time learning dynamics.
+Although they rely solely on locally available information during inference, the type of cognitive map they can support is limited to purely spatial data. For more diffult behaviours such as goal-directed navigation, a richer representation of the environment should be more advantageous. 
 
 
 % --- proposed solution ---
+In this study, we introduced a model architecture capable of generating online a spatial representation made of two place cells layers, which can be endowed with additional behaviourally-relevan sensory inputs by means of neuromodulators.
+Our primary goal was to investigate the role of neuromodulation in the formation of a cognitive map, and its impact on the agent's behaviour.
+The model is constructed with a pre-defined stack of grid cells layers of different scales, from which the place cells were generated through competition \cite{almePlaceCellsHippocampus2014, ormondPlaceFieldExpansion2015}, and a graph-like map is obtained by connecting place cells over one or more trajectories \cite{wernerModellingNavigationalKnowledge2000}.
+Previous work has applied neuromodulation in spiking neurons for controlling explorative-exploitative behaviour, inspired by the role of dopamine and acetilcholine \cite{brzoskoRetroactiveModulationSpike2015, brzoskoSequentialNeuromodulationHebbian2017}.
+While others used it during training of deep artificial networks \cite{meiEffectsNeuromodulationinspiredMechanisms2023}.
+Here, neuromodulators are best described by nodes working as analog sensors of external events. Their role is to form synaptic connections with the place cells, effectively determing a scalar field over their representation.
+The result is our operationalization of a cognitive map, a neural structure built online through experience and supporting the necessary information for behaviour.
+We endowed an artificial agent with this model and simple heuristics for toggling between exploration and exploitation, and tested it in a goal-directed navigation task in environments with different layout.
+
+A secondary goal was to enquire about the effect of neuromodulation on the density of place cells, and in particular the reshaping of their place fields following meaningful events, as supported by previous studies \cite{bittnerBehavioralTimeScale2017, milsteinBidirectionalSynapticPlasticity2021}.
+Our working hypothesis was that a non-uniform distribution of place cells would be beneficial for the agent's performance, especially in terms of more stable representations of special locations.
 
 
-% --- COGNITIVE MAP ---
-% - intution
-% - history
-% - behaviour
-% - previous models
-During navigation, animals dynamically create rich representations of the environment, forming personalized cognitive maps.
-The hippocampal area CA1 features spatial cells that adapt based on behavior and internal states. Computational models have usually obtained spatial tuning by training a deep
-recurrent network for solving navigation tasks such as path integration \cite{sorscherUnifiedTheoryOrigin2019, cuevaEmergenceGridlikeRepresentations2018, baninoVectorbasedNavigationUsing2018}, lasting multiple numerous epochs and using backpropagation.
-However, these training methods do not closely
-align with real-time local learning paradigms used by animals. \\ In this study, it is introduced a rate model that generates place cells in one-shot as the agent navigates the environment by simply assigning the current spatial observation to a selected neuron while ensuring a sparse representation
-(\textit{i.e.} spaced place fields).
-
-% --- NEUROMODULATION ---
-% - what it is
-% - why it is relevant for cognitive maps
-An important ingredient for the learning dynamics of our model is neuromodulation.
-Neuromodulation is an important ingredient for biological neuronal dynamics, with different molecules covering a wide range of functions.
-Previous models \cite{brzoskoRetroactiveModulationSpike2015, brzoskoSequentialNeuromodulationHebbian2017} inspired by experimental results crafted a simple spiking plasticity rule for reward-directed navigation where acetilcholine mediates explorative behaviour and dopamine reinforces memory of reward locations.
-Other approached using deep artificial networks have applied neuromodulation in conjuction with other training practices, such as dropout probability \cite{meiEffectsNeuromodulationinspiredMechanisms2023}.
-In this work, modulators are described as synaptic resources that are consumed by plasticity events, and their dynamics are modelled as leaky integrators.
-Further, acetilcholine is used to mediate the generation of new place fields, while dopamine mediates the slow remapping of the place centers in
-conjunction with a reward signal.
-The concentration of acetilcholine is affected by the presence of active neurons or by the occurrence of a weight update.
-Dopamine, on the other hand, is influenced by the presence of a reward.
-
-This model successfully creates a representation of visited areas and recurrent connections are defined among similarly tuned cells.
-Importantly, plasticity hyper-parameters such as the equilibrium concentration
-and decay time-constant of modulators influence the density of place cells, impacting the encoding of behaviorally relevant information \cite{bittnerBehavioralTimeScale2017}.
-
-This network is then used to solve a goal-directed navigation task, where the agent is trained to reach a target location.
-The agent is equipped with a policy that modulates the exploration behaviour and the decision-making process.
-
-% --- GOAL ---
-% - goals statement
-% - what's wrong with previous models
-% - the proposed direction
-
+\hfill \break
+The rest of the paper is organized as follows. In Section 2, we describe the model architecture and the task. In Section 3, we present the results of the simulations. In Section 4, we discuss the implications of the results, suggest future directions for research, and make conclusive observations.
