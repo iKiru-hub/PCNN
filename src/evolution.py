@@ -18,7 +18,7 @@ from game.constants import ROOMS, GAME_SCALE
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
 NUM_SAMPLES = 3
-ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES,
+ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
                              replace=False).tolist() + \
             ["Square.v0"]
 
@@ -27,13 +27,13 @@ reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.1 * GAME_SCALE,
+    "rw_radius": 0.05 * GAME_SCALE,
     "rw_sigma": 0.9,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 0,
-    "fetching_duration": 2,
+    "silent_duration": 10,
+    "fetching_duration": 3,
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
@@ -64,7 +64,7 @@ global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
     "N": 30**2,
-    "Nc": 20**2,
+    "Nc": 24**2,
     # "rec_threshold_fine": 26.,
     # "rec_threshold_coarse": 60.,
     "speed": 1.,
@@ -249,33 +249,33 @@ FIXED_PARAMETERS = {
     "offset_fine": 1.0,
     "threshold_fine": 0.25,
     # "rep_threshold_fine": 0.4,
-    "rec_threshold_fine": 30.,
+    # "rec_threshold_fine": 30.,
     # "min_rep_threshold": 0.85,
-    "remap_tag_frequency": 1,
+    # "remap_tag_frequency": 1,
     # "num_neighbors": 3,
-    "tau_trace_fine": 10.0,
+    # "tau_trace_fine": 100.0,
 
     # "gain_coarse": 9.,
     "offset_coarse": 1.0,
     "threshold_coarse": 0.25,
-    "rep_threshold_coarse": 0.5,
-    "rec_threshold_coarse": 40.,
-    "tau_trace_coarse": 20.0,
+    # "rep_threshold_coarse": 0.5,
+    # "rec_threshold_coarse": 40.,
+    # "tau_trace_coarse": 20.0,
 
     "lr_da": 0.99,
-    # "lr_pred": 0.5,
-    # "threshold_da": 0.08,
-    "tau_v_da": 1.0,
+    "lr_pred": 0.3,
+    "threshold_da": 0.04,
+    "tau_v_da": 3.0,
 
-    "lr_bnd": 0.7,
+    "lr_bnd": 0.5,
     "threshold_bnd": 0.04,
-    "tau_v_bnd": 1.0,
+    "tau_v_bnd": 3.0,
 
     "tau_ssry": 100.,
     "threshold_ssry": 0.995,
 
     "threshold_circuit": 0.1,
-    "remapping_flag": 7,
+    # "remapping_flag": 7,
 
     # "rwd_weight": 0.0,
     # "rwd_sigma": 40.0,
@@ -293,17 +293,17 @@ FIXED_PARAMETERS = {
 # Define the genome as a dict of parameters
 PARAMETERS = {
 
-    "gain_fine": lambda: round(random.uniform(5., 20.), 1),
+    "gain_fine": lambda: round(random.uniform(2., 50.), 1),
     "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_fine": lambda: round(random.uniform(0.05, 0.5), 2),
     "rep_threshold_fine": lambda: round(random.uniform(0.1, 0.9), 2),
     "rec_threshold_fine": lambda: round(random.uniform(20., 100.)),
     "tau_trace_fine": lambda: round(random.uniform(1., 200.)),
     "remap_tag_frequency": lambda: int(np.clip(random.randint(-10, 70), 1, 70)),
-    "num_neighbors": lambda: int(np.clip(random.randint(1, 10), 1, 10)),
+    "num_neighbors": lambda: int(np.clip(random.randint(1, 20), 1, 10)),
     "min_rep_threshold": lambda: round(random.uniform(0.2, 0.8), 2),
 
-    "gain_coarse": lambda: round(random.uniform(7., 20.), 1),
+    "gain_coarse": lambda: round(random.uniform(2., 50.), 1),
     "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_coarse": lambda: round(random.uniform(0.05, 0.5), 2),
     "rep_threshold_coarse": lambda: round(random.uniform(0.1, 0.8), 2),
@@ -323,11 +323,11 @@ PARAMETERS = {
     "threshold_ssry": lambda: round(random.uniform(0.8, 0.9999), 3),
 
     "threshold_circuit": lambda: round(random.uniform(0.2, 0.9), 2),
-    "remapping_flag": lambda: int(np.random.randint(0, 6)),
+    "remapping_flag": lambda: int(np.random.randint(0, 7)),
 
-    "rwd_weight": lambda: round(random.uniform(-2.0, 2.0), 2),
-    "rwd_sigma": lambda: round(random.uniform(1.0, 80.0), 1),
-    "col_weight": lambda: round(random.uniform(-2.0, 2.0), 2),
+    "rwd_weight": lambda: round(random.uniform(-5.0, 5.0), 2),
+    "rwd_sigma": lambda: round(random.uniform(1.0, 130.0), 1),
+    "col_weight": lambda: round(random.uniform(-5.0, 5.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
 
     "action_delay": lambda: round(random.uniform(1., 200.), 1),
@@ -444,7 +444,7 @@ if __name__ == "__main__" :
                  "reward_settings": reward_settings.copy(),
                  "agent_settings": agent_settings.copy(),
                  "global_parameters": global_parameters.copy()},
-        "other": "forced remapping choice",
+        "other": "forced remapping choice, plentiful",
     }
     logger(f"Note: {info['other']}")
 

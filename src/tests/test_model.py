@@ -78,7 +78,7 @@ def test_vspace():
     out = vspace([0.5, 0.5])
     assert len(out) == 2, f"output length is {len(out)}, expected 2"
 
-    vspace.update(2, N, np.random.rand(N, 1))
+    vspace.update(2, np.random.rand(N, 1))
     c = vspace.get_centers()
     assert len(c) == N, f"center length is {len(c)}, expected {N}"
 
