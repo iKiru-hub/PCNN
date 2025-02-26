@@ -375,8 +375,8 @@ def make_room(name: str="square", thickness: float=10.,
                  thickness, 2*SCREEN_HEIGHT//3-2*OFFSET),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.5, 0.5], [0.5, 0.7]
+            [0.2, 0.2], [0.75, 0.75], [0.2, 0.75], [0.75, 0.2],
+            [0.5, 0.5], [0.5, 0.75]
         ]
     elif name == "Flat.1011":
         walls_extra += [
@@ -418,7 +418,7 @@ def make_room(name: str="square", thickness: float=10.,
         walls_extra += [
             Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-2*OFFSET,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
-            Wall(2*SCREEN_WIDTH//3, 2*OFFSET, 
+            Wall(2*SCREEN_WIDTH//3, 2*OFFSET,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
         room_positions = [
@@ -439,7 +439,7 @@ def make_room(name: str="square", thickness: float=10.,
     elif name == "Hallway.00":
 
         height = 5
-        
+
         walls_bounds = [
             Wall(OFFSET, height*OFFSET-thickness,
                  SCREEN_WIDTH-2*OFFSET+thickness, thickness),  # Top
@@ -587,8 +587,6 @@ class Environment:
         """
         logic for when the reward is collected
         """
-
-        print("[ENV] reward event: ", self.rw_event)
 
         if self.rw_event == "move reward":
             self.reward_obj.set_position()

@@ -29,7 +29,7 @@ int main() {
     /* /1* from pcnn.hpp */
     /* pcl::testSampling(); */
 
-    pcl::simple_env(10000, 1000, -1.0f);
+    pcl::simple_env(100000, 1000, -1.0f);
     /* pcl::test_env(); */
     /* pcl::test_bnd(2000); */
 

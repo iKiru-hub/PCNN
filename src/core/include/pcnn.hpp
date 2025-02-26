@@ -1796,15 +1796,25 @@ public:
         int idx = free_indexes[cell_count];
 
         // determine weight update
-        Eigen::VectorXf dw = x_filtered - Wff.row(idx).transpose();
+        /* Eigen::VectorXf dw = x_filtered - Wff.row(idx).transpose(); */
+        std::vector<float> dw;
+        float delta_wff = 0.0f;
+        for (int i = 0; i < Nj; i++) {
+            dw.push_back(x_filtered(i) - Wff(idx, i));
+            delta_wff += dw[i] * dw[i];
+        }
 
         // trim the weight update
-        delta_wff = dw.norm();
+        /* delta_wff = dw.norm(); */
 
         if (delta_wff > 0.0) {
 
+            for (int i = 0; i < Nj; i++) {
+                if (dw[i] < 0.99f) { Wff(idx, i) += dw[i]; }
+            }
+
             // update weights
-            Wff.row(idx) += dw.transpose();
+            /* Wff.row(idx) += dw.transpose(); */
 
             // calculate the similarity among the rows
             float similarity = \
@@ -3526,6 +3536,10 @@ struct Reward {
 };
 
 
+void local_log(const std::string& msg) {
+    std::cout << msg << std::endl;
+}
+
 int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
 
     // settings
@@ -3584,12 +3598,12 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     int num_collision = 0;
 
     // log
-    LOG("%Simple environment simulation");
-    LOG("%Duration: " + std::to_string(duration));
-    LOG("%Pause: " + std::to_string(pause));
+    local_log("%Simple environment simulation");
+    local_log("%Duration: " + std::to_string(duration));
+    local_log("%Pause: " + std::to_string(pause));
 
     // loop
-    LOG("<start>");
+    local_log("<start>");
     for (int i=0; i < duration; i++) {
 
         /* std::cout << "[" << i << " | " << duration << "]\r"; */
@@ -3624,13 +3638,13 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     }
 
 
-    LOG("<end>");
+    local_log("<end>");
 
-    LOG("\n------------");
-    LOG("#count: " + std::to_string(space.len()));
-    LOG("#rw_count: " + std::to_string(reward.count));
-    LOG("#collision: " + std::to_string(num_collision));
-    LOG("------------\n");
+    local_log("\n------------");
+    local_log("#count: " + std::to_string(space.len()));
+    local_log("#rw_count: " + std::to_string(reward.count));
+    local_log("#collision: " + std::to_string(num_collision));
+    local_log("------------\n");
 
     return reward.count;
 

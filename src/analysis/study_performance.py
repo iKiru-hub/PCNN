@@ -24,18 +24,18 @@ reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.07 * GAME_SCALE,
-    "rw_sigma": 0.7, #* GAME_SCALE,
+    "rw_radius": 0.1 * GAME_SCALE,
+    "rw_sigma": 0.3,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 0,
-    "fetching_duration": 1,
+    "silent_duration": 2_000,
+    "fetching_duration": 3,
     "transparent": False,
-    "beta": 35.,
+    "beta": 40.,
     "alpha": 0.06,# * GAME_SCALE,
-    "tau": 400,# * GAME_SCALE,
-    "move_threshold": 3,# * GAME_SCALE,
+    "tau": 300,# * GAME_SCALE,
+    "move_threshold": 4,# * GAME_SCALE,
 }
 
 game_settings = {
@@ -43,6 +43,8 @@ game_settings = {
     "rw_event": "move both",
     "rendering": False,
     "rendering_pcnn": False,
+    "agent_bounds": np.array([0.23, 0.77,
+                              0.23, 0.77]) * GAME_SCALE,
     "max_duration": 10_000,
     "room_thickness": 20,
     "seed": None,
@@ -50,27 +52,11 @@ game_settings = {
     "verbose": True
 }
 
-agent_settings = {
-    # "speed": 0.7,
-    "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
-    "agent_bounds": np.array([0.23, 0.77,
-                           0.23, 0.77]) * GAME_SCALE,
-}
-
-model_params = {
-    "N": 30**2,
-    "bnd_threshold": 0.2,
-    "bnd_tau": 1,
-    "threshold": 0.3,
-    "rep_threshold": 0.5,
-    "action_delay": 6,
-}
-
 global_parameters = {
     "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
     "N": 30**2,
-    "Nc": 15**2,
+    "Nc": 20**2,
     # "rec_threshold_fine": 60.,
     # "rec_threshold_coarse": 100.,
     "speed": 1.0,
@@ -80,42 +66,43 @@ global_parameters = {
 
 PARAMETERS = {
 
-
-    "gain_fine": 12.,
+    "gain_fine": 15.,
     "offset_fine": 1.0,
-    "threshold_fine": 0.25,
-    "rep_threshold_fine": 0.3,
-    "rec_threshold_fine": 136.,
+    "threshold_fine": 0.3,
+    "rep_threshold_fine": 0.7,
+    "rec_threshold_fine": 40.,
     "tau_trace_fine": 20.0,
-    "remap_tag_frequency": 2,
-    "min_rep_threshold": 0.7,
 
-    "gain_coarse": 9.,
-    "offset_coarse": 0.8,
-    "threshold_coarse": 0.25,
-    "rep_threshold_coarse": 0.45,
-    "rec_threshold_coarse": 250.,
-    "tau_trace_coarse": 20.0,
+    "remap_tag_frequency": 1,
+    "num_neighbors": 15,
+    "min_rep_threshold": 25,
 
-    "lr_da": 0.99,
-    "lr_pred": 0.7,
-    "threshold_da": 0.005,
-    "tau_v_da": 1.0,
+    "gain_coarse": 15.,
+    "offset_coarse": 1.1,
+    "threshold_coarse": 0.3,
+    "rep_threshold_coarse": 0.4,
+    "rec_threshold_coarse": 70.,
+    "tau_trace_coarse": 100.0,
 
-    "lr_bnd": 0.7,
-    "threshold_bnd": 0.01,
-    "tau_v_bnd": 1.0,
+    "lr_da": 0.9,
+    "lr_pred": 0.2,
+    "threshold_da": 0.04,
+    "tau_v_da": 2.0,
+
+    "lr_bnd": 0.2,
+    "threshold_bnd": 0.3,
+    "tau_v_bnd": 5.0,
 
     "tau_ssry": 100.,
     "threshold_ssry": 0.995,
 
     "threshold_circuit": 0.02,
-    "remapping_flag": 3,
+    "remapping_flag": -7,
 
-    "rwd_weight": 3.,
-    "rwd_sigma": 80.0,
-    "col_weight": .0,
-    "col_sigma": 20.0,
+    "rwd_weight": 1.5,
+    "rwd_sigma": 40.0,
+    "col_weight": 0.2,
+    "col_sigma": 25.0,
 
     "action_delay": 100.,
     "edge_route_interval": 3,
@@ -124,8 +111,6 @@ PARAMETERS = {
     "fine_tuning_min_duration": 10,
 }
 
-
-TOT_VALUES = 4
 ROOM_NAME = "Square.v0"
 
 
@@ -154,8 +139,6 @@ def safe_run_model(params, room_name):
         # Convert all other settings while handling NumPy arrays
         global_params_json = json.dumps(global_parameters,
                                         default=convert_numpy)
-        agent_settings_json = json.dumps(agent_settings,
-                                         default=convert_numpy)
         reward_settings_json = json.dumps(reward_settings,
                                           default=convert_numpy)
         game_settings_json = json.dumps(game_settings,
@@ -170,13 +153,11 @@ sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src/"))
 import json, simulations, numpy as np
 params = json.loads('{params}')
 global_parameters = json.loads('{global_params_json}')
-agent_settings = json.loads('{agent_settings_json}')
 reward_settings = json.loads('{reward_settings_json}')
 game_settings = json.loads('{game_settings_json}')
 result = simulations.run_model(
     parameters=params,
     global_parameters=global_parameters,
-    agent_settings=agent_settings,
     reward_settings=reward_settings,
     game_settings=game_settings,
     room_name='{room_name}',
@@ -259,12 +240,9 @@ if __name__ == "__main__":
     logger(f"running...")
 
     with Pool(processes=NUM_CORES) as pool:
-        results = list(
-            tqdm(pool.imap(run_local_model,
-                           [None] * NUM_REPS,
-                           chunksize=chunksize),
-                 total=NUM_REPS)
-        )
+        results = list(tqdm(pool.imap(run_local_model, [None] * NUM_REPS,
+                                      chunksize=chunksize),
+                            total=NUM_REPS))
 
     logger("run finished")
 

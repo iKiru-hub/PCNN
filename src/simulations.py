@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import argparse, json
 from tqdm import tqdm
 import pygame
+import gymnasium as gym
 
 import utils
 import game.envs as games
@@ -30,7 +31,7 @@ reward_settings = {
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.1 * GAME_SCALE,
-    "rw_sigma": 0.3 * GAME_SCALE,
+    "rw_sigma": 0.3,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
@@ -48,6 +49,8 @@ game_settings = {
     "rw_event": "move both",
     "rendering": True,
     "rendering_pcnn": True,
+    "agent_bounds": np.array([0.23, 0.77,
+                              0.23, 0.77]) * GAME_SCALE,
     "max_duration": 10_000,
     "room_thickness": 20,
     "seed": None,
@@ -55,27 +58,11 @@ game_settings = {
     "verbose": True
 }
 
-agent_settings = {
-    # "speed": 0.7,
-    "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
-    "agent_bounds": np.array([0.23, 0.77,
-                           0.23, 0.77]) * GAME_SCALE,
-}
-
-model_params = {
-    "N": 30**2,
-    "bnd_threshold": 0.2,
-    "bnd_tau": 1,
-    "threshold": 0.3,
-    "rep_threshold": 0.5,
-    "action_delay": 6,
-}
-
 global_parameters = {
     "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
-    "N": 25**2,
-    "Nc": 16**2,
+    "N": 30**2,
+    "Nc": 20**2,
     # "rec_threshold_fine": 60.,
     # "rec_threshold_coarse": 100.,
     "speed": 1.0,
@@ -86,30 +73,30 @@ parameters = {
 
     "gain_fine": 15.,
     "offset_fine": 1.0,
-    "threshold_fine": 0.35,
+    "threshold_fine": 0.3,
     "rep_threshold_fine": 0.7,
-    "rec_threshold_fine": 60.,
+    "rec_threshold_fine": 30.,
     "tau_trace_fine": 20.0,
 
-    "remap_tag_frequency": 2,
-    "num_neighbors": 7,
-    "min_rep_threshold": 30,
+    "remap_tag_frequency": 1,
+    "num_neighbors": 15,
+    "min_rep_threshold": 25,
 
-    "gain_coarse": 13.,
-    "offset_coarse": 1.0,
-    "threshold_coarse": 0.25,
-    "rep_threshold_coarse": 0.5,
+    "gain_coarse": 15.,
+    "offset_coarse": 1.1,
+    "threshold_coarse": 0.3,
+    "rep_threshold_coarse": 0.4,
     "rec_threshold_coarse": 70.,
     "tau_trace_coarse": 100.0,
 
     "lr_da": 0.99,
-    "lr_pred": 0.34,
+    "lr_pred": 0.2,
     "threshold_da": 0.04,
     "tau_v_da": 2.0,
 
-    "lr_bnd": 0.2,
+    "lr_bnd": 0.6,
     "threshold_bnd": 0.3,
-    "tau_v_bnd": 5.0,
+    "tau_v_bnd": 3.0,
 
     "tau_ssry": 100.,
     "threshold_ssry": 0.995,
@@ -117,10 +104,10 @@ parameters = {
     "threshold_circuit": 0.02,
     "remapping_flag": 7,
 
-    "rwd_weight": 2.,
-    "rwd_sigma": 80.0,
-    "col_weight": 0.0,
-    "col_sigma": 4.0,
+    "rwd_weight": 1.5,
+    "rwd_sigma": 40.0,
+    "col_weight": 0.5,
+    "col_sigma": 25.0,
 
     "action_delay": 100.,
     "edge_route_interval": 3,
@@ -143,17 +130,16 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, brain, colors, names):
+    def __init__(self, brain: object):
 
         self.brain = brain
-        self.colors = colors
-        self.names = names
+        self.names = ["DA", "BND"]
         self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
         self.fig.set_tight_layout(True)
         self.boundsx = (-400, 400)
         self.boundsy = (-400, 400)
 
-    def render(self):
+    def render(self, show: bool=False):
 
         # -- space plots --
         self.axs[0, 0].clear()
@@ -168,9 +154,9 @@ class Renderer:
            self.brain.get_directive() == "trg rw" or \
            self.brain.get_directive() == "trg ob":
 
-            # space
+            # -- fine space
             self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-                                   color="blue", s=20, alpha=0.1)
+                                   color="blue", s=10, alpha=0.1)
             # current position
             self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                    c = self.brain.get_representation_fine(),
@@ -180,13 +166,14 @@ class Renderer:
             self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                    c=self.brain.get_trg_representation(),
                                    s=100*self.brain.get_trg_representation(),
+                                   marker="x",
                                    cmap="Greens", alpha=0.7)
 
             # plan
             plan = np.zeros(len(self.brain))
             plan[self.brain.get_plan_idxs_fine()] = 1.
             self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-                        c=plan, s=40*plan, cmap="Greens", alpha=0.7)
+                        c=plan, s=20*plan, cmap="Greens", alpha=0.7)
 
             # title
             loc_ = np.array(self.brain.get_space_fine_centers()
@@ -196,9 +183,9 @@ class Renderer:
                 f"{self.brain.get_trg_representation().argmax()}) " + \
                 f" loc={loc_}")
 
-            # space
+            # -- coarse space
             self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                                   color="blue", s=50, alpha=0.1)
+                                   color="brown", s=30, alpha=0.2)
             # current position
             # self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
             #                        c = self.brain.get_representation(),
@@ -214,27 +201,29 @@ class Renderer:
             plan = np.zeros(self.brain.get_space_coarse_size())
             plan[self.brain.get_plan_idxs_coarse()] = 1.
             self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                        c=plan, s=50*plan, cmap="Greens", alpha=0.7)
+                        c=plan, s=30*plan, cmap="Greens", alpha=0.7)
 
             # title
             self.axs[0, 1].set_title(f"Coarse space") 
 
+        # -- explorative behaviour
         else:
-            # fine space
+            # -- fine space
             self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-                                   color="blue", s=20, alpha=0.4)
+                                   color="blue", s=10, alpha=0.7)
             # for edge in self.brain.make_space_fine_edges():
             #     self.axs[0, 0].plot((edge[0][0], edge[1][0]),
             #                         (edge[0][1], edge[1][1]),
             #                      alpha=0.1, lw=0.5, color="black")
 
+            # -- coarse space
             for edge in self.brain.make_space_coarse_edges():
                 self.axs[0, 1].plot((edge[0][0], edge[1][0]),
                                     (edge[0][1], edge[1][1]),
-                                 alpha=0.1, lw=0.5, color="black")
+                                 alpha=0.3, lw=0.5, color="black")
 
             self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                                   color="blue", s=20, alpha=0.4)
+                                   color="brown", s=20, alpha=0.7)
 
         # current representation
         # self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
@@ -251,7 +240,7 @@ class Renderer:
         #                        c=self.brain.get_edge_representation(),
         #                        cmap="Oranges", alpha=0.5)
 
-        # fine
+        # -- fine space
         # self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_fine_count()}")
         self.axs[0, 0].set_title(f"Fine-grained space")
         self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
@@ -263,7 +252,7 @@ class Renderer:
         self.axs[0, 0].set_xticks(())
         self.axs[0, 0].set_yticks(())
 
-        # coarse
+        # -- coarse space
         # self.axs[0, 1].set_title(f"#PCs={self.brain.get_space_coarse_count()}")
         self.axs[0, 1].set_title(f"Coarse-grained space")
         self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_position()).T,
@@ -275,14 +264,14 @@ class Renderer:
         self.axs[0, 1].set_aspect('equal', adjustable='box')
         self.axs[0, 1].grid(alpha=0.1)
 
+        # -- BND
         self.axs[1, 0].clear()
-        self.axs[1, 0].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                               marker="v", facecolors='none',
-                               s=30, edgecolor="blue", alpha=0.8, vmin=0, vmax=0.5)
         self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                c=self.brain.get_bnd_weights(),
-                               cmap=self.colors[1], alpha=0.5,
-                               s=30, vmin=0., vmax=0.1)
+                               cmap="Blues", alpha=0.8,
+                               s=20, vmin=0., vmax=0.2)
+        self.axs[1, 0].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
+                               color="brown", s=20, alpha=0.2)
         self.axs[1, 0].set_xlim(self.boundsx)
         self.axs[1, 0].set_ylim(self.boundsy)
         self.axs[1, 0].set_xticks(())
@@ -292,12 +281,13 @@ class Renderer:
         self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
                                    color="red", s=50, marker="v")
 
+        # -- DA
         self.axs[1, 1].clear()
         daw = self.brain.get_da_weights()
         self.axs[1, 1].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                c=daw,
                                s=np.where(daw > 0.01, 30, 1),
-                               cmap=self.colors[0], alpha=0.8,
+                               cmap="Greens", alpha=0.8,
                                vmin=0., vmax=0.2)
         self.axs[1, 1].set_xlim(self.boundsx)
         self.axs[1, 1].set_ylim(self.boundsy)
@@ -311,98 +301,11 @@ class Renderer:
         plt.pause(0.00001)
 
 
-def run_game(env: games.Environment,
-             brain: object,
-             renderer: object,
-             plot_interval: int,
-             pause: int=-1,
-             verbose: bool=True,
-             verbose_min: bool=True):
-
-    # ===| setup |===
-    clock = pygame.time.Clock()
-    last_position = np.zeros(2)
-
-    # [position, velocity, collision, reward, done, terminated]
-    observation = [[0., 0.], 0., 0., False, False]
-    prev_position = env.position
-
-    # ===| main loop |===
-    running = True
-    while running:
-
-        # Event handling
-        if env.visualize:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-
-        # -reward
-        if observation[2] and verbose and verbose_min:
-            logger.debug(f">> Reward << [{observation[2]}]")
-            # input()
-
-        # -collision
-        if observation[2] and verbose and verbose_min:
-            logger.debug(f">!!< Collision << [{observation[2]}]")
-            # input()
-
-        # velocity
-        v = [(env.position[0] - prev_position[0]),
-             (-env.position[1] + prev_position[1])]
-
-        # brain step
-        try:
-            velocity = brain(v,
-                             observation[1],
-                             observation[2],
-                             env.reward_availability)
-        except IndexError:
-            logger.debug(f"IndexError: {len(observation)}")
-            raise IndexError
-        # velocity = np.around(velocity, 2)
-
-        # store past position
-        prev_position = env.position
-
-        # env step
-        observation = env(velocity=np.array([velocity[0], -velocity[1]]),
-                          brain=brain)
-
-        # -check: reset agent's brain
-        if observation[3]:
-            if verbose and verbose_min:
-                logger.info(">> Game reset <<")
-            running = False
-            # brain.reset(position=env.agent.position)
-
-        # -check: render
-        if env.visualize:
-            if env.t % plot_interval == 0:
-                env.render()
-                if renderer:
-                    renderer.render()
-        # else:
-        #     if env.t % plot_interval == 0 and verbose:
-        #         logger(f"{env.t/env.duration*100:.1f}%")
-
-        # -check: exit
-        if observation[4]:
-            running = False
-            if verbose and verbose_min:
-                logger.debug(">> Game terminated <<")
-
-        # pause
-        if pause > 0:
-            pygame.time.wait(pause)
-
-    pygame.quit()
-
-
 def run_model(parameters: dict, global_parameters: dict,
-              agent_settings: dict, reward_settings: dict,
+              reward_settings: dict,
               game_settings: dict, room_name: str="Flat.1011",
               pause: int=-1, verbose: bool=True,
+              record_flag: bool=False,
               verbose_min: bool=True) -> int:
 
     """
@@ -505,7 +408,7 @@ def run_model(parameters: dict, global_parameters: dict,
                 position=agent_position,
                 speed=global_parameters["speed"],
                 # possible_positions=agent_possible_positions,
-                bounds=agent_settings["agent_bounds"],
+                bounds=game_settings["agent_bounds"],
                 room=room,
                 color=(10, 10, 10))
 
@@ -532,25 +435,210 @@ def run_model(parameters: dict, global_parameters: dict,
 
     if verbose_min:
         logger("[@simulations.py]")
-    run_game(env=env,
+    record = run_game(env=env,
              brain=brain,
              renderer=None,
              plot_interval=game_settings["plot_interval"],
              pause=-1,
+             record_flag=record_flag,
              verbose=verbose,
              verbose_min=verbose_min)
 
     if verbose_min:
         logger(f"rw_count={env.rw_count}")
 
+    if record_flag:
+        record["rw_count"] = env.rw_count
+        return record
+
     return env.rw_count
+
+
+def run_game(env: games.Environment,
+             brain: object,
+             renderer: object,
+             plot_interval: int,
+             pause: int=-1,
+             record_flag: bool=False,
+             verbose: bool=True,
+             verbose_min: bool=True):
+
+    # ===| setup |===
+    clock = pygame.time.Clock()
+    last_position = np.zeros(2)
+
+    # [position, velocity, collision, reward, done, terminated]
+    observation = [[0., 0.], 0., 0., False, False]
+    prev_position = env.position
+
+    record = {"activity_fine": [],
+              "activity_coarse": [],
+              "trajectory": []}
+
+
+    # ===| main loop |===
+    # running = True
+    # while running:
+    for _ in tqdm(range(env.duration), desc="Game", leave=False,
+                  disable=not verbose_min):
+
+        # Event handling
+        if env.visualize:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+        # -reward
+        if observation[2] and verbose and verbose_min:
+            logger.debug(f">> Reward << [{observation[2]}]")
+            # input()
+
+        # -collision
+        if observation[2] and verbose and verbose_min:
+            logger.debug(f">!!< Collision << [{observation[2]}]")
+            # input()
+
+        # velocity
+        v = [(env.position[0] - prev_position[0]),
+             (-env.position[1] + prev_position[1])]
+
+        # brain step
+        try:
+            velocity = brain(v,
+                             observation[1],
+                             observation[2],
+                             env.reward_availability)
+        except IndexError:
+            logger.debug(f"IndexError: {len(observation)}")
+            raise IndexError
+        # velocity = np.around(velocity, 2)
+
+        # store past position
+        prev_position = env.position
+
+        # env step
+        observation = env(velocity=np.array([velocity[0], -velocity[1]]),
+                          brain=brain)
+
+        # -check: reset agent's brain
+        if observation[3]:
+            if verbose and verbose_min:
+                logger.info(">> Game reset <<")
+            # running = False
+            break
+            # brain.reset(position=env.agent.position)
+
+        # -check: render
+        if env.visualize:
+            if env.t % plot_interval == 0:
+                env.render()
+                if renderer:
+                    renderer.render()
+        # else:
+        #     if env.t % plot_interval == 0 and verbose:
+        #         logger(f"{env.t/env.duration*100:.1f}%")
+
+        # -check: record
+        if record_flag:
+            record["activity_fine"] += [brain.get_representation_fine()]
+            record["activity_coarse"] += [brain.get_representation_coarse()]
+            record["trajectory"] += [env.position]
+
+        # -check: exit
+        if observation[4]:
+            if verbose and verbose_min:
+                logger.debug(">> Game terminated <<")
+            break
+
+        # pause
+        if pause > 0:
+            pygame.time.wait(pause)
+
+    pygame.quit()
+
+    return record
+
+
+def run_cartpole(brain: object,
+                 renderer: object,
+                 duration: int,
+                 t_goal: int=10,
+                 t_rendering: int=10,
+                 record_flag: bool=False,
+                 verbose_min: bool=True):
+
+    # ===| setup |===
+
+    clock = pygame.time.Clock()
+    last_position = np.zeros(2)
+
+    # objects
+    agent = objects.CartPoler(brain=brain)
+    env = gym.make("CartPole-v1", render_mode="human")
+
+    # [obs, reward, done, done, terminated]
+    # observation: [position, velocity, angle, angular velocity]
+    obs = env.reset()[0]
+    reward = 0
+    action = 0
+
+    # starting position: [position, angle]
+    prev_position = [obs[0], obs[2]]
+    agent.reset(new_position=prev_position)
+
+    # init
+    record = {"activity_fine": [],
+              "activity_coarse": [],
+              "scores": [],
+              "trajectory": []}
+
+    # ===| main loop |===
+    score = 0
+    eps_count = 0
+    for t in tqdm(range(duration), desc="Game", leave=False,
+                  disable=not verbose_min):
+
+        # env step
+        obs, reward, done, terminated, info = env.step(action)
+        score += reward
+
+        collision_ = float(done)
+        reward_ = np.exp(-obs[2]**2 / 0.01)
+
+        # brain step
+        action = agent([obs[0], obs[2]],
+                       reward_, collision_, t>=t_goal)
+
+        # -check: render
+        if t > t_rendering:
+            env.render()
+
+        # -check: record
+        if record_flag:
+            record["activity_fine"] += [brain.get_representation_fine()]
+            record["activity_coarse"] += [brain.get_representation_coarse()]
+            record["trajectory"] += [env.position]
+
+        # -check: done
+        if done:
+            obs = env.reset()[0]
+            agent.reset(new_position=[obs[0], obs[2]])
+            record["scores"] += [score]
+            score = 0
+
+        # -check: terminated
+        if terminated:
+            break
+
+    record["num_eps"] = eps_count
+
+    return record
 
 
 """ MAIN """
 
 
 def main_game(global_parameters: dict=global_parameters,
-              agent_settings: dict=agent_settings,
               reward_settings: dict=reward_settings,
               game_settings: dict=game_settings,
               room_name: str="Square.v0", load: bool=False,
@@ -586,7 +674,7 @@ def main_game(global_parameters: dict=global_parameters,
 
     brain = pclib.Brain(
                 local_scale_fine=global_parameters["local_scale_fine"],
-             local_scale_coarse=global_parameters["local_scale_coarse"],
+                local_scale_coarse=global_parameters["local_scale_coarse"],
                 N=global_parameters["N"],
                 Nc=global_parameters["Nc"],
                 min_rep_threshold=parameters["min_rep_threshold"],
@@ -645,7 +733,6 @@ def main_game(global_parameters: dict=global_parameters,
     #                                             len(agent_possible_positions))]
 
     possible_positions = room.get_room_positions()
-    logger.debug(f"room positions: {possible_positions }")
 
     rw_position_idx = np.random.randint(0, len(possible_positions))
     rw_position = possible_positions [rw_position_idx]
@@ -680,7 +767,7 @@ def main_game(global_parameters: dict=global_parameters,
                 position=agent_position,
                 speed=global_parameters["speed"],
                 possible_positions=agent_possible_positions,
-                bounds=agent_settings["agent_bounds"],
+                bounds=game_settings["agent_bounds"],
                 room=room,
                 color=(10, 10, 10))
 
@@ -702,8 +789,7 @@ def main_game(global_parameters: dict=global_parameters,
     """ run game """
 
     if game_settings["rendering"]:
-        renderer = Renderer(brain=brain, colors=["Greens", "Blues"],
-                            names=["DA", "BND"])
+        renderer = Renderer(brain=brain)
     else:
         renderer = None
 
@@ -715,6 +801,160 @@ def main_game(global_parameters: dict=global_parameters,
              pause=-1)
 
     logger(f"rw_count={env.rw_count}")
+
+    plt.show()
+
+
+def main_cartpole(load: bool=False,
+                  duration: int=-1):
+
+    """
+    meant to be run standalone
+    """
+
+    global_parameters = {
+        "local_scale_fine": 0.001,
+        "local_scale_coarse": 0.006,
+        "N": 13**2,
+        "Nc": 10**2,
+        "speed": 0.001,
+    }
+
+
+    if load:
+        parameters = utils.load_parameters()
+        # logger.debug(parameters)
+        # parameters, session_config = utils.load_session()
+
+        # global_parameters = session_config["global_parameters"]
+        # reward_settings = session_config["reward_settings"]
+        # agent_settings = session_config["agent_settings"]
+        # game_settings = session_config["game_settings"]
+        # game_settings["rendering"] = True
+        # game_settings["plot_interval"] = 100
+        # game_settings["rw_event"] = "move both"
+
+
+    else:
+        parameters = {
+
+            "gain_fine": 15.,
+            "offset_fine": 1.0,
+            "threshold_fine": 0.3,
+            "rep_threshold_fine": 0.7,
+            "rec_threshold_fine": 30.,
+            "tau_trace_fine": 20.0,
+
+            "remap_tag_frequency": 1,
+            "num_neighbors": 15,
+            "min_rep_threshold": 25,
+
+            "gain_coarse": 15.,
+            "offset_coarse": 1.1,
+            "threshold_coarse": 0.3,
+            "rep_threshold_coarse": 0.4,
+            "rec_threshold_coarse": 70.,
+            "tau_trace_coarse": 100.0,
+
+            "lr_da": 0.99,
+            "lr_pred": 0.2,
+            "threshold_da": 0.04,
+            "tau_v_da": 2.0,
+
+            "lr_bnd": 0.6,
+            "threshold_bnd": 0.3,
+            "tau_v_bnd": 3.0,
+
+            "tau_ssry": 100.,
+            "threshold_ssry": 0.995,
+
+            "threshold_circuit": 0.02,
+            "remapping_flag": 7,
+
+            "rwd_weight": 1.5,
+            "rwd_sigma": 40.0,
+            "col_weight": 0.5,
+            "col_sigma": 25.0,
+
+            "action_delay": 100.,
+            "edge_route_interval": 3,
+
+            "forced_duration": 100,
+            "fine_tuning_min_duration": 10,
+        }
+
+    """ make model """
+
+    remap_tag_frequency = parameters["remap_tag_frequency"] if "remap_tag_frequency" in parameters else 200
+    remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 0
+    lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.2
+
+    brain = pclib.Brain(
+                local_scale_fine=global_parameters["local_scale_fine"],
+                local_scale_coarse=global_parameters["local_scale_coarse"],
+                N=global_parameters["N"],
+                Nc=global_parameters["Nc"],
+                min_rep_threshold=parameters["min_rep_threshold"],
+                num_neighbors=parameters["num_neighbors"],
+                rec_threshold_fine=parameters["rec_threshold_fine"],
+                rec_threshold_coarse=parameters["rec_threshold_coarse"],
+                tau_trace_fine=parameters["tau_trace_fine"],
+                speed=global_parameters["speed"],
+                gain_fine=parameters["gain_fine"],
+                offset_fine=parameters["offset_fine"],
+                threshold_fine=parameters["threshold_fine"],
+                rep_threshold_fine=parameters["rep_threshold_fine"],
+                remap_tag_frequency=remap_tag_frequency,
+                tau_trace_coarse=parameters["tau_trace_coarse"],
+                gain_coarse=parameters["gain_coarse"],
+                offset_coarse=parameters["offset_coarse"],
+                threshold_coarse=parameters["threshold_coarse"],
+                rep_threshold_coarse=parameters["rep_threshold_coarse"],
+                lr_da=parameters["lr_da"],
+                lr_pred=lr_pred,
+                threshold_da=parameters["threshold_da"],
+                tau_v_da=parameters["tau_v_da"],
+                lr_bnd=parameters["lr_bnd"],
+                threshold_bnd=parameters["threshold_bnd"],
+                tau_v_bnd=parameters["tau_v_bnd"],
+                tau_ssry=parameters["tau_ssry"],
+                threshold_ssry=parameters["threshold_ssry"],
+                threshold_circuit=parameters["threshold_circuit"],
+                remapping_flag=remapping_flag,
+                rwd_weight=parameters["rwd_weight"],
+                rwd_sigma=parameters["rwd_sigma"],
+                col_weight=parameters["col_weight"],
+                col_sigma=parameters["col_sigma"],
+                action_delay=parameters["action_delay"],
+                edge_route_interval=parameters["edge_route_interval"],
+                forced_duration=parameters["forced_duration"],
+                fine_tuning_min_duration=parameters["fine_tuning_min_duration"],
+                min_weight_value=parameters["fine_tuning_min_duration"])
+
+    """ make game environment """
+
+    duration = game_settings["max_duration"] if duration < 0 else duration
+
+    t_goal = 10
+    t_rendering = 10
+    record_flag = False
+
+    """ run game """
+
+    if game_settings["rendering"]:
+        renderer = Renderer(brain=brain)
+    else:
+        renderer = None
+
+    logger("[@simulations.py]")
+    record = run_cartpole(brain=brain,
+                 renderer=renderer,
+                 duration=duration,
+                 t_goal=t_goal,
+                 t_rendering=t_rendering,
+                 record_flag=record_flag)
+
+    logger(f"total reward={np.sum(record['scores'])}")
 
     plt.show()
 
@@ -770,10 +1010,8 @@ if __name__ == "__main__":
     # --- run
     if args.main == "game":
         main_game(room_name=args.room, load=args.load, duration=args.duration)
-    elif args.main == "rand":
-        main_game_rand(room_name=args.room)
-    elif args.main == "simple":
-        main_simple_square(duration=args.duration)
+    if args.main == "cartpole":
+        main_cartpole(load=args.load, duration=args.duration)
     else:
         logger.error("main not found ...")
 

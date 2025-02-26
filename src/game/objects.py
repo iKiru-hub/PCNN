@@ -170,6 +170,31 @@ class AgentBody:
         self.trajectory = []
 
 
+class CartPoler:
+
+    def __init__(self, brain: object, renderer: object=None):
+
+        self.position = np.zeros(2)
+        self.brain = brain
+        self.renderer = renderer
+
+    def __call__(self, velocity: np.ndarray, reward: float,
+                 collision: float, goal_flag: bool) -> int:
+
+        self.position += velocity
+        out_velocity = self.brain(velocity, reward, collision, goal_flag)
+
+        return int(out_velocity[0] < 0)
+
+    def render(self):
+        if self.renderer is not None:
+            self.renderer.render()
+
+    def reset(self, new_position: np.ndarray):
+        self.brain.reset()
+        self.position = new_position
+
+
 class RewardObj:
 
     def __init__(self, position: np.ndarray,
@@ -244,11 +269,10 @@ class RewardObj:
 
     def _probability_function(self, distance: float) -> float:
 
-        p = 1 / (1 + np.exp(-self.beta * ( np.exp(-distance**2 / \
-            self.sigma) - self.alpha)))
-        p = np.where(p < 0.02, 0, p)
-        # return self.sigma if distance < self.radius else 0.0
-        return p
+        # p = 1 / (1 + np.exp(-self.beta * ( np.exp(-distance**2 / \
+        #     self.sigma) - self.alpha)))
+        # p = np.where(p < 0.02, 0, p)
+        return self.sigma if distance < self.radius else 0.0
 
     def _update_sprite(self):
 
