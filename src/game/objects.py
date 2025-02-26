@@ -177,11 +177,13 @@ class CartPoler:
         self.position = np.zeros(2)
         self.brain = brain
         self.renderer = renderer
+        self.trajectories = []
 
     def __call__(self, velocity: np.ndarray, reward: float,
                  collision: float, goal_flag: bool) -> int:
 
         self.position += velocity
+        # print(velocity, reward, collision, goal_flag)
         out_velocity = self.brain(velocity, reward, collision, goal_flag)
 
         return int(out_velocity[0] < 0)

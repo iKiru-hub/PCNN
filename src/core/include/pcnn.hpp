@@ -2398,6 +2398,7 @@ public:
     int len() { return CIRCUIT_SIZE; }
     std::array<float, CIRCUIT_SIZE> get_output() { return output; }
     std::array<float, 2> get_leaky_v() { return {da.get_leaky_v(), bnd.get_leaky_v()}; }
+    float get_da_leaky_v() { return da.get_leaky_v(); }
     float get_bnd_leaky_v() { return bnd.get_leaky_v(); }
     float get_bnd_value(int idx) { return bnd.get_modulation_value(idx); }
     Eigen::VectorXf& get_da_weights() { return da.get_weights(); }
@@ -2864,14 +2865,14 @@ struct DensityPolicy {
               float curr_da, float curr_bnd,
               float reward, float collision) {
 
-        if (remapping_flag < 0 || space_fine.len() < 5) { return; }
+        if (remapping_flag < 0 || space_fine.len() < 3) { return; }
 
         // +reward -collision <<< was here the memory leaky?
         if (reward > 0.1) {
 
             // update & remap
             Eigen::VectorXf bnd_weights = circuits.get_da_weights();
-            rwd_drive = rwd_weight * curr_da;
+            rwd_drive = rwd_weight;// * curr_da;
 
             if (remapping_option[0]) {
                 space_fine.remap(bnd_weights, displacement, rwd_sigma, rwd_drive);
@@ -3338,14 +3339,16 @@ public:
         std::array<float, CIRCUIT_SIZE> internal_state = \
             circuits.call(u, collision, reward, false);
 
-        // :dpolicy fine space
-        dpolicy.call(space_fine,
-                     space_coarse,
-                     circuits,
-                     goalmd,
-                     velocity,
-                     internal_state[1], internal_state[0],
-                     reward, collision);
+        // :dpolicy remapping
+        if (trigger) {
+            dpolicy.call(space_fine,
+                         space_coarse,
+                         circuits,
+                         goalmd,
+                         velocity,
+                         internal_state[1], internal_state[0],
+                         reward, collision);
+        }
 
         space_fine.update();
 

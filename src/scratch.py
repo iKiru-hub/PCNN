@@ -37,6 +37,9 @@ game_settings = {
     "rendering_pcnn": True,
     "max_duration": 10_000,
     "room_thickness": 20,
+    "agent_bounds": np.array([0.23, 0.77,
+                              0.23, 0.77]) * GAME_SCALE,
+    "use_sprites": False,
     "seed": None,
     "pause": -1,
     "verbose": True
@@ -93,7 +96,6 @@ if __name__ == "__main__":
     logger("[@scratch.py]")
     out = sim.run_model(parameters=parameters,
                         global_parameters=sim.global_parameters,
-                        agent_settings=sim.agent_settings,
                         reward_settings=reward_settings,
                         game_settings=game_settings,
                         room_name=args.room,

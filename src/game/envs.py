@@ -411,8 +411,8 @@ def make_room(name: str="square", thickness: float=10.,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.5, 0.4], [0.5, 0.7]
+            [0.25, 0.25], [0.8, 0.8], [0.25, 0.8], [0.8, 0.25],
+            [0.8, 0.4], [0.25, 0.8]
         ]
     elif name == "Flat.1110":
         walls_extra += [
@@ -455,10 +455,7 @@ def make_room(name: str="square", thickness: float=10.,
         ]
     else:
         name = "Square.v0"
-        room_positions = [
-            [0.5, 0.5], [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.4, 0.4], [0.6, 0.6], [0.4, 0.6], [0.6, 0.4]
-        ]
+        room_positions = [[0.5, 0.5]] + np.random.uniform(0.25, 0.75, (40, 2)).tolist()
 
     room = Room(walls_bounds=walls_bounds,
                 walls_extra=walls_extra,
@@ -610,27 +607,11 @@ class Environment:
     def _reset_agent_position(self, brain: object):
 
         brain.reset()
-
         prev_position = self.agent.position.copy()
-        # print(f"Resetting agent position from {prev_position}")
-
         self.agent.set_position()
-        # print(f"New agent position: {self.agent.position}")
-        # self.agent.reset()
 
         displacement = [(self.agent.position[0] - prev_position[0]),
                         (-self.agent.position[1] + prev_position[1])]
-        # print(f"Displacement: {displacement}")
-
-        # print(f"displacement={displacement}")
-        # print("displacement: ", displacement)
-        # print(f"\n[pre displacement]\npc position: {brain.get_space_position()}")
-        # brain(displacement, 0.0, 0.0, False)
-
-        # print(f"\n[displacement]\npc position: {brain.get_space_position()}")
-        # print(f"agent position: {self.agent.position}")
-
-        # input()
 
     @property
     def position(self):
