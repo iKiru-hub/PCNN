@@ -57,8 +57,7 @@ global_parameters = {
     "local_scale_coarse": 0.006,
     "N": 30**2,
     "Nc": 20**2,
-    # "rec_threshold_fine": 60.,
-    # "rec_threshold_coarse": 100.,
+    "use_sprites": False,
     "speed": 1.0,
     "min_weight_value": 0.5
 }
