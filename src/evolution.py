@@ -18,11 +18,11 @@ from game.constants import ROOMS, GAME_SCALE
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
 NUM_SAMPLES = 3
-# ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
-#                              replace=False).tolist() + \
-#             ["Square.v0"]
+ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
+                             replace=False).tolist() + \
+            ["Square.v0"]
 
-ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
+# ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
 
 
 
@@ -31,7 +31,7 @@ reward_settings = {
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.08 * GAME_SCALE,
-    "rw_sigma": 0.9,# * GAME_SCALE,
+    "rw_sigma": 0.7,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
@@ -40,7 +40,7 @@ reward_settings = {
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
-    "tau": 400,# * GAME_SCALE,
+    "tau": 300,# * GAME_SCALE,
     "move_threshold": 3,# * GAME_SCALE,
 }
 
@@ -50,7 +50,7 @@ game_settings = {
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "rendering": False,
-    "max_duration": 10_000,
+    "max_duration": 15_000,
     "room_thickness": 20,
     "seed": None,
     "pause": -1,
@@ -238,7 +238,7 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
 
-    "gain_fine": 15.,
+    # "gain_fine": 15.,
     "offset_fine": 1.0,
     "threshold_fine": 0.3,
     # "rep_threshold_fine": 0.7,
@@ -246,46 +246,46 @@ FIXED_PARAMETERS = {
     "tau_trace_fine": 20.0,
 
     # "remap_tag_frequency": 1,
-    "num_neighbors": 8,
-    # "min_rep_threshold": 35,
+    # "num_neighbors": 8,
+    "min_rep_threshold": 35,
 
-    "gain_coarse": 15.,
+    # "gain_coarse": 15.,
     "offset_coarse": 1.0,
     "threshold_coarse": 0.4,
     # "rep_threshold_coarse": 0.35,
     "rec_threshold_coarse": 120.,
-    "tau_trace_coarse": 100.0,
+    "tau_trace_coarse": 30.0,
 
     "lr_da": 0.99,
-    "lr_pred": 0.2,
+    "lr_pred": 0.3,
     "threshold_da": 0.03,
     "tau_v_da": 4.0,
 
     "lr_bnd": 0.6,
-    "threshold_bnd": 0.04,
-    "tau_v_bnd": 3.0,
+    "threshold_bnd": 0.3,
+    "tau_v_bnd": 4.0,
 
     "tau_ssry": 100.,
     "threshold_ssry": 0.995,
 
-    "threshold_circuit": 0.1,
-    "remapping_flag": 7,
+    "threshold_circuit": 0.9,
+    # "remapping_flag": 7,
 
     # "rwd_weight": 3.0,
-    # "rwd_sigma": 35.0,
+    "rwd_sigma": 50.0,
     # "col_weight": 0.0,
-    # "col_sigma": 25.0,
+    "col_sigma": 35.0,
 
     # "rwd_field_mod_fine": 1.0,
     # "rwd_field_mod_coarse": 1.0,
     # "col_field_mod_fine": 1.0,
     # "col_field_mod_coarse": 1.0,
 
-    "action_delay": 180.,
-    # "edge_route_interval": 47,
+    "action_delay": 140.,
+    "edge_route_interval": 3,
 
-    "forced_duration": 32,
-    "fine_tuning_min_duration": 29
+    "forced_duration": 100,
+    "fine_tuning_min_duration": 10,
 }
 
 
