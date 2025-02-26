@@ -42,7 +42,6 @@ game_settings = {
     "plot_interval": 5,
     "rw_event": "move both",
     "rendering": False,
-    "rendering_pcnn": False,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "max_duration": 10_000,
@@ -65,42 +64,43 @@ global_parameters = {
 
 PARAMETERS = {
 
+
     "gain_fine": 15.,
     "offset_fine": 1.0,
     "threshold_fine": 0.3,
     "rep_threshold_fine": 0.7,
-    "rec_threshold_fine": 40.,
+    "rec_threshold_fine": 50.,
     "tau_trace_fine": 20.0,
 
     "remap_tag_frequency": 1,
-    "num_neighbors": 15,
-    "min_rep_threshold": 25,
+    "num_neighbors": 5,
+    "min_rep_threshold": 35,
 
     "gain_coarse": 15.,
-    "offset_coarse": 1.1,
-    "threshold_coarse": 0.3,
-    "rep_threshold_coarse": 0.4,
-    "rec_threshold_coarse": 70.,
+    "offset_coarse": 1.0,
+    "threshold_coarse": 0.4,
+    "rep_threshold_coarse": 0.35,
+    "rec_threshold_coarse": 120.,
     "tau_trace_coarse": 100.0,
 
-    "lr_da": 0.9,
+    "lr_da": 0.,
     "lr_pred": 0.2,
-    "threshold_da": 0.04,
-    "tau_v_da": 2.0,
+    "threshold_da": 0.03,
+    "tau_v_da": 4.0,
 
-    "lr_bnd": 0.2,
+    "lr_bnd": 0.6,
     "threshold_bnd": 0.3,
-    "tau_v_bnd": 5.0,
+    "tau_v_bnd": 3.0,
 
     "tau_ssry": 100.,
     "threshold_ssry": 0.995,
 
-    "threshold_circuit": 0.02,
-    "remapping_flag": -7,
+    "threshold_circuit": 0.9,
+    "remapping_flag": 7,
 
-    "rwd_weight": 1.5,
-    "rwd_sigma": 40.0,
-    "col_weight": 0.2,
+    "rwd_weight": 3.0,
+    "rwd_sigma": 35.0,
+    "col_weight": 0.0,
     "col_sigma": 25.0,
 
     "action_delay": 100.,

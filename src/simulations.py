@@ -35,7 +35,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 3_000,
+    "silent_duration": 0,
     "fetching_duration": 10,
     "transparent": False,
     "beta": 40.,
@@ -48,7 +48,6 @@ game_settings = {
     "plot_interval": 5,
     "rw_event": "move both",
     "rendering": True,
-    "rendering_pcnn": True,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "max_duration": 10_000,
@@ -74,7 +73,7 @@ parameters = {
     "offset_fine": 1.0,
     "threshold_fine": 0.3,
     "rep_threshold_fine": 0.7,
-    "rec_threshold_fine": 24.,
+    "rec_threshold_fine": 50.,
     "tau_trace_fine": 20.0,
 
     "remap_tag_frequency": 1,
@@ -88,7 +87,7 @@ parameters = {
     "rec_threshold_coarse": 120.,
     "tau_trace_coarse": 100.0,
 
-    "lr_da": 0.99,
+    "lr_da": 0.,
     "lr_pred": 0.2,
     "threshold_da": 0.03,
     "tau_v_da": 4.0,
@@ -129,8 +128,8 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, brain: object, boundsx: tuple=(-200, 350),
-                 boundsy: tuple=(-400, 150)):
+    def __init__(self, brain: object, boundsx: tuple=(-300, 350),
+                 boundsy: tuple=(-300, 200)):
 
         self.brain = brain
         self.names = ["DA", "BND"]
@@ -155,80 +154,80 @@ class Renderer:
         # self.boundsy = (self.min_y, maxc)
 
         # -- goal-behaviour
-        # if self.brain.get_directive() == "trg" or \
-        #    self.brain.get_directive() == "trg rw" or \
-        #    self.brain.get_directive() == "trg ob":
+        if self.brain.get_directive() == "trg" or \
+           self.brain.get_directive() == "trg rw" or \
+           self.brain.get_directive() == "trg ob":
 
-        #     # -- fine space
-        #     self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-        #                            color="blue", s=10, alpha=0.1)
-        #     # current position
-        #     self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-        #                            c = self.brain.get_representation_fine(),
-        #                            cmap="Greys",
-        #                            s=20, alpha=0.3)
-        #     # goal
-        #     self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-        #                            c=self.brain.get_trg_representation(),
-        #                            s=100*self.brain.get_trg_representation(),
-        #                            marker="x",
-        #                            cmap="Greens", alpha=0.7)
+            # -- fine space
+            self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+                                   color="blue", s=10, alpha=0.1)
+            # current position
+            self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+                                   c = self.brain.get_representation_fine(),
+                                   cmap="Greys",
+                                   s=20, alpha=0.3)
+            # goal
+            self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+                                   c=self.brain.get_trg_representation(),
+                                   s=100*self.brain.get_trg_representation(),
+                                   marker="x",
+                                   cmap="Greens", alpha=0.7)
 
-        #     # plan
-        #     plan = np.zeros(len(self.brain))
-        #     plan[self.brain.get_plan_idxs_fine()] = 1.
-        #     self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-        #                 c=plan, s=20*plan, cmap="Greens", alpha=0.7)
+            # plan
+            plan = np.zeros(len(self.brain))
+            plan[self.brain.get_plan_idxs_fine()] = 1.
+            self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+                        c=plan, s=20*plan, cmap="Greens", alpha=0.7)
 
-        #     # title
-        #     loc_ = np.array(self.brain.get_space_fine_centers()
-        #                     )[self.brain.get_trg_idx()]
-        #     self.axs[0, 0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
-        #         f" ({self.brain.get_trg_representation().max():.3f}, " + \
-        #         f"{self.brain.get_trg_representation().argmax()}) " + \
-        #         f" loc={loc_}")
+            # title
+            loc_ = np.array(self.brain.get_space_fine_centers()
+                            )[self.brain.get_trg_idx()]
+            self.axs[0, 0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
+                f" ({self.brain.get_trg_representation().max():.3f}, " + \
+                f"{self.brain.get_trg_representation().argmax()}) " + \
+                f" loc={loc_}")
 
-        #     # -- coarse space
-        #     self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-        #                            color="brown", s=30, alpha=0.2)
-        #     # current position
-        #     # self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
-        #     #                        c = self.brain.get_representation(),
-        #     #                        cmap="Greys",
-        #     #                        s=30, alpha=0.3)
-        #     # goal
-        #     # self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
-        #     #                        c=self.brain.get_trg_representation(),
-        #     #                        s=100*self.brain.get_trg_representation(),
-        #     #                        cmap="Greens", alpha=0.7)
+            # -- coarse space
+            self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
+                                   color="brown", s=30, alpha=0.2)
+            # current position
+            # self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
+            #                        c = self.brain.get_representation(),
+            #                        cmap="Greys",
+            #                        s=30, alpha=0.3)
+            # goal
+            # self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
+            #                        c=self.brain.get_trg_representation(),
+            #                        s=100*self.brain.get_trg_representation(),
+            #                        cmap="Greens", alpha=0.7)
 
-        #     # plan
-        #     plan = np.zeros(self.brain.get_space_coarse_size())
-        #     plan[self.brain.get_plan_idxs_coarse()] = 1.
-        #     self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-        #                 c=plan, s=30*plan, cmap="Greens", alpha=0.7)
+            # plan
+            plan = np.zeros(self.brain.get_space_coarse_size())
+            plan[self.brain.get_plan_idxs_coarse()] = 1.
+            self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
+                        c=plan, s=30*plan, cmap="Greens", alpha=0.7)
 
-        #     # title
-        #     self.axs[0, 1].set_title(f"Coarse space") 
+            # title
+            self.axs[0, 1].set_title(f"Coarse space") 
 
-        # # -- explorative behaviour
-        # else:
-        # -- fine space
-        self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-                               color="blue", s=10, alpha=0.7)
-        # for edge in self.brain.make_space_fine_edges():
-        #     self.axs[0, 0].plot((edge[0][0], edge[1][0]),
-        #                         (edge[0][1], edge[1][1]),
-        #                      alpha=0.1, lw=0.5, color="black")
+        # -- explorative behaviour
+        else:
+            # -- fine space
+            self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+                                   color="blue", s=10, alpha=0.7)
+            # for edge in self.brain.make_space_fine_edges():
+            #     self.axs[0, 0].plot((edge[0][0], edge[1][0]),
+            #                         (edge[0][1], edge[1][1]),
+            #                      alpha=0.1, lw=0.5, color="black")
 
-        # -- coarse space
-        for edge in self.brain.make_space_coarse_edges():
-            self.axs[0, 1].plot((edge[0][0], edge[1][0]),
-                                (edge[0][1], edge[1][1]),
-                             alpha=0.3, lw=0.5, color="black")
+            # -- coarse space
+            for edge in self.brain.make_space_coarse_edges():
+                self.axs[0, 1].plot((edge[0][0], edge[1][0]),
+                                    (edge[0][1], edge[1][1]),
+                                 alpha=0.3, lw=0.5, color="black")
 
-        self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                               color="brown", s=20, alpha=0.7)
+            self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
+                                   color="brown", s=20, alpha=0.7)
 
         # current representation
         # self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,

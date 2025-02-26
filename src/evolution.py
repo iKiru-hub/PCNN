@@ -154,12 +154,14 @@ class Model:
                  forced_duration, fine_tuning_min_duration):
 
         self._params = {
+
             "gain_fine": gain_fine,
             "offset_fine": offset_fine,
             "threshold_fine": threshold_fine,
             "rep_threshold_fine": rep_threshold_fine,
             "rec_threshold_fine": rec_threshold_fine,
             "tau_trace_fine": tau_trace_fine,
+
             "min_rep_threshold": min_rep_threshold,
             "num_neighbors": num_neighbors,
             "remap_tag_frequency": 1,
@@ -227,10 +229,10 @@ class Env:
         zero_scores = 0
         for i in range(self._num_samples):
             score = safe_run_model(agent, ROOM_LIST[i])
-            if score == 0: zero_scores += 1
-            if zero_scores == 3:
-                fitness = 0
-                break
+            # if score == 0: zero_scores += 1
+            # if zero_scores == 3:
+            #     fitness = 0
+            #     break
             fitness += score
 
         fitness /= self._num_samples

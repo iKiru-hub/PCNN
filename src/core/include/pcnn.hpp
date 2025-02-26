@@ -2868,11 +2868,11 @@ struct DensityPolicy {
         if (remapping_flag < 0 || space_fine.len() < 3) { return; }
 
         // +reward -collision <<< was here the memory leaky?
-        if (reward > 0.1) {
+        if (reward > 0.1 && circuits.get_da_leaky_v() > 0.1f) {
 
             // update & remap
             Eigen::VectorXf bnd_weights = circuits.get_da_weights();
-            rwd_drive = rwd_weight;// * curr_da;
+            rwd_drive = rwd_weight * curr_da;
 
             if (remapping_option[0]) {
                 space_fine.remap(bnd_weights, displacement, rwd_sigma, rwd_drive);
@@ -3339,16 +3339,14 @@ public:
         std::array<float, CIRCUIT_SIZE> internal_state = \
             circuits.call(u, collision, reward, false);
 
-        // :dpolicy remapping
-        if (trigger) {
-            dpolicy.call(space_fine,
-                         space_coarse,
-                         circuits,
-                         goalmd,
-                         velocity,
-                         internal_state[1], internal_state[0],
-                         reward, collision);
-        }
+        // :dpolicy fine space
+        dpolicy.call(space_fine,
+                     space_coarse,
+                     circuits,
+                     goalmd,
+                     velocity,
+                     internal_state[1], internal_state[0],
+                     reward, collision);
 
         space_fine.update();
 
