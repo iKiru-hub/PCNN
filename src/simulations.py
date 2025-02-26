@@ -130,14 +130,20 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, brain: object):
+    def __init__(self, brain: object, boundsx: tuple=(-400, 400),
+                 boundsy: tuple=(-400, 400)):
 
         self.brain = brain
         self.names = ["DA", "BND"]
         self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
         self.fig.set_tight_layout(True)
-        self.boundsx = (-400, 400)
-        self.boundsy = (-400, 400)
+        self.min_x = boundsx[0]
+        self.max_x = boundsx[1]
+        self.min_y = boundsy[0]
+        self.boundsx = boundsx
+        self.boundsy = boundsy
+        print(f"boundsx={self.boundsx}")
+        print(f"boundsy={self.boundsy}")
 
     def render(self, show: bool=False):
 
@@ -145,9 +151,9 @@ class Renderer:
         self.axs[0, 0].clear()
         self.axs[0, 1].clear()
 
-        maxc = max((400, self.brain.get_space_fine_centers().max()))
-        self.boundsx = (-400, maxc)
-        self.boundsy = (-400, maxc)
+        maxc = max((self.max_x, self.brain.get_space_fine_centers().max()))
+        self.boundsx = (self.min_x, maxc)
+        self.boundsy = (self.min_y, maxc)
 
         # -- goal-behaviour
         if self.brain.get_directive() == "trg" or \
@@ -241,8 +247,8 @@ class Renderer:
         #                        cmap="Oranges", alpha=0.5)
 
         # -- fine space
-        # self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_fine_count()}")
-        self.axs[0, 0].set_title(f"Fine-grained space")
+        self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_fine_count()}")
+        # self.axs[0, 0].set_title(f"Fine-grained space")
         self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
                                color="red", s=50, marker="v", alpha=0.8)
         self.axs[0, 0].set_xlim(self.boundsx)
@@ -608,10 +614,12 @@ def run_cartpole(brain: object,
         # brain step
         action = agent([obs[0], obs[2]],
                        reward_, collision_, t>=t_goal)
+        print(agent.brain.get_space_fine_position())
 
         # -check: render
         if t > t_rendering:
             env.render()
+            renderer.render()
 
         # -check: record
         if record_flag:
@@ -806,6 +814,7 @@ def main_game(global_parameters: dict=global_parameters,
 
 
 def main_cartpole(load: bool=False,
+                  rendering: bool=False,
                   duration: int=-1):
 
     """
@@ -813,7 +822,7 @@ def main_cartpole(load: bool=False,
     """
 
     global_parameters = {
-        "local_scale_fine": 0.001,
+        "local_scale_fine": 0.01,
         "local_scale_coarse": 0.006,
         "N": 13**2,
         "Nc": 10**2,
@@ -839,8 +848,8 @@ def main_cartpole(load: bool=False,
         parameters = {
 
             "gain_fine": 15.,
-            "offset_fine": 1.0,
-            "threshold_fine": 0.3,
+            "offset_fine": 0.1,
+            "threshold_fine": 0.1,
             "rep_threshold_fine": 0.7,
             "rec_threshold_fine": 30.,
             "tau_trace_fine": 20.0,
@@ -936,13 +945,13 @@ def main_cartpole(load: bool=False,
     duration = game_settings["max_duration"] if duration < 0 else duration
 
     t_goal = 10
-    t_rendering = 10
+    t_rendering = 10 if rendering else 10000000000
     record_flag = False
 
     """ run game """
 
-    if game_settings["rendering"]:
-        renderer = Renderer(brain=brain)
+    if rendering:
+        renderer = Renderer(brain=brain, boundsx=(-10.0, 10.0), boundsy=(-10.0, 10.0))
     else:
         renderer = None
 
@@ -986,6 +995,7 @@ if __name__ == "__main__":
     parser.add_argument("--interval", type=int, default=20,
                         help="plotting interval")
     parser.add_argument("--load", action="store_true")
+    parser.add_argument("--render", action="store_true")
 
     args = parser.parse_args()
 
@@ -1011,7 +1021,9 @@ if __name__ == "__main__":
     if args.main == "game":
         main_game(room_name=args.room, load=args.load, duration=args.duration)
     if args.main == "cartpole":
-        main_cartpole(load=args.load, duration=args.duration)
+        main_cartpole(load=args.load,
+                      duration=args.duration,
+                      rendering=args.render)
     else:
         logger.error("main not found ...")
 

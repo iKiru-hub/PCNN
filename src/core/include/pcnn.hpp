@@ -1795,26 +1795,29 @@ public:
         // pick new index
         int idx = free_indexes[cell_count];
 
-        // determine weight update
-        /* Eigen::VectorXf dw = x_filtered - Wff.row(idx).transpose(); */
-        std::vector<float> dw;
-        float delta_wff = 0.0f;
-        for (int i = 0; i < Nj; i++) {
-            dw.push_back(x_filtered(i) - Wff(idx, i));
-            delta_wff += dw[i] * dw[i];
-        }
+        // determine weight update | <<<< previously
+        Eigen::VectorXf dw = x_filtered - Wff.row(idx).transpose();
 
-        // trim the weight update
-        /* delta_wff = dw.norm(); */
+        // <<< new >>>
+        /* std::vector<float> dw(Nj); */
+        /* float delta_wff = 0.0f; */
+        /* for (int i = 0; i < Nj; i++) { */
+        /*     dw.push_back(x_filtered(i) - Wff(idx, i)); */
+        /*     delta_wff += dw[i] * dw[i]; */
+        /* } */
+
+        // trim the weight update | <<<< previously
+        delta_wff = dw.norm();
 
         if (delta_wff > 0.0) {
 
-            for (int i = 0; i < Nj; i++) {
-                if (dw[i] < 0.99f) { Wff(idx, i) += dw[i]; }
-            }
+            // <<< new >>>
+            /* for (int i = 0; i < Nj; i++) { */
+            /*     if (dw[i] < 0.99f && dw[i] > 0.01f) { Wff(idx, i) += 1.0f; } */
+            /* } */
 
-            // update weights
-            /* Wff.row(idx) += dw.transpose(); */
+            // update weights | <<<< previously
+            Wff.row(idx) += dw.transpose();
 
             // calculate the similarity among the rows
             float similarity = \
@@ -2861,9 +2864,9 @@ struct DensityPolicy {
               float curr_da, float curr_bnd,
               float reward, float collision) {
 
-        if (remapping_flag < 0) { return; }
+        if (remapping_flag < 0 || space_fine.len() < 5) { return; }
 
-        // +reward -collision
+        // +reward -collision <<< was here the memory leaky?
         if (reward > 0.1) {
 
             // update & remap
@@ -3343,6 +3346,7 @@ public:
                      velocity,
                      internal_state[1], internal_state[0],
                      reward, collision);
+
         space_fine.update();
 
         if (circuits.get_bnd_leaky_v() < 0.001 && space_fine.get_max_activation() > 0.45) {
