@@ -142,6 +142,8 @@ class Model:
                  tau_ssry, threshold_ssry,
                  threshold_circuit, remapping_flag,
                  rwd_weight, rwd_sigma, col_weight, col_sigma,
+                 rwd_field_mod_fine, rwd_field_mod_coarse,
+                 col_field_mod_fine, col_field_mod_coarse,
                  action_delay, edge_route_interval,
                  forced_duration, fine_tuning_min_duration):
 
@@ -184,6 +186,11 @@ class Model:
             "rwd_sigma": rwd_sigma,
             "col_weight": col_weight,
             "col_sigma": col_sigma,
+
+            "rwd_field_mod_fine": rwd_field_mod_fine,
+            "rwd_field_mod_coarse": rwd_field_mod_coarse,
+            "col_field_mod_fine": col_field_mod_fine,
+            "col_field_mod_coarse": col_field_mod_coarse,
 
             "action_delay": action_delay,
             "edge_route_interval": edge_route_interval,
