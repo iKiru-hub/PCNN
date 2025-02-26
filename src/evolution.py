@@ -245,22 +245,23 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
 
-    # "gain_fine": 11.,
+    "gain_fine": 15.,
     "offset_fine": 1.0,
-    "threshold_fine": 0.25,
-    # "rep_threshold_fine": 0.4,
-    # "rec_threshold_fine": 30.,
-    # "min_rep_threshold": 0.85,
-    # "remap_tag_frequency": 1,
-    # "num_neighbors": 3,
-    # "tau_trace_fine": 100.0,
+    "threshold_fine": 0.3,
+    "rep_threshold_fine": 0.7,
+    "rec_threshold_fine": 24.,
+    "tau_trace_fine": 20.0,
 
-    # "gain_coarse": 9.,
+    # "remap_tag_frequency": 1,
+    "num_neighbors": 8,
+    # "min_rep_threshold": 35,
+
+    "gain_coarse": 15.,
     "offset_coarse": 1.0,
-    "threshold_coarse": 0.25,
-    # "rep_threshold_coarse": 0.5,
-    # "rec_threshold_coarse": 40.,
-    # "tau_trace_coarse": 20.0,
+    "threshold_coarse": 0.4,
+    # "rep_threshold_coarse": 0.35,
+    "rec_threshold_coarse": 80.,
+    "tau_trace_coarse": 100.0,
 
     "lr_da": 0.99,
     "lr_pred": 0.3,
@@ -275,7 +276,7 @@ FIXED_PARAMETERS = {
     "threshold_ssry": 0.995,
 
     "threshold_circuit": 0.1,
-    # "remapping_flag": 7,
+    "remapping_flag": 7,
 
     # "rwd_weight": 0.0,
     # "rwd_sigma": 40.0,
