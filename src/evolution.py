@@ -18,21 +18,24 @@ from game.constants import ROOMS, GAME_SCALE
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
 NUM_SAMPLES = 3
-ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
-                             replace=False).tolist() + \
-            ["Square.v0"]
+# ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
+#                              replace=False).tolist() + \
+#             ["Square.v0"]
+
+ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
+
 
 
 reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.05 * GAME_SCALE,
+    "rw_radius": 0.08 * GAME_SCALE,
     "rw_sigma": 0.9,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 10,
+    "silent_duration": 2,
     "fetching_duration": 3,
     "transparent": False,
     "beta": 35.,
@@ -41,17 +44,12 @@ reward_settings = {
     "move_threshold": 3,# * GAME_SCALE,
 }
 
-agent_settings = {
-    # "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
-    "agent_bounds": np.array([0.23, 0.77,
-                              0.23, 0.77]) * GAME_SCALE,
-}
-
 game_settings = {
     "plot_interval": 5,
     "rw_event": "move both",
+    "agent_bounds": np.array([0.23, 0.77,
+                              0.23, 0.77]) * GAME_SCALE,
     "rendering": False,
-    "rendering_pcnn": False,
     "max_duration": 10_000,
     "room_thickness": 20,
     "seed": None,
@@ -65,8 +63,7 @@ global_parameters = {
     "local_scale_coarse": 0.006,
     "N": 30**2,
     "Nc": 24**2,
-    # "rec_threshold_fine": 26.,
-    # "rec_threshold_coarse": 60.,
+    "use_sprites": False,
     "speed": 1.,
     "min_weight_value": 0.5
 }
@@ -92,7 +89,6 @@ def safe_run_model(agent, room_name):
 
         # Convert all other settings while handling NumPy arrays
         global_params_json = json.dumps(global_parameters, default=convert_numpy)
-        agent_settings_json = json.dumps(agent_settings, default=convert_numpy)
         reward_settings_json = json.dumps(reward_settings, default=convert_numpy)
         game_settings_json = json.dumps(game_settings, default=convert_numpy)
 
@@ -103,13 +99,11 @@ def safe_run_model(agent, room_name):
 import json, simulations, numpy as np
 params = json.loads('{params}')
 global_parameters = json.loads('{global_params_json}')
-agent_settings = json.loads('{agent_settings_json}')
 reward_settings = json.loads('{reward_settings_json}')
 game_settings = json.loads('{game_settings_json}')
 result = simulations.run_model(
     parameters=params,
     global_parameters=global_parameters,
-    agent_settings=agent_settings,
     reward_settings=reward_settings,
     game_settings=game_settings,
     room_name='{room_name}',
@@ -126,15 +120,13 @@ print(result)
         # prints only the result last)
         last_line = result.stdout.strip().split("\n")[-1]
 
-        # print(f"\t{agent.model.name} - {room_name} : {last_line}")
-
         return float(last_line)
 
     except subprocess.CalledProcessError as e:
-        #logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
+        logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
         return 0
     except ValueError as e:
-        #logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
+        logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
         return 0
 
 
@@ -164,7 +156,7 @@ class Model:
 
             "min_rep_threshold": min_rep_threshold,
             "num_neighbors": num_neighbors,
-            "remap_tag_frequency": 1,
+            "remap_tag_frequency": remap_tag_frequency,
 
             "gain_coarse": gain_coarse,
             "offset_coarse": offset_coarse,
@@ -236,7 +228,6 @@ class Env:
             fitness += score
 
         fitness /= self._num_samples
-        # print(f"#Agent: {agent.model.name} - Fitness: {fitness}")
         return fitness,
 
 
@@ -250,8 +241,8 @@ FIXED_PARAMETERS = {
     "gain_fine": 15.,
     "offset_fine": 1.0,
     "threshold_fine": 0.3,
-    "rep_threshold_fine": 0.7,
-    "rec_threshold_fine": 24.,
+    # "rep_threshold_fine": 0.7,
+    "rec_threshold_fine": 50.,
     "tau_trace_fine": 20.0,
 
     # "remap_tag_frequency": 1,
@@ -262,15 +253,15 @@ FIXED_PARAMETERS = {
     "offset_coarse": 1.0,
     "threshold_coarse": 0.4,
     # "rep_threshold_coarse": 0.35,
-    "rec_threshold_coarse": 80.,
+    "rec_threshold_coarse": 120.,
     "tau_trace_coarse": 100.0,
 
     "lr_da": 0.99,
-    "lr_pred": 0.3,
-    "threshold_da": 0.04,
-    "tau_v_da": 3.0,
+    "lr_pred": 0.2,
+    "threshold_da": 0.03,
+    "tau_v_da": 4.0,
 
-    "lr_bnd": 0.5,
+    "lr_bnd": 0.6,
     "threshold_bnd": 0.04,
     "tau_v_bnd": 3.0,
 
@@ -280,13 +271,18 @@ FIXED_PARAMETERS = {
     "threshold_circuit": 0.1,
     "remapping_flag": 7,
 
-    # "rwd_weight": 0.0,
-    # "rwd_sigma": 40.0,
+    # "rwd_weight": 3.0,
+    # "rwd_sigma": 35.0,
     # "col_weight": 0.0,
-    # "col_sigma": 2.0,
+    # "col_sigma": 25.0,
+
+    # "rwd_field_mod_fine": 1.0,
+    # "rwd_field_mod_coarse": 1.0,
+    # "col_field_mod_fine": 1.0,
+    # "col_field_mod_coarse": 1.0,
 
     "action_delay": 180.,
-    "edge_route_interval": 47,
+    # "edge_route_interval": 47,
 
     "forced_duration": 32,
     "fine_tuning_min_duration": 29
@@ -302,7 +298,7 @@ PARAMETERS = {
     "rep_threshold_fine": lambda: round(random.uniform(0.1, 0.9), 2),
     "rec_threshold_fine": lambda: round(random.uniform(20., 100.)),
     "tau_trace_fine": lambda: round(random.uniform(1., 200.)),
-    "remap_tag_frequency": lambda: int(np.clip(random.randint(-10, 70), 1, 70)),
+    "remap_tag_frequency": lambda: int(np.clip(random.randint(-10, 50), 1, 50)),
     "num_neighbors": lambda: int(np.clip(random.randint(1, 20), 1, 10)),
     "min_rep_threshold": lambda: round(random.uniform(0.2, 0.8), 2),
 
@@ -332,6 +328,11 @@ PARAMETERS = {
     "rwd_sigma": lambda: round(random.uniform(1.0, 130.0), 1),
     "col_weight": lambda: round(random.uniform(-5.0, 5.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
+
+    "rwd_field_mod_fine": lambda: round(random.uniform(-2.0, 2.0), 1),
+    "rwd_field_mod_coarse": lambda: round(random.uniform(-2.0, 2.0), 1),
+    "col_field_mod_fine": lambda: round(random.uniform(-2.0, 2.0), 1),
+    "col_field_mod_coarse": lambda: round(random.uniform(-2.0, 2.0), 1),
 
     "action_delay": lambda: round(random.uniform(1., 200.), 1),
     "edge_route_interval": lambda: random.randint(1, 200),
@@ -445,7 +446,6 @@ if __name__ == "__main__" :
             FIXED_PARAMETERS.keys()],
         "data": {"game_settings": game_settings.copy(),
                  "reward_settings": reward_settings.copy(),
-                 "agent_settings": agent_settings.copy(),
                  "global_parameters": global_parameters.copy()},
         "other": "forced remapping choice, plentiful",
     }

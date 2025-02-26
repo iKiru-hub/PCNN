@@ -72,12 +72,12 @@ parameters = {
     "gain_fine": 15.,
     "offset_fine": 1.0,
     "threshold_fine": 0.3,
-    "rep_threshold_fine": 0.7,
+    "rep_threshold_fine": 0.85,
     "rec_threshold_fine": 50.,
     "tau_trace_fine": 20.0,
 
     "remap_tag_frequency": 1,
-    "num_neighbors": 5,
+    "num_neighbors": 8,
     "min_rep_threshold": 35,
 
     "gain_coarse": 15.,
@@ -85,9 +85,9 @@ parameters = {
     "threshold_coarse": 0.4,
     "rep_threshold_coarse": 0.35,
     "rec_threshold_coarse": 120.,
-    "tau_trace_coarse": 100.0,
+    "tau_trace_coarse": 10.0,
 
-    "lr_da": 0.,
+    "lr_da": 0.99,
     "lr_pred": 0.2,
     "threshold_da": 0.03,
     "tau_v_da": 4.0,
@@ -106,6 +106,11 @@ parameters = {
     "rwd_sigma": 35.0,
     "col_weight": 0.0,
     "col_sigma": 25.0,
+
+    "rwd_field_mod_fine": 1.0,
+    "rwd_field_mod_coarse": 1.0,
+    "col_field_mod_fine": 1.0,
+    "col_field_mod_coarse": 1.0,
 
     "action_delay": 100.,
     "edge_route_interval": 3,
@@ -128,8 +133,8 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, brain: object, boundsx: tuple=(-300, 350),
-                 boundsy: tuple=(-300, 200)):
+    def __init__(self, brain: object, boundsx: tuple=(-200, 450),
+                 boundsy: tuple=(-450, 200)):
 
         self.brain = brain
         self.names = ["DA", "BND"]
@@ -366,6 +371,10 @@ def run_model(parameters: dict, global_parameters: dict,
                 rwd_sigma=parameters["rwd_sigma"],
                 col_weight=parameters["col_weight"],
                 col_sigma=parameters["col_sigma"],
+                rwd_field_mod_fine=parameters["rwd_field_mod_fine"],
+                rwd_field_mod_coarse=parameters["rwd_field_mod_coarse"],
+                col_field_mod_fine=parameters["col_field_mod_fine"],
+                col_field_mod_coarse=parameters["col_field_mod_coarse"],
                 action_delay=parameters["action_delay"],
                 edge_route_interval=parameters["edge_route_interval"],
                 forced_duration=parameters["forced_duration"],
@@ -503,13 +512,13 @@ def run_game(env: games.Environment,
                     running = False
 
         # -reward
-        if observation[2] and verbose and verbose_min:
-            logger.debug(f">> Reward << [{observation[2]}]")
+        # if observation[2] and verbose and verbose_min:
+        #     logger.debug(f">> Reward << [{observation[2]}]")
             # input()
 
         # -collision
-        if observation[2] and verbose and verbose_min:
-            logger.debug(f">!!< Collision << [{observation[2]}]")
+        # if observation[2] and verbose and verbose_min:
+        #     logger.debug(f">!!< Collision << [{observation[2]}]")
             # input()
 
         # velocity
@@ -727,6 +736,10 @@ def main_game(global_parameters: dict=global_parameters,
                 rwd_sigma=parameters["rwd_sigma"],
                 col_weight=parameters["col_weight"],
                 col_sigma=parameters["col_sigma"],
+                rwd_field_mod_fine=parameters["rwd_field_mod_fine"],
+                rwd_field_mod_coarse=parameters["rwd_field_mod_coarse"],
+                col_field_mod_fine=parameters["col_field_mod_fine"],
+                col_field_mod_coarse=parameters["col_field_mod_coarse"],
                 action_delay=parameters["action_delay"],
                 edge_route_interval=parameters["edge_route_interval"],
                 forced_duration=parameters["forced_duration"],

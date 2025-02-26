@@ -606,6 +606,16 @@ Eigen::MatrixXf connectivity_matrix(
 /* ACTIVATION FUNCTIONS */
 
 
+float generalized_sigmoid(float x, float offset = 1.0f,
+                          float gain = 1.0f, float clip = 0.0f) {
+    // Offset the input by `offset`, apply the gain,
+    // and then compute the sigmoid
+    float result = 1.0f / (1.0f + std::exp(-gain * (x - offset)));
+
+    return result >= clip ? result : 0.0f;
+}
+
+
 inline Eigen::VectorXf generalized_sigmoid_vec(
     const Eigen::VectorXf& x,
     float offset = 1.0f,
@@ -900,7 +910,7 @@ public:
                 if (centers(j, 0) < -700.0f || idx == j) { continue; }
 
                 // check if neighbors was active
-                /* if (traces(j) < 0.01f) { continue; } */
+                if (traces(j) < 0.1f) { continue; }
 
                 float dist = std::sqrt(
                     (centers(idx, 0) - centers(j, 0)) * (centers(idx, 0) - centers(j, 0)) +
@@ -917,8 +927,8 @@ public:
             // Connect to the closest max_neighbors neighbors
             int num_connections = std::min(num_neighbors,
                                            static_cast<int>(distances.size()));
-            this->weights.row(idx) = Eigen::VectorXf::Zero(size);
-            this->connectivity.row(idx) = Eigen::VectorXf::Zero(size);
+            /* this->weights.row(idx) = Eigen::VectorXf::Zero(size); */
+            /* this->connectivity.row(idx) = Eigen::VectorXf::Zero(size); */
 
             for (int k = 0; k < num_connections; k++) {
                 int j = distances[k].second;
@@ -1668,7 +1678,7 @@ class PCNN {
     float rep_threshold;
     float min_rep_threshold;
     float threshold;
-    float gain;
+    /* float gain; */
 
     // remappint
     const int remap_tag_frequency;
@@ -1687,6 +1697,7 @@ class PCNN {
     int cell_count;
     Eigen::VectorXf u;
     Eigen::VectorXf traces;
+    Eigen::VectorXf gain_v;
     std::vector<bool> remap_tag = {};
     Eigen::VectorXf x_filtered;
 
@@ -1730,7 +1741,7 @@ public:
          GCN_REF xfilter, float tau_trace = 2.0f,
          int remap_tag_frequency = 1, int num_neighbors = 3,
          std::string name = "fine")
-        : N(N), Nj(Nj), gain(gain), gain_const(gain),
+        : N(N), Nj(Nj), gain_const(gain), //gain(gain),
         offset(offset), clip_min(clip_min),
         min_rep_threshold(min_rep_threshold), rep_threshold(rep_threshold),
         rep_threshold_const(rep_threshold), rec_threshold(rec_threshold),
@@ -1747,12 +1758,16 @@ public:
         mask = Eigen::VectorXf::Zero(N);
         u = Eigen::VectorXf::Zero(N);
         traces = Eigen::VectorXf::Zero(N);
+        gain_v = Eigen::VectorXf::Zero(N);
         delta_wff = 0.0;
         x_filtered = Eigen::VectorXf::Zero(N);
         cell_count = 0;
 
         // make vector of free indexes
-        for (int i = 0; i < N; i++) { free_indexes.push_back(i); }
+        for (int i = 0; i < N; i++) { 
+            gain_v(i) = gain_const;
+            free_indexes.push_back(i); 
+        }
         fixed_indexes = {};
     }
 
@@ -1774,7 +1789,11 @@ public:
         Eigen::VectorXf sigma = Eigen::VectorXf::Constant(u.size(),
                                                           0.01);
 
-        u = generalized_sigmoid_vec(u, offset, gain, clip_min);
+
+        for (int i = 0; i < N; i++) {
+            u(i) = generalized_sigmoid(u(i), offset, gain_v(i), clip_min);
+        }
+        /* u = generalized_sigmoid_vec(u, offset, gain, clip_min); */
         traces = traces - traces / tau_trace + u;
         traces = traces.cwiseMin(1.0f);
 
@@ -1858,8 +1877,11 @@ public:
         Eigen::VectorXf sigma = Eigen::VectorXf::Constant(u.size(), 0.01);
 
         // maybe use cosine similarity?
-        u = generalized_sigmoid_vec(u, offset,
-                                           gain, clip_min);
+        /* u = generalized_sigmoid_vec(u, offset, */
+        /*                                    gain, clip_min); */
+        for (int i = 0; i < N; i++) {
+            u(i) = generalized_sigmoid(u(i), offset, gain_v(i), clip_min);
+        }
         return u;
     }
 
@@ -2057,6 +2079,14 @@ public:
         return node_degree / count;
     }
 
+    void modulate_gain(float modulation) {
+        for (int i = 0; i < N; i++) {
+            if (u(i) > 0.1) {
+                gain_v(i) = modulation * gain_const;// - gain_v(i);
+            }
+        }
+    }
+
     void update_upon_collision() {
 
         // check highest activation
@@ -2073,11 +2103,11 @@ public:
         this->connectivity = vspace.connectivity;
 
         // update variables
-        cell_count--;
-        fixed_indexes.erase(std::remove(fixed_indexes.begin(),
-                                        fixed_indexes.end(), idx),
-                            fixed_indexes.end());
-        free_indexes.push_back(idx);
+        /* cell_count--; */
+        /* fixed_indexes.erase(std::remove(fixed_indexes.begin(), */
+        /*                                 fixed_indexes.end(), idx), */
+        /*                     fixed_indexes.end()); */
+        /* free_indexes.push_back(idx); */
 
     }
 
@@ -2102,7 +2132,7 @@ public:
     std::string str() { return "PCNN." + name; }
     std::string repr() {
         return "PCNN(" + name + std::to_string(N) + \
-            std::to_string(Nj) + std::to_string(gain) + \
+            std::to_string(Nj) + std::to_string(gain_const) + \
             std::to_string(offset) + \
             std::to_string(rec_threshold) + ")";
     }
@@ -2854,6 +2884,11 @@ struct DensityPolicy {
     float rwd_drive = 0.0f;
     float col_drive = 0.0f;
 
+    float rwd_field_mod_fine;
+    float rwd_field_mod_coarse;
+    float col_field_mod_fine;
+    float col_field_mod_coarse;
+
     bool remapping_flag;
     std::array<bool, 4> remapping_option;
 
@@ -2868,17 +2903,19 @@ struct DensityPolicy {
         if (remapping_flag < 0 || space_fine.len() < 3) { return; }
 
         // +reward -collision <<< was here the memory leaky?
-        if (reward > 0.1 && circuits.get_da_leaky_v() > 0.1f) {
+        if (reward > 0.1 && circuits.get_da_leaky_v() > 0.01f) {
 
             // update & remap
-            Eigen::VectorXf bnd_weights = circuits.get_da_weights();
+
             rwd_drive = rwd_weight * curr_da;
 
             if (remapping_option[0]) {
-                space_fine.remap(bnd_weights, displacement, rwd_sigma, rwd_drive);
+                space_fine.remap(circuits.get_da_weights(), displacement, rwd_sigma, rwd_drive);
+                space_fine.modulate_gain(rwd_field_mod_fine);
             }
             if (remapping_option[1]) {
                 space_coarse.remap(displacement, rwd_sigma, rwd_drive);
+                space_coarse.modulate_gain(rwd_field_mod_coarse);
             }
 
             /* space_fine.remap(bnd_weights, displacement, rwd_sigma, rwd_drive); */
@@ -2889,17 +2926,17 @@ struct DensityPolicy {
         } else if (collision > 0.1) {
 
             // udpate & remap
-            Eigen::VectorXf da_weights = circuits.get_bnd_weights();
             col_drive = col_weight * curr_bnd;
 
             if (remapping_option[2]) {
-                space_fine.remap(da_weights, {-1.0f*displacement[0], -1.0f*displacement[1]},
+                space_fine.remap(circuits.get_bnd_weights(), {-1.0f*displacement[0], -1.0f*displacement[1]},
                                  col_sigma, col_drive);
+                space_fine.modulate_gain(col_field_mod_fine);
             }
             if (remapping_option[3]) {
-                LOG("[+] collision remap coarse");
                 space_coarse.remap({-1.0f*displacement[0], -1.0f*displacement[1]},
                                    col_sigma, col_drive);
+                space_coarse.modulate_gain(col_field_mod_coarse);
             }
 
             /* space_fine.remap(da_weights, displacement, col_sigma, col_drive); */
@@ -2909,9 +2946,17 @@ struct DensityPolicy {
 
     DensityPolicy(float rwd_weight, float rwd_sigma,
                   float col_weight, float col_sigma,
+                  float rwd_field_mod_fine,
+                  float rwd_field_mod_coarse,
+                  float col_field_mod_fine,
+                  float col_field_mod_coarse,
                   int remapping_flag = -1):
         rwd_weight(rwd_weight), rwd_sigma(rwd_sigma),
         col_sigma(col_sigma), col_weight(col_weight),
+        rwd_field_mod_fine(rwd_field_mod_fine),
+        rwd_field_mod_coarse(rwd_field_mod_coarse),
+        col_field_mod_fine(col_field_mod_fine),
+        col_field_mod_coarse(col_field_mod_coarse),
         remapping_option(remapping_options(remapping_flag)) {}
     std::string str() { return "DensityPolicy"; }
     std::string repr() { return "DensityPolicy"; }
@@ -3272,6 +3317,11 @@ public:
           float col_weight,
           float col_sigma,
 
+          float rwd_field_mod_fine,
+          float rwd_field_mod_coarse,
+          float col_field_mod_fine,
+          float col_field_mod_coarse,
+
           float action_delay,
           int edge_route_interval,
 
@@ -3308,8 +3358,10 @@ public:
         goalmd(GoalModule(space_fine, space_coarse, circuits, speed,
                           speed * local_scale_fine / local_scale_coarse)),
         rwobj(RewardObject(min_weight_value)),
-        dpolicy(DensityPolicy(rwd_weight, rwd_sigma, col_weight,
-                              col_sigma, remapping_flag)),
+        dpolicy(DensityPolicy(rwd_weight, rwd_sigma, col_weight, col_sigma,
+                              rwd_field_mod_fine, rwd_field_mod_coarse,
+                              col_field_mod_fine, col_field_mod_coarse,
+                              remapping_flag)),
         expmd(ExplorationModule(speed * 2.0f, circuits, space_fine,
                                 action_delay, edge_route_interval)) {}
 
@@ -3575,7 +3627,8 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
     Circuits circuits = Circuits(da, bnd, 0.5f);
 
     // EXPERIENCE MODULE & BRAIN
-    DensityPolicy dpolicy = DensityPolicy(0.5f, 40.0f, 0.5f, 20.0f, 1);
+    DensityPolicy dpolicy = DensityPolicy(0.5f, 40.0f, 0.5f, 20.0f,
+                                          1.0f, 1.0f, 1.0f, 1.0f, 1);
     ExplorationModule expmd = ExplorationModule(SPEED, circuits, space, 1.0f);
     /* Brain brain = Brain(circuits, space, space_coarse, expmd, ssry, dpolicy, */
     /*                     SPEED, SPEED * 2.0f, 5); */
@@ -3587,6 +3640,7 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
                             100.0f, 0.2f,
                             0.5f, 1,
                             0.5f, 40.0f, 0.5f, 20.0f,
+                            1.0f, 1.0f, 1.0f, 1.0f,
                             1.0f, 100,
                             100, 50, 0.3f);
 

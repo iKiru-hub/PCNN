@@ -83,7 +83,7 @@ PARAMETERS = {
     "rec_threshold_coarse": 120.,
     "tau_trace_coarse": 100.0,
 
-    "lr_da": 0.,
+    "lr_da": 0.99,
     "lr_pred": 0.2,
     "threshold_da": 0.03,
     "tau_v_da": 4.0,

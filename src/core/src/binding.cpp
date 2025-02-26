@@ -290,6 +290,7 @@ PYBIND11_MODULE(pclib, m) {
              float, float,
              float, int,
              float, float, float, float,
+             float, float, float, float,
              float, int,
              int, int, float
              >(),
@@ -335,6 +336,11 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("rwd_sigma"),
              py::arg("col_weight"),
              py::arg("col_sigma"),
+
+             py::arg("rwd_field_mod_fine") = 1.0f,
+             py::arg("rwd_field_mod_coarse") = 1.0f,
+             py::arg("col_field_mod_fine") = 1.0f,
+             py::arg("col_field_mod_coarse") = 1.0f,
 
              py::arg("action_delay"),
              py::arg("edge_route_interval"),
