@@ -85,7 +85,7 @@ parameters = {
     "threshold_coarse": 0.4,
     "rep_threshold_coarse": 0.35,
     "rec_threshold_coarse": 120.,
-    "tau_trace_coarse": 10.0,
+    "tau_trace_coarse": 30.0,
 
     "lr_da": 0.99,
     "lr_pred": 0.2,
