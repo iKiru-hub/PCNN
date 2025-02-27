@@ -203,6 +203,11 @@ INPUT ./results.tex
 INPUT ./results.tex
 INPUT ./results.tex
 INPUT results.tex
+INPUT ./figures/results_1.png
+INPUT ./figures/results_1.png
+INPUT ./figures/results_1.png
+INPUT ./figures/results_1.png
+INPUT ./figures/results_1.png
 INPUT ./main.bbl
 INPUT ./main.bbl
 INPUT main.bbl

@@ -42,9 +42,9 @@ The upstream afferences to these place cells populations carry a variety of inpu
 In addition, they are also targeted by a multiple neuromodulators, molecules gating information and affecting neuronal dynamics in a multitude of ways, the most prominent of which in this context are dopamine and acetilcholine.
 
 % dopamine
-There are several set of dopaminergic innervations to the hippocampus, targeting all its main sub-components. The ones more directly involved with CA1 place cells are those from the ventral tegmental area (VTA) and locus coeruleus (LC) \cite{lismanHippocampalVTALoopControlling2005}.
+There are several set of dopaminergic innervations to the hippocampus, targeting all its main sub-components. The ones more directly involved with CA1 place cells are those from the ventral tegmental area (VTA) and locus coeruleus (LC) \cite{lismanHippocampalVTALoopControlling2005, tsetsenisActivationLocusCoeruleus2022, zhangExpectancyrelatedChangesFiring2024}.
 Their actions have been linked to synaptic excitation, modulation of theglutamatergic projections from EC, and regulation of long term potentiation (LTP) through D1-like receptors \cite{edelmannDopaminergicInnervationModulation2018, wagatsumaLocusCoeruleusInput2018}.
-One important function of dopamine concerning spatial navigation is the delivery of reward-related information, supporting memory consolidation of salient locations \cite{kempadooDopamineReleaseLocus2016} and active reshaping of the place cells tuning \cite{bittnerBehavioralTimeScale2017, kaufmanRoleLocusCoeruleus2020}.
+One important function of dopamine concerning spatial navigation is the delivery of reward-related information, supporting memory consolidation of salient locations \cite{kempadooDopamineReleaseLocus2016, retailleauMichelinRedGuide2014} and active reshaping of the place cells tuning \cite{bittnerBehavioralTimeScale2017, kaufmanRoleLocusCoeruleus2020}.
 Another extensively documented role is novelty detection \cite{duszkiewiczNoveltyDopaminergicModulation2019}, especially for contextual inputs from LEC \cite{wagatsumaLocusCoeruleusInput2018, igarashiFunctionalDiversityTransverse2014, itoFunctionalDivisionHippocampal2012}, as well as encoding prediction errors of reward events \cite{sheynikhovichLongtermMemorySynaptic2023, schultzNeuralSubstratePrediction1997}
 
 % acetilcholine
@@ -68,8 +68,10 @@ This line of normative research has been particularly successful in generating a
 
 % --- problem statement ---
 However, what these models have in common is the reliance on backpropagation for training, which is not biologically plausible, and the lack of a proper real-time learning dynamics.
-Although they rely solely on locally available information during inference, the type of cognitive map they can support is limited to purely spatial data. For more diffult behaviours such as goal-directed navigation, a richer representation of the environment should be more advantageous. 
+Although they rely solely on locally available information during inference, the type of cognitive map they can support is limited to purely spatial data. For more diffult behaviours such as goal-directed navigation, a richer representation of the environment should be more advantageous.
+Furthermore, the role of neuromodulation in the formation of cognitive maps has been largely overlooked, despite its relevance in actively regulating neuronal dynamics and gating important information.
 
+\hfill \break
 
 % --- proposed solution ---
 In this study, we introduced a model architecture capable of generating online a spatial representation made of two place cells layers, which can be endowed with additional behaviourally-relevan sensory inputs by means of neuromodulators.
@@ -77,11 +79,12 @@ Our primary goal was to investigate the role of neuromodulation in the formation
 The model is constructed with a pre-defined stack of grid cells layers of different scales, from which the place cells were generated through competition \cite{almePlaceCellsHippocampus2014, ormondPlaceFieldExpansion2015}, and a graph-like map is obtained by connecting place cells over one or more trajectories \cite{wernerModellingNavigationalKnowledge2000}.
 Previous work has applied neuromodulation in spiking neurons for controlling explorative-exploitative behaviour, inspired by the role of dopamine and acetilcholine \cite{brzoskoRetroactiveModulationSpike2015, brzoskoSequentialNeuromodulationHebbian2017}.
 While others used it during training of deep artificial networks \cite{meiEffectsNeuromodulationinspiredMechanisms2023}.
-Here, neuromodulators are best described by nodes working as analog sensors of external events. Their role is to form synaptic connections with the place cells, effectively determing a scalar field over their representation.
+Here, neuromodulators are best described by nodes working as preditive analog sensors of external events. Their role is to form synaptic connections with the place cells, effectively determing a scalar field over their representation.
+Additionally, they have a way to correct their synaptic weights with subsequent observations, similarly to predictive coding \cite{schultzNeuralSubstratePrediction1997, schultzDopamineRewardPrediction2016, sheynikhovichLongtermMemorySynaptic2023, decothiPredictiveMapsRats2022}.
 The result is our operationalization of a cognitive map, a neural structure built online through experience and supporting the necessary information for behaviour.
 We endowed an artificial agent with this model and simple heuristics for toggling between exploration and exploitation, and tested it in a goal-directed navigation task in environments with different layout.
 
-A secondary goal was to enquire about the effect of neuromodulation on the density of place cells, and in particular the reshaping of their place fields following meaningful events, as supported by previous studies \cite{bittnerBehavioralTimeScale2017, milsteinBidirectionalSynapticPlasticity2021}.
+A secondary goal was to enquire about the effect of neuromodulation on the density of place cells, and in particular the reshaping of their place fields following meaningful events, as supported by previous studies \cite{bittnerBehavioralTimeScale2017, milsteinBidirectionalSynapticPlasticity2021, fentonRemappingRevisitedHow2024}.
 Our working hypothesis was that a non-uniform distribution of place cells would be beneficial for the agent's performance, especially in terms of more stable representations of special locations.
 
 

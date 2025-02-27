@@ -398,7 +398,7 @@ def make_room(name: str="square", thickness: float=10.,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
         room_positions = [
-            [0.2, 0.2], [0.8, 0.8], [0.2, 0.8],
+            [0.2, 0.2], [0.8, 0.8], [0.2, 0.8], []
         ]
     elif name == "Flat.1101":
         walls_extra += [

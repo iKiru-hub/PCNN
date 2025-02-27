@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024/Homebrew) (preloaded format=pdflatex 2024.10.29)  24 FEB 2025 23:48
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024/Homebrew) (preloaded format=pdflatex 2024.10.29)  27 FEB 2025 14:53
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -459,28 +459,53 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 37.
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
 
-{/opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/map/pdftex/updmap/pdftex.map}] (./introduction.tex [2] [3] [4]) (./methods.tex
-<figures/figure_model.png, id=189, 554.82281pt x 437.38406pt>
+{/opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/map/pdftex/updmap/pdftex.map}] (./introduction.tex [2] [3]
+Underfull \hbox (badness 10000) in paragraph at lines 74--75
+
+ []
+
+[4]) (./methods.tex
+<figures/figure_model.png, id=200, 554.82281pt x 437.38406pt>
 File: figures/figure_model.png Graphic file (type png)
 <use figures/figure_model.png>
 Package pdftex.def Info: figures/figure_model.png  used on input line 10.
 (pdftex.def)             Requested size: 327.74895pt x 258.3747pt.
- [5] [6]
+ [5] [6 <./figures/figure_model.png>] [7]
 Overfull \hbox (1.27606pt too wide) in paragraph at lines 68--70
 []\OT1/cmr/m/n/10 At each mo-ment dur-ing nav-i-ga-tion, the weight ma-tri-ces $[][],  [][]$
  []
 
-[7]) (./results.tex) [8] (./main.bbl [9]
+[8]) (./results.tex
+<figures/results_1.png, id=253, 627.09282pt x 280.79906pt>
+File: figures/results_1.png Graphic file (type png)
+<use figures/results_1.png>
+Package pdftex.def Info: figures/results_1.png  used on input line 5.
+(pdftex.def)             Requested size: 310.4979pt x 139.03667pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+) [9] (./main.bbl [10 <./figures/results_1.png>] [11]
 Underfull \hbox (badness 1112) in paragraph at lines 103--106
 []\OT1/cmr/m/n/10 Francesca Sar-golini, Mar-i-anne Fyhn, Torkel Haft-ing, Bruce L. Mc-
  []
 
-[10]
-Underfull \hbox (badness 1360) in paragraph at lines 153--156
+[12]
+Underfull \hbox (badness 3386) in paragraph at lines 158--161
+[]\OT1/cmr/m/n/10 Zhewei Zhang, Yuji K. Taka-hashi, Mar-lian Montesinos-Cartegena,
+ []
+
+
+Underfull \hbox (badness 3792) in paragraph at lines 158--161
+\OT1/cmr/m/n/10 Thorsten Kahnt, An-gela J. Lang-don, and Ge-of-frey Schoen-baum.
+ []
+
+
+Underfull \hbox (badness 1360) in paragraph at lines 163--166
 []\OT1/cmr/m/n/10 Elke Edel-mann and Volk-mar Less-mann.  Dopamin-er-gic in-ner-va-tion
  []
 
-[11] [12] [13]) [14] [15 <./figures/figure_model.png>] (./main.aux)
+[13] [14] [15]) [16] (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-02-20>
@@ -489,18 +514,18 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 30373F3B5CDE15D512D83B7FB3D4FAE2;1233.
  ) 
 Here is how much of TeX's memory you used:
- 13003 strings out of 474116
- 209949 string characters out of 5732612
- 1939187 words of memory out of 5000000
- 35102 multiletter control sequences out of 15000+600000
+ 13023 strings out of 474116
+ 210508 string characters out of 5732612
+ 1938187 words of memory out of 5000000
+ 35116 multiletter control sequences out of 15000+600000
  566839 words of font info for 68 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,6n,79p,1248b,565s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,6n,79p,1247b,566s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmb10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb>
-Output written on main.pdf (15 pages, 435315 bytes).
+Output written on main.pdf (16 pages, 606267 bytes).
 PDF statistics:
- 348 PDF objects out of 1000 (max. 8388607)
- 301 compressed objects within 4 object streams
- 96 named destinations out of 1000 (max. 500000)
- 78 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 368 PDF objects out of 1000 (max. 8388607)
+ 318 compressed objects within 4 object streams
+ 102 named destinations out of 1000 (max. 500000)
+ 83 words of extra memory for PDF output out of 10000 (max. 10000000)
 

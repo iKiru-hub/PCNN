@@ -188,9 +188,9 @@ class Renderer:
         self.axs.legend(loc="upper right")
         plt.pause(0.00001)
 
-        if self.brain.get_directive() == "trg" or \
-            self.brain.get_directive() == "trg rw" or len(plan_center_coarse) > 0:
-            input(">>")
+        # if self.brain.get_directive() == "trg" or \
+        #     self.brain.get_directive() == "trg rw" or len(plan_center_coarse) > 0:
+        #     input(">>")
 
     def render2(self, show: bool=False):
 
