@@ -2082,7 +2082,7 @@ public:
     void modulate_gain(float modulation) {
         for (int i = 0; i < N; i++) {
             if (u(i) > 0.1) {
-                gain_v(i) = modulation * gain_const;// - gain_v(i);
+                gain_v(i) = modulation * gain_const * traces(i) + (1 - traces(i)) * gain_const;
             }
         }
     }

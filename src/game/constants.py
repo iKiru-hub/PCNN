@@ -5,7 +5,7 @@ from numpy import array
 
 SCREEN_WIDTH = 600
 SCREEN_HEIGHT = 600
-OFFSET = 50
+OFFSET = 35
 FPS = 60
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)

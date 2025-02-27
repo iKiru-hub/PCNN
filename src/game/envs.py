@@ -243,7 +243,7 @@ def make_room(name: str="square", thickness: float=10.,
             Wall(OFFSET, SCREEN_HEIGHT//2, SCREEN_WIDTH//2, thickness)
         ]
         room_positions = [
-            [0.5, 0.5], [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
+            [0.5, 0.5], [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
             [0.4, 0.4], [0.6, 0.6], [0.4, 0.6], [0.6, 0.4]
         ]
     elif name == "Square.v2":
@@ -254,7 +254,7 @@ def make_room(name: str="square", thickness: float=10.,
                     thickness, SCREEN_HEIGHT//2)
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
         ]
     elif name == "Hole.v0":
         walls_extra += [
@@ -263,7 +263,7 @@ def make_room(name: str="square", thickness: float=10.,
                  SCREEN_WIDTH//3, SCREEN_HEIGHT//3),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
         ]
     elif name == "Flat.0000":
         walls_extra += [
@@ -271,7 +271,7 @@ def make_room(name: str="square", thickness: float=10.,
                  2*SCREEN_WIDTH//3-2*OFFSET, thickness),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
         ]
     elif name == "Flat.0001":
         walls_extra += [
@@ -279,7 +279,7 @@ def make_room(name: str="square", thickness: float=10.,
                  2*SCREEN_WIDTH//3-OFFSET, thickness),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
             [0.5, 0.5], [0.6, 0.6]
         ]
     elif name == "Flat.0010":
@@ -290,7 +290,7 @@ def make_room(name: str="square", thickness: float=10.,
                  2*SCREEN_WIDTH//3-OFFSET, thickness),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
         ]
     elif name == "Flat.0011":
         walls_extra += [
@@ -300,8 +300,7 @@ def make_room(name: str="square", thickness: float=10.,
                  2*SCREEN_WIDTH//3-2*OFFSET, thickness),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.5, 0.5], [0.3, 0.5], [0.7, 0.5]
+            [0.25, 0.25], [0.8, 0.8]
         ]
     elif name == "Flat.0100":
         walls_extra += [
@@ -311,8 +310,8 @@ def make_room(name: str="square", thickness: float=10.,
                  2*SCREEN_WIDTH//3-3*OFFSET, thickness),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.5, 0.3], [0.5, 0.7]
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
+            [0.5, 0.25], [0.5, 0.75]
         ]
     elif name == "Flat.0101":
         walls_extra += [
@@ -322,32 +321,32 @@ def make_room(name: str="square", thickness: float=10.,
                  2*SCREEN_WIDTH//3-OFFSET, thickness),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.5, 0.5], [0.3, 0.5], [0.7, 0.5]
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
+            [0.5, 0.5], [0.25, 0.5], [0.75, 0.5]
         ]
     elif name == "Flat.0110":
         walls_extra += [
             Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-2*OFFSET,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
             Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//2+OFFSET,
-                 2*SCREEN_WIDTH//3-4*OFFSET, thickness),
+                 2*SCREEN_WIDTH//3-3*OFFSET, thickness),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.7, 0.3]
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
+            [0.75, 0.25]
         ]
     elif name == "Flat.0111":
         walls_extra += [
-            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-2*OFFSET,
-                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+            Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-4*OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-0*OFFSET),
             Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//2+2*OFFSET,
                  2*SCREEN_WIDTH//3-4*OFFSET, thickness),
             Wall(2*SCREEN_WIDTH//3-OFFSET, SCREEN_HEIGHT//3+1*OFFSET,
-                 2*SCREEN_WIDTH//3-4*OFFSET, thickness),
+                 2*SCREEN_WIDTH//3-5*OFFSET, thickness),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.5, 0.5], [0.3, 0.5], [0.7, 0.5]
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
+            [0.5, 0.5], [0.25, 0.5], [0.75, 0.5]
         ]
     elif name == "Flat.1000":
         walls_extra += [
@@ -355,8 +354,8 @@ def make_room(name: str="square", thickness: float=10.,
                  thickness, 2*SCREEN_HEIGHT//3-2*OFFSET),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.5, 0.5], [0.6, 0.6], [0.7, 0.4]
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
+            [0.5, 0.5], [0.6, 0.6], [0.75, 0.4]
         ]
     elif name == "Flat.1001":
         walls_extra += [
@@ -364,8 +363,8 @@ def make_room(name: str="square", thickness: float=10.,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.5, 0.5], [0.3, 0.5]
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
+            [0.5, 0.5], [0.25, 0.5]
         ]
     elif name == "Flat.1010":
         walls_extra += [
@@ -375,8 +374,8 @@ def make_room(name: str="square", thickness: float=10.,
                  thickness, 2*SCREEN_HEIGHT//3-2*OFFSET),
         ]
         room_positions = [
-            [0.2, 0.2], [0.75, 0.75], [0.2, 0.75], [0.75, 0.2],
-            [0.5, 0.5], [0.5, 0.75]
+            [0.2, 0.2], [0.755, 0.755], [0.2, 0.755], [0.755, 0.2],
+            [0.5, 0.5], [0.5, 0.755]
         ]
     elif name == "Flat.1011":
         walls_extra += [
@@ -386,20 +385,20 @@ def make_room(name: str="square", thickness: float=10.,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75],
             [0.5, 0.5]
         ]
     elif name == "Flat.1100":
         walls_extra += [
             Wall(SCREEN_WIDTH//3, SCREEN_HEIGHT//3-2*OFFSET,
-                 thickness, SCREEN_HEIGHT//3-OFFSET),
+                 thickness, SCREEN_HEIGHT//3-2*OFFSET),
             Wall(OFFSET, SCREEN_HEIGHT//2+OFFSET,
-                 2*SCREEN_WIDTH//3-3*OFFSET, thickness),
+                 2*SCREEN_WIDTH//3-4*OFFSET, thickness),
             Wall(2*SCREEN_WIDTH//3, SCREEN_HEIGHT//3+thickness,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
+            [0.2, 0.2], [0.8, 0.8], [0.2, 0.8],
         ]
     elif name == "Flat.1101":
         walls_extra += [
@@ -422,8 +421,8 @@ def make_room(name: str="square", thickness: float=10.,
                  thickness, 2*SCREEN_HEIGHT//3-OFFSET),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.5, 0.7]
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
+            [0.5, 0.75]
         ]
     elif name == "Flat.1111":
         walls_extra += [
@@ -433,8 +432,8 @@ def make_room(name: str="square", thickness: float=10.,
                  2*SCREEN_WIDTH//3-3.5*OFFSET, thickness),
         ]
         room_positions = [
-            [0.3, 0.3], [0.7, 0.7], [0.3, 0.7], [0.7, 0.3],
-            [0.7, 0.5]
+            [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
+            [0.75, 0.5]
         ]
     elif name == "Hallway.00":
 
@@ -451,11 +450,11 @@ def make_room(name: str="square", thickness: float=10.,
                  thickness, SCREEN_HEIGHT-(height*2)*OFFSET),  # Right
         ]
         room_positions = [
-            [0.3, 0.5], [0.5, 0.5], [0.7, 0.5]
+            [0.25, 0.5], [0.5, 0.5], [0.75, 0.5]
         ]
     else:
         name = "Square.v0"
-        room_positions = [[0.5, 0.5]] + np.random.uniform(0.25, 0.75, (40, 2)).tolist()
+        room_positions = [[0.5, 0.5]] + np.random.uniform(0.25, 0.755, (40, 2)).tolist()
 
     room = Room(walls_bounds=walls_bounds,
                 walls_extra=walls_extra,
@@ -546,8 +545,8 @@ class Environment:
             # print(f"[ENV] [t={self.t} = {self.rw_time}")
             terminated = self._reward_event(brain=brain)
             # self.trajectory_set += [self.trajectory]
-            self.trajectory_set += [[]]
-            self.trajectory = []
+            # self.trajectory_set += [[]]
+            # self.trajectory = []
             # print("trajectory_set: ", len(self.trajectory_set))
 
         # Update agent position with improved collision handling
@@ -612,6 +611,8 @@ class Environment:
 
         displacement = [(self.agent.position[0] - prev_position[0]),
                         (-self.agent.position[1] + prev_position[1])]
+        self.trajectory_set += [[]]
+        self.trajectory = []
 
     @property
     def position(self):
@@ -656,8 +657,9 @@ class Environment:
         self.reward_obj.render(self.screen)
         self.agent.render(self.screen)
 
-        self.screen.blit(score_text, (200, 30))
+        self.screen.blit(score_text, (200, 5))
         pygame.display.flip()
+
 
 
 if __name__ == "__main__":

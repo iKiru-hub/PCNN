@@ -30,12 +30,12 @@ reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.08 * GAME_SCALE,
+    "rw_radius": 0.05 * GAME_SCALE,
     "rw_sigma": 0.8,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 5,
-    "silent_duration": 0,
+    "delay": 200,
+    "silent_duration": 10_000,
     "fetching_duration": 10,
     "transparent": False,
     "beta": 40.,
@@ -51,7 +51,7 @@ game_settings = {
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "max_duration": 10_000,
-    "room_thickness": 20,
+    "room_thickness": 30,
     "seed": None,
     "pause": -1,
     "verbose": True
@@ -60,10 +60,10 @@ game_settings = {
 global_parameters = {
     "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
-    "N": 30**2,
-    "Nc": 20**2,
+    "N": 32**2,
+    "Nc": 27**2,
     "use_sprites": False,
-    "speed": 1.0,
+    "speed": 0.7,
     "min_weight_value": 0.5
 }
 
@@ -72,25 +72,25 @@ parameters = {
     "gain_fine": 15.,
     "offset_fine": 1.0,
     "threshold_fine": 0.3,
-    "rep_threshold_fine": 0.85,
-    "rec_threshold_fine": 50.,
-    "tau_trace_fine": 20.0,
+    "rep_threshold_fine": 0.9,
+    "rec_threshold_fine": 45.,
+    "tau_trace_fine": 30.0,
 
     "remap_tag_frequency": 1,
     "num_neighbors": 8,
-    "min_rep_threshold": 35,
+    "min_rep_threshold": 34,
 
-    "gain_coarse": 15.,
-    "offset_coarse": 1.0,
-    "threshold_coarse": 0.4,
-    "rep_threshold_coarse": 0.35,
-    "rec_threshold_coarse": 120.,
-    "tau_trace_coarse": 30.0,
+    "gain_coarse": 21.,
+    "offset_coarse": 1.1,
+    "threshold_coarse": 0.3,
+    "rep_threshold_coarse": 0.6,
+    "rec_threshold_coarse": 50.,
+    "tau_trace_coarse": 50.0,
 
-    "lr_da": 0.99,
+    "lr_da": 0.5,
     "lr_pred": 0.2,
     "threshold_da": 0.03,
-    "tau_v_da": 4.0,
+    "tau_v_da": 20.0,
 
     "lr_bnd": 0.6,
     "threshold_bnd": 0.3,
@@ -102,18 +102,18 @@ parameters = {
     "threshold_circuit": 0.9,
     "remapping_flag": 7,
 
-    "rwd_weight": 3.0,
-    "rwd_sigma": 35.0,
+    "rwd_weight": 15.0,
+    "rwd_sigma": 80.0,
     "col_weight": 0.0,
-    "col_sigma": 25.0,
+    "col_sigma": 35.0,
 
-    "rwd_field_mod_fine": 1.0,
-    "rwd_field_mod_coarse": 1.0,
-    "col_field_mod_fine": 1.0,
-    "col_field_mod_coarse": 1.0,
+    "rwd_field_mod_fine": 2.5,
+    "rwd_field_mod_coarse": 4.5,
+    "col_field_mod_fine": 1.5,
+    "col_field_mod_coarse": 0.3,
 
-    "action_delay": 100.,
-    "edge_route_interval": 3,
+    "action_delay": 80.,
+    "edge_route_interval": 50000, # <<<<<<<<<<<<<<<<<<<
 
     "forced_duration": 100,
     "fine_tuning_min_duration": 10,
@@ -131,14 +131,16 @@ possible_positions = np.array([
 """ UTILITIES """
 
 
+
 class Renderer:
 
-    def __init__(self, brain: object, boundsx: tuple=(-200, 450),
-                 boundsy: tuple=(-450, 200)):
+    def __init__(self, brain: object, boundsx: tuple=(-110, 450),
+                 boundsy: tuple=(-450, 110)):
 
         self.brain = brain
         self.names = ["DA", "BND"]
-        self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
+        # self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
+        self.fig, self.axs = plt.subplots(1, 1, figsize=(4, 4))
         self.fig.set_tight_layout(True)
         self.min_x = boundsx[0]
         self.max_x = boundsx[1]
@@ -148,7 +150,49 @@ class Renderer:
         print(f"boundsx={self.boundsx}")
         print(f"boundsy={self.boundsy}")
 
-    def render(self, show: bool=False):
+    def render(self):
+
+        # -- BND
+        self.axs.clear()
+        self.axs.scatter(*np.array(self.brain.get_space_fine_centers()).T,
+                               c=self.brain.get_bnd_weights(),
+                               cmap="Blues", alpha=0.8,
+                               s=40, vmin=0., vmax=0.5,
+                               label="BND")
+
+        daw = self.brain.get_da_weights()
+        self.axs.scatter(*np.array(self.brain.get_space_fine_centers()).T,
+                               c=daw,
+                               s=np.where(daw > 0.01, 40, 0),
+                               cmap="Greens", alpha=0.8,
+                               label="DA",
+                               vmin=0., vmax=0.4)
+        self.axs.scatter(*np.array(self.brain.get_space_coarse_centers()).T,
+                               color="brown", s=20, alpha=0.2)
+        plan_center_coarse = np.array(self.brain.get_space_coarse_centers())[self.brain.get_plan_idxs_coarse()]
+        self.axs.plot(*plan_center_coarse.T,
+                            color="grey", alpha=0.7, lw=4.,
+                            label="plan")
+        self.axs.scatter(*np.array(self.brain.get_space_fine_centers()).T,
+                               c=self.brain.get_trg_representation(),
+                               s=200*self.brain.get_trg_representation(),
+                               marker="x",
+                               label="goal",
+                               cmap="Greens", alpha=0.7)
+
+        self.axs.set_xlim(self.boundsx)
+        self.axs.set_ylim(self.boundsy)
+        self.axs.set_xticks(())
+        self.axs.set_yticks(())
+        self.axs.set_aspect('equal', adjustable='box')
+        self.axs.legend(loc="upper right")
+        plt.pause(0.00001)
+
+        if self.brain.get_directive() == "trg" or \
+            self.brain.get_directive() == "trg rw" or len(plan_center_coarse) > 0:
+            input(">>")
+
+    def render2(self, show: bool=False):
 
         # -- space plots --
         self.axs[0, 0].clear()
@@ -165,36 +209,43 @@ class Renderer:
 
             # -- fine space
             self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-                                   color="blue", s=10, alpha=0.1)
-            # current position
-            self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-                                   c = self.brain.get_representation_fine(),
-                                   cmap="Greys",
-                                   s=20, alpha=0.3)
+                                   color="blue", s=10, alpha=0.1,
+                                   label="fine-grained space")
             # goal
-            self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+            self.axs[0, 1].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                    c=self.brain.get_trg_representation(),
                                    s=100*self.brain.get_trg_representation(),
                                    marker="x",
+                                   label="goal",
                                    cmap="Greens", alpha=0.7)
+            # current position
+            # self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+            #                        c = self.brain.get_representation_fine(),
+            #                        cmap="Greys",
+            #                        s=20, alpha=0.3)
 
             # plan
-            plan = np.zeros(len(self.brain))
-            plan[self.brain.get_plan_idxs_fine()] = 1.
-            self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
-                        c=plan, s=20*plan, cmap="Greens", alpha=0.7)
+            # plan = np.zeros(len(self.brain))
+            # plan[self.brain.get_plan_idxs_fine()] = 1.
+            plan_center_fine = np.array(self.brain.get_space_fine_centers())[self.brain.get_plan_idxs_fine()]
+            self.axs[0, 0].plot(*plan_center_fine.T,
+                                color="grey", alpha=0.7, lw=4.,
+                                label="plan")
+            # self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+            #             c=plan, s=20*plan, cmap="Greens", alpha=0.7)
 
             # title
-            loc_ = np.array(self.brain.get_space_fine_centers()
-                            )[self.brain.get_trg_idx()]
-            self.axs[0, 0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
-                f" ({self.brain.get_trg_representation().max():.3f}, " + \
-                f"{self.brain.get_trg_representation().argmax()}) " + \
-                f" loc={loc_}")
+            # loc_ = np.array(self.brain.get_space_fine_centers()
+            #                 )[self.brain.get_trg_idx()]
+            # self.axs[0, 0].set_title(f"Space | trg_idx={self.brain.get_trg_idx()} " + \
+            #     f" ({self.brain.get_trg_representation().max():.3f}, " + \
+            #     f"{self.brain.get_trg_representation().argmax()}) " + \
+            #     f" loc={loc_}")
 
             # -- coarse space
             self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                                   color="brown", s=30, alpha=0.2)
+                                   color="brown", s=30, alpha=0.2,
+                                   label="coarse-grained space")
             # current position
             # self.axs[0, 1].scatter(*np.array(self.space_coarse.get_centers()).T,
             #                        c = self.brain.get_representation(),
@@ -207,13 +258,17 @@ class Renderer:
             #                        cmap="Greens", alpha=0.7)
 
             # plan
-            plan = np.zeros(self.brain.get_space_coarse_size())
-            plan[self.brain.get_plan_idxs_coarse()] = 1.
-            self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                        c=plan, s=30*plan, cmap="Greens", alpha=0.7)
+            # plan = np.zeros(self.brain.get_space_coarse_size())
+            # plan[self.brain.get_plan_idxs_coarse()] = 1.
+            # self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
+            #             c=plan, s=30*plan, cmap="Greens", alpha=0.7)
+            plan_center_coarse = np.array(self.brain.get_space_coarse_centers())[self.brain.get_plan_idxs_coarse()]
+            self.axs[0, 1].plot(*plan_center_coarse.T,
+                                color="grey", alpha=0.7, lw=4.,
+                                label="plan")
 
             # title
-            self.axs[0, 1].set_title(f"Coarse space") 
+            # self.axs[0, 1].set_title(f"Coarse space") 
 
         # -- explorative behaviour
         else:
@@ -250,7 +305,7 @@ class Renderer:
         #                        cmap="Oranges", alpha=0.5)
 
         # -- fine space
-        self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_fine_count()}")
+        # self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_fine_count()}")
         # self.axs[0, 0].set_title(f"Fine-grained space")
         self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
                                color="red", s=50, marker="v", alpha=0.8)
@@ -260,34 +315,48 @@ class Renderer:
         self.axs[0, 0].grid(alpha=0.1)
         self.axs[0, 0].set_xticks(())
         self.axs[0, 0].set_yticks(())
+        self.axs[0, 0].legend()
 
         # -- coarse space
         # self.axs[0, 1].set_title(f"#PCs={self.brain.get_space_coarse_count()}")
-        self.axs[0, 1].set_title(f"Coarse-grained space")
-        # self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_position()).T,
-        #                        color="red", s=50, marker="v", alpha=0.8)
+        # self.axs[0, 1].set_title(f"Coarse-grained space")
+        self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_position()).T,
+                               color="red", s=50, marker="v", alpha=0.8)
         self.axs[0, 1].set_xlim(self.boundsx)
         self.axs[0, 1].set_ylim(self.boundsy)
         self.axs[0, 1].set_xticks(())
         self.axs[0, 1].set_yticks(())
         self.axs[0, 1].set_aspect('equal', adjustable='box')
         self.axs[0, 1].grid(alpha=0.1)
+        self.axs[0, 1].legend()
 
         # -- BND
         self.axs[1, 0].clear()
         self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                c=self.brain.get_bnd_weights(),
                                cmap="Blues", alpha=0.8,
-                               s=20, vmin=0., vmax=0.2)
+                               s=20, vmin=0., vmax=0.2,
+                               label="BND")
 
         daw = self.brain.get_da_weights()
         self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
                                c=daw,
                                s=np.where(daw > 0.01, 30, 0),
                                cmap="Greens", alpha=0.8,
+                               label="DA",
                                vmin=0., vmax=0.2)
-        self.axs[1, 0].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                               color="brown", s=20, alpha=0.2)
+        # self.axs[1, 0].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
+        #                        color="brown", s=20, alpha=0.2)
+        plan_center_coarse = np.array(self.brain.get_space_coarse_centers())[self.brain.get_plan_idxs_coarse()]
+        self.axs[1, 0].plot(*plan_center_coarse.T,
+                            color="grey", alpha=0.7, lw=4.,
+                            label="plan")
+        self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+                               c=self.brain.get_trg_representation(),
+                               s=100*self.brain.get_trg_representation(),
+                               marker="x",
+                               label="goal",
+                               cmap="Greens", alpha=0.7)
 
         self.axs[1, 0].set_xlim(self.boundsx)
         self.axs[1, 0].set_ylim(self.boundsy)
@@ -295,8 +364,9 @@ class Renderer:
         self.axs[1, 0].set_yticks(())
         self.axs[1, 0].set_title(f"BND")
         self.axs[1, 0].set_aspect('equal', adjustable='box')
-        self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
-                                   color="red", s=50, marker="v")
+        # self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
+        #                            color="red", s=50, marker="v")
+        self.axs[1, 0].legend()
 
         # -- DA
         self.axs[1, 1].clear()
@@ -312,10 +382,11 @@ class Renderer:
         self.axs[1, 1].set_yticks(())
         self.axs[1, 1].set_title(f"DA")
         self.axs[1, 1].set_aspect('equal', adjustable='box')
-        self.axs[1, 1].scatter(*np.array(self.brain.get_space_fine_position()).T,
-                                   color="red", s=50, marker="v")
+        # self.axs[1, 1].scatter(*np.array(self.brain.get_space_fine_position()).T,
+        #                            color="red", s=50, marker="v")
 
         plt.pause(0.00001)
+
 
 
 def run_model(parameters: dict, global_parameters: dict,
@@ -481,6 +552,7 @@ def run_game(env: games.Environment,
              brain: object,
              renderer: object,
              plot_interval: int,
+             t_teleport: int=100,
              pause: int=-1,
              record_flag: bool=False,
              verbose: bool=True,
@@ -520,6 +592,10 @@ def run_game(env: games.Environment,
         # if observation[2] and verbose and verbose_min:
         #     logger.debug(f">!!< Collision << [{observation[2]}]")
             # input()
+
+        # -check: teleport
+        if env.t % t_teleport == 0 and env.reward_obj.is_silent:
+            env._reset_agent_position(brain)
 
         # velocity
         v = [(env.position[0] - prev_position[0]),
@@ -832,6 +908,7 @@ def main_game(global_parameters: dict=global_parameters,
     run_game(env=env,
              brain=brain,
              renderer=renderer,
+             t_teleport=1000,
              plot_interval=game_settings["plot_interval"],
              pause=-1)
 

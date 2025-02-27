@@ -354,6 +354,10 @@ class RewardObj:
         out = self.v > self.move_threshold
         return out
 
+    @property
+    def is_silent(self) -> bool:
+        return self.t < self.silent_duration
+
     def render(self, screen: pygame.Surface):
 
         if self.use_sprites:
