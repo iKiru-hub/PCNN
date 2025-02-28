@@ -19,7 +19,7 @@ logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
 NUM_SAMPLES = 4
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
-                             replace=False).tolist()# + \
+                             replace=False).tolist() + \
            ["Square.v0"]
 
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
