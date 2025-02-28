@@ -124,10 +124,10 @@ print(result)
         return float(last_line)
 
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
+        #logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
         return 0
     except ValueError as e:
-        logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
+        #logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
         return 0
 
 
