@@ -31,7 +31,7 @@ reward_settings = {
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.08 * GAME_SCALE,
-    "rw_sigma": 0.7,# * GAME_SCALE,
+    "rw_sigma": 0.5,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
@@ -52,7 +52,11 @@ game_settings = {
     "rendering": False,
     "max_duration": 10_000,
     "room_thickness": 20,
+<<<<<<< HEAD
     "t_teleport": 1000,
+=======
+    "t_teleport": 500,
+>>>>>>> 089131fa7eba04b8da9a840b7f3537f8aff6b74e
     "seed": None,
     "pause": -1,
     "verbose": False,
@@ -124,10 +128,10 @@ print(result)
         return float(last_line)
 
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
+        #logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
         return 0
     except ValueError as e:
-        logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
+        #logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
         return 0
 
 
@@ -246,54 +250,54 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
 
-    # "gain_fine": 15.,
+    #"gain_fine": 15.,
     "offset_fine": 1.0,
-    "threshold_fine": 0.3,
-    # "rep_threshold_fine": 0.7,
-    "rec_threshold_fine": 50.,
-    "tau_trace_fine": 20.0,
+    #"threshold_fine": 0.3,
+    #"rep_threshold_fine": 0.7,
+    #"rec_threshold_fine": 50.,
+    #"tau_trace_fine": 20.0,
 
-    # "remap_tag_frequency": 1,
-    # "num_neighbors": 8,
-    "min_rep_threshold": 35,
+    #"remap_tag_frequency": 1,
+    #"num_neighbors": 8,
+    #"min_rep_threshold": 35,
 
-    # "gain_coarse": 15.,
+    #"gain_coarse": 15.,
     "offset_coarse": 1.0,
-    "threshold_coarse": 0.4,
-    # "rep_threshold_coarse": 0.35,
-    "rec_threshold_coarse": 120.,
-    "tau_trace_coarse": 30.0,
+    #"threshold_coarse": 0.4,
+    #"rep_threshold_coarse": 0.35,
+    #"rec_threshold_coarse": 120.,
+    #"tau_trace_coarse": 30.0,
 
     "lr_da": 0.99,
     "lr_pred": 0.3,
     "threshold_da": 0.03,
-    "tau_v_da": 4.0,
+    #"tau_v_da": 4.0,
 
     "lr_bnd": 0.6,
     "threshold_bnd": 0.3,
-    "tau_v_bnd": 4.0,
+    #"tau_v_bnd": 4.0,
 
     "tau_ssry": 100.,
     "threshold_ssry": 0.995,
 
     "threshold_circuit": 0.9,
-    # "remapping_flag": 7,
+    #"remapping_flag": 7,
 
-    # "rwd_weight": 3.0,
-    "rwd_sigma": 50.0,
-    # "col_weight": 0.0,
-    "col_sigma": 35.0,
+    #"rwd_weight": 3.0,
+    #"rwd_sigma": 50.0,
+    #"col_weight": 0.0,
+    #"col_sigma": 35.0,
 
     # "rwd_field_mod_fine": 1.0,
     # "rwd_field_mod_coarse": 1.0,
     # "col_field_mod_fine": 1.0,
     # "col_field_mod_coarse": 1.0,
 
-    "action_delay": 140.,
-    "edge_route_interval": 3,
+    "action_delay": 120.,
+    "edge_route_interval": 10,
 
-    "forced_duration": 100,
-    "fine_tuning_min_duration": 10,
+    #"forced_duration": 100,
+    #"fine_tuning_min_duration": 50,
 }
 
 

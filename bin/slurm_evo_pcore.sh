@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=256
 ##SBATCH --mem-per-cpu=1GB
-#SBATCH --time=0-23:00
+#SBATCH --time=1-23:00
 #SBATCH -o /home/daniekru/slurm.column.%j.%N.out # STDOUT
 #SBATCH -e /home/daniekru/slurm.column.%j.%N.err # STDERR
 
