@@ -18,9 +18,9 @@ from game.constants import ROOMS, GAME_SCALE
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
 NUM_SAMPLES = 3
-ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
-                             replace=False).tolist() + \
-            ["Square.v0"]
+ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES,
+                             replace=False).tolist()# + \
+#            ["Square.v0"]
 
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
 
@@ -35,7 +35,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 2_000,
+    "silent_duration": 5_000,
     "fetching_duration": 3,
     "transparent": False,
     "beta": 35.,
@@ -50,9 +50,9 @@ game_settings = {
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "rendering": False,
-    "max_duration": 5_000,
+    "max_duration": 10_000,
     "room_thickness": 20,
-    "t_teleport": 100,
+    "t_teleport": 1000,
     "seed": None,
     "pause": -1,
     "verbose": False,

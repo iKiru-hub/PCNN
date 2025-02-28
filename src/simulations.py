@@ -50,9 +50,9 @@ game_settings = {
     "rendering": True,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
-    "max_duration": 10_000,
+    "max_duration": 5_000,
     "room_thickness": 30,
-    "t_teleport": 100,
+    "t_teleport": 1000,
     "seed": None,
     "pause": -1,
     "verbose": True
