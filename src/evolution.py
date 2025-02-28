@@ -17,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 3
+NUM_SAMPLES = 4
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
                              replace=False).tolist()# + \
            ["Square.v0"]
