@@ -52,6 +52,7 @@ game_settings = {
                               0.23, 0.77]) * GAME_SCALE,
     "max_duration": 10_000,
     "room_thickness": 30,
+    "t_teleport": 100,
     "seed": None,
     "pause": -1,
     "verbose": True
@@ -388,7 +389,6 @@ class Renderer:
         plt.pause(0.00001)
 
 
-
 def run_model(parameters: dict, global_parameters: dict,
               reward_settings: dict,
               game_settings: dict, room_name: str="Flat.1011",
@@ -533,6 +533,7 @@ def run_model(parameters: dict, global_parameters: dict,
              brain=brain,
              renderer=None,
              plot_interval=game_settings["plot_interval"],
+             t_teleport=game_settings["t_teleport"],
              pause=-1,
              record_flag=record_flag,
              verbose=verbose,
@@ -908,7 +909,7 @@ def main_game(global_parameters: dict=global_parameters,
     run_game(env=env,
              brain=brain,
              renderer=renderer,
-             t_teleport=1000,
+             t_teleport=game_settings["t_teleport"],
              plot_interval=game_settings["plot_interval"],
              pause=-1)
 

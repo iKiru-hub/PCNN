@@ -35,7 +35,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 2,
+    "silent_duration": 2_000,
     "fetching_duration": 3,
     "transparent": False,
     "beta": 35.,
@@ -50,8 +50,9 @@ game_settings = {
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "rendering": False,
-    "max_duration": 15_000,
+    "max_duration": 5_000,
     "room_thickness": 20,
+    "t_teleport": 100,
     "seed": None,
     "pause": -1,
     "verbose": False,
@@ -61,7 +62,7 @@ game_settings = {
 global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 30**2,
+    "N": 31**2,
     "Nc": 24**2,
     "use_sprites": False,
     "speed": 1.,
@@ -373,6 +374,8 @@ if __name__ == "__main__" :
     me.USE_TQDM = False
     VISUALIZE = args.visualize
 
+    percent_to_save = 0.9
+
     # Ignore runtime warnings
     import warnings
     warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -462,6 +465,7 @@ if __name__ == "__main__" :
     best_ind = me.main(toolbox=toolbox, settings=settings,
                        info=info, save=save, visualizer=visualizer,
                        filename=filename,
+                       perc_to_save=percent_to_save,
                        verbose=True)
 
 

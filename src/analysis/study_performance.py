@@ -45,6 +45,7 @@ game_settings = {
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "max_duration": 10_000,
+    "t_teleport": 100,
     "room_thickness": 20,
     "seed": None,
     "pause": -1,
@@ -275,24 +276,4 @@ if __name__ == "__main__":
     }
     with open(name + "/metadata.json", "w") as f:
         json.dump(metadata, f)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

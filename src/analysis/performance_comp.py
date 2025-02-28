@@ -22,96 +22,129 @@ logger = utils.setup_logger(__name__, level=3)
 reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
-    # "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_radius": 0.05 * GAME_SCALE,
-    "rw_sigma": 0.75 * GAME_SCALE,
+    "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
+    "rw_radius": 0.08 * GAME_SCALE,
+    "rw_sigma": 0.8,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 5,
-    "silent_duration": 2_000,
-    "fetching_duration": 1,
+    "delay": 2,
+    "silent_duration": 0_000,
+    "fetching_duration": 10,
     "transparent": False,
-    "beta": 35.,
-    "alpha": 0.06,
-}
-
-agent_settings = {
-    "init_position": np.array([0.2, 0.2]) * GAME_SCALE,
-    "agent_bounds": np.array([0.23, 0.77,
-                              0.23, 0.77]) * GAME_SCALE,
+    "beta": 40.,
+    "alpha": 0.06,# * GAME_SCALE,
+    "tau": 300,# * GAME_SCALE,
+    "move_threshold": 4,# * GAME_SCALE,
 }
 
 game_settings = {
     "plot_interval": 5,
-    "rw_event": "move agent",
+    "rw_event": "move both",
     "rendering": False,
-    "rendering_pcnn": False,
-    "max_duration": 8_000,
-    "room_thickness": 5,
+    "agent_bounds": np.array([0.23, 0.77,
+                              0.23, 0.77]) * GAME_SCALE,
+    "max_duration": 10_000,
+    "room_thickness": 30,
+    "t_teleport": 100,
     "seed": None,
     "pause": -1,
-    "verbose": False,
-    "verbose_min": False
+    "verbose": True
 }
 
 global_parameters = {
-    "local_scale_fine": 0.015,
+    "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
-    "N": 22**2,
-    "Nc": 12**2,
-    # "rec_threshold_fine": 26.,
-    # "rec_threshold_coarse": 60.,
-    "speed": 0.75,
+    "N": 32**2,
+    "Nc": 26**2,
+    "use_sprites": False,
+    "speed": 0.7,
     "min_weight_value": 0.5
 }
 
 PARAMETERS = {
-
-    "gain_fine": 10.,
+    "gain_fine": 33.3,
     "offset_fine": 1.0,
     "threshold_fine": 0.3,
-    "rep_threshold_fine": 0.88,
-    "rec_threshold_fine": 60.,
-    "tau_trace_fine": 10.0,
-    "min_rep_threshold": 0.95,
+    "rep_threshold_fine": 0.86,
+    "rec_threshold_fine": 50.0,
+    "tau_trace_fine": 20.0,
 
-    "gain_coarse": 9.,
+    "remap_tag_frequency": 23,
+    "num_neighbors": 10,
+    "min_rep_threshold": 35,
+     
+    "gain_coarse": 46.5,
     "offset_coarse": 1.0,
-    "threshold_coarse": 0.3,
-    "rep_threshold_coarse": 0.9,
-    "rec_threshold_coarse": 100.,
-    "tau_trace_coarse": 20.0,
-
-    "lr_da": 0.8,
+    "threshold_coarse": 0.4,
+    "rep_threshold_coarse": 0.77,
+    "rec_threshold_coarse": 120.0,
+    "tau_trace_coarse": 30.0,
+     
+    "lr_da": 0.99,
+    "lr_pred": 0.3,
     "threshold_da": 0.03,
-    "tau_v_da": 1.0,
+    "tau_v_da": 4.0,
 
-    "lr_bnd": 0.4,
-    "threshold_bnd": 0.05,
-    "tau_v_bnd": 2.0,
+    "lr_bnd": 0.6,
+    "threshold_bnd": 0.3,
+    "tau_v_bnd": 4.0,
 
-    "tau_ssry": 100.,
-    "threshold_ssry": 0.998,
+    "tau_ssry": 100.0,
+    "threshold_ssry": 0.995,
 
-    "threshold_circuit": 0.1,
+    "threshold_circuit": 0.9,
+    "remapping_flag": 5,
 
-    "rwd_weight": 0.1,
-    "rwd_sigma": 40.0,
-    "col_weight": 0.0,
-    "col_sigma": 2.0,
+    "rwd_weight": 4.91,
+    "rwd_sigma": 50.0,
+    "col_weight": -0.29,
+    "col_sigma": 35.0,
 
-    "action_delay": 50.,
-    "edge_route_interval": 50,
+    "rwd_field_mod_fine": 1.8,
+    "rwd_field_mod_coarse": 1.8,
+    "col_field_mod_fine": 0.7,
+    "col_field_mod_coarse": 0.5,
 
+    "action_delay": 140.0,
+    "edge_route_interval": 3,
     "forced_duration": 100,
-    "fine_tuning_min_duration": 10,
+    "fine_tuning_min_duration": 10
 }
 
 
-TOT_VALUES = 4
 
 
 """ FUNCTIONS """
+
+
+def change_parameters(params: dict, name: int):
+
+    # default
+    if name == "default":
+        return params
+
+    # no remap option
+    if name == "no_remap":
+        params["remapping_flag"] = -1
+        return params
+
+    # only da remap
+    if name == "only_da":
+        params["col_weight"] = 0
+        params["col_field_mod_fine"] = 1.
+        params["col_field_mod_coarse"] = 1.
+        return params
+
+    # only col remap
+    if name == "only_col":
+        params["rwd_weight"] = 0
+        params["rwd_field_mod_fine"] = 1.
+        params["rwd_field_mod_coarse"] = 1.
+        return params
+
+NUM_OPTIONS = 4
+OPTIONS = ["default", "no_remap", "only_da", "only_col"]
+ROOM_NAME = "Flat.0111"
 
 
 def convert_numpy(obj):
@@ -124,9 +157,7 @@ def convert_numpy(obj):
 
 
 def safe_run_model(params, room_name):
-
     """Runs sim.run_model in a subprocess to prevent crashes."""
-
     try:
         # Convert agent parameters to JSON, handling NumPy arrays
         params = json.dumps(params, default=convert_numpy)
@@ -140,8 +171,8 @@ def safe_run_model(params, room_name):
         command = [
             "python3", "-c",
             f"""
-import sys, os
-sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src/"))
+import os, sys
+os.chdir("".join((os.getcwd().split("PCNN")[0], "/PCNN/src/")))
 import json, simulations, numpy as np
 params = json.loads('{params}')
 global_parameters = json.loads('{global_params_json}')
@@ -150,7 +181,6 @@ game_settings = json.loads('{game_settings_json}')
 result = simulations.run_model(
     parameters=params,
     global_parameters=global_parameters,
-    agent_settings=agent_settings,
     reward_settings=reward_settings,
     game_settings=game_settings,
     room_name='{room_name}',
@@ -163,7 +193,8 @@ print(result)
 
         result = subprocess.run(command, check=True, capture_output=True, text=True)
 
-        # Extract the last line of output (assuming sim.run_model() prints only the result last)
+        # Extract the last line of output (assuming sim.run_model()
+        # prints only the result last)
         last_line = result.stdout.strip().split("\n")[-1]
 
         return float(last_line)
@@ -176,27 +207,21 @@ print(result)
         return 0
 
 
-def run_local_model(args):
+def run_local_model(args) -> list:
 
-    values = np.concatenate((np.around(np.linspace(-0.3, 0., TOT_VALUES//2, endpoint=False), 2),
-                             np.around(np.linspace(0, 0.3, TOT_VALUES//2, endpoint=False), 2),
-                             np.array([0.3])))
-    tot = len(values)
-    res = np.zeros((tot, tot))
+    results = []
 
-    for i in tqdm(range(tot)):
-        for j in range(tot):
-            params = PARAMETERS.copy()
-            params["rwd_weight"] = values[i]
-            params["col_weight"] = values[j]
+    logger(f"{ROOM_NAME=}")
 
-            result = safe_run_model(params, "Square.v0")
+    for i in tqdm(range(NUM_OPTIONS)):
+        params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
+        results += [safe_run_model(params, ROOM_NAME)]
 
-            res[i, j] = result
+    return results
 
-    return res
-
-
+def update_room_name(room_name):
+    global ROOM_NAME
+    ROOM_NAME = room_name
 
 
 if __name__ == "__main__":
@@ -210,8 +235,11 @@ if __name__ == "__main__":
                         help='Number of repetitions')
     parser.add_argument('--cores', type=int, default=4,
                         help='Number of cores')
+    parser.add_argument("--room", type=str, default="Square.v0",
+                        help=f'room name: {ROOMS} or `random`')
     parser.add_argument('--save', action='store_true',
                         help='save the results')
+    parser.add_argument("--load", action="store_true")
 
     args = parser.parse_args()
 
@@ -226,10 +254,10 @@ if __name__ == "__main__":
         logger.debug(f"LOADED: {PARAMETERS}")
 
     if args.room == "random":
-        ROOM_NAME = get_random_room()
+        update_room_name(get_random_room())
         logger(f"random room: {ROOM_NAME}")
     elif args.room in ROOMS:
-        ROOM_NAME = args.room
+        update_room_name(args.room)
         logger(f"room: {args.room}")
     else:
         logger.warning(f"default room: {ROOM_NAME}")
@@ -258,36 +286,26 @@ if __name__ == "__main__":
     if not args.save:
         sys.exit(0)
 
+    # prepare results
+    data = {
+        "options": OPTIONS,
+        "room": ROOM_NAME,
+        "parameters": PARAMETERS,
+        "global_parameters": global_parameters,
+        "results": results
+    }
+
     logger("saving results...")
 
-    data = np.zeros((results[0].shape), dtype=np.float64)
-
-    for res in results:
-        data += res / float(len(results))
-
-    # data /= float(len(results))
-    data = data.tolist()
-
-    localtime = time.localtime()
-    name = f"results/remap_"
-    name += f"{localtime.tm_mday}{localtime.tm_mon}_{localtime.tm_hour}{localtime.tm_min}"
-
-    # make folder
-    if not os.path.exists(f"results/{name}"):
-        os.makedirs(name)
-
     # save data
-    dataname = name + "/data.json"
+    localtime = time.localtime()
+    dataname = os.path.join(os.getcwd().split("PCNN")[0],
+                         "PCNN/src/analysis/results/options_eval_")
+    dataname += f"{localtime.tm_mday}{localtime.tm_mon}_{localtime.tm_hour}{localtime.tm_min}.json"
     with open(dataname, "w") as f:
         json.dump(data, f)
 
-    # save values
-    values = np.concatenate((np.around(np.linspace(-0.5, 0., TOT_VALUES//2, endpoint=False), 2),
-                             np.around(np.linspace(0, 0.5, TOT_VALUES//2, endpoint=False), 2),
-                             np.array([0.5]))).tolist()
-    with open(name + "/values.json", "w") as f:
-        json.dump(values, f)
-
+    logger(f"saved in '{dataname}'")
 
 
 
