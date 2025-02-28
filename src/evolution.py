@@ -18,9 +18,9 @@ from game.constants import ROOMS, GAME_SCALE
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
 NUM_SAMPLES = 3
-ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES,
+ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
                              replace=False).tolist()# + \
-#            ["Square.v0"]
+           ["Square.v0"]
 
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
 
@@ -52,11 +52,7 @@ game_settings = {
     "rendering": False,
     "max_duration": 10_000,
     "room_thickness": 20,
-<<<<<<< HEAD
     "t_teleport": 1000,
-=======
-    "t_teleport": 500,
->>>>>>> 089131fa7eba04b8da9a840b7f3537f8aff6b74e
     "seed": None,
     "pause": -1,
     "verbose": False,
@@ -294,7 +290,7 @@ FIXED_PARAMETERS = {
     # "col_field_mod_coarse": 1.0,
 
     "action_delay": 120.,
-    "edge_route_interval": 10,
+    "edge_route_interval": 5,
 
     #"forced_duration": 100,
     #"fine_tuning_min_duration": 50,
@@ -310,7 +306,7 @@ PARAMETERS = {
     "rep_threshold_fine": lambda: round(random.uniform(0.1, 0.9), 2),
     "rec_threshold_fine": lambda: round(random.uniform(20., 100.)),
     "tau_trace_fine": lambda: round(random.uniform(1., 200.)),
-    "remap_tag_frequency": lambda: int(np.clip(random.randint(-10, 50), 1, 50)),
+    "remap_tag_frequency": lambda: random.choice([1, 2, 4, 900]),
     "num_neighbors": lambda: int(np.clip(random.randint(1, 20), 1, 10)),
     "min_rep_threshold": lambda: round(random.uniform(0.2, 0.8), 2),
 
