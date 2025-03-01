@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = -Dpclib_EXPORTS
 
-CXX_INCLUDES = -I/home/daniekru/lab/PCNN/src/core/include -isystem /home/daniekru/lab/PCNN/src/core/extern/pybind11/include -isystem /usr/include/python3.8 -isystem /usr/include/eigen3
+CXX_INCLUDES = -I/home/daniekru/lab/PCNN/src/core/include -isystem /home/daniekru/lab/PCNN/src/core/extern/pybind11/include -isystem /usr/include/python3.10 -isystem /usr/include/eigen3
 
 CXX_FLAGS = -O3 -DNDEBUG -fPIC -fvisibility=hidden   -w -flto -fno-fat-lto-objects -std=c++20
 
