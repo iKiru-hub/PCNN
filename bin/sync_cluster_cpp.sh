@@ -1,10 +1,17 @@
 #!/bin/bash
 
-# --- compile cpp backend
+# --- compile cpp backend ---
+
+# --- go to the right directory
 cd ~/lab/PCNN/src/core
+
+# --- activate the virtual environment
+. /home/daniekru/codebase/myenvs/ecl1/bin/activate
+echo "ecl1 activated"
+
+# --- compile
 rm -rf build
 mkdir build
-ecl1
 ./bin/make.sh
 
 # --- run test
