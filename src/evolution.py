@@ -40,7 +40,7 @@ reward_settings = {
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
-    "tau": 300,# * GAME_SCALE,
+    "tau": 500,# * GAME_SCALE,
     "move_threshold": 3,# * GAME_SCALE,
 }
 
@@ -248,7 +248,7 @@ FIXED_PARAMETERS = {
 
     #"gain_fine": 15.,
     "offset_fine": 1.0,
-    #"threshold_fine": 0.3,
+    "threshold_fine": 0.4,
     #"rep_threshold_fine": 0.7,
     #"rec_threshold_fine": 50.,
     #"tau_trace_fine": 20.0,
@@ -259,22 +259,22 @@ FIXED_PARAMETERS = {
 
     #"gain_coarse": 15.,
     "offset_coarse": 1.0,
-    #"threshold_coarse": 0.4,
+    "threshold_coarse": 0.4,
     #"rep_threshold_coarse": 0.35,
     #"rec_threshold_coarse": 120.,
     #"tau_trace_coarse": 30.0,
 
     "lr_da": 0.99,
     "lr_pred": 0.3,
-    "threshold_da": 0.03,
-    #"tau_v_da": 4.0,
+    "threshold_da": 0.04,
+    "tau_v_da": 2.0,
 
     "lr_bnd": 0.6,
     "threshold_bnd": 0.3,
-    #"tau_v_bnd": 4.0,
+    "tau_v_bnd": 4.0,
 
-    "tau_ssry": 100.,
-    "threshold_ssry": 0.995,
+    # "tau_ssry": 100.,
+    # "threshold_ssry": 0.995,
 
     "threshold_circuit": 0.9,
     #"remapping_flag": 7,
@@ -292,7 +292,7 @@ FIXED_PARAMETERS = {
     "action_delay": 120.,
     "edge_route_interval": 5,
 
-    #"forced_duration": 100,
+    "forced_duration": 1,
     #"fine_tuning_min_duration": 50,
 }
 
@@ -303,19 +303,19 @@ PARAMETERS = {
     "gain_fine": lambda: round(random.uniform(2., 50.), 1),
     "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_fine": lambda: round(random.uniform(0.05, 0.5), 2),
-    "rep_threshold_fine": lambda: round(random.uniform(0.1, 0.9), 2),
+    "rep_threshold_fine": lambda: round(random.uniform(0.1, 0.95), 2),
     "rec_threshold_fine": lambda: round(random.uniform(20., 100.)),
-    "tau_trace_fine": lambda: round(random.uniform(1., 200.)),
+    "tau_trace_fine": lambda: round(random.uniform(1., 300.)),
     "remap_tag_frequency": lambda: random.choice([1, 2, 4, 900]),
-    "num_neighbors": lambda: int(np.clip(random.randint(1, 20), 1, 10)),
-    "min_rep_threshold": lambda: round(random.uniform(0.2, 0.8), 2),
+    "num_neighbors": lambda: int(random.randint(3, 20)),
+    "min_rep_threshold": lambda: round(random.uniform(0.2, 0.95), 2),
 
     "gain_coarse": lambda: round(random.uniform(2., 50.), 1),
     "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
     "threshold_coarse": lambda: round(random.uniform(0.05, 0.5), 2),
-    "rep_threshold_coarse": lambda: round(random.uniform(0.1, 0.8), 2),
+    "rep_threshold_coarse": lambda: round(random.uniform(0.1, 0.95), 2),
     "rec_threshold_coarse": lambda: round(random.uniform(30., 130.)),
-    "tau_trace_coarse": lambda: round(random.uniform(1., 200.)),
+    "tau_trace_coarse": lambda: round(random.uniform(1., 500.)),
 
     "lr_da": lambda: round(random.uniform(0.05, 0.99), 2),
     "lr_pred": lambda: round(random.uniform(0.05, 0.99), 2),
@@ -326,15 +326,15 @@ PARAMETERS = {
     "threshold_bnd": lambda: round(random.uniform(0.01, 0.5), 2),
     "tau_v_bnd": lambda: float(random.randint(1, 10)),
 
-    "tau_ssry": lambda: float(random.randint(1, 800)),
-    "threshold_ssry": lambda: round(random.uniform(0.8, 0.9999), 3),
+    "tau_ssry": lambda: float(random.randint(5, 600)),
+    "threshold_ssry": lambda: round(random.uniform(0.7, 1.), 3),
 
     "threshold_circuit": lambda: round(random.uniform(0.2, 0.9), 2),
     "remapping_flag": lambda: int(np.random.randint(0, 7)),
 
-    "rwd_weight": lambda: round(random.uniform(-5.0, 5.0), 2),
+    "rwd_weight": lambda: round(random.uniform(-5.0, 10.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 130.0), 1),
-    "col_weight": lambda: round(random.uniform(-5.0, 5.0), 2),
+    "col_weight": lambda: round(random.uniform(-5.0, 10.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
 
     "rwd_field_mod_fine": lambda: round(random.uniform(-2.0, 2.0), 1),
@@ -345,7 +345,7 @@ PARAMETERS = {
     "action_delay": lambda: round(random.uniform(1., 200.), 1),
     "edge_route_interval": lambda: random.randint(1, 200),
 
-    "forced_duration": lambda: random.randint(1, 500),
+    "forced_duration": lambda: random.randint(1, 50),
     "fine_tuning_min_duration": lambda: random.randint(1, 100),
 }
 

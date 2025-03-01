@@ -74,7 +74,7 @@ if(APPLE)
     set_target_properties(pclib PROPERTIES
         LINK_FLAGS "-stdlib=libc++ -mmacosx-version-min=10.9"
     )
-
+    
     # Flags for test executable
     target_compile_options(pcnn_test PRIVATE 
         -stdlib=libc++ 
@@ -93,5 +93,5 @@ endif()
 add_definitions(-w)
 
 # print that the warning suppression is on
-message(">>> Hello! Beware that warning suppression is on <<<")
+message(">>> Yo sup dawg, beware that warning suppression is on <<<")
 
