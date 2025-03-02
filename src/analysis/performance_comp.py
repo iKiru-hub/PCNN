@@ -24,40 +24,41 @@ reward_settings = {
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.08 * GAME_SCALE,
-    "rw_sigma": 0.8,# * GAME_SCALE,
+    "rw_sigma": 0.5,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 2,
-    "silent_duration": 0_000,
-    "fetching_duration": 10,
+    "delay": 5,
+    "silent_duration": 10_000,
+    "fetching_duration": 2,
     "transparent": False,
-    "beta": 40.,
+    "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
-    "tau": 300,# * GAME_SCALE,
-    "move_threshold": 4,# * GAME_SCALE,
+    "tau": 500,# * GAME_SCALE,
+    "move_threshold": 3,# * GAME_SCALE,
 }
 
 game_settings = {
     "plot_interval": 5,
     "rw_event": "move both",
-    "rendering": False,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
-    "max_duration": 10_000,
-    "room_thickness": 30,
-    "t_teleport": 100,
+    "rendering": False,
+    "max_duration": 20_000,
+    "room_thickness": 20,
+    "t_teleport": 2_000,
     "seed": None,
     "pause": -1,
-    "verbose": True
+    "verbose": False,
+    "verbose_min": False
 }
 
 global_parameters = {
-    "local_scale_fine": 0.02,
+    "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
-    "N": 32**2,
-    "Nc": 26**2,
+    "N": 31**2,
+    "Nc": 24**2,
     "use_sprites": False,
-    "speed": 0.7,
+    "speed": 1.,
     "min_weight_value": 0.5
 }
 
@@ -218,6 +219,7 @@ def run_local_model(args) -> list:
         results += [safe_run_model(params, ROOM_NAME)]
 
     return results
+
 
 def update_room_name(room_name):
     global ROOM_NAME

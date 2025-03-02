@@ -26,7 +26,8 @@ echo "[git 'main']"
 
 # --- RUN
 
-srun python3 analysis/study_performance.py --reps 5 --cores 64 --save --room "Square.v0"
+# srun python3 analysis/study_performance.py --reps 5 --cores 64 --save --room "Square.v0"
+srun python3 analysis/performance_comp.py --reps 2 --cores 128 --save --room "Square.v0"
 
 echo "[finished]"
 

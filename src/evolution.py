@@ -52,7 +52,7 @@ game_settings = {
     "rendering": False,
     "max_duration": 20_000,
     "room_thickness": 20,
-    "t_teleport": 2000,
+    "t_teleport": 2_000,
     "seed": None,
     "pause": -1,
     "verbose": False,
