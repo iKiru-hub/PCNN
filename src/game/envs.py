@@ -95,6 +95,7 @@ class Room:
         self.bounce_coeff = bounce_coeff
         self.moving_wall = moving_wall
         self.t = 0
+        self.counter = -1
 
     def __str__(self):
         return f"Room({self.name})"
@@ -215,6 +216,13 @@ class Room:
     def get_room_positions(self) -> Tuple[float, float]:
         return self.room_positions.copy()
 
+    def sample_next_position(self) -> Tuple[float, float]:
+        self.counter += 1
+        return self.room_positions[self.counter % len(self.room_positions)]
+
+    def sample_random_position(self) -> Tuple[float, float]:
+        return self.room_positions[np.random.randint(len(self.room_positions))]
+
     def render(self, screen: pygame.Surface):
         for wall in self.walls:
             wall.render(screen)
@@ -300,7 +308,7 @@ def make_room(name: str="square", thickness: float=10.,
                  2*SCREEN_WIDTH//3-2*OFFSET, thickness),
         ]
         room_positions = [
-            [0.25, 0.25], [0.8, 0.8]
+            [0.25, 0.25], [0.8, 0.8], [0.5, 0.5], [0.25, 0.5], [0.75, 0.5]
         ]
     elif name == "Flat.0100":
         walls_extra += [
@@ -489,6 +497,7 @@ def get_random_room() -> str:
     return np.random.choice(ROOMS)
 
 
+
 """ Environment class """
 
 
@@ -603,11 +612,15 @@ class Environment:
             raise ValueError(f"Unknown reward " + \
                 f"event: {self.rw_event}")
 
-    def _reset_agent_position(self, brain: object):
+    def _reset_agent_position(self, brain: object, exploration: bool = False):
 
         brain.reset()
         prev_position = self.agent.position.copy()
-        self.agent.set_position()
+
+        if exploration:
+            self.agent.set_position(self.room.sample_next_position())
+        else:
+            self.agent.set_position(self.room.sample_random_position())
 
         displacement = [(self.agent.position[0] - prev_position[0]),
                         (-self.agent.position[1] + prev_position[1])]

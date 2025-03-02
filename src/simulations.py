@@ -63,7 +63,7 @@ global_parameters = {
     "local_scale_coarse": 0.006,
     "N": 32**2,
     "Nc": 27**2,
-    "use_sprites": False,
+    "use_sprites": True,
     "speed": 0.7,
     "min_weight_value": 0.5
 }
@@ -472,8 +472,9 @@ def run_model(parameters: dict, global_parameters: dict,
     agent_possible_positions = possible_positions.copy()
 
     # del agent_possible_positions[rw_position_idx]
-    agent_position = agent_possible_positions[np.random.randint(0,
-                                                len(agent_possible_positions))]
+    # agent_position = agent_possible_positions[np.random.randint(0,
+    #                                             len(agent_possible_positions))]
+    agent_position = room.sample_next_position()
 
     rw_tau = reward_settings["tau"] if "tau" in reward_settings else 100
     if "move_threlshold" in reward_settings:
@@ -587,16 +588,16 @@ def run_game(env: games.Environment,
         # -reward
         # if observation[2] and verbose and verbose_min:
         #     logger.debug(f">> Reward << [{observation[2]}]")
-            # input()
+        #     input()
 
         # -collision
         # if observation[2] and verbose and verbose_min:
         #     logger.debug(f">!!< Collision << [{observation[2]}]")
-            # input()
+        #     input()
 
         # -check: teleport
         if env.t % t_teleport == 0 and env.reward_obj.is_silent:
-            env._reset_agent_position(brain)
+            env._reset_agent_position(brain, True)
 
         # velocity
         v = [(env.position[0] - prev_position[0]),
@@ -848,7 +849,8 @@ def main_game(global_parameters: dict=global_parameters,
     agent_possible_positions = possible_positions.copy()
     # agent_position = agent_possible_positions[np.random.randint(0,
     #                                             len(agent_possible_positions))]
-    agent_position = possible_positions[0]
+    # agent_position = possible_positions[0]
+    agent_position = room.sample_next_position()
 
     rw_tau = reward_settings["tau"] if "tau" in reward_settings else 400
     if "move_threlshold" in reward_settings:

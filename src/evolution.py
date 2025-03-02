@@ -17,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 4
+NUM_SAMPLES = 3
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
                              replace=False).tolist() + \
            ["Square.v0"]
@@ -35,8 +35,8 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 5_000,
-    "fetching_duration": 3,
+    "silent_duration": 10_000,
+    "fetching_duration": 2,
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
@@ -50,9 +50,9 @@ game_settings = {
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "rendering": False,
-    "max_duration": 10_000,
+    "max_duration": 20_000,
     "room_thickness": 20,
-    "t_teleport": 1000,
+    "t_teleport": 2000,
     "seed": None,
     "pause": -1,
     "verbose": False,
@@ -233,6 +233,10 @@ class Env:
             # if zero_scores == 3:
             #     fitness = 0
             #     break
+
+            # cap
+            score = min(60., score)
+
             fitness += score
 
         fitness /= self._num_samples
@@ -277,7 +281,7 @@ FIXED_PARAMETERS = {
     # "threshold_ssry": 0.995,
 
     "threshold_circuit": 0.9,
-    #"remapping_flag": 7,
+    "remapping_flag": 2,
 
     #"rwd_weight": 3.0,
     #"rwd_sigma": 50.0,
@@ -327,7 +331,7 @@ PARAMETERS = {
     "tau_v_bnd": lambda: float(random.randint(1, 10)),
 
     "tau_ssry": lambda: float(random.randint(5, 600)),
-    "threshold_ssry": lambda: round(random.uniform(0.7, 1.), 3),
+    "threshold_ssry": lambda: round(random.uniform(0.9, 1.), 3),
 
     "threshold_circuit": lambda: round(random.uniform(0.2, 0.9), 2),
     "remapping_flag": lambda: int(np.random.randint(0, 7)),

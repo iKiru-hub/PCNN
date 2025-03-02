@@ -346,4 +346,9 @@ Michael~I. Anderson and Kathryn~J. Jeffery.
 Risto Miikkulainen, Jason Liang, Elliot Meyerson, Aditya Rawal, Dan Fink, Olivier Francon, Bala Raju, Hormoz Shahrzad, Arshak Navruzyan, Nigel Duffy, and Babak Hodjat.
 \newblock Evolving {{Deep Neural Networks}}, March 2017.
 
+\bibitem{igelCovarianceMatrixAdaptation2007}
+Christian Igel, Nikolaus Hansen, and Stefan Roth.
+\newblock Covariance {{Matrix Adaptation}} for {{Multi-objective Optimization}}.
+\newblock {\em Evolutionary Computation}, 15(1):1--28, March 2007.
+
 \end{thebibliography}
