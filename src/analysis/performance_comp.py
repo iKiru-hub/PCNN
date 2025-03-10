@@ -62,7 +62,7 @@ global_parameters = {
     "min_weight_value": 0.5
 }
 
-PARAMETERS = {
+PARAMETERS2 = {
     "gain_fine": 33.3,
     "offset_fine": 1.0,
     "threshold_fine": 0.3,
@@ -111,6 +111,9 @@ PARAMETERS = {
     "forced_duration": 100,
     "fine_tuning_min_duration": 10
 }
+
+PARAMETERS = {"gain_fine": 25.2, "offset_fine": 1.0, "threshold_fine": 0.4, "rep_threshold_fine": 0.91, "rec_threshold_fine": 80, "tau_trace_fine": 158, "remap_tag_frequency": 2, "num_neighbors": 7, "min_rep_threshold": 0.66, "gain_coarse": 48.4, "offset_coarse": 1.0, "threshold_coarse": 0.4, "rep_threshold_coarse": 0.8, "rec_threshold_coarse": 40, "tau_trace_coarse": 20, "lr_da": 0.99, "lr_pred": 0.3, "threshold_da": 0.04, "tau_v_da": 2.0, "lr_bnd": 0.6, "threshold_bnd": 0.3, "tau_v_bnd": 4.0, "tau_ssry": 214.0, "threshold_ssry": 0.981, "threshold_circuit": 0.9, "remapping_flag": 2, "rwd_weight": 4.47, "rwd_sigma": 30.6, "col_weight": 8.87, "col_sigma": 51.1, "rwd_field_mod_fine": 0.9, "rwd_field_mod_coarse": 1.9, "col_field_mod_fine": 1.2, "col_field_mod_coarse": 0.1, "action_delay": 120.0, "edge_route_interval": 5, "forced_duration": 1, "fine_tuning_min_duration": 75}
+
 
 
 """ FUNCTIONS """
