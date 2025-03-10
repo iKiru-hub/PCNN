@@ -16,13 +16,16 @@ Further, in order to mimic the depletion of a food source the reward area was mo
 The optimization of the parameters of the model was carried out using the Covariance-Matrix Adaptation evolutionary strategy (CMA-ES) \cite{igelCovarianceMatrixAdaptation2007} with a population of 256 individuals for 100 generations.
 
 
-\subsection{Performance over environments}
+\subsection{Performance over different environments}
 The best model resulting from evolution reached solid navigation and adaptation skills. Within the limits imposed by the rudimentary exploration policy based on random walks, the agent was able to visit a significant portion of the environment during exploration, and tune its modulatory system to craft cognitive maps useful during exploitation.
 
 In figure \ref{fig:results_1} we can see the cognitive maps formed by the agent in three different environments.
 In plot \ref{fig:results_1}-\textbf{a} it is reported a linear track with wide margins, represented in terms of four layers: the nodes of the fine-grained place cells (top), the graph of the coarse-grained place cells (center-top), the boundary-tagged place cells (center-bottom), and the reward-tagged place cells (bottom).
-The overlap of the coarse-grained place cells, boundary and reward-sensitive place cells is what we refer to as the cognitive map.
+The overlap of these last three representations is what we refer to as the cognitive map, since these are the layers providing the main information used during goal planning.
+In plot \ref{fig:results_1}-\textbf{b} and \ref{fig:results_1}-\textbf{c} we can see the cognitive maps formed in a square environment without and with internal walls, respectively.
 
+In red is indicated the trajectory of the agent, and notable it is the greater number of lines crossing into the rewarding zone, in green.
+The agent's planned path is shown in grey, highlighting how it dodges the walls and go straight to the goal.
 
 \begin{figure}[h]
     \centering
@@ -33,3 +36,22 @@ The overlap of the coarse-grained place cells, boundary and reward-sensitive pla
     \textbf{c}: \textit{square environment with internal walls, the right and left plot as before, but with the addition of the path planned by the agent to reach the target (grey)}}
     \label{fig:results_1}
 \end{figure}
+
+
+\subsection{Modulation of cell density affects performance}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

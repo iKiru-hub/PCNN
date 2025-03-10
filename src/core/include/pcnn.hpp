@@ -2151,6 +2151,7 @@ public:
     Eigen::MatrixXf get_centers(bool nonzero = false)
         { return vspace.get_centers(nonzero); }
     Eigen::VectorXf& get_node_degrees() { return vspace.node_degree; }
+    Eigen::VectorXf& get_gain() { return gain_v; }
     float get_delta_update() { return delta_wff; }
     Eigen::MatrixXf get_positions_gcn()
         { return xfilter.get_positions(); }
@@ -3341,9 +3342,11 @@ public:
                     GCL_REF(0.04, 0.8 * local_scale_fine),
                     GCL_REF(0.04, 0.7 * local_scale_fine),
                     GCL_REF(0.04, 0.5 * local_scale_fine),
+                    GCL_REF(0.04, 0.4 * local_scale_fine),
                     GCL_REF(0.04, 0.3 * local_scale_fine),
                     GCL_REF(0.04, 0.2 * local_scale_fine),
-                    GCL_REF(0.04, 0.1 * local_scale_fine)}),
+                    GCL_REF(0.04, 0.1 * local_scale_fine),
+                    GCL_REF(0.04, 0.07 * local_scale_fine)}),
         gcn(GCN_REF(gcn_layers)),
         space_fine(PCNN(N, gcn.len(), gain_fine, offset_fine,
                         0.01f, threshold_fine, rep_threshold_fine,
@@ -3530,6 +3533,8 @@ final:
     Eigen::MatrixXf get_space_coarse_centers() { return space_coarse.get_centers(); }
     Eigen::VectorXf get_da_weights() { return circuits.get_da_weights(); }
     Eigen::VectorXf get_bnd_weights() { return circuits.get_bnd_weights(); }
+    Eigen::VectorXf get_gain_fine() { return space_fine.get_gain(); }
+    Eigen::VectorXf get_gain_coarse() { return space_coarse.get_gain(); }
     std::vector<std::array<std::array<float, 2>, 2>> make_space_fine_edges()
         { return space_fine.make_edges(); }
     std::vector<std::array<std::array<float, 2>, 2>> make_space_coarse_edges()

@@ -373,6 +373,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_space_coarse_centers", &Brain::get_space_coarse_centers)
         .def("get_space_fine_count", &Brain::get_space_fine_count)
         .def("get_space_coarse_count", &Brain::get_space_coarse_count)
+        .def("get_gain_fine", &Brain::get_gain_fine)
+        .def("get_gain_coarse", &Brain::get_gain_coarse)
         .def("make_space_fine_edges", &Brain::make_space_fine_edges)
         .def("make_space_coarse_edges", &Brain::make_space_coarse_edges)
         .def("get_da_weights", &Brain::get_da_weights)

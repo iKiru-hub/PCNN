@@ -152,7 +152,7 @@ def load_session():
     return parameters, session_config
 
 
-def load_parameters():
+def load_parameters(idx: int=None):
 
     logger = setup_logger(name="UTILS", colored=True,
                           level=2, is_debugging=True,
@@ -160,16 +160,17 @@ def load_parameters():
 
     logger("\n----\nLoading from evolution")
 
-    files = os.listdir(CACHE_PATH)
+    if idx is None:
+        files = os.listdir(CACHE_PATH)
 
-    # sort the files by name
-    files = sorted(files, key=lambda x: int(x.split("_")[0]))
+        # sort the files by name
+        files = sorted(files, key=lambda x: int(x.split("_")[0]))
 
-    for i, file in enumerate(files):
-        print(f"{i}: {file}")
+        for i, file in enumerate(files):
+            print(f"{i}: {file}")
 
-    ans = input("\n>Select file: ")
-    idx = -1 if ans == "" else int(ans)
+        ans = input("\n>Select file: ")
+        idx = -1 if ans == "" else int(ans)
 
     with open(f"{CACHE_PATH}/{files[idx]}", "r") as f:
         run_data = json.load(f)

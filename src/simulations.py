@@ -62,7 +62,7 @@ global_parameters = {
     "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
     "N": 32**2,
-    "Nc": 27**2,
+    "Nc": 32**2,
     "use_sprites": True,
     "speed": 0.7,
     "min_weight_value": 0.5
@@ -136,13 +136,11 @@ possible_positions = np.array([
 class Renderer:
 
     def __init__(self, brain: object, boundsx: tuple=(-110, 450),
-                 boundsy: tuple=(-450, 110)):
+                 boundsy: tuple=(-450, 110),
+                 render_type: str="space"):
 
         self.brain = brain
         self.names = ["DA", "BND"]
-        # self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
-        self.fig, self.axs = plt.subplots(1, 1, figsize=(4, 4))
-        self.fig.set_tight_layout(True)
         self.min_x = boundsx[0]
         self.max_x = boundsx[1]
         self.min_y = boundsy[0]
@@ -150,6 +148,21 @@ class Renderer:
         self.boundsy = boundsy
         print(f"boundsx={self.boundsx}")
         print(f"boundsy={self.boundsy}")
+        self.render_type = render_type
+        if render_type == "space0":
+            self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
+        else:
+            self.fig, self.axs = plt.subplots(1, 1, figsize=(4, 4))
+        self.fig.set_tight_layout(True)
+
+    def __call__(self):
+
+        if self.render_type == "space":
+            self.render()
+        elif self.render_type == "space0":
+            self.render2()
+        else:
+            raise ValueError("render_type not recognized")
 
     def render(self):
 
@@ -306,7 +319,7 @@ class Renderer:
         #                        cmap="Oranges", alpha=0.5)
 
         # -- fine space
-        # self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_fine_count()}")
+        self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_fine_count()}")
         # self.axs[0, 0].set_title(f"Fine-grained space")
         self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
                                color="red", s=50, marker="v", alpha=0.8)
@@ -316,10 +329,10 @@ class Renderer:
         self.axs[0, 0].grid(alpha=0.1)
         self.axs[0, 0].set_xticks(())
         self.axs[0, 0].set_yticks(())
-        self.axs[0, 0].legend()
+        # self.axs[0, 0].legend()
 
         # -- coarse space
-        # self.axs[0, 1].set_title(f"#PCs={self.brain.get_space_coarse_count()}")
+        self.axs[0, 1].set_title(f"#PCs={self.brain.get_space_coarse_count()}")
         # self.axs[0, 1].set_title(f"Coarse-grained space")
         self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_position()).T,
                                color="red", s=50, marker="v", alpha=0.8)
@@ -329,7 +342,7 @@ class Renderer:
         self.axs[0, 1].set_yticks(())
         self.axs[0, 1].set_aspect('equal', adjustable='box')
         self.axs[0, 1].grid(alpha=0.1)
-        self.axs[0, 1].legend()
+        # self.axs[0, 1].legend()
 
         # -- BND
         self.axs[1, 0].clear()
@@ -634,7 +647,7 @@ def run_game(env: games.Environment,
             if env.t % plot_interval == 0:
                 env.render()
                 if renderer:
-                    renderer.render()
+                    renderer()
         # else:
         #     if env.t % plot_interval == 0 and verbose:
         #         logger(f"{env.t/env.duration*100:.1f}%")
@@ -748,7 +761,7 @@ def main_game(global_parameters: dict=global_parameters,
               reward_settings: dict=reward_settings,
               game_settings: dict=game_settings,
               room_name: str="Square.v0", load: bool=False,
-              duration: int=-1):
+              render_type: str="space", duration: int=-1):
 
     """
     meant to be run standalone
@@ -903,7 +916,7 @@ def main_game(global_parameters: dict=global_parameters,
     """ run game """
 
     if game_settings["rendering"]:
-        renderer = Renderer(brain=brain)
+        renderer = Renderer(brain=brain, render_type=render_type)
     else:
         renderer = None
 
@@ -1104,6 +1117,7 @@ if __name__ == "__main__":
                         help="plotting interval")
     parser.add_argument("--load", action="store_true")
     parser.add_argument("--render", action="store_true")
+    parser.add_argument("--render_type", type=str, default="space")
 
     args = parser.parse_args()
 
@@ -1127,7 +1141,8 @@ if __name__ == "__main__":
 
     # --- run
     if args.main == "game":
-        main_game(room_name=args.room, load=args.load, duration=args.duration)
+        main_game(room_name=args.room, load=args.load, duration=args.duration,
+                  render_type=args.render_type)
     if args.main == "cartpole":
         main_cartpole(load=args.load,
                       duration=args.duration,

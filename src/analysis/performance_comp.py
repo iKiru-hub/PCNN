@@ -113,9 +113,11 @@ PARAMETERS = {
 }
 
 
-
-
 """ FUNCTIONS """
+
+NUM_OPTIONS = 4
+OPTIONS = ["default", "no_remap", "only_da", "only_col"]
+ROOM_NAME = "Square.v0"
 
 
 def change_parameters(params: dict, name: int):
@@ -142,10 +144,6 @@ def change_parameters(params: dict, name: int):
         params["rwd_field_mod_fine"] = 1.
         params["rwd_field_mod_coarse"] = 1.
         return params
-
-NUM_OPTIONS = 4
-OPTIONS = ["default", "no_remap", "only_da", "only_col"]
-ROOM_NAME = "Flat.0111"
 
 
 def convert_numpy(obj):
@@ -308,23 +306,5 @@ if __name__ == "__main__":
         json.dump(data, f)
 
     logger(f"saved in '{dataname}'")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
