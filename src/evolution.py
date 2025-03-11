@@ -17,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 3
+NUM_SAMPLES = 2
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
                              replace=False).tolist() + \
            ["Square.v0"]
@@ -235,7 +235,7 @@ class Env:
             #     break
 
             # cap
-            score = min(60., score)
+            score = min(80., score)
 
             fitness += score
 
@@ -310,7 +310,7 @@ PARAMETERS = {
     "rep_threshold_fine": lambda: round(random.uniform(0.1, 0.95), 2),
     "rec_threshold_fine": lambda: round(random.uniform(20., 100.)),
     "tau_trace_fine": lambda: round(random.uniform(1., 300.)),
-    "remap_tag_frequency": lambda: random.choice([1, 2, 4, 900]),
+    "remap_tag_frequency": lambda: random.choice([1, 2, 3, 4]),
     "num_neighbors": lambda: int(random.randint(3, 20)),
     "min_rep_threshold": lambda: round(random.uniform(0.2, 0.95), 2),
 
