@@ -2083,6 +2083,9 @@ public:
         for (int i = 0; i < N; i++) {
             if (u(i) > 0.1) {
                 gain_v(i) = modulation * gain_const * traces(i) + (1 - traces(i)) * gain_const;
+
+                // mimumum value of 5.0f
+                gain_v(i) = std::max(gain_v(i), 5.0f);
             }
         }
     }
