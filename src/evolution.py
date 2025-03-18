@@ -282,7 +282,7 @@ FIXED_PARAMETERS = {
     # "threshold_ssry": 0.995,
 
     "threshold_circuit": 0.9,
-    "remapping_flag": 2,
+    "remapping_flag": -1,
 
     #"rwd_weight": 3.0,
     #"rwd_sigma": 50.0,
@@ -462,7 +462,7 @@ if __name__ == "__main__" :
         "data": {"game_settings": game_settings.copy(),
                  "reward_settings": reward_settings.copy(),
                  "global_parameters": global_parameters.copy()},
-        "other": "forced remapping choice, plentiful",
+        "other": "no remapping",
     }
     logger(f"Note: {info['other']}")
 
