@@ -282,7 +282,7 @@ FIXED_PARAMETERS = {
     # "threshold_ssry": 0.995,
 
     "threshold_circuit": 0.9,
-    "remapping_flag": -1,
+    "remapping_flag": 8,
 
     #"rwd_weight": 3.0,
     #"rwd_sigma": 50.0,

@@ -2870,9 +2870,11 @@ std::array<bool, 4> remapping_options(int flag) {
         case 5:
             return {true, false, true, true};
         case 6:
-            return {false, true, false, true};
+            return {true, true, false, true};
         case 7:
             return {false, true, true, true};
+        case 8:
+            return {false, false, true, true};
         default:
             return {false, false, false, false};
     }
