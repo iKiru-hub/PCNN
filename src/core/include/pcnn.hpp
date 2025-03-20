@@ -2681,9 +2681,9 @@ class GoalModule {
         // make plan path
         std::vector<int> plan_idxs = \
             spatial_shortest_path(space_fine.get_connectivity(),
-                                         space_fine.get_centers(),
-                                         space_weights,
-                                         curr_idx, trg_idx);
+                                  space_fine.get_centers(),
+                                  space_weights,
+                                  curr_idx, trg_idx);
 
         // check if the plan is valid, ie size > 1
         if (plan_idxs.size() < 1) {
@@ -2874,7 +2874,7 @@ std::array<bool, 4> remapping_options(int flag) {
         case 7:
             return {false, true, true, true};
         case 8:
-            return {false, false, true, true};
+            return {false, true, false, true};
         default:
             return {false, false, false, false};
     }
@@ -2887,7 +2887,7 @@ struct DensityPolicy {
     float rwd_sigma;
     float col_weight;;
     float col_sigma;
-    float rwd_drive = 0.0f;
+    float rwd_drive = 0.0f ;
     float col_drive = 0.0f;
 
     float rwd_field_mod_fine;

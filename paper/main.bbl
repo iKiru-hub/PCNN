@@ -337,6 +337,11 @@ Vemund~Sigmundson Sch{\o}yen, Kosio Beshkov, Markus~Borud Pettersen, Erik Herman
 \newblock Hexagons all the way down: Grid cells as a conformal isometric map of space.
 \newblock {\em PLOS Computational Biology}, 21(2):e1012804, February 2025.
 
+\bibitem{igelCovarianceMatrixAdaptation2007}
+Christian Igel, Nikolaus Hansen, and Stefan Roth.
+\newblock Covariance {{Matrix Adaptation}} for {{Multi-objective Optimization}}.
+\newblock {\em Evolutionary Computation}, 15(1):1--28, March 2007.
+
 \bibitem{andersonHeterogeneousModulationPlace2003}
 Michael~I. Anderson and Kathryn~J. Jeffery.
 \newblock Heterogeneous {{Modulation}} of {{Place Cell Firing}} by {{Changes}} in {{Context}}.
@@ -345,10 +350,5 @@ Michael~I. Anderson and Kathryn~J. Jeffery.
 \bibitem{miikkulainenEvolvingDeepNeural2017}
 Risto Miikkulainen, Jason Liang, Elliot Meyerson, Aditya Rawal, Dan Fink, Olivier Francon, Bala Raju, Hormoz Shahrzad, Arshak Navruzyan, Nigel Duffy, and Babak Hodjat.
 \newblock Evolving {{Deep Neural Networks}}, March 2017.
-
-\bibitem{igelCovarianceMatrixAdaptation2007}
-Christian Igel, Nikolaus Hansen, and Stefan Roth.
-\newblock Covariance {{Matrix Adaptation}} for {{Multi-objective Optimization}}.
-\newblock {\em Evolutionary Computation}, 15(1):1--28, March 2007.
 
 \end{thebibliography}

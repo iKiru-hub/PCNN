@@ -17,6 +17,7 @@ The optimization of the parameters of the model was carried out using the Covari
 
 
 \subsection{Performance over different environments}
+Our primary aim was to test the reward performance in different environments.
 The best model resulting from evolution reached solid navigation and adaptation skills. Within the limits imposed by the rudimentary exploration policy based on random walks, the agent was able to visit a significant portion of the environment during exploration, and tune its modulatory system to craft cognitive maps useful during exploitation.
 
 In figure \ref{fig:results_1} we can see the cognitive maps formed by the agent in three different environments.
@@ -38,7 +39,16 @@ The agent's planned path is shown in grey, highlighting how it dodges the walls 
 \end{figure}
 
 
-\subsection{Modulation of cell density affects performance}
+
+\subsection{Modulation of spatial resolution affects performance}
+Our second aim was to investigate the possibility of online alteration of the place cells density, in terms of its potential performance improvement.
+This action is motivated by the consolidated phenomenon of hippocampal rate remapping, for which the place cells change their firing pattern according to contextual shifts \cite{andersonHeterogeneousModulationPlace2003, fentonRemappingRevisitedHow2024}. Additionally, there is growing experimental evidence that place fields can be moved in space following
+behaviourally relevant events, such as the occurrence of reward, according to a plasticity rule known as behavioural time-scale plasticity (BTSP) \cite{bittnerBehavioralTimeScale2017, miikkulainenEvolvingDeepNeural2017}.
+
+In our model, we associated this process to both collision and reward signals, whose location is set to be the center towards which the cells within a certain radius $r_{\text{BND}},\;r_{\text{DA}}$ are pulled. The centers of the cells involved are shifted with a force proportional to the Gaussian distance from the center of the signal, and the strength is weighted by a parameter $\lambda_{\text{BND}},\;\lambda_{\text{DA}}$.
+
+Our working hypothesis is that the online re-configuration of the cognitive map can lead to a representation of the environment more tailored with the agent experience. This changes introduced by this mechanism should then be reflected in the adaptability and navigation abilities.
+
 
 
 

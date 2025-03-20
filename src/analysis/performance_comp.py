@@ -161,7 +161,7 @@ PARAMETERS = {
 OPTIONS = ["baseline", "no_remap", "default", "only_da", "only_col"]
 NUM_OPTIONS = len(OPTIONS)
 # ROOM_NAME = "Square.v0"
-ROOM_NAME = "Flat.0001"
+ROOM_NAME = "Flat.0010"
 
 
 def change_parameters(params: dict, name: int):
@@ -286,11 +286,12 @@ if __name__ == "__main__":
                         help='Number of repetitions')
     parser.add_argument('--cores', type=int, default=4,
                         help='Number of cores')
-    parser.add_argument("--room", type=str, default="Square.v0",
+    parser.add_argument("--room", type=str, default="none",
                         help=f'room name: {ROOMS} or `random`')
     parser.add_argument('--save', action='store_true',
                         help='save the results')
-    parser.add_argument("--load", action="store_true")
+    parser.add_argument('--load_idx', type=int, default=-1,
+                        help='agent index')
 
     args = parser.parse_args()
 
@@ -300,8 +301,9 @@ if __name__ == "__main__":
     chunksize = args.reps
     NUM_REPS = NUM_CORES * chunksize
 
-    if args.load:
-        PARAMETERS = utils.load_parameters()
+    if args.load_idx > -1:
+        assert isinstance(int, args.load_idx), "agent idx must be int"
+        PARAMETERS = utils.load_parameters(args.load_idx)
         logger.debug(f"LOADED: {PARAMETERS}")
 
     if args.room == "random":
@@ -310,7 +312,7 @@ if __name__ == "__main__":
     elif args.room in ROOMS:
         update_room_name(args.room)
         logger(f"room: {args.room}")
-    else:
+    elif args.room != "none":
         logger.warning(f"default room: {ROOM_NAME}")
 
 

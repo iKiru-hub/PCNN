@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024/Homebrew) (preloaded format=pdflatex 2024.10.29)  2 MAR 2025 22:28
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024/Homebrew) (preloaded format=pdflatex 2024.10.29)  20 MAR 2025 15:24
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -465,7 +465,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 74--75
  []
 
 [4]) (./methods.tex
-<figures/figure_model.png, id=212, 554.82281pt x 437.38406pt>
+<figures/figure_model.png, id=208, 554.82281pt x 437.38406pt>
 File: figures/figure_model.png Graphic file (type png)
 <use figures/figure_model.png>
 Package pdftex.def Info: figures/figure_model.png  used on input line 10.
@@ -476,16 +476,16 @@ Overfull \hbox (1.27606pt too wide) in paragraph at lines 68--70
  []
 
 [8]) (./results.tex [9]
-<figures/results_1.png, id=276, 627.09282pt x 280.79906pt>
+<figures/results_1.png, id=267, 627.09282pt x 280.79906pt>
 File: figures/results_1.png Graphic file (type png)
 <use figures/results_1.png>
-Package pdftex.def Info: figures/results_1.png  used on input line 32.
+Package pdftex.def Info: figures/results_1.png  used on input line 33.
 (pdftex.def)             Requested size: 310.4979pt x 139.03667pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-) [10] [11 <./figures/results_1.png>] (./main.bbl [12]
+) [10] (./main.bbl [11 <./figures/results_1.png>] [12]
 Underfull \hbox (badness 1112) in paragraph at lines 103--106
 []\OT1/cmr/m/n/10 Francesca Sar-golini, Mar-i-anne Fyhn, Torkel Haft-ing, Bruce L. Mc-
  []
@@ -505,27 +505,27 @@ Underfull \hbox (badness 1360) in paragraph at lines 163--166
 []\OT1/cmr/m/n/10 Elke Edel-mann and Volk-mar Less-mann.  Dopamin-er-gic in-ner-va-tion
  []
 
-[14] [15] [16] [17]) [18] (./main.aux)
+[14] [15] [16]) [17] (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-02-20>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 718458FF6BBB971B27A8AABC10BFA382;1944.
+(rerunfilecheck)             Checksum: EA53DE55B7EEF875D1E6E2D8AC57CE1C;1813.
  ) 
 Here is how much of TeX's memory you used:
- 13033 strings out of 474116
- 210692 string characters out of 5732612
+ 13030 strings out of 474116
+ 210655 string characters out of 5732612
  1938187 words of memory out of 5000000
- 35120 multiletter control sequences out of 15000+600000
+ 35119 multiletter control sequences out of 15000+600000
  566839 words of font info for 68 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,6n,79p,1247b,565s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,6n,79p,1247b,568s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmb10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb>
-Output written on main.pdf (18 pages, 611400 bytes).
+Output written on main.pdf (17 pages, 610613 bytes).
 PDF statistics:
- 395 PDF objects out of 1000 (max. 8388607)
- 343 compressed objects within 4 object streams
- 108 named destinations out of 1000 (max. 500000)
- 107 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 387 PDF objects out of 1000 (max. 8388607)
+ 336 compressed objects within 4 object streams
+ 106 named destinations out of 1000 (max. 500000)
+ 99 words of extra memory for PDF output out of 10000 (max. 10000000)
 

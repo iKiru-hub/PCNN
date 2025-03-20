@@ -81,16 +81,6 @@ The advantage of this dual-layer planning lies in its flexibility, as it lighten
 In the process of behaviour, learning does not occur explicitly, but it is instead accounted for in the online formation of the cognitive map.
 
 
-\subsection{Map re-configuration}
-Our second aim was to investigate the possibility of online alteration of the place cells density, in terms of its potential performance improvement.
-This action is motivated by the consolidated phenomenon of hippocampal rate remapping, for which the place cells change their firing pattern according to contextual shifts \cite{andersonHeterogeneousModulationPlace2003, fentonRemappingRevisitedHow2024}. Additionally, there is growing experimental evidence that place fields can be moved in space following
-behaviourally relevant events, such as the occurrence of reward, according to a plasticity rule known as behavioural time-scale plasticity (BTSP) \cite{bittnerBehavioralTimeScale2017, miikkulainenEvolvingDeepNeural2017}.
-
-In our model, we associated this process to both collision and reward signals, whose location is set to be the center towards which the cells within a certain radius $r_{\text{BND}},\;r_{\text{DA}}$ are pulled. The centers of the cells involved are shifted with a force proportional to the Gaussian distance from the center of the signal, and the strength is weighted by a parameter $\lambda_{\text{BND}},\;\lambda_{\text{DA}}$.
-
-Our working hypothesis is that the online re-configuration of the cognitive map can lead to a representation of the environment more tailored with the agent experience. This changes introduced by this mechanism should then be reflected in the adaptability and navigation abilities.
-
-
 
 
 
