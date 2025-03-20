@@ -462,7 +462,7 @@ if __name__ == "__main__" :
         "data": {"game_settings": game_settings.copy(),
                  "reward_settings": reward_settings.copy(),
                  "global_parameters": global_parameters.copy()},
-        "other": "no remapping",
+        "other": "remapping, 0 0 1 1",
     }
     logger(f"Note: {info['other']}")
 
