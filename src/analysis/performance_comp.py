@@ -156,7 +156,6 @@ PARAMETERS = {
 }
 
 
-
 """ FUNCTIONS """
 
 OPTIONS = ["baseline", "no_remap", "default", "only_da", "only_col"]

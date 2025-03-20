@@ -2912,7 +2912,6 @@ struct DensityPolicy {
         if (reward > 0.1 && circuits.get_da_leaky_v() > 0.01f) {
 
             // update & remap
-
             rwd_drive = rwd_weight * curr_da;
 
             if (remapping_option[0]) {
@@ -2923,12 +2922,6 @@ struct DensityPolicy {
                 space_coarse.remap(displacement, rwd_sigma, rwd_drive);
                 space_coarse.modulate_gain(rwd_field_mod_coarse);
             }
-
-            /* space_fine.remap(bnd_weights, displacement, rwd_sigma, rwd_drive); */
-            /* space_coarse.remap(displacement, rwd_sigma, rwd_drive); */
-            /* remap_space(bnd_weights, space, goalmd, displacement, */
-            /*             rwd_sigma, rwd_drive); */
-
         } else if (collision > 0.1) {
 
             // udpate & remap
@@ -2944,9 +2937,6 @@ struct DensityPolicy {
                                    col_sigma, col_drive);
                 space_coarse.modulate_gain(col_field_mod_coarse);
             }
-
-            /* space_fine.remap(da_weights, displacement, col_sigma, col_drive); */
-            /* space_coarse.remap(displacement, col_sigma, col_drive); */
         }
     }
 
@@ -3021,9 +3011,7 @@ private:
 
             prev_center = centers.row(plan_idxs[i]);
         }
-
     }
-
 };
 
 
