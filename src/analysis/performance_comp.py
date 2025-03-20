@@ -301,9 +301,10 @@ if __name__ == "__main__":
     chunksize = args.reps
     NUM_REPS = NUM_CORES * chunksize
 
-    if args.load_idx > -1:
-        assert isinstance(int, args.load_idx), "agent idx must be int"
-        PARAMETERS = utils.load_parameters(args.load_idx)
+    if args.load_idx > -1:  
+        idx = int(args.load_idx)
+        assert isinstance(int, idx), "agent idx must be int"
+        PARAMETERS = utils.load_parameters(idx)
         logger.debug(f"LOADED: {PARAMETERS}")
 
     if args.room == "random":
