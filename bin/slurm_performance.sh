@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name="perfpc"
-#SBATCH -p rom316q #milanq #ipuq #milanq #armq #milanq #fpgaq #milanq # partition (queue)
+#SBATCH -p rome16q #milanq #ipuq #milanq #armq #milanq #fpgaq #milanq # partition (queue)
 #SBATCH -N 1 # number of nodes
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
