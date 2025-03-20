@@ -303,7 +303,7 @@ if __name__ == "__main__":
 
     if args.load_idx > -1:  
         idx = int(args.load_idx)
-        assert isinstance(int, idx), "agent idx must be int"
+        assert isinstance(idx, int), "agent idx must be int"
         PARAMETERS = utils.load_parameters(idx)
         logger.debug(f"LOADED: {PARAMETERS}")
 
