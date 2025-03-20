@@ -160,11 +160,11 @@ def load_parameters(idx: int=None):
 
     logger("\n----\nLoading from evolution")
 
-    if idx is None:
-        files = os.listdir(CACHE_PATH)
+    # load and sort files
+    files = os.listdir(CACHE_PATH)
+    files = sorted(files, key=lambda x: int(x.split("_")[0]))
 
-        # sort the files by name
-        files = sorted(files, key=lambda x: int(x.split("_")[0]))
+    if idx is None:
 
         for i, file in enumerate(files):
             print(f"{i}: {file}")
