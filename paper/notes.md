@@ -4,9 +4,11 @@
 
 - [ ] abstract
 
-- [ ] introduction
+- [x] introduction
 
-- [ ] results
+- [x] methods
+
+- [x] results
 
 - [ ] discussion
 
@@ -21,6 +23,7 @@
 
 
 
-
+### easy todo
+- [ ] plot of place cell density
 
 

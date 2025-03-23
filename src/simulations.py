@@ -35,7 +35,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 200,
-    "silent_duration": 3_000,
+    "silent_duration": 10_000,
     "fetching_duration": 10,
     "transparent": False,
     "beta": 40.,
@@ -46,13 +46,14 @@ reward_settings = {
 
 game_settings = {
     "plot_interval": 5,
-    "rw_event": "move both",
+    "rw_event": "move agent",
     "rendering": True,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
-    "max_duration": 10_000,
+    "max_duration": 25_000,
     "room_thickness": 30,
     "t_teleport": 1000,
+    "limit_position_len": -1,
     "seed": None,
     "pause": -1,
     "verbose": True
@@ -63,7 +64,7 @@ global_parameters = {
     "local_scale_coarse": 0.006,
     "N": 32**2,
     "Nc": 32**2,
-    "use_sprites": True,
+    "use_sprites": False,
     "speed": 0.7,
     "min_weight_value": 0.5
 }
@@ -199,7 +200,7 @@ class Renderer:
         self.axs.set_xticks(())
         self.axs.set_yticks(())
         self.axs.set_aspect('equal', adjustable='box')
-        self.axs.legend(loc="upper right")
+        # self.axs.legend(loc="upper right")
         plt.pause(0.00001)
 
         # if self.brain.get_directive() == "trg" or \
@@ -407,6 +408,7 @@ def run_model(parameters: dict, global_parameters: dict,
               game_settings: dict, room_name: str="Flat.1011",
               pause: int=-1, verbose: bool=True,
               record_flag: bool=False,
+              limit_position_len: int=-1,
               verbose_min: bool=True) -> int:
 
     """
@@ -518,6 +520,7 @@ def run_model(parameters: dict, global_parameters: dict,
                 use_sprites=global_parameters["use_sprites"],
                 bounds=game_settings["agent_bounds"],
                 room=room,
+                limit_position_len=game_settings["limit_position_len"],
                 color=(10, 10, 10))
 
 
@@ -895,6 +898,7 @@ def main_game(global_parameters: dict=global_parameters,
                 possible_positions=agent_possible_positions,
                 bounds=game_settings["agent_bounds"],
                 use_sprites=global_parameters["use_sprites"],
+                limit_position_len=game_settings["limit_position_len"],
                 room=room,
                 color=(10, 10, 10))
 
@@ -1127,9 +1131,9 @@ if __name__ == "__main__":
         np.random.seed(args.seed)
 
     logger = utils.setup_logger(name="RUN",
-                               level=2,
-                               is_debugging=True,
-                               is_warning=False)
+                                level=2,
+                                is_debugging=True,
+                                is_warning=False)
 
 
     # --- settings
@@ -1140,13 +1144,18 @@ if __name__ == "__main__":
         logger(f"random room: {args.room}")
 
     # --- run
-    if args.main == "game":
-        main_game(room_name=args.room, load=args.load, duration=args.duration,
-                  render_type=args.render_type)
-    if args.main == "cartpole":
-        main_cartpole(load=args.load,
+    try:
+        if args.main == "game":
+            main_game(room_name=args.room, load=args.load,
                       duration=args.duration,
-                      rendering=args.render)
-    else:
-        logger.error("main not found ...")
+                      render_type=args.render_type)
+        if args.main == "cartpole":
+            main_cartpole(load=args.load,
+                          duration=args.duration,
+                          rendering=args.render)
+        else:
+            logger.error("main not found ...")
+    except KeyboardInterrupt:
+        logger.debug("Keyboard interrupt")
+        plt.show()
 

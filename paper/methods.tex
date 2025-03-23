@@ -59,7 +59,7 @@ For each neuromodulator $k$, it is defined a leaky variable $v^{k}$ that accumul
     \Delta \textbf{W}^{k}_{i}=\eta^{k} v^{k} \textbf{u}^{\text{PC}}_{i}
 \end{equation}
 
-\noindent where $\eta^{k}$ is the neuromodulator-specific learning rate.
+\noindent where $\eta^{k}$ is the neuromodulator-specific learning rate, and weights are kept $\ge 0$.
 
 On the one hand, the reward modulation, signed as $\textbf{W}^{\text{DA}}$, is sensitive to the instantaneous presence of reward, defined as a boolean value. Over time, its coupling with the population vector $\textbf{u}^{PC}_{t}$ delineates a region of the environment where the reward has been experienced.
 On the other hand, the collision modulation, referred to as $\textbf{W}^{\text{BND}}$, signals the occurrence of a collision with a boundary, which is again given as a boolean. After enough events, the profile of the resulting weight matrix with the place cells provides an approximation of the shape of the environment given by its boundaries. From the perspective of the agent, this intuition of the topology of its surroundings is crucial for effectively planning routes to target locations.
@@ -67,6 +67,15 @@ On the other hand, the collision modulation, referred to as $\textbf{W}^{\text{B
 
 At each moment during navigation, the weight matrices $\textbf{W}^{\text{DA},\text{PC}},\;\textbf{W}^{\text{BND},\text{PC}}$ act as scalar fields over the neural space of the place cells, and their simultaneous contributions delineate what in this work is referred to as a cognitive map.
 In plot \ref{fig:model}-\textbf{e} is shown the activity of the two neuromodulators over the fine-grained place cells map, showcasing the bounds of the environment and the reward location.
+
+\subsubsection{Online adaptation}
+Lastly, we introduced a simple prediction-base mechanism for supporting the ability to correct the accuracy internal representation.
+During navigation, before the execution of each movement towards a future location $\textbf{x}_{t+1}$, it is computed and cached a prediction of the activity of neuromodulator $k$: $\hat{v}^{k}=\sum^{N}_{i} \textbf{W}^{\text{DA},\text{PC}}_{i} \cdot \hat{u}^{\text{PC}}_{i}$, where $\hat{u}^{\text{PC}}$ is the predicted population activity at $\textbf{x}_{t+1}$.
+Then, a prediction error with a specific learning rate is calculated and added to the weight update $\Delta \textbf{W}^{k} = \Delta \textbf{W}^{k} + \hat{\eta}^{k}(\hat{v}^{k}-v^{k}\textbf{u}^{\text{PC}})$.
+Further, since the rate $\hat{\eta}^{k}$ is less than $1$, it takes several erroneous prediction to effectively set connections to zero.
+
+The rationale is to depress those synapses no longer reliably predicting the sensory experience referenced by the neuromodulator.
+This simple rule aligns with predictive coding \cite{decothiPredictiveMapsRats2022}, and it is inspired by previous computational work on the role of dopaminergic and cholinergic activity in regulating exploration-exploitation behaviours through synaptic plasticity \cite{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019, brzoskoSequentialNeuromodulationHebbian2017}.
 
 
 \subsection{Policy and behavior}

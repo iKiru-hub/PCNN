@@ -177,6 +177,7 @@ def load_parameters(idx: int=None):
 
     logger(f"Loaded {files[idx]}")
     logger(f"Agent fitness={run_data['info']['record_genome']['0']['fitness']:.3f}")
+    logger(f"Agent fitness={run_data['info']['record_genome']['0']['genome']}")
 
     return run_data["info"]["record_genome"]["0"]["genome"]
 

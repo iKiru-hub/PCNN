@@ -48,6 +48,7 @@ game_settings = {
     "t_teleport": 2_000,
     "seed": None,
     "pause": -1,
+    "limit_position_len": -1,
     "verbose": False,
     "verbose_min": False
 }
@@ -153,6 +154,47 @@ PARAMETERS = {
     "edge_route_interval": 5,
     "forced_duration": 1,
     "fine_tuning_min_duration": 55
+}
+
+PARAMETERS_NOREMAP = {
+    'gain_fine': 41.0,
+    'offset_fine': 1.0,
+    'threshold_fine': 0.4,
+    'rep_threshold_fine': 0.87,
+    'rec_threshold_fine': 24,
+    'tau_trace_fine': 75,
+    'remap_tag_frequency': 4,
+    'num_neighbors': 20,
+    'min_rep_threshold': 0.43,
+    'gain_coarse': 31.1,
+    'offset_coarse': 1.0,
+    'threshold_coarse': 0.4,
+    'rep_threshold_coarse': 0.67,
+    'rec_threshold_coarse': 84,
+    'tau_trace_coarse': 27,
+    'lr_da': 0.99,
+    'lr_pred': 0.3,
+    'threshold_da': 0.04,
+    'tau_v_da': 2.0,
+    'lr_bnd': 0.6,
+    'threshold_bnd': 0.3,
+    'tau_v_bnd': 4.0,
+    'tau_ssry': 173.0,
+    'threshold_ssry': 0.956,
+    'threshold_circuit': 0.9,
+    'remapping_flag': 8,
+    'rwd_weight': 2.14,
+    'rwd_sigma': 84.2,
+    'col_weight': -1.5,
+    'col_sigma': 25.8,
+    'rwd_field_mod_fine': -0.1,
+    'rwd_field_mod_coarse': 0.0,
+    'col_field_mod_fine': 0.8,
+    'col_field_mod_coarse': 0.8,
+    'action_delay': 120.0,
+    'edge_route_interval': 5,
+    'forced_duration': 1,
+    'fine_tuning_min_duration': 47
 }
 
 
@@ -264,7 +306,10 @@ def run_local_model(args) -> list:
     logger(f"{ROOM_NAME=}")
 
     for i in tqdm(range(NUM_OPTIONS)):
-        params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
+        if i == 1:  # noremap case
+            params = PARAMETERS_NOREMAP.copy()
+        else:
+            params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
         results += [safe_run_model(params, ROOM_NAME)]
 
     return results

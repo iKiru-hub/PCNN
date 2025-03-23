@@ -220,7 +220,9 @@ class Room:
         self.counter += 1
         return self.room_positions[self.counter % len(self.room_positions)]
 
-    def sample_random_position(self) -> Tuple[float, float]:
+    def sample_random_position(self, limit: int=-1) -> Tuple[float, float]:
+        if limit > 0:
+            return self.room_positions[np.random.randint(limit)]
         return self.room_positions[np.random.randint(len(self.room_positions))]
 
     def render(self, screen: pygame.Surface):
@@ -299,6 +301,8 @@ def make_room(name: str="square", thickness: float=10.,
         ]
         room_positions = [
             [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
+            [0.25, 0.5], [0.75, 0.5]
+
         ]
     elif name == "Flat.0011":
         walls_extra += [
@@ -602,7 +606,7 @@ class Environment:
         elif self.rw_event == "move both":
             self._reset_agent_position(brain)
             if self.reward_obj.is_ready_to_move:
-                self.reward_obj.set_position()
+                self.reward_obj.set_position(self.room.sample_next_position())
             return False
         elif self.rw_event == "nothing":
             return False
@@ -620,7 +624,8 @@ class Environment:
         if exploration:
             self.agent.set_position(self.room.sample_next_position())
         else:
-            self.agent.set_position(self.room.sample_random_position())
+            self.agent.set_position(self.room.sample_random_position(
+                self.agent.limit_position_len))
 
         displacement = [(self.agent.position[0] - prev_position[0]),
                         (-self.agent.position[1] + prev_position[1])]

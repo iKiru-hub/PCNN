@@ -2273,9 +2273,16 @@ public:
                 if (pred_err < 0.0) { pred_err = 0.0; }
 
                 // clip the prediction error if within a certain range
-                pred_err = pred_err > 0.001f && pred_err < 0.1 ? 0.1 : pred_err;
+                pred_err = pred_err > 0.001f && pred_err < 0.5 ? 0.5 : pred_err;
 
-                if (pred_err > 0.01 && name == "DA") { LOG("[+] prediction error: " + std::to_string(pred_err));}
+                if (pred_err > 0.01 && name == "DA") { LOG("[+] prediction error: " + \
+                                                           std::to_string(pred_err));}
+                if (pred_err > 0.01 && name == "DA") { 
+                    /* std::cout << "[+] prediction error: " << std::to_string(pred_err) << std::endl; */
+                } else if (prediction[i] > 0.01 && name == "DA") {
+                    /* std::cout << "[+] prediction: " << std::to_string(prediction[i]); */
+                    /* std::cout << " actual: " << std::to_string(v * ui)  << std::endl; */
+                }
 
                 // update weights
                 weights[i] += lr * v * ui - pred_err;

@@ -17,48 +17,40 @@ The optimization of the parameters of the model was carried out using the Covari
 
 
 \subsection{Performance over different environments}
-Our primary aim was to test the reward performance in different environments.
-The best model resulting from evolution reached solid navigation and adaptation skills. Within the limits imposed by the rudimentary exploration policy based on random walks, the agent was able to visit a significant portion of the environment during exploration, and tune its modulatory system to craft cognitive maps useful during exploitation.
+Our primary aim was to evaluate the formation of the cognitive map through neuromodulation in terms of performance of goal-navigation in different environments.
+The best model resulting from evolution reached solid navigation and adaptation skills.
+Within the limits imposed by the rudimentary exploration policy based on random walks, the agent was able to visit a significant portion of the environment during exploration, and tune its modulatory system to craft cognitive maps useful during exploitation.
 
-In figure \ref{fig:results_1} we can see the cognitive maps formed by the agent in three different environments.
-In plot \ref{fig:results_1}-\textbf{a} it is reported a linear track with wide margins, represented in terms of four layers: the nodes of the fine-grained place cells (top), the graph of the coarse-grained place cells (center-top), the boundary-tagged place cells (center-bottom), and the reward-tagged place cells (bottom).
+In figure \ref{fig:main_results} we can see the cognitive maps formed by the agent in three different environments.
+In plot \ref{fig:main_results}-\textbf{a} it is reported a linear track with wide margins, represented in terms of four layers: the nodes of the fine-grained place cells (top), the graph of the coarse-grained place cells (center-top), the boundary-tagged place cells (center-bottom), and the reward-tagged place cells (bottom).
 The overlap of these last three representations is what we refer to as the cognitive map, since these are the layers providing the main information used during goal planning.
-In plot \ref{fig:results_1}-\textbf{b} and \ref{fig:results_1}-\textbf{c} we can see the cognitive maps formed in a square environment without and with internal walls, respectively.
+In plot \ref{fig:main_results}-\textbf{b} and \ref{fig:results_1}-\textbf{c} we can see the cognitive maps formed in a square environment without and with internal walls, respectively.
 
-In red is indicated the trajectory of the agent, and notable it is the greater number of lines crossing into the rewarding zone, in green.
-The agent's planned path is shown in grey, highlighting how it dodges the walls and go straight to the goal.
-
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/results_1.png}
+    \includegraphics[width=0.9\textwidth]{figures/main_results.png}
     \caption{\textsc{Cognitive maps and agent behaviour} - \textbf{a}: \textit{place cells (PCs) over a rectangular environment, where the top plot report the node centers of the fine grained PCs, the top-center plot the node centers of coarse grained PCs together with their edges, the bottom-center
         instead shows the activity of the PCs tagged with the boundary neuromodulator over the coarse grained PCs, while the bottom plot shows the same but with the PCs tagged by the reward neuromodulator; the semicircle corresponds to the reward area} -
     \textbf{b}: \textit{square environment, the right plot is the agent's trajectory (red) and reward area (green), the left plot si the \textit{cognitive map}, defined as overlay of the coarse-grain PCs, boundary and reward-sensitive PCs.} -
     \textbf{c}: \textit{square environment with internal walls, the right and left plot as before, but with the addition of the path planned by the agent to reach the target (grey)}}
-    \label{fig:results_1}
+    \label{fig:main_results}
 \end{figure}
 
+In red is indicated the trajectory of the agent, and notable it is the greater number of lines crossing into the rewarding zone, in green.
+The agent's planned path is shown in grey, highlighting how it dodges the walls and go straight to the goal.
 
+\subsection{Adaptive goal representation through prediction error}
+Then, we sought to test the adaptability of the agent to environmental changes. More specifically, when the reward object was fetched, there was a probability of relocation to a random position. The difficulty then lied in forgetting its past locations and discovering the new ones.
+The model
 
 \subsection{Modulation of spatial resolution affects performance}
-Our second aim was to investigate the possibility of online alteration of the place cells density, in terms of its potential performance improvement.
+Our third aim was to investigate the possibility of online alteration of the place cells density, in terms of its potential performance improvement.
 This action is motivated by the consolidated phenomenon of hippocampal rate remapping, for which the place cells change their firing pattern according to contextual shifts \cite{andersonHeterogeneousModulationPlace2003, fentonRemappingRevisitedHow2024}. Additionally, there is growing experimental evidence that place fields can be moved in space following
 behaviourally relevant events, such as the occurrence of reward, according to a plasticity rule known as behavioural time-scale plasticity (BTSP) \cite{bittnerBehavioralTimeScale2017, miikkulainenEvolvingDeepNeural2017}.
 
 In our model, we associated this process to both collision and reward signals, whose location is set to be the center towards which the cells within a certain radius $r_{\text{BND}},\;r_{\text{DA}}$ are pulled. The centers of the cells involved are shifted with a force proportional to the Gaussian distance from the center of the signal, and the strength is weighted by a parameter $\lambda_{\text{BND}},\;\lambda_{\text{DA}}$.
 
 Our working hypothesis is that the online re-configuration of the cognitive map can lead to a representation of the environment more tailored with the agent experience. This changes introduced by this mechanism should then be reflected in the adaptability and navigation abilities.
-
-
-
-
-
-
-
-
-
-
-
 
 
 

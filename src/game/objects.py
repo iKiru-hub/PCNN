@@ -22,6 +22,7 @@ class AgentBody:
                                     SCREEN_WIDTH, 0, SCREEN_HEIGHT),
                  possible_positions: List[Tuple[int, int]] = None,
                  random_brain=None,
+                 limit_position_len: int=-1,
                  use_sprites: bool = True):
 
         self.bounds = bounds
@@ -35,6 +36,7 @@ class AgentBody:
                                 self.position[1], width, height)
         self.color = color
         self.use_sprites = use_sprites
+        self.limit_position_len = limit_position_len
         self.speed = speed
         self.initial_pos = tuple(self.position)
         self.radius = max((width, height))
@@ -342,16 +344,20 @@ class RewardObj:
                     np.random.randint(len(self._possible_positions))
             ]
             else:
-        # if np.all(position == None):
                 self.x = np.random.uniform(self._bounds[0],
                                            self._bounds[1])
                 self.y = np.random.uniform(self._bounds[2],
                                            self._bounds[3])
+        else:
+            self.x = position[0]
+            self.y = position[1]
+
         self.position = np.array([self.x, self.y])
 
     @property
     def is_ready_to_move(self) -> bool:
-        out = self.v > self.move_threshold
+        # out = self.v > self.move_threshold
+        out = (self.count % self.move_threshold) == 0
         return out
 
     @property
