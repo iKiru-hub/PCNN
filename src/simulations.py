@@ -492,10 +492,10 @@ def run_model(parameters: dict, global_parameters: dict,
     agent_position = room.sample_next_position()
 
     rw_tau = reward_settings["tau"] if "tau" in reward_settings else 100
-    if "move_threlshold" in reward_settings:
-        rw_move_threshold = reward_settings["move_threshold"]
-    else:
-        rw_move_threshold = 2
+    # if "move_threlshold" in reward_settings:
+    #     rw_move_threshold = reward_settings["move_threshold"]
+    # else:
+    #     rw_move_threshold = 2
 
     reward_obj = objects.RewardObj(
                 position=rw_position,
@@ -510,7 +510,7 @@ def run_model(parameters: dict, global_parameters: dict,
                 use_sprites=global_parameters["use_sprites"],
                 silent_duration=reward_settings["silent_duration"],
                 tau=rw_tau,
-                move_threshold=rw_move_threshold,
+                move_threshold=reward_settings["move_threshold"],
                 transparent=reward_settings["transparent"])
 
     body = objects.AgentBody(

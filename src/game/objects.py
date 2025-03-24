@@ -244,6 +244,7 @@ class RewardObj:
         self.silent_duration = silent_duration
         self.fetching_duration = fetching_duration
         self.count = 0
+        self.moving_count = 0
         self.use_sprites = use_sprites
 
         self.available = True
@@ -322,6 +323,7 @@ class RewardObj:
 
         if self.collected:
             self.count += 1
+            self.moving_count += 1
             self.t_collected = self.t
             self.v += 1
 
@@ -357,7 +359,8 @@ class RewardObj:
     @property
     def is_ready_to_move(self) -> bool:
         # out = self.v > self.move_threshold
-        out = (self.count % self.move_threshold) == 0
+        out = self.moving_count > self.move_threshold
+        if out: self.moving_count = 0
         return out
 
     @property

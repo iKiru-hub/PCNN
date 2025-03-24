@@ -20,14 +20,14 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 10_000,
-    "fetching_duration": 5,
+    "silent_duration": 1_000,
+    "fetching_duration": 1,
 
     "transparent": False,
     "beta": 40.,
     "alpha": 0.06,# * GAME_SCALE,
     "tau": 500,# * GAME_SCALE,
-    "move_threshold": 3,# * GAME_SCALE,
+    "move_threshold": 20,# * GAME_SCALE,
 }
 
 
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     reward_settings["transparent"] = args.transparent
 
     if args.load:
-        parameters = utils.load_parameters(idx=51)
+        parameters = utils.load_parameters(idx=53)
         logger.debug(parameters.keys())
     else:
         logger.debug("using local parameters")
