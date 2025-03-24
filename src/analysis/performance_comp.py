@@ -306,10 +306,10 @@ def run_local_model(args) -> list:
     logger(f"{ROOM_NAME=}")
 
     for i in tqdm(range(NUM_OPTIONS)):
-        if i == 1:  # noremap case
-            params = PARAMETERS_NOREMAP.copy()
-        else:
-            params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
+        # if i == 1:  # noremap case
+        #     results += [safe_run_model(PARAMETERS_NOREMAP, ROOM_NAME)]
+        # else:
+        params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
         results += [safe_run_model(params, ROOM_NAME)]
 
     return results
