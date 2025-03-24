@@ -39,7 +39,7 @@ reward_settings = {
 
 game_settings = {
     "plot_interval": 5,
-    "rw_event": "move both",
+    "rw_event": "move agent",
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "rendering": False,
@@ -157,21 +157,21 @@ PARAMETERS = {
 }
 
 PARAMETERS_NOREMAP = {
-    'gain_fine': 41.0,
+    'gain_fine': 30.0,
     'offset_fine': 1.0,
     'threshold_fine': 0.4,
-    'rep_threshold_fine': 0.87,
-    'rec_threshold_fine': 24,
-    'tau_trace_fine': 75,
-    'remap_tag_frequency': 4,
-    'num_neighbors': 20,
-    'min_rep_threshold': 0.43,
-    'gain_coarse': 31.1,
+    'rep_threshold_fine': 0.89,
+    'rec_threshold_fine': 32,
+    'tau_trace_fine': 220,
+    'remap_tag_frequency': 2,
+    'num_neighbors': 3,
+    'min_rep_threshold': 0.92,
+    'gain_coarse': 49.6,
     'offset_coarse': 1.0,
     'threshold_coarse': 0.4,
-    'rep_threshold_coarse': 0.67,
-    'rec_threshold_coarse': 84,
-    'tau_trace_coarse': 27,
+    'rep_threshold_coarse': 0.74,
+    'rec_threshold_coarse': 40,
+    'tau_trace_coarse': 203,
     'lr_da': 0.99,
     'lr_pred': 0.3,
     'threshold_da': 0.04,
@@ -179,28 +179,29 @@ PARAMETERS_NOREMAP = {
     'lr_bnd': 0.6,
     'threshold_bnd': 0.3,
     'tau_v_bnd': 4.0,
-    'tau_ssry': 173.0,
-    'threshold_ssry': 0.956,
+    'tau_ssry': 28.0,
+    'threshold_ssry': 0.975,
     'threshold_circuit': 0.9,
-    'remapping_flag': 8,
-    'rwd_weight': 2.14,
-    'rwd_sigma': 84.2,
-    'col_weight': -1.5,
-    'col_sigma': 25.8,
-    'rwd_field_mod_fine': -0.1,
-    'rwd_field_mod_coarse': 0.0,
-    'col_field_mod_fine': 0.8,
-    'col_field_mod_coarse': 0.8,
+    'remapping_flag': -1,
+    'rwd_weight': 4.58,
+    'rwd_sigma': 35.0,
+    'col_weight': 1.4,
+    'col_sigma': 30.9,
+    'rwd_field_mod_fine': 0.9,
+    'rwd_field_mod_coarse': -1.3,
+    'col_field_mod_fine': 1.2,
+    'col_field_mod_coarse': 1.0,
     'action_delay': 120.0,
     'edge_route_interval': 5,
     'forced_duration': 1,
-    'fine_tuning_min_duration': 47
+    'fine_tuning_min_duration': 88
 }
 
 
 """ FUNCTIONS """
 
-OPTIONS = ["baseline", "no_remap", "default", "only_da", "only_col"]
+OPTIONS = ["baseline", "no_remap", "default",
+           "only_da", "only_col"]
 NUM_OPTIONS = len(OPTIONS)
 # ROOM_NAME = "Square.v0"
 ROOM_NAME = "Flat.0010"
@@ -306,11 +307,11 @@ def run_local_model(args) -> list:
     logger(f"{ROOM_NAME=}")
 
     for i in tqdm(range(NUM_OPTIONS)):
-        # if i == 1:  # noremap case
-        #     results += [safe_run_model(PARAMETERS_NOREMAP, ROOM_NAME)]
-        # else:
-        params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
-        results += [safe_run_model(params, ROOM_NAME)]
+        if i == 1:  # noremap case
+            results += [safe_run_model(PARAMETERS_NOREMAP, ROOM_NAME)]
+        else:
+            params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
+            results += [safe_run_model(params, ROOM_NAME)]
 
     return results
 
