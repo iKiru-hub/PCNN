@@ -107,7 +107,6 @@ if __name__ == "__main__":
                          '"Hole.v0", "Flat.0000", "Flat.0001", "Flat.0010", "Flat.0011",' + \
                          '"Flat.0110", "Flat.1000", "Flat.1001", "Flat.1010",' + \
                          '"Flat.1011", "Flat.1110"] or `random`')
-
     args = parser.parse_args()
 
 
@@ -142,7 +141,7 @@ if __name__ == "__main__":
     """ run """
 
     logger("[@scratch.py]")
-    out = sim.run_model(parameters=parameters,
+    out, _ = sim.run_model(parameters=parameters,
                         global_parameters=sim.global_parameters,
                         reward_settings=reward_settings,
                         game_settings=game_settings,

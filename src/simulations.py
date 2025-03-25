@@ -563,7 +563,13 @@ def run_model(parameters: dict, global_parameters: dict,
         record["rw_count"] = env.rw_count
         return record
 
-    return env.rw_count
+    info = {
+        "env": env,
+        "reward_obj": reward_obj,
+        "brain": brain
+    }
+
+    return env.rw_count, info 
 
 
 def run_game(env: games.Environment,
