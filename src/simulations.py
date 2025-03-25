@@ -409,6 +409,7 @@ def run_model(parameters: dict, global_parameters: dict,
               pause: int=-1, verbose: bool=True,
               record_flag: bool=False,
               limit_position_len: int=-1,
+              preferred_positions: list=None,
               verbose_min: bool=True) -> int:
 
     """
@@ -510,6 +511,7 @@ def run_model(parameters: dict, global_parameters: dict,
                 use_sprites=global_parameters["use_sprites"],
                 silent_duration=reward_settings["silent_duration"],
                 tau=rw_tau,
+                preferred_positions=preferred_positions,
                 move_threshold=reward_settings["move_threshold"],
                 transparent=reward_settings["transparent"])
 

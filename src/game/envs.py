@@ -220,9 +220,9 @@ class Room:
         self.counter += 1
         return self.room_positions[self.counter % len(self.room_positions)]
 
-    def sample_random_position(self, limit: int=-1) -> Tuple[float, float]:
-        if limit > 0:
-            return self.room_positions[np.random.randint(limit)]
+    def sample_random_position(self, limit: int=None) -> Tuple[float, float]:
+        if limit is not None:
+            return self.room_positions[limit]  # as an idx
         return self.room_positions[np.random.randint(len(self.room_positions))]
 
     def render(self, screen: pygame.Surface):
@@ -302,7 +302,6 @@ def make_room(name: str="square", thickness: float=10.,
         room_positions = [
             [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
             [0.25, 0.5], [0.75, 0.5]
-
         ]
     elif name == "Flat.0011":
         walls_extra += [
@@ -606,7 +605,12 @@ class Environment:
         elif self.rw_event == "move both":
             self._reset_agent_position(brain)
             if self.reward_obj.is_ready_to_move:
-                self.reward_obj.set_position(self.room.sample_next_position())
+                if self.reward_obj.preferred_positions is not None:
+                    idx = np.random.choice(self.reward_obj.preferred_positions)
+                    self.reward_obj.set_position(
+                            self.room.sample_random_position(idx))
+                else:
+                    self.reward_obj.set_position(self.room.sample_next_position())
             return False
         elif self.rw_event == "nothing":
             return False
@@ -616,7 +620,8 @@ class Environment:
             raise ValueError(f"Unknown reward " + \
                 f"event: {self.rw_event}")
 
-    def _reset_agent_position(self, brain: object, exploration: bool = False):
+    def _reset_agent_position(self, brain: object,
+                              exploration: bool = False):
 
         brain.reset()
         prev_position = self.agent.position.copy()

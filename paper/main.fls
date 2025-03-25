@@ -208,6 +208,11 @@ INPUT ./figures/main_results.png
 INPUT ./figures/main_results.png
 INPUT ./figures/main_results.png
 INPUT ./figures/main_results.png
+INPUT ./discussion.tex
+INPUT ./discussion.tex
+INPUT ./discussion.tex
+INPUT ./discussion.tex
+INPUT discussion.tex
 INPUT ./main.bbl
 INPUT ./main.bbl
 INPUT main.bbl

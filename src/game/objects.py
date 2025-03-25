@@ -246,6 +246,7 @@ class RewardObj:
         self.count = 0
         self.moving_count = 0
         self.use_sprites = use_sprites
+        self.preferred_positions = kwargs.get("preferred_positions", None)
 
         self.available = True
         self.t = 0

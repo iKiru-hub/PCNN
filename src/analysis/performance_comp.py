@@ -28,13 +28,13 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 10_000,
+    "silent_duration": 5_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
     "tau": 500,# * GAME_SCALE,
-    "move_threshold": 3,# * GAME_SCALE,
+    "move_threshold": 3000,# * GAME_SCALE,
 }
 
 game_settings = {
@@ -57,7 +57,7 @@ global_parameters = {
     "local_scale_fine": 0.015,
     "local_scale_coarse": 0.006,
     "N": 31**2,
-    "Nc": 24**2,
+    "Nc": 29**2,
     "use_sprites": False,
     "speed": 1.,
     "min_weight_value": 0.5
