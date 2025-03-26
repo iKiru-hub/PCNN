@@ -371,13 +371,9 @@ Christian Igel, Nikolaus Hansen, and Stefan Roth.
 \newblock Covariance {{Matrix Adaptation}} for {{Multi-objective Optimization}}.
 \newblock {\em Evolutionary Computation}, 15(1):1--28, March 2007.
 
-\bibitem{andersonHeterogeneousModulationPlace2003}
-Michael~I. Anderson and Kathryn~J. Jeffery.
-\newblock Heterogeneous {{Modulation}} of {{Place Cell Firing}} by {{Changes}} in {{Context}}.
-\newblock {\em Journal of Neuroscience}, 23(26):8827--8835, October 2003.
-
-\bibitem{miikkulainenEvolvingDeepNeural2017}
-Risto Miikkulainen, Jason Liang, Elliot Meyerson, Aditya Rawal, Dan Fink, Olivier Francon, Bala Raju, Hormoz Shahrzad, Arshak Navruzyan, Nigel Duffy, and Babak Hodjat.
-\newblock Evolving {{Deep Neural Networks}}, March 2017.
+\bibitem{meilingerQualitativeDifferencesMemory2016}
+Tobias Meilinger, Marianne Strickrodt, and Heinrich~H. B{\"u}lthoff.
+\newblock Qualitative differences in memory for vista and environmental spaces are caused by opaque borders, not movement or successive presentation.
+\newblock {\em Cognition}, 155:77--95, October 2016.
 
 \end{thebibliography}
