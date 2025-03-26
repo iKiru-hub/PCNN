@@ -546,6 +546,11 @@ def run_model(parameters: dict, global_parameters: dict,
     # else:
     #     renderer = None
 
+    if env.reward_obj.preferred_positions is not None:
+        idx = np.random.choice(env.reward_obj.preferred_positions)
+        env.reward_obj.set_position(
+                env.room.sample_random_position(idx))
+
     if verbose_min:
         logger("[@simulations.py]")
     record = run_game(env=env,
