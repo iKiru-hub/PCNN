@@ -36,12 +36,13 @@ For the plasticity process to be completed, it is also checked the possible over
 
 The activity of a tuned place cell $i$ is given, again, by the cosine similarity between the current grid cells' population vector and the weight vector of the cell:
 \begin{equation}
-    \textbf{u}^{\text{PC}}_{i}=\phi\left(\cos\left(\textbf{u}^{\text{GC}},\textbf{W}^{\text{GC},\text{PC}}_{i}\right)\right)
+    u^{\text{PC}}_{i}=\phi\left(\cos\left(\textbf{u}^{\text{GC}},\textbf{W}^{\text{GC},\text{PC}}_{i}\right)\right)
 \end{equation}
 \noindent where $\phi$ is a generalized sigmoid function $\phi(z)=\left[1 + \exp(-\beta(z-\alpha))\right]^{-1}$ with gain $\beta$ and threshold $\alpha$.
 The two layers of place cells differ in the size of their place fields. This feature is affected by the sensitivity of a cell tuning with respect to the grid cell activation, determined by the parameters of the sigmoid, and the strength of the lateral inhibition, determined by the similarity threshold.
 Within a layer, the connections between cells are calculated by the same cosine similariy, but compared against a different threshold $\theta^{\text{PC}}_{\text{rec}}$.
 One layer is set to be more fine-grained, with an overall higher density of place cells over the space, while the other is more coarse-grained, with overall large place field sizes.
+Further, for each layer it is recorded a neural trace $\textbf{m}$ of the activity, decaying with a fixed time constant.
 
 In figure \ref{fig:model}-\textbf{d} are shown the centers of one of the fine-grained layer and the activity of two cells, with their place field highlighted as an heatmap.
 
@@ -64,18 +65,44 @@ For each neuromodulator $k$, it is defined a leaky variable $v^{k}$ that accumul
 On the one hand, the reward modulation, signed as $\textbf{W}^{\text{DA}}$, is sensitive to the instantaneous presence of reward, defined as a boolean value. Over time, its coupling with the population vector $\textbf{u}^{PC}_{t}$ delineates a region of the environment where the reward has been experienced.
 On the other hand, the collision modulation, referred to as $\textbf{W}^{\text{BND}}$, signals the occurrence of a collision with a boundary, which is again given as a boolean. After enough events, the profile of the resulting weight matrix with the place cells provides an approximation of the shape of the environment given by its boundaries. From the perspective of the agent, this intuition of the topology of its surroundings is crucial for effectively planning routes to target locations.
 
-
 At each moment during navigation, the weight matrices $\textbf{W}^{\text{DA},\text{PC}},\;\textbf{W}^{\text{BND},\text{PC}}$ act as scalar fields over the neural space of the place cells, and their simultaneous contributions delineate what in this work is referred to as a cognitive map.
 In plot \ref{fig:model}-\textbf{e} is shown the activity of the two neuromodulators over the fine-grained place cells map, showcasing the bounds of the environment and the reward location.
 
 \subsubsection{Online adaptation}
-Lastly, we introduced a simple prediction-base mechanism for supporting the ability to correct the accuracy internal representation.
+For what concerns the resilience with respect to environmental changes, such as reward location, the model was endowed with a prediction-base mechanism for correcting the accuracy of the internal representations.
 During navigation, before the execution of each movement towards a future location $\textbf{x}_{t+1}$, it is computed and cached a prediction of the activity of neuromodulator $k$: $\hat{v}^{k}=\sum^{N}_{i} \textbf{W}^{\text{DA},\text{PC}}_{i} \cdot \hat{u}^{\text{PC}}_{i}$, where $\hat{u}^{\text{PC}}$ is the predicted population activity at $\textbf{x}_{t+1}$.
-Then, a prediction error with a specific learning rate is calculated and added to the weight update $\Delta \textbf{W}^{k} = \Delta \textbf{W}^{k} + \hat{\eta}^{k}(\hat{v}^{k}-v^{k}\textbf{u}^{\text{PC}})$.
+Then, a prediction error with a specific learning rate is calculated and added to the weight update:
+
+\begin{equation}
+    \Delta \textbf{W}^{k} = \Delta \textbf{W}^{k} + \hat{\eta}^{k}(\hat{v}^{k}-v^{k}\textbf{u}^{\text{PC}})
+\end{equation}
 Further, since the rate $\hat{\eta}^{k}$ is less than $1$, it takes several erroneous prediction to effectively set connections to zero.
 
 The rationale is to depress those synapses no longer reliably predicting the sensory experience referenced by the neuromodulator.
 This simple rule aligns with predictive coding \cite{decothiPredictiveMapsRats2022}, and it is inspired by previous computational work on the role of dopaminergic and cholinergic activity in regulating exploration-exploitation behaviours through synaptic plasticity \cite{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019, brzoskoSequentialNeuromodulationHebbian2017}.
+
+\subsubsection{Modulation of place fields}
+Lastly, in order to study the possibility of neuromodulatory alteration of neuronal properties, the coarse-grained place cells were subjected to relocation and resizing of their place fields according to neuromodulatory input.
+The choice of the this layer instead of the fine-grained is motivated by empirically better performance results.
+
+The movement of the place centers occurred following a reward or collision event, and involved all nearby cells.
+More in details, each cell center was displaced, within the grid cells space, by a vector in the direction of the current position $\textbf{u}^{\text{GC}}$, and with magnitude proportional to the value $v^{k}$ of the neuromodulator $k$ and its distance:
+\begin{equation}
+    \Delta \textbf{W}^{\text{GC},\text{PC}}_{i} = c^{k}\cdot v^{k}\cdot \varphi_{\sigma^{k}}\left(\textbf{u}^{\text{GC}}-\textbf{W}^{\text{GC},\text{PC}}_{i}\right)
+\end{equation}
+
+\noindent where $c^{k}$ is a strength scale and $\varphi$ is a Gaussian distance with width $\sigma^{k}$.
+Additionally, lateral inhibition was still accounted for, such to keep avoiding overlappings.
+This approach has been inspired by the BTSP rule \cite{milsteinBidirectionalSynapticPlasticity2021, bittnerBehavioralTimeScale2017, grienbergerEntorhinalCortexDirects2022}, through which has been accounted the dislocation of of CA1 place cells following reward events (or an external step current), changing their associated spatial position.
+
+Concerning the field resizing, it again takes place when its reference event occured. The neuromodulatory action was determined by scaling the baseline neural activation gain $\bar{\beta}$ of the most recently active neurons, identified by their neural trace $m_{i}$, according to a constant
+$\gamma^{k}$:
+
+\begin{equation}
+    \beta_{i} =  \gamma^{k} \cdot \bar{\beta} \cdot m_{i} + \bar{\beta} \cdot (1 - m_{i})
+\end{equation}
+
+\noindent The rationale is to modulate the surface over which the neurons are sensitive, with $\gamma < 1$ having a shrinking effect while $\gamma > 1$ an enlarging one.
 
 
 \subsection{Policy and behavior}

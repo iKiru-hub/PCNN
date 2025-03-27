@@ -6,45 +6,45 @@ Database file #1: pcnn_refs.bib
 Warning--empty publisher in liModelingPlaceCells2019
 Warning--empty journal in dabaghianGridCellsBorder
 Warning--empty year in dabaghianGridCellsBorder
-You've used 76 entries,
+You've used 77 entries,
             1791 wiz_defined-function locations,
-            988 strings with 24141 characters,
-and the built_in function-call counts, 19729 in all, are:
-= -- 1686
-> -- 1050
+            995 strings with 24353 characters,
+and the built_in function-call counts, 19971 in all, are:
+= -- 1710
+> -- 1058
 < -- 4
-+ -- 377
-- -- 301
-* -- 1775
-:= -- 3196
-add.period$ -- 228
-call.type$ -- 76
-change.case$ -- 75
++ -- 380
+- -- 303
+* -- 1796
+:= -- 3233
+add.period$ -- 231
+call.type$ -- 77
+change.case$ -- 76
 chr.to.int$ -- 0
-cite$ -- 79
-duplicate$ -- 708
-empty$ -- 1811
-format.name$ -- 301
-if$ -- 4190
+cite$ -- 80
+duplicate$ -- 717
+empty$ -- 1835
+format.name$ -- 303
+if$ -- 4242
 int.to.chr$ -- 0
-int.to.str$ -- 76
-missing$ -- 74
-newline$ -- 379
-num.names$ -- 82
-pop$ -- 122
+int.to.str$ -- 77
+missing$ -- 75
+newline$ -- 384
+num.names$ -- 83
+pop$ -- 123
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 279
+skip$ -- 283
 stack$ -- 0
-substring$ -- 1648
-swap$ -- 102
+substring$ -- 1673
+swap$ -- 103
 text.length$ -- 4
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 3
-while$ -- 194
-width$ -- 78
-write$ -- 830
+while$ -- 197
+width$ -- 79
+write$ -- 841
 (There were 3 warnings)
