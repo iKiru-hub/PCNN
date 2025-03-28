@@ -47,7 +47,7 @@ However, it is worth nothing that not all simulations resulted in reward being f
 
 \subsection{Adaptive goal representation through prediction error}
 Then, we tested the adaptability to environmental changes. In this scenario, the reward object was moved after it was fetched a fixed amount of times.
-Here, the difficulty lied in the unlearning of past locations and the discovery of the new ones, in a protocol similar to \cite{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019}.
+Here, the difficulty lied in the unlearning of past locations and the discovery of the new ones.
 In plot \ref{fig:main_results}-\textbf{b} it is reported the set of trajectories over many trials with the reward displaced in three possible locations. The agent was capable of planning behaviour, as earlier, but also to explore and find the new rewards, as shown by the density of lines.
 Whenever a goal path resulted in failed prediction, the DA-based sensory error weakened the association between the place cells and reward signal, leading to an extinction of its representation at that location.
 
@@ -57,7 +57,7 @@ This result validates the resilience of the model to changing sensory expectatio
 Lastly, we investigated the effect of modulating the place cells density and field size.
 The goal position was fixed, but the agent was randomly relocated after fetching; performance was defined as total number of reward count within a time window.
 Our working hypothesis is these experience-driven neuronal changes would improve the quality of the cognitive map, and be reflected in the navigation abilities.
-The assessment of this claim was conducted by comparing variants of the model, obtained by progressively ablating the reward (DA) and collision (BND) modulation of density and field size, but a cognitive map was still possible as their representations of goals and boundaries were preserved.
+The assessment of this claim was conducted by comparing variants of the model, obtained by progressively ablating the possibility reward (DA) and collision (BND) modulation of density and field size, but a cognitive map was still possible as their representations of goals and boundaries were preserved.
 We also defined a chance level by instead blocking all modulation-based plasticity and allowing only place cells formation.
 All models were ran in two different environments differing by number of internal walls, in total 2048 simulations were done for each case. %However, due to the issue of the reward not being found, only the top 1024 were considered; the number of faulty runs affected all models in equal measure, since it depended solely on exploration noise.
 

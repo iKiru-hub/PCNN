@@ -4,15 +4,11 @@ Exploration and planning in known and past environment are essential behaviours 
 
 % brief recap of the background
 An important element behind these abilities is the formation of a map of their surroundings as they make new experiences, known as a cognitive map.
-The hippocampus, and especially CA1, is one of the principal brain areas involved in this processes \cite{donatoHowYouBuild2023}.
+% The hippocampus, and especially CA1, is one of the principal brain areas involved in this processes \cite{donatoHowYouBuild2023}.
 Numerous speculations have been made about the shape and neural foundations of such object, varying in the type of modeling assumptions and experimental support.
-In terms of the map structure, an important aspect is the rigidity of the metric constraints, which concerns the type of operations that can be applied to the underlying spatial representations \cite{gallistelComputationsMetricMaps1996, chrastilCognitiveMapsCognitive2014, warrenNonEuclideanNavigation2019}.
-Regarding its formation, computational approaches relying on training artificial neural networks have been used for reproducing experimental observations, such as path integration \cite{baninoVectorbasedNavigationUsing2018, cuevaEmergenceGridlikeRepresentations2018, sorscherUnifiedTheoryOrigin2019, whittingtonTolmanEichenbaumMachineUnifying2020} and navigation \cite{poucetSpatialCognitiveMaps1993, decothiPredictiveMapsRats2022}.
-Another important ingredient for neuronal dynamics is neuromodulation.
-Its implications for spatial cognition have been in part associated to the role of dopamine, especially in the context of plasticity, predictive learning, and reward representation \cite{kempadooDopamineReleaseLocus2016, duszkiewiczNoveltyDopaminergicModulation2019, schultzDopamineRewardPrediction2016}.
 
 % brief recap of this work
-The contribution of the present work was to proposal a rate network model, inspired by the CA1 hippocampal region.
+The contribution of the present work was to proposal a rate network model, inspired by the CA1 hippocampal region \cite{donatoHowYouBuild2023}.
 We used grid cells together with synaptic plasticity as a mechanism for developing place cells-based context rich maps, which are updated through experience.
 In the spirit of minimizing the geometric assumptions on the neural space, we treated the generated place network as a topological graph, with information added locally through the action of neuromodulators.
 This idea aligned with the concept of a \textit{labeled graph} \cite{ishikawaSpatialKnowledgeAcquisition2006, warrenNonEuclideanNavigation2019} as it ignores premises of global spatial properties, however it is also true that no metric violations were actually possible in these settings.
@@ -25,10 +21,10 @@ This choice had the side effect that the reward was not always discovered, leadi
 % I
 The simulation results validated the model, showing the expected emergence of cognitive maps and their encoding of information collected during experience.
 The online nature of the formation of the map places aligns with the idea of using only idiothetic velocity input as in path integration \cite{gallistelComputationsMetricMaps1996, gillnerNavigationAcquisitionSpatial1998, mcnaughtonPathIntegrationNeural2006}.
-Previous work followed a similar direction using recurrent networks, but required an extensive gradient-based training \cite{baninoVectorbasedNavigationUsing2018, sorscherUnifiedTheoryComputational2023, cuevaEmergenceGridlikeRepresentations2018}.
+Previous work followed a similar direction using recurrent networks, but required an extensive gradient-based training \cite{sorscherUnifiedTheoryComputational2023, cuevaEmergenceGridlikeRepresentations2018, whishawCalibratingSpaceExploration1999a}.
 Another important difference that our resulting neural network was composed by construction solely of place cells, although neuromodulated, and no other neuron types were present.
 This distinction is justified by the partially different task structure, which did not involved supervised learning, and it did not receive visual information as in \cite{baninoVectorbasedNavigationUsing2018}.
-Futher, our model relied on pre-defined grid cells layers, which constituted a strong andsufficient inductive bias, and did not have to be learned from scratch.
+Further, our model relied on pre-defined grid cells layers, which constituted a strong andsufficient inductive bias, and did not have to be learned from scratch.
 
 An additional relevant aspect is also the consideration of the place cells layer as an explicit graph data structure, on which the path-planning and decision-making algorithm was applied.
 The adoption of this level of description lead to robustness and flexibility, enabling effective navigation in all tested environments, which varying in layout complexity.
@@ -37,17 +33,28 @@ Nonetheless, this approach did act as another clear inductive bias, which lifted
 
 % II
 Adaptability was tested by occasionally moving the rewarding position, leading to the generation of an internal prediction error that was used to update its representation on the map.
-The agent proved capable of unlearning previous associations, and returning to exploratory behaviour.
+The agent proved capable of unlearning previous associations, returning to exploration, and memorizing new reward locations.
+This behavioural protocol is similar to previous work \cite{brzoskoSequentialNeuromodulationHebbian2017}, where dopaminergic and cholinergic activity was utilized within an Hebbian plasticity rule for strengthening or weakening reward-associated spatial representations.
+However, alternatively to exploiting neuromodulators with opposite valence, we followed a preditive coding framework, a direction linked to hippocampal representations \cite{decothiPredictiveMapsRats2022, aitkenHippocampalRepresentationsSwitch2022} and explored in various computational approaches
+\cite{halvagalCombinationHebbianPredictive2023, ororbiaSpikingNeuralPredictive2023, stachenfeldHippocampusPredictiveMap2017}.
+This choice departed from our focus of using operations over the cognitive map itself, by simulating future sensory experiences and learning from feedbacks.
+In fact, neuromodulation has been long associated with such functionality as well, especially dopamine \cite{kempadooDopamineReleaseLocus2016, schultzDopamineRewardPrediction2016, coolsChemistryAdaptiveMind2019, sheynikhovichLongtermMemorySynaptic2023}.
+
 
 % III
+Lastly, the hypothesis of relevance of the active modulation of neuronal properties of place cells was corroboated by simulating ablation experiments. These tests reported a significant impact of resizing place fields and density on the total count of collected rewards.
+Further, boundary modulation showed to be more impactful in environments with a more internal walls, reasonably because it enehanced their representation in neural space leading to better planning.
+Overall, these results aligns with the experimental observations of alteration of place cells upon reward events \cite{bittnerBehavioralTimeScale2017}, in particular in terms of increased cells clustering, reminiscent of rate remapping following contextual shifts \cite{andersonHeterogeneousModulationPlace2003}.
 
-% steelman the findings
+The size of the place fields is usually reported to shrink near rewarding objects and location, and if coupled with higher local density might lead to greater attention to details, due to better spatial sensitivity.
+In our settings, however, the fields became enlarged. A possible explanation can be the simplicty of our reward, which was solely defined as an area of space.
+The lack of rich non-spatial features thus did not required the place cells to code for smaller spatial variation.
+The enlargement can then have improved the stability of the representation, marking the nodes more solidly associated with rewards, given the stochasticity of its delivery.
+Further, the graph-path algorithm utilized the strength of the DA-modulated connections for determining the goal representation, stronger fields inherently developed stronger weights, making planning more reliable planning.
 
-% This is motivated by the consolidated phenomenon of hippocampal rate remapping, for which the place cells change their firing pattern according to contextual shifts \cite{andersonHeterogeneousModulationPlace2003, fentonRemappingRevisitedHow2024}. Additionally, there is growing experimental evidence that place fields can be moved in space following
-% behaviourally relevant events, such as the occurrence of reward, according to a plasticity rule known as behavioural time-scale plasticity (BTSP) \cite{bittnerBehavioralTimeScale2017, miikkulainenEvolvingDeepNeural2017}.
-% In our model, we associated this process to both collision and reward signals, whose location is set to be the center towards which the cells within a certain radius $r_{\text{BND}},\;r_{\text{DA}}$ are pulled. The centers of the cells involved are shifted with a force proportional to the Gaussian distance from the center of the signal, and the strength is weighted by a parameter $\lambda_{\text{BND}},\;\lambda_{\text{DA}}$.
-
-% show limitations
 
 
 % conclusion
+In conclusion, this work showed a possible architecture for coupling emergent spatial representations with neuromodulated plasticity for achieving an experience-driven cognitive map.
+The reliance of few spatial and algorithmic inductive biases, grid cells and planning algorithm, supports the idea of label graph for goal navigation.
+Future work can investigate the application to other spatial domains, such as motor control, and include additional neuromodulators encoding for new sensory dimensions.

@@ -381,4 +381,39 @@ Tobias Meilinger, Marianne Strickrodt, and Heinrich~H. B{\"u}lthoff.
 \newblock Qualitative differences in memory for vista and environmental spaces are caused by opaque borders, not movement or successive presentation.
 \newblock {\em Cognition}, 155:77--95, October 2016.
 
+\bibitem{mcnaughtonPathIntegrationNeural2006}
+Bruce~L. McNaughton, Francesco~P. Battaglia, Ole Jensen, Edvard~I. Moser, and May-Britt Moser.
+\newblock Path integration and the neural basis of the 'cognitive map'.
+\newblock {\em Nature Reviews Neuroscience}, 7(8):663--678, August 2006.
+
+\bibitem{sorscherUnifiedTheoryComputational2023}
+Ben Sorscher, Gabriel~C. Mel, Samuel~A. Ocko, Lisa~M. Giocomo, and Surya Ganguli.
+\newblock A unified theory for the computational and mechanistic origins of grid cells.
+\newblock {\em Neuron}, 111(1):121--137.e13, January 2023.
+
+\bibitem{aitkenHippocampalRepresentationsSwitch2022}
+Fraser Aitken and Peter Kok.
+\newblock Hippocampal representations switch from errors to predictions during acquisition of predictive associations.
+\newblock {\em Nature Communications}, 13(1):3294, June 2022.
+
+\bibitem{halvagalCombinationHebbianPredictive2023}
+Manu~Srinath Halvagal and Friedemann Zenke.
+\newblock The combination of {{Hebbian}} and predictive plasticity learns invariant object representations in deep sensory networks.
+\newblock {\em Nature Neuroscience}, pages 1--10, October 2023.
+
+\bibitem{ororbiaSpikingNeuralPredictive2023}
+Alexander Ororbia.
+\newblock Spiking neural predictive coding for continually learning from data streams.
+\newblock {\em Neurocomputing}, 544:126292, August 2023.
+
+\bibitem{stachenfeldHippocampusPredictiveMap2017}
+Kimberly~L Stachenfeld, Matthew~M Botvinick, and Samuel~J Gershman.
+\newblock The hippocampus as a predictive map.
+\newblock {\em Nature Neuroscience}, 20(11):1643--1653, November 2017.
+
+\bibitem{andersonHeterogeneousModulationPlace2003}
+Michael~I. Anderson and Kathryn~J. Jeffery.
+\newblock Heterogeneous {{Modulation}} of {{Place Cell Firing}} by {{Changes}} in {{Context}}.
+\newblock {\em Journal of Neuroscience}, 23(26):8827--8835, October 2003.
+
 \end{thebibliography}
