@@ -4,7 +4,6 @@ Exploration and planning in known and past environment are essential behaviours 
 
 % brief recap of the background
 An important element behind these abilities is the formation of a map of their surroundings as they make new experiences, known as a cognitive map.
-% The hippocampus, and especially CA1, is one of the principal brain areas involved in this processes \cite{donatoHowYouBuild2023}.
 Numerous speculations have been made about the shape and neural foundations of such object, varying in the type of modeling assumptions and experimental support.
 
 % brief recap of this work
@@ -38,18 +37,19 @@ This behavioural protocol is similar to previous work \cite{brzoskoSequentialNeu
 However, alternatively to exploiting neuromodulators with opposite valence, we followed a preditive coding framework, a direction linked to hippocampal representations \cite{decothiPredictiveMapsRats2022, aitkenHippocampalRepresentationsSwitch2022} and explored in various computational approaches
 \cite{halvagalCombinationHebbianPredictive2023, ororbiaSpikingNeuralPredictive2023, stachenfeldHippocampusPredictiveMap2017}.
 This choice departed from our focus of using operations over the cognitive map itself, by simulating future sensory experiences and learning from feedbacks.
-In fact, neuromodulation has been long associated with such functionality as well, especially dopamine \cite{kempadooDopamineReleaseLocus2016, schultzDopamineRewardPrediction2016, coolsChemistryAdaptiveMind2019, sheynikhovichLongtermMemorySynaptic2023}.
+In fact, neuromodulation has been long associated with such functionality as well \cite{sosaHippocampalSequencesSpan2024}, especially dopamine \cite{kempadooDopamineReleaseLocus2016, schultzDopamineRewardPrediction2016, coolsChemistryAdaptiveMind2019, sheynikhovichLongtermMemorySynaptic2023}.
 
 
 % III
 Lastly, the hypothesis of relevance of the active modulation of neuronal properties of place cells was corroboated by simulating ablation experiments. These tests reported a significant impact of resizing place fields and density on the total count of collected rewards.
-Further, boundary modulation showed to be more impactful in environments with a more internal walls, reasonably because it enehanced their representation in neural space leading to better planning.
-Overall, these results aligns with the experimental observations of alteration of place cells upon reward events \cite{bittnerBehavioralTimeScale2017}, in particular in terms of increased cells clustering, reminiscent of rate remapping following contextual shifts \cite{andersonHeterogeneousModulationPlace2003}.
+Further, boundary modulation showed to be more impactful in environments with more internal walls, reasonably because it enehanced their representation in neural space leading to better planning.
+Overall, these results aligns with the experimental observations of alteration of place cells upon reward events \cite{bittnerBehavioralTimeScale2017}, in particular in terms of increased cells clustering \cite{tryonHippocampalNeuralActivity2017}, reminiscent of firing rate changes following
+contextual shifts \cite{andersonHeterogeneousModulationPlace2003, leeGradualTranslocationSpatial2006}.
 
 The size of the place fields is usually reported to shrink near rewarding objects and location, and if coupled with higher local density might lead to greater attention to details, due to better spatial sensitivity.
 In our settings, however, the fields became enlarged. A possible explanation can be the simplicty of our reward, which was solely defined as an area of space.
 The lack of rich non-spatial features thus did not required the place cells to code for smaller spatial variation.
-The enlargement can then have improved the stability of the representation, marking the nodes more solidly associated with rewards, given the stochasticity of its delivery.
+The enlargement can then have improved the stability of the representation, marking the nodes associated with rewards more solidly, given the stochasticity of its delivery.
 Further, the graph-path algorithm utilized the strength of the DA-modulated connections for determining the goal representation, stronger fields inherently developed stronger weights, making planning more reliable planning.
 
 
@@ -57,4 +57,5 @@ Further, the graph-path algorithm utilized the strength of the DA-modulated conn
 % conclusion
 In conclusion, this work showed a possible architecture for coupling emergent spatial representations with neuromodulated plasticity for achieving an experience-driven cognitive map.
 The reliance of few spatial and algorithmic inductive biases, grid cells and planning algorithm, supports the idea of label graph for goal navigation.
-Future work can investigate the application to other spatial domains, such as motor control, and include additional neuromodulators encoding for new sensory dimensions.
+Future work can investigate the application to other spatial domains, such as motor control and three-dimensional navigation.
+Additionally, richer input feature can be added, such as visual information \cite{wenOneshotEntorhinalMaps2024}, as well as new neuromodulators encoding for different sensory dimensions or internally-generated signals. 

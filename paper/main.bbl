@@ -288,6 +288,11 @@ Jake Ormond and Bruce~L. McNaughton.
 \newblock Place field expansion after focal {{MEC}} inactivations is consistent with loss of {{Fourier}} components and path integrator gain reduction.
 \newblock {\em Proceedings of the National Academy of Sciences of the United States of America}, 112(13):4116--4121, March 2015.
 
+\bibitem{sosaHippocampalSequencesSpan2024}
+Marielena Sosa, Mark~H. Plitt, and Lisa~M. Giocomo.
+\newblock Hippocampal sequences span experience relative to rewards.
+\newblock {\em bioRxiv}, page 2023.12.27.573490, February 2024.
+
 \bibitem{aliPredictiveCodingConsequence2021}
 Abdullahi Ali, Nasir Ahmad, Elgar de~Groot, Marcel A.~J. van Gerven, and Tim~C. Kietzmann.
 \newblock Predictive coding is a consequence of energy efficiency in recurrent neural networks, November 2021.
@@ -361,15 +366,34 @@ Vemund~Sigmundson Sch{\o}yen, Kosio Beshkov, Markus~Borud Pettersen, Erik Herman
 \newblock Hexagons all the way down: Grid cells as a conformal isometric map of space.
 \newblock {\em PLOS Computational Biology}, 21(2):e1012804, February 2025.
 
-\bibitem{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019}
-Zuzanna Brzosko, Susanna~B. Mierau, and Ole Paulsen.
-\newblock Neuromodulation of {{Spike-Timing-Dependent Plasticity}}: {{Past}}, {{Present}}, and {{Future}}.
-\newblock {\em Neuron}, 103(4):563--581, August 2019.
+\bibitem{suttonReinforcementLearningProblem}
+Richard~S Sutton and Andrew~G Barto.
+\newblock The {{Reinforcement Learning Problem}}.
+
+\bibitem{montagueFrameworkMesencephalicDopamine1996}
+P.~R. Montague, P.~Dayan, and T.~J. Sejnowski.
+\newblock A framework for mesencephalic dopamine systems based on predictive {{Hebbian}} learning.
+\newblock {\em Journal of Neuroscience}, 16(5):1936--1947, March 1996.
+
+\bibitem{krishnanRewardExpectationExtinction2022}
+Seetha Krishnan, Chad Heer, Chery Cherian, and Mark E.~J. Sheffield.
+\newblock Reward expectation extinction restructures and degrades {{CA1}} spatial maps through loss of a dopaminergic reward proximity signal.
+\newblock {\em Nature Communications}, 13(1):6662, November 2022.
 
 \bibitem{grienbergerEntorhinalCortexDirects2022}
 Christine Grienberger and Jeffrey~C. Magee.
 \newblock Entorhinal cortex directs learning-related changes in {{CA1}} representations.
 \newblock {\em Nature}, 611(7936):554--562, November 2022.
+
+\bibitem{mcnamaraDopaminergicNeuronsPromote2014}
+Colin~G. McNamara, {\'A}lvaro {Tejero-Cantero}, St{\'e}phanie Trouche, Natalia {Campo-Urriza}, and David Dupret.
+\newblock Dopaminergic neurons promote hippocampal reactivation and spatial memory persistence.
+\newblock {\em Nature Neuroscience}, 17(12):1658--1660, December 2014.
+
+\bibitem{michonSingletrialDynamicsHippocampal2021}
+Fr{\'e}d{\'e}ric Michon, Esther Krul, Jyh-Jang Sun, and Fabian Kloosterman.
+\newblock Single-trial dynamics of hippocampal spatial representations are modulated by reward value.
+\newblock {\em Current biology: CB}, 31(20):4423--4435.e5, October 2021.
 
 \bibitem{igelCovarianceMatrixAdaptation2007}
 Christian Igel, Nikolaus Hansen, and Stefan Roth.
@@ -411,9 +435,24 @@ Kimberly~L Stachenfeld, Matthew~M Botvinick, and Samuel~J Gershman.
 \newblock The hippocampus as a predictive map.
 \newblock {\em Nature Neuroscience}, 20(11):1643--1653, November 2017.
 
+\bibitem{tryonHippocampalNeuralActivity2017}
+Valerie~L. Tryon, Marsha~R. Penner, Shawn~W. Heide, Hunter~O. King, Joshua Larkin, and Sheri J.~Y. Mizumori.
+\newblock Hippocampal neural activity reflects the economy of choices during goal-directed navigation.
+\newblock {\em Hippocampus}, 27(7):743--758, July 2017.
+
 \bibitem{andersonHeterogeneousModulationPlace2003}
 Michael~I. Anderson and Kathryn~J. Jeffery.
 \newblock Heterogeneous {{Modulation}} of {{Place Cell Firing}} by {{Changes}} in {{Context}}.
 \newblock {\em Journal of Neuroscience}, 23(26):8827--8835, October 2003.
+
+\bibitem{leeGradualTranslocationSpatial2006}
+Inah Lee, Amy~L. Griffin, Eric~A. Zilli, Howard Eichenbaum, and Michael~E. Hasselmo.
+\newblock Gradual {{Translocation}} of {{Spatial Correlates}} of {{Neuronal Firing}} in the {{Hippocampus}} toward {{Prospective Reward Locations}}.
+\newblock {\em Neuron}, 51(5):639--650, September 2006.
+
+\bibitem{wenOneshotEntorhinalMaps2024}
+John~H. Wen, Ben Sorscher, Emily~A. Aery~Jones, Surya Ganguli, and Lisa~M. Giocomo.
+\newblock One-shot entorhinal maps enable flexible navigation in novel environments.
+\newblock {\em Nature}, 635(8040):943--950, November 2024.
 
 \end{thebibliography}

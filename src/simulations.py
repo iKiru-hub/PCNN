@@ -420,6 +420,8 @@ def run_model(parameters: dict, global_parameters: dict,
     remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 1
     lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.3
 
+    logger.debug(f"modulation : {parameters['modulation_option']}")
+
     """ make model """
 
     brain = pclib.Brain(
@@ -437,14 +439,14 @@ def run_model(parameters: dict, global_parameters: dict,
                 threshold_fine=parameters["threshold_fine"],
                 rep_threshold_fine=parameters["rep_threshold_fine"],
                 tau_trace_fine=parameters["tau_trace_fine"],
-                remap_tag_frequency=remap_tag_frequency,
+                remap_tag_frequency=parameters['remap_tag_frequency'],
                 gain_coarse=parameters["gain_coarse"],
                 offset_coarse=parameters["offset_coarse"],
                 threshold_coarse=parameters["threshold_coarse"],
                 rep_threshold_coarse=parameters["rep_threshold_coarse"],
                 tau_trace_coarse=parameters["tau_trace_coarse"],
                 lr_da=parameters["lr_da"],
-                lr_pred=lr_pred,
+                lr_pred=parameters['lr_pred'],
                 threshold_da=parameters["threshold_da"],
                 tau_v_da=parameters["tau_v_da"],
                 lr_bnd=parameters["lr_bnd"],
@@ -453,7 +455,8 @@ def run_model(parameters: dict, global_parameters: dict,
                 tau_ssry=parameters["tau_ssry"],
                 threshold_ssry=parameters["threshold_ssry"],
                 threshold_circuit=parameters["threshold_circuit"],
-                remapping_flag=remapping_flag,
+                remapping_flag=parameters['remapping_flag'],
+                modulation_option=parameters['modulation_option'],
                 rwd_weight=parameters["rwd_weight"],
                 rwd_sigma=parameters["rwd_sigma"],
                 col_weight=parameters["col_weight"],

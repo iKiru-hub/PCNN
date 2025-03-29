@@ -288,7 +288,7 @@ PYBIND11_MODULE(pclib, m) {
              float, float, float, float,
              float, float, float,
              float, float,
-             float, int,
+             float, int, std::array<bool, 4>,
              float, float, float, float,
              float, float, float, float,
              float, int,
@@ -331,6 +331,7 @@ PYBIND11_MODULE(pclib, m) {
 
              py::arg("threshold_circuit"),
              py::arg("remapping_flag") = 1,
+             py::arg("modulation_option") = std::array<bool, 4>({true, true, true, true}),
 
              py::arg("rwd_weight"),
              py::arg("rwd_sigma"),

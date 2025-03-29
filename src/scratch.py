@@ -140,13 +140,15 @@ if __name__ == "__main__":
 
     """ run """
 
+    parameters['modulation_option'] = [True] * 4
+
     logger("[@scratch.py]")
     out, _ = sim.run_model(parameters=parameters,
-                        global_parameters=sim.global_parameters,
-                        reward_settings=reward_settings,
-                        game_settings=game_settings,
-                        room_name=args.room,
-                        limit_position_len=2,
-                        verbose=False, pause=game_settings["pause"])
+                           global_parameters=sim.global_parameters,
+                           reward_settings=reward_settings,
+                           game_settings=game_settings,
+                           room_name=args.room,
+                           limit_position_len=2,
+                           verbose=False, pause=game_settings["pause"])
 
     logger(f"rw_count={out}")

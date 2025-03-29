@@ -2863,6 +2863,8 @@ public:
 
 std::array<bool, 4> remapping_options(int flag) {
 
+    // {da(fine), da(coarse), bnd(fine), bnd(coarse)}
+
     switch (flag) {
         case 0:
             return {true, true, true, true};
@@ -2888,6 +2890,7 @@ std::array<bool, 4> remapping_options(int flag) {
 }
 
 
+
 struct DensityPolicy {
 
     float rwd_weight;
@@ -2903,7 +2906,10 @@ struct DensityPolicy {
     float col_field_mod_coarse;
 
     bool remapping_flag;
+    // da(fine), da(coarse), bnd(fine), bnd(coarse)
     std::array<bool, 4> remapping_option;
+    // density(da), gain(da), density(bnd), gain(bnd)
+    std::array<bool, 4> modulation_option;
 
     void call(PCNN_REF& space_fine,
               PCNN_REF& space_coarse,
@@ -2915,19 +2921,27 @@ struct DensityPolicy {
 
         if (remapping_flag < 0 || space_fine.len() < 3) { return; }
 
-        // +reward -collision <<< was here the memory leaky?
+        // +reward -collision
         if (reward > 0.1 && circuits.get_da_leaky_v() > 0.01f) {
 
             // update & remap
             rwd_drive = rwd_weight * curr_da;
 
             if (remapping_option[0]) {
-                space_fine.remap(circuits.get_da_weights(), displacement, rwd_sigma, rwd_drive);
-                space_fine.modulate_gain(rwd_field_mod_fine);
+                if (modulation_option[0]) {
+                    space_fine.remap(circuits.get_da_weights(), displacement, rwd_sigma, rwd_drive);
+                }
+                if (modulation_option[1]) {
+                    space_fine.modulate_gain(rwd_field_mod_fine);
+                }
             }
             if (remapping_option[1]) {
-                space_coarse.remap(displacement, rwd_sigma, rwd_drive);
-                space_coarse.modulate_gain(rwd_field_mod_coarse);
+                if (modulation_option[0]) {
+                    space_coarse.remap(displacement, rwd_sigma, rwd_drive);
+                }
+                if (modulation_option[1]) {
+                    space_coarse.modulate_gain(rwd_field_mod_coarse);
+                }
             }
         } else if (collision > 0.1) {
 
@@ -2935,14 +2949,23 @@ struct DensityPolicy {
             col_drive = col_weight * curr_bnd;
 
             if (remapping_option[2]) {
-                space_fine.remap(circuits.get_bnd_weights(), {-1.0f*displacement[0], -1.0f*displacement[1]},
-                                 col_sigma, col_drive);
-                space_fine.modulate_gain(col_field_mod_fine);
+                if (modulation_option[2]) {
+                    space_fine.remap(circuits.get_bnd_weights(),
+                                     {-1.0f*displacement[0], -1.0f*displacement[1]},
+                                     col_sigma, col_drive);
+                }
+                if (modulation_option[3]) {
+                    space_fine.modulate_gain(col_field_mod_fine);
+                }
             }
             if (remapping_option[3]) {
-                space_coarse.remap({-1.0f*displacement[0], -1.0f*displacement[1]},
-                                   col_sigma, col_drive);
-                space_coarse.modulate_gain(col_field_mod_coarse);
+                if (modulation_option[2]) {
+                    space_coarse.remap({-1.0f*displacement[0], -1.0f*displacement[1]},
+                                       col_sigma, col_drive);
+                }
+                if (modulation_option[3]) {
+                    space_coarse.modulate_gain(col_field_mod_coarse);
+                }
             }
         }
     }
@@ -2953,6 +2976,7 @@ struct DensityPolicy {
                   float rwd_field_mod_coarse,
                   float col_field_mod_fine,
                   float col_field_mod_coarse,
+                  std::array<bool, 4> modulation_option,
                   int remapping_flag = -1):
         rwd_weight(rwd_weight), rwd_sigma(rwd_sigma),
         col_sigma(col_sigma), col_weight(col_weight),
@@ -2960,7 +2984,15 @@ struct DensityPolicy {
         rwd_field_mod_coarse(rwd_field_mod_coarse),
         col_field_mod_fine(col_field_mod_fine),
         col_field_mod_coarse(col_field_mod_coarse),
-        remapping_option(remapping_options(remapping_flag)) {}
+        modulation_option(modulation_option),
+        remapping_option(remapping_options(remapping_flag)) {
+
+        std::cout << "Modulation option:" << "\n";
+        std::cout << "da d " << modulation_option[0] << "\n";
+        std::cout << "da r " << modulation_option[1] << "\n";
+        std::cout << "bnd d " << modulation_option[2] << "\n";
+        std::cout << "bnd r " << modulation_option[3] << "\n";
+    }
     std::string str() { return "DensityPolicy"; }
     std::string repr() { return "DensityPolicy"; }
     float get_rwd_mod() { return rwd_drive; }
@@ -3312,6 +3344,7 @@ public:
 
           float threshold_circuit,
           int remapping_flag,
+          std::array<bool, 4> modulation_option,
 
           float rwd_weight,
           float rwd_sigma,
@@ -3364,7 +3397,7 @@ public:
         dpolicy(DensityPolicy(rwd_weight, rwd_sigma, col_weight, col_sigma,
                               rwd_field_mod_fine, rwd_field_mod_coarse,
                               col_field_mod_fine, col_field_mod_coarse,
-                              remapping_flag)),
+                              modulation_option, remapping_flag)),
         expmd(ExplorationModule(speed * 2.0f, circuits, space_fine,
                                 action_delay, edge_route_interval)) {}
 
@@ -3633,7 +3666,8 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
 
     // EXPERIENCE MODULE & BRAIN
     DensityPolicy dpolicy = DensityPolicy(0.5f, 40.0f, 0.5f, 20.0f,
-                                          1.0f, 1.0f, 1.0f, 1.0f, 1);
+                                          1.0f, 1.0f, 1.0f, 1.0f,
+                                          {true, true, true, true}, 1);
     ExplorationModule expmd = ExplorationModule(SPEED, circuits, space, 1.0f);
     /* Brain brain = Brain(circuits, space, space_coarse, expmd, ssry, dpolicy, */
     /*                     SPEED, SPEED * 2.0f, 5); */
@@ -3643,7 +3677,7 @@ int simple_env(int pause = 20, int duration = 3000, float bnd_w = 0.0f) {
                             0.5f, 0.1f, 0.0f, 0.2f,
                             0.5f, 0.0f, 0.2f,
                             100.0f, 0.2f,
-                            0.5f, 1,
+                            0.5f, 1, {true, true, true, true},
                             0.5f, 40.0f, 0.5f, 20.0f,
                             1.0f, 1.0f, 1.0f, 1.0f,
                             1.0f, 100,
