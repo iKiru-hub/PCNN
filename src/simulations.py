@@ -420,8 +420,6 @@ def run_model(parameters: dict, global_parameters: dict,
     remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 1
     lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.3
 
-    logger.debug(f"modulation : {parameters['modulation_option']}")
-
     """ make model """
 
     brain = pclib.Brain(

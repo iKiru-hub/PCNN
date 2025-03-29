@@ -2890,7 +2890,6 @@ std::array<bool, 4> remapping_options(int flag) {
 }
 
 
-
 struct DensityPolicy {
 
     float rwd_weight;
@@ -2985,14 +2984,8 @@ struct DensityPolicy {
         col_field_mod_fine(col_field_mod_fine),
         col_field_mod_coarse(col_field_mod_coarse),
         modulation_option(modulation_option),
-        remapping_option(remapping_options(remapping_flag)) {
+        remapping_option(remapping_options(remapping_flag)) {}
 
-        std::cout << "Modulation option:" << "\n";
-        std::cout << "da d " << modulation_option[0] << "\n";
-        std::cout << "da r " << modulation_option[1] << "\n";
-        std::cout << "bnd d " << modulation_option[2] << "\n";
-        std::cout << "bnd r " << modulation_option[3] << "\n";
-    }
     std::string str() { return "DensityPolicy"; }
     std::string repr() { return "DensityPolicy"; }
     float get_rwd_mod() { return rwd_drive; }
