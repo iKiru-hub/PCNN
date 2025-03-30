@@ -171,7 +171,7 @@ def change_parameters(params: dict, name: int):
         return params
 
     # no remap option
-    if name == "Da-r":
+    if name == "DA-r":
         params['modulation_option'] = [False, True] + [False] * 2
         return params
 
@@ -189,6 +189,8 @@ def change_parameters(params: dict, name: int):
     if name == "baseline":
         params['modulation_option'] = [True] * 4
         return params
+    else:
+        raise NameError(f"{name=}??")
 
 
 def convert_numpy(obj):
