@@ -8,7 +8,7 @@ Numerous speculations have been made about the shape and neural foundations of s
 
 % brief recap of this work
 The contribution of the present work was to proposal a rate network model, inspired by the CA1 hippocampal region \cite{donatoHowYouBuild2023}.
-We used grid cells together with synaptic plasticity as a mechanism for developing place cells-based context rich maps, which are updated through experience.
+We used grid cells together with synaptic plasticity as a mechanism for developing place cells-based information rich representations updated through experience, lined up with common perspectives on cognitive maps \cite{hokGoalRelatedActivityHippocampal2007}.
 In the spirit of minimizing the geometric assumptions on the neural space, we treated the generated place network as a topological graph, with information added locally through the action of neuromodulators.
 This idea aligned with the concept of a \textit{labeled graph} \cite{ishikawaSpatialKnowledgeAcquisition2006, warrenNonEuclideanNavigation2019} as it ignores premises of global spatial properties, however it is also true that no metric violations were actually possible in these settings.
 
@@ -43,15 +43,14 @@ In fact, neuromodulation has been long associated with such functionality as wel
 % III
 Lastly, the hypothesis of relevance of the active modulation of neuronal properties of place cells was corroboated by simulating ablation experiments. These tests reported a significant impact of resizing place fields and density on the total count of collected rewards.
 Further, boundary modulation showed to be more impactful in environments with more internal walls, reasonably because it enehanced their representation in neural space leading to better planning.
-Overall, these results aligns with the experimental observations of alteration of place cells upon reward events \cite{bittnerBehavioralTimeScale2017, nairHippocampusMaintainsCoherent2022}, in particular in terms of increased cells clustering \cite{tryonHippocampalNeuralActivity2017}, reminiscent of firing rate changes following contextual shifts \cite{andersonHeterogeneousModulationPlace2003, leeGradualTranslocationSpatial2006}.
+Overall, these results aligns with the experimental observations of alteration of place cells upon reward events \cite{bittnerBehavioralTimeScale2017, nairHippocampusMaintainsCoherent2022}, in particular in terms of increased cells clustering \cite{tryonHippocampalNeuralActivity2017, wirtshafterDifferencesRewardBiased2020}, reminiscent of firing rate changes following contextual shifts \cite{andersonHeterogeneousModulationPlace2003, leeGradualTranslocationSpatial2006}.
 
-The size of the place fields is usually reported to shrink near rewarding objects and location, and if coupled with higher local density might lead to greater attention to details, due to better spatial sensitivity.
-In our settings, however, the fields became enlarged. A possible explanation can be the simplicty of our reward, which was solely defined as an area of space.
+Concerning the modulation of place fields, there is significant experimental evidence of their alternation during reward events \cite{fyhnHippocampalNeuronsResponding2002, lenck-santiniStudyCA1Place2005, dupretReorganizationReactivationHippocampal2010}, some reporting shrinking near rewarding objects \cite{burkeInfluenceObjectsPlace2011}, and boundaries \cite{tanniStateTransitionsStatistically2022}. The coupling with higher local density might be explained by a better optimization of cell distribution for goal representation and planning  \cite{scleidorovichAdaptingHippocampusMultiscale2022}.
+In our settings, however, the fields became enlarged, especially in the direction of target. A possible explanation can be the simplicty of our reward, which was solely defined as an area of space.
 The lack of rich non-spatial features thus did not required the place cells to code for smaller spatial variation.
-The enlargement can then have improved the stability of the representation, marking the nodes associated with rewards more solidly, given the stochasticity of its delivery.
+Therefore, the enlargement might have improved the stability of the representation, marking the nodes associated with rewards more solidly, given the stochasticity of its delivery.
 Further, the graph-path algorithm utilized the strength of the DA-modulated connections for determining the goal representation, stronger fields inherently developed stronger weights, making planning more reliable planning.
-
-
+Although these finding are confined within the limit our simulation protocol, there have been experimental observations of elongation of place fields along trajectories over meaningful experiences \cite{mehtaExperiencedependentAsymmetricExpansion1997, leeBraininspiredPredictiveCoding2022}.
 
 % conclusion
 In conclusion, this work showed a possible architecture for coupling emergent spatial representations with neuromodulated plasticity for achieving an experience-driven cognitive map.

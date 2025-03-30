@@ -81,6 +81,7 @@ Further, since the rate $\hat{\eta}^{k}$ is less than $1$, it takes several erro
 The rationale is to depress those synapses no longer reliably predicting the sensory experience referenced by the neuromodulator.
 % This simple rule is inspired by previous computational work modeling dopaminergic and cholinergic activity in the regulation of exploration-exploitation behaviours through synaptic plasticity \cite{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019, brzoskoSequentialNeuromodulationHebbian2017}.
 This simple rule following the framework of predictive coding and temporal-difference learning \cite{suttonReinforcementLearningProblem}.
+Previous computational models have used neuromodulatory signals for controlling neuronal dynamics, applied to the learning process \cite{brzoskoSequentialNeuromodulationHebbian2017, meiEffectsNeuromodulationinspiredMechanisms2023} or as a feedback error \cite{scleidorovichAdaptingHippocampusMultiscale2022}. 
 Additionally, it alignes experimental evidence of the involvement of neuromodulation in the dynamic update of internal beliefs \cite{montagueFrameworkMesencephalicDopamine1996, decothiPredictiveMapsRats2022, krishnanRewardExpectationExtinction2022}.
 
 \subsubsection{Modulation of place fields}
@@ -112,7 +113,8 @@ In this work, the first interest was to test the usefulness of our simple cognit
 To this end, we defined a simple hard-coded policy that toggles between these two behaviours according to the presence of a goal signal, externally provided, and the presence of an actual goal representation, taken care of by a special component called \textit{reward seeking}, depicted in the pink box of plot \ref{fig:model}-\textbf{a}.
 Exploration is accomplished by a random walk, with a variable number of steps in the same direction to avoid stagnation, and occasional plans to visit random positions within the known map, again for limiting stagnation.
 Goal-directed navigation, namely exploitation, serves the dual purpose of going to random position within the map for improving exploration, and reaching the actual reward location.
-In practive, goal navigation is achieved by calculating the shortest path between the current position, identified by the most active place cells, and a target position, picked randomly or by considering the cells with the strongest dopaminergic weights, inspired by hippocampal replay and experimental observations \cite{mcnamaraDopaminergicNeuronsPromote2014, michonSingletrialDynamicsHippocampal2021}.
+In practive, goal navigation is achieved by calculating the shortest path between the current position, identified by the most active place cells, and a target position, picked randomly or by considering the cells with the strongest dopaminergic weights, inspired by hippocampal replay and
+experimental observations \cite{mcnamaraDopaminergicNeuronsPromote2014, michonSingletrialDynamicsHippocampal2021, shamashMiceIdentifySubgoal2021}.
 The place cells are hence treated as nodes of a graph, and their connections constitute its edges.
 We use a Dijkstra algorithm applied to the coarse-grained layer, which contains less and more spread out cells and it is thus cheaper to compute, to derive a coarse-grained plan.
 However, in the case the agent gets stuck or the distance to the target is shorter than the cells' distance, the planning switches to the other layer for devising a fine-grained plan, which it is followed until either the target or the next node in the coarse-grained are reached.
