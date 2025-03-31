@@ -316,10 +316,10 @@ PYBIND11_TEST:BOOL=OFF
 PYBIND11_USE_CROSSCOMPILING:BOOL=OFF
 
 //Path to a program.
-PYTHON_EXECUTABLE:FILEPATH=/opt/homebrew/bin/python3.8
+PYTHON_EXECUTABLE:FILEPATH=/Users/daniekru/Research/codebase/myenvs/env_cl1/bin/python
 
 //Path to a library.
-PYTHON_LIBRARY:FILEPATH=/opt/homebrew/opt/python@3.8/Frameworks/Python.framework/Versions/3.8/lib/libpython3.8.dylib
+PYTHON_LIBRARY:FILEPATH=/opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib
 
 //Value Computed by CMake
 pclib_BINARY_DIR:STATIC=/Users/daniekru/Research/lab/PCNN/src/core/build
@@ -516,25 +516,25 @@ CMAKE_UNAME:INTERNAL=/usr/bin/uname
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 //Details about finding PYTHON
-FIND_PACKAGE_MESSAGE_DETAILS_PYTHON:INTERNAL=/opt/homebrew/bin/python3.83.8.19
+FIND_PACKAGE_MESSAGE_DETAILS_PYTHON:INTERNAL=/Users/daniekru/Research/codebase/myenvs/env_cl1/bin/python3.11.11
 //Details about finding PythonInterp
-FIND_PACKAGE_MESSAGE_DETAILS_PythonInterp:INTERNAL=[/opt/homebrew/bin/python3.8][v3.8.19(3.8)]
+FIND_PACKAGE_MESSAGE_DETAILS_PythonInterp:INTERNAL=[/Users/daniekru/Research/codebase/myenvs/env_cl1/bin/python][v3.11.11(3.8)]
 //Test HAS_FLTO_THIN
 HAS_FLTO_THIN:INTERNAL=1
 PYBIND11_INCLUDE_DIR:INTERNAL=/Users/daniekru/Research/lab/PCNN/src/core/extern/pybind11/include
 //ADVANCED property for variable: PYTHON_EXECUTABLE
 PYTHON_EXECUTABLE-ADVANCED:INTERNAL=1
-PYTHON_INCLUDE_DIRS:INTERNAL=/opt/homebrew/opt/python@3.8/Frameworks/Python.framework/Versions/3.8/include/python3.8
+PYTHON_INCLUDE_DIRS:INTERNAL=/opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11/include/python3.11
 PYTHON_IS_DEBUG:INTERNAL=0
-PYTHON_LIBRARIES:INTERNAL=/opt/homebrew/opt/python@3.8/Frameworks/Python.framework/Versions/3.8/lib/libpython3.8.dylib
+PYTHON_LIBRARIES:INTERNAL=/opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib
 //ADVANCED property for variable: PYTHON_LIBRARY
 PYTHON_LIBRARY-ADVANCED:INTERNAL=1
 PYTHON_MODULE_DEBUG_POSTFIX:INTERNAL=
-PYTHON_MODULE_EXTENSION:INTERNAL=.cpython-38-darwin.so
+PYTHON_MODULE_EXTENSION:INTERNAL=.cpython-311-darwin.so
 PYTHON_MODULE_PREFIX:INTERNAL=
-PYTHON_VERSION:INTERNAL=3.8.19
+PYTHON_VERSION:INTERNAL=3.11.11
 PYTHON_VERSION_MAJOR:INTERNAL=3
-PYTHON_VERSION_MINOR:INTERNAL=8
+PYTHON_VERSION_MINOR:INTERNAL=11
 Python_ADDITIONAL_VERSIONS:INTERNAL=3.12;3.11;3.10;3.9;3.8
 //CMAKE_INSTALL_PREFIX during last run
 _GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=/usr/local
@@ -545,5 +545,5 @@ pybind11_FOUND:INTERNAL=TRUE
 //Directory where pybind11 headers are located
 pybind11_INCLUDE_DIR:INTERNAL=/Users/daniekru/Research/lab/PCNN/src/core/extern/pybind11/include
 //Directories where pybind11 and possibly Python headers are located
-pybind11_INCLUDE_DIRS:INTERNAL=/Users/daniekru/Research/lab/PCNN/src/core/extern/pybind11/include;/opt/homebrew/opt/python@3.8/Frameworks/Python.framework/Versions/3.8/include/python3.8
+pybind11_INCLUDE_DIRS:INTERNAL=/Users/daniekru/Research/lab/PCNN/src/core/extern/pybind11/include;/opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11/include/python3.11
 

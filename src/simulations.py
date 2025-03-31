@@ -403,9 +403,11 @@ class Renderer:
         plt.pause(0.00001)
 
 
-def run_model(parameters: dict, global_parameters: dict,
+def run_model(parameters: dict,
+              global_parameters: dict,
               reward_settings: dict,
-              game_settings: dict, room_name: str="Flat.1011",
+              game_settings: dict,
+              room_name: str="Flat.1011",
               pause: int=-1, verbose: bool=True,
               record_flag: bool=False,
               limit_position_len: int=-1,
@@ -484,7 +486,11 @@ def run_model(parameters: dict, global_parameters: dict,
 
     possible_positions = room.get_room_positions()
 
-    rw_position_idx = np.random.randint(0, len(possible_positions))
+    if 'rw_position_idx' in reward_settings.keys():
+        rw_position_idx = reward_settings['rw_position_idx']
+    else:
+        rw_position_idx = np.random.randint(0, len(possible_positions))
+
     rw_position = possible_positions [rw_position_idx]
     agent_possible_positions = possible_positions.copy()
 
@@ -547,10 +553,10 @@ def run_model(parameters: dict, global_parameters: dict,
     # else:
     #     renderer = None
 
-    if env.reward_obj.preferred_positions is not None:
-        idx = np.random.choice(env.reward_obj.preferred_positions)
-        env.reward_obj.set_position(
-                env.room.sample_random_position(idx))
+    # if env.reward_obj.preferred_positions is not None:
+    #     idx = np.random.choice(env.reward_obj.preferred_positions)
+    #     env.reward_obj.set_position(
+    #             env.room.sample_random_position(idx))
 
     if verbose_min:
         logger("[@simulations.py]")

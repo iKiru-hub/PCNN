@@ -15,6 +15,7 @@ reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
+    "rw_position_idx": 3,
     "rw_radius": 0.08 * GAME_SCALE,
     "rw_sigma": 0.8,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
