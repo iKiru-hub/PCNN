@@ -123,3 +123,17 @@ The advantage of this dual-layer planning lies in its flexibility, as it lighten
 In the process of behaviour, learning does not occur explicitly, but it is instead accounted for in the online formation of the cognitive map.
 
 
+% benchmarks used
+\subsection{Naturalistic task}
+The evaluation of the model ability to construct and utilize a cognitive map was defined as the total count of rewards collected during several trials.
+All environments used were closed boxes with different layouts, determined by the location and number of internal walls.
+
+The testing protocol was inspired by the behaviour of animals who venture in new territories in the search of food.
+First there was an exploration phase, in which the agent was placed in a random location and let roam through a pseudo-random walk for $5000$ time-steps.
+%Depending on environment layout, the formed map  more or less matching the the actual topology.
+Then an exploitation phase began, in which a circle the 5\% of the total are was designated to provide a binary reward $R\sim \mathcal{B}(p_{r})$ drawn from a Bernoully with probability $p_{r}$.
+% When the reward was successfully fetched, the agent was teleported to a random location in the environment.
+% Further, in order to mimic the depletion of a food source the reward area was modeled with as leaky variable $\dot{v}_{r}=(E_{r}-v_{r})/\tau_{r} + R$, and its location moved whenever its level went below a threshold $v_{r}<\theta_{r}$.
+
+\hfill \break
+The optimization of the parameters of the model was carried out using the Covariance-Matrix Adaptation evolutionary strategy (CMA-ES) \cite{igelCovarianceMatrixAdaptation2007} with a population of 256 individuals for 100 generations.

@@ -23,13 +23,13 @@ reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
-    "rw_position_idx": 0,
+    # "rw_position_idx": 0,
     "rw_radius": 0.08 * GAME_SCALE,
     "rw_sigma": 0.5,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 6_000,
+    "silent_duration": 5_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 35.,
@@ -46,7 +46,7 @@ game_settings = {
     "rendering": False,
     "max_duration": 20_000,
     "room_thickness": 20,
-    "t_teleport": 1_700,
+    "t_teleport": 2_000,
     "seed": None,
     "pause": -1,
     "limit_position_len": -1,
@@ -156,10 +156,51 @@ PARAMETERS = {
 }
 
 
+PARAMETERS_NOREMAP = {
+    'gain_fine': 30.0,
+    'offset_fine': 1.0,
+    'threshold_fine': 0.4,
+    'rep_threshold_fine': 0.89,
+    'rec_threshold_fine': 32,
+    'tau_trace_fine': 220,
+    'remap_tag_frequency': 2,
+    'num_neighbors': 3,
+    'min_rep_threshold': 0.92,
+    'gain_coarse': 49.6,
+    'offset_coarse': 1.0,
+    'threshold_coarse': 0.4,
+    'rep_threshold_coarse': 0.74,
+    'rec_threshold_coarse': 40,
+    'tau_trace_coarse': 203,
+    'lr_da': 0.99,
+    'lr_pred': 0.3,
+    'threshold_da': 0.04,
+    'tau_v_da': 2.0,
+    'lr_bnd': 0.6,
+    'threshold_bnd': 0.3,
+    'tau_v_bnd': 4.0,
+    'tau_ssry': 28.0,
+    'threshold_ssry': 0.975,
+    'threshold_circuit': 0.9,
+    'remapping_flag': -1,
+    'rwd_weight': 4.58,
+    'rwd_sigma': 35.0,
+    'col_weight': 1.4,
+    'col_sigma': 30.9,
+    'rwd_field_mod_fine': 0.9,
+    'rwd_field_mod_coarse': -1.3,
+    'col_field_mod_fine': 1.2,
+    'col_field_mod_coarse': 1.0,
+    'action_delay': 120.0,
+    'edge_route_interval': 5,
+    'forced_duration': 1,
+    'fine_tuning_min_duration': 88
+}
+
 
 """ FUNCTIONS """
 
-OPTIONS = ["baseline", "DA-d", "DA-r", "BND-d", "BND-r"]
+OPTIONS = ["no-remap", "baseline", "DA-d", "DA-r", "BND-d", "BND-r"]
 NUM_OPTIONS = len(OPTIONS)
 ROOM_NAME = "Flat.0010"
 
@@ -190,6 +231,12 @@ def change_parameters(params: dict, name: int):
     if name == "baseline":
         params['modulation_option'] = [True] * 4
         return params
+
+    # no remap option
+    if name == "no_remap":
+        params["remapping_flag"] = -1
+        return params
+
     else:
         raise NameError(f"{name=}??")
 
@@ -261,8 +308,11 @@ def run_local_model(args) -> list:
     logger(f"{ROOM_NAME=}")
 
     for i in tqdm(range(NUM_OPTIONS)):
-        params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
-        results += [safe_run_model(params, ROOM_NAME)]
+        if i == 1:  # noremap case
+            results += [safe_run_model(PARAMETERS_NOREMAP, ROOM_NAME)]
+        else:
+            params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
+            results += [safe_run_model(params, ROOM_NAME)]
 
     return results
 

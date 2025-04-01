@@ -1,39 +1,19 @@
 \begin{abstract}
-    soon
-\end{abstract[55] Christopher J. Cueva and Xue-Xin Wei. Emergence of grid-like representa-
-tions by training recurrent neural networks to perform spatial localization,
-March 2018.
-[56] Tristan Baumann and Hanspeter A. Mallot. Metric information in cogni-
-tive maps: Euclidean embedding of non-Euclidean environments. PLOS
-Computational Biology, 19(12):e1011748, December 2023.
-[57] Charlotte B. Alme, Chenglin Miao, Karel Jezek, Alessandro Treves, Ed-
-vard I. Moser, and May-Britt Moser. Place cells in the hippocampus:
-Eleven maps for eleven rooms. Proceedings of the National Academy of
-Sciences, 111(52):18428–18435, December 2014.
-[58] Jake Ormond and Bruce L. McNaughton. Place field expansion after focal
-MEC inactivations is consistent with loss of Fourier components and path
-integrator gain reduction. Proceedings of the National Academy of Sciences
-of the United States of America, 112(13):4116–4121, March 2015.
-[59] Abdullahi Ali, Nasir Ahmad, Elgar de Groot, Marcel A. J. van Gerven, and
-Tim C. Kietzmann. Predictive coding is a consequence of energy efficiency
-in recurrent neural networks, November 2021.
-[60] Jacopo Bono, Sara Zannone, Victor Pedrosa, and Claudia Clopath. Learn-
-ing predictive cognitive maps with spiking neurons during behavior and
-replays. eLife, 12:e80671, March 2023.
-[61] Zuzanna Brzosko, Wolfram Schultz, and Ole Paulsen. Retroactive modu-
-lation of spike timing-dependent plasticity by dopamine. eLife, 4:e09685,
-October 2015.
-[62] Zuzanna Brzosko, Sara Zannone, Wolfram Schultz, Claudia Clopath, and
-Ole Paulsen. Sequential neuromodulation of Hebbian plasticity offers mech-
-anism for effective reward-based navigation. eLife, 6:e27756, 2017.
-[63] Wolfram Schultz. Dopamine reward prediction error coding. Dialogues in
-Clinical Neuroscience, 18(1):23–32, March 2016.
-[64] Jeffrey B. Inglis, Vivian V. Valentin, and F. Gregory Ashby. Modulation
-of Dopamine for Adaptive Learning: A Neurocomputational Model. Com-
-putational brain & behavior, 4(1):34–52, March 2021.
-[65] Philippe N. Tobler, Christopher D. Fiorillo, and Wolfram Schultz. Adaptive
-Coding of Reward Value by Dopamine Neurons. Science, 307(5715):1642–
-1645, March 2005.
-[66] Roshan Cools. Chemistry of the Adaptive Mind: Lessons from Dopamine.
-Neuron, 104(1):113–131, October 2019.
-20}
+
+% the context
+During navigation, animals dynamically create rich representations of the environment, forming personalized cognitive maps used for exploration and goal planning. The hippocampal area CA1 features spatial cells that adapt based on behavior and internal states.
+A possible modeling approach is a labeled graphs that, with the intent of avoiding a map with metric structure, relies on nodes enriched with spatial information only specified locally.
+Another popular direction if training of deep neural networks on spatial tasks, from which record network dynamics from emerging spatially tuned neurons.
+
+% the model in brief
+In this study, we introduce a place-cells based architecture for developing cognitive maps in one-shot while exploring novel environments.
+We used a simulated agent for reward-driven navigation tasks, which operates online and forms spatial representations of its surroundings.
+Further, by means of neuromodulators it incorporates behaviorally relevant information, such as boundaries and reward location.
+Learning was involved the combination of a rapid Hebbian plasticity, lateral competition, and modulation of the place cells,
+
+% results
+The agent proved successful in exploring, retrieving and reaching goal locations in a variety of environments, and displayed adaptability when the reward was moved.
+Further, the analysis of the neuromodulated place cells showed the importance of dynamically changing neuronal density and tuning field size following relevant events.
+These results align with experimental evidence of reward effects on hippocamapal spatial cells, and provides additional computational support to the labeled graph approach.
+
+\end{abstract}
