@@ -152,9 +152,9 @@ PARAMETERS = {
     "action_delay": 120.0,
     "edge_route_interval": 5,
     "forced_duration": 1,
-    "fine_tuning_min_duration": 55
+    "fine_tuning_min_duration": 55,
+    'modulation_option': [True] * 4
 }
-
 
 PARAMETERS_NOREMAP = {
     'gain_fine': 30.0,
@@ -194,13 +194,14 @@ PARAMETERS_NOREMAP = {
     'action_delay': 120.0,
     'edge_route_interval': 5,
     'forced_duration': 1,
-    'fine_tuning_min_duration': 88
+    'fine_tuning_min_duration': 88,
+    'modulation_option': [False] * 4
 }
 
 
 """ FUNCTIONS """
 
-OPTIONS = ["no-remap", "baseline", "DA-d", "DA-r", "BND-d", "BND-r"]
+OPTIONS = ["no_remap", "baseline", "DA-d", "DA-r", "BND-d", "BND-r"]
 NUM_OPTIONS = len(OPTIONS)
 ROOM_NAME = "Flat.0010"
 
