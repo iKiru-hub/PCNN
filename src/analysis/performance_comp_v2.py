@@ -235,6 +235,7 @@ def change_parameters(params: dict, name: int):
 
     # no remap option
     if name == "no_remap":
+        params['modulation_option'] = [False] * 4
         params["remapping_flag"] = -1
         return params
 
@@ -309,7 +310,7 @@ def run_local_model(args) -> list:
     logger(f"{ROOM_NAME=}")
 
     for i in tqdm(range(NUM_OPTIONS)):
-        if i == 1:  # noremap case
+        if OPTIONS[i] == "no_remap":  # noremap case
             results += [safe_run_model(PARAMETERS_NOREMAP, ROOM_NAME)]
         else:
             params = change_parameters(PARAMETERS.copy(), OPTIONS[i])

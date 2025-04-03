@@ -1927,7 +1927,7 @@ public:
 
             // weight the displacement
             std::array<float, 2> gc_displacement = {dist * magnitude,
-                                                    dist * magnitude}; # ??
+                                                    dist * magnitude}; // ??
 
             // pass the input through the filter layer
             x_filtered = xfilter.simulate_one_step(gc_displacement);

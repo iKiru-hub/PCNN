@@ -3,7 +3,7 @@
 #SBATCH -p milanq #rome16q #milanq #ipuq #milanq #armq #milanq #fpgaq #milanq # partition (queue)
 #SBATCH -N 1 # number of nodes
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=128
+#SBATCH --cpus-per-task=256
 ##SBATCH --mem-per-cpu=1GB
 #SBATCH --time=0-23:00
 #SBATCH -o /home/daniekru/slurm.column.%j.%N.out # STDOUT
@@ -27,7 +27,7 @@ echo "[git 'main']"
 # --- RUN
 
 # srun python3 analysis/study_performance.py --reps 5 --cores 64 --save --room "Square.v0"
-srun python3 analysis/performance_comp_v2.py --reps 16 --cores 128 --save --room "Flat.0010" --load_idx 53
+srun python3 analysis/performance_comp_v2.py --reps 32 --cores 256 --save --room "Flat.0010" --load_idx 53
 
 echo "[finished]"
 
