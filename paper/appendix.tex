@@ -1,2 +1,36 @@
 
 \section{Appendix}
+
+\subsection{Grid cell module}
+
+A grid cell module $l$ of size $N^{\text{gc}}$ is identified by a set of positions defined over a square centered at the origin and size of $2$, such that $\{(x_{i}, y_{i})\;\vert\; i \in N^{\text{gc}}\;\land\;x_{i},y_{i}\in (-1, 1)\}$.
+This local square space has boundary conditions for each dimensions, such that for instance when $x_{t} + s^{\text{gc}}_{l} \cdot v_{x} > 2$ then the position update is taken to the other side $x_{t+1} = x_{t} + s^{\text{gc}}_{l} \cdot v_{x} - 2$, where $s^{\text{gc}}_{l}$ is the scale of the velocity in the local space of module $l$ with respect to the real global agent velocity $v=\{v_{x}, v_{y}\}$.
+When the module is initialized, the starting positions of its cells are uniformely distributed over the square forming a lattice.
+When the agent is reset in a new position at the beginning of new trial, a displacement vector is applied to the last cells positions, such that the mapping between the module local space and the global environment is preserved.
+
+The firing rate vector of each cell is determined with respect to a 2D Gaussian tuning curve centered at the origin at $(0,0)$, and it is calculated as $r_{i} = \exp\left(-\frac{x^{2}_{i} + y^{2}_{i}}{2\sigma^{\text{gc}}_{l}}\right)$ where $\sigma^{\text{gc}}_{l}$ is the width of the tuning curve for module $l$.
+
+\subsection{Place cells}
+
+% formation | forward + competition
+
+% modulation | remapping + gain
+
+
+\subsubsection{Modulation}
+
+% plasticity + prediction error
+
+
+\subsubsection{Path-planning algorithm}
+
+
+\subsection{Decision making}
+
+% policy algorithm
+
+\subsection{Evolutionary optimization}
+
+% settings
+
+% result figure

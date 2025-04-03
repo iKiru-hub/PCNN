@@ -113,7 +113,6 @@ PARAMETERS2 = {
     "fine_tuning_min_duration": 10
 }
 
-
 PARAMETERS = {
     "gain_fine": 19.7,
     "offset_fine": 1.0,
