@@ -867,36 +867,6 @@ public:
                 position[0], position[1]);
         }
 
-        // add recurrent connections
-        /* int max_neighbors = 5; */
-        /* for (int j = 0; j < size; j++) { */
-
-        /*     // check if the nodes exist */
-        /*     if (centers(idx, 0) < -999.0f || \ */
-        /*         centers(j, 0) < -999.0f || \ */
-        /*         idx == j) { */
-        /*         continue; */
-        /*     } */
-
-        /*     // check if neighbors was active */
-        /*     /1* if (traces(j) < 0.0001f) { continue; } *1/ */
-
-        /*     float dist = std::sqrt( */
-        /*         (centers(idx, 0) - centers(j, 0)) * */
-        /*         (centers(idx, 0) - centers(j, 0)) + */
-        /*         (centers(idx, 1) - centers(j, 1)) * */
-        /*         (centers(idx, 1) - centers(j, 1)) */
-        /*     ); */
-        /*     if (dist < threshold) { */
-        /*         this->weights(idx, j) = dist; */
-        /*         this->weights(j, idx) = dist; */
-        /*         this->connectivity(idx, j) = 1.0; */
-        /*         this->connectivity(j, idx) = 1.0; */
-        /*     } */
-        /* } */
-
-        /* NEAREST NEIGHBORS */
-
         // add recurrent connections based on nearest neighbors
         for (int idx = 0; idx < size; idx++) {
 
@@ -927,8 +897,6 @@ public:
             // Connect to the closest max_neighbors neighbors
             int num_connections = std::min(num_neighbors,
                                            static_cast<int>(distances.size()));
-            /* this->weights.row(idx) = Eigen::VectorXf::Zero(size); */
-            /* this->connectivity.row(idx) = Eigen::VectorXf::Zero(size); */
 
             for (int k = 0; k < num_connections; k++) {
                 int j = distances[k].second;
@@ -1817,23 +1785,10 @@ public:
         // determine weight update | <<<< previously
         Eigen::VectorXf dw = x_filtered - Wff.row(idx).transpose();
 
-        // <<< new >>>
-        /* std::vector<float> dw(Nj); */
-        /* float delta_wff = 0.0f; */
-        /* for (int i = 0; i < Nj; i++) { */
-        /*     dw.push_back(x_filtered(i) - Wff(idx, i)); */
-        /*     delta_wff += dw[i] * dw[i]; */
-        /* } */
-
         // trim the weight update | <<<< previously
         delta_wff = dw.norm();
 
         if (delta_wff > 0.0) {
-
-            // <<< new >>>
-            /* for (int i = 0; i < Nj; i++) { */
-            /*     if (dw[i] < 0.99f && dw[i] > 0.01f) { Wff(idx, i) += 1.0f; } */
-            /* } */
 
             // update weights | <<<< previously
             Wff.row(idx) += dw.transpose();
@@ -1897,11 +1852,6 @@ public:
             // check remap tag
             if (!remap_tag[i] || traces(i) < 0.1) { continue; }
 
-            // consider the trace
-            /* magnitude_i = magnitude * 1.0f;// trace(i); */
-
-            /* if (magnitude_i < 0.001f) { continue; } */
-
             // skip blocked edges
             if (vspace.centers(i, 0) < -900.0f || block_weights(i) > 0.0f)
                 { continue; }
@@ -1918,9 +1868,6 @@ public:
             if (vspace.is_too_close(i, {displacement[0] * magnitude, displacement[1] * magnitude},
                                     min_rep_threshold)) { continue; }
 
-            // cutoff
-            /* if (dist < 0.1f) { continue; } */
-
             // weight the displacement
             std::array<float, 2> gc_displacement = {dist * magnitude,
                                                     dist * magnitude};
@@ -1931,23 +1878,7 @@ public:
             // update the weights & centers
             Wff.row(i) += x_filtered.transpose() - Wff.row(i).transpose();
 
-            // check similarity
-            /* float similarity = max_cosine_similarity_in_rows(Wff, i); */
-
-            // check repulsion (similarity) level
-             /* - displacement[0] */
-            /* if (similarity > min_rep_threshold || std::isnan(similarity)) { */
-            /* if (similarity > (dist * rep_threshold * 0. + \ */
-            /*     (1 -0*dist) * min_rep_threshold) \ */
-            /*     || std::isnan(similarity)) { */
-            /*     /1* std::cout << "remap failed, too close" << std::endl; *1/ */
-            /*     Wff.row(i) = Wffbackup.row(i); */
-            /*     continue; */
-            /* } */
-
-            // update backup and vspace
             Wffbackup.row(i) = Wff.row(i);
-            /* vspace.remap_center(i, {dist * magnitude, dist * magnitude}); */
             vspace.remap_center(i, {displacement[0] * magnitude, displacement[1] * magnitude});
         }
     }
@@ -1996,7 +1927,7 @@ public:
 
             // weight the displacement
             std::array<float, 2> gc_displacement = {dist * magnitude,
-                                                    dist * magnitude};
+                                                    dist * magnitude}; # ??
 
             // pass the input through the filter layer
             x_filtered = xfilter.simulate_one_step(gc_displacement);
