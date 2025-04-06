@@ -4,6 +4,14 @@
 \subsection{Spatial representations}
 \subsection{Grid cell module}
 
+Unlike other approaches to generate grid fields \cite{dabaghianGridCellsBorder, schoyenHexagonsAllWay2025}, we defined a correspondence between the global environment in which the agent moves, a two-dimensional Euclidean space $\mathbf{R}^{2}$, and a bounded local space of a grid module, corresponding to the torus.
+
+The global velocity $\mathbf{v}=\{x,y\}$ is then mapped to a local velocity, scaled by a speed scalar $s^{\text{gc}}_{l}$ specific to the grid cell module $l$, which determines its periodicity in space. This approach has been used in previous works \cite{liModelingPlaceCells2019}.
+% The starting position on the torus is randomly chosen when the model is initialized since what matters is the sequence of displacements without any reference to a meaningful origin.
+
+The choice of a toroidal space is motivated by consolidated experimental evidence of the neural space of grid cells, which are organized in modules of different sizes spanning the animal's environment. However, the shape of their firing pattern is known to be hexagonal, which corresponds to the optimal tiling of a two-dimensional plane, giving rise to a neural space lying on a twisted torus.
+In this work, for simplicity, we consider a square tiling and thus a square torus, without much loss of generality except for the slight increase of grid cells required for a sufficiently cover.
+
 A grid cell module $l$ of size $N^{\text{gc}}$ is identified by a set of positions defined over a square centered at the origin and size of $2$, such that $\{(x_{i}, y_{i})\;\vert\; i \in N^{\text{gc}}\;\land\;x_{i},y_{i}\in (-1, 1)\}$.
 This local square space has boundary conditions for each dimensions, such that for instance when $x_{t} + s^{\text{gc}}_{l} \cdot v_{x} > 2$ then the position update is taken to the other side $x_{t+1} = x_{t} + s^{\text{gc}}_{l} \cdot v_{x} - 2$, where $s^{\text{gc}}_{l}$ is the scale of the velocity in the local space of module $l$ with respect to the real global agent velocity $v=\{v_{x}, v_{y}\}$.
 When the module is initialized, the starting positions of its cells are uniformely distributed over the square forming a lattice.
@@ -119,7 +127,10 @@ Its particularity is the use of a weighting $\widetilde{\textbf{W}}$ of the node
 \begin{algorithm}
 \caption{Modified Dijkstra algorithm}
 \begin{algorithmic}[1]
-    \Require Connectivity matrix $\mathbf{C} \in \{0,1\}^{N^{\text{PC}} \times N^{\text{PC}}}$, Node coordinates $\mathbf{x} \in \mathbb{R}^{N^{\text{PC}} \times 2}$, Node weights $\widetilde{\mathbf{W}} \in \mathbb{R}^N^{\text{PC}}$, Start node $s$, End node $t$
+    \Require Connectivity matrix $\mathbf{C} \in \{0,1\}^{N^{\text{PC}} \times N^{\text{PC}}}$,
+        Node coordinates $\mathbf{x} \in \mathbb{R}^{N^{\text{PC}} \times 2}$,
+        Node weights $\widetilde{\textbf{W}} \in \mathbb{R}^{N^{\text{PC}}}$,
+        Start node $s$, End node $t$
     \Ensure Shortest path from $t_{0}$ to $T$
 
 \State $distances \gets [\infty, \infty, \ldots, \infty]$ \Comment{Initialize distances}

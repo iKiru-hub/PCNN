@@ -1,14 +1,14 @@
 \section{Methods}
 
-The model is constructed around the concept of a cognitive map, which an agent builds by freely navigating a closed environment and reaching a discovered goal location. The full schema of its components its illustrated in plot \ref{fig:model}-\textbf{a} below.
-The architecture relies on the core assumption that the agent has receives minimal external information, consisting solely of a reward and collision input as two binary values.
-These two signals are used to enrich the cognitive map with experience-dependent data, which is then used to guide the agent's behavior.
+The model is constructed around the concept of a cognitive map, which an agent constructs by freely moving in a closed environment and discovering target locations. The complete schema of its components is illustrated in the plot \ref{fig:model}\textbf{a} below.
+The architecture relies on the core assumption that the external information is minimal, consisting solely of a reward and collision signals as two binary values.
+
 % briefly describe where in the brain these signals are processed
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{figures/figure_model.png}
-    \caption{\textsc{Model layout and spatial representations} - \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioural programs
+    \caption{\textsc{Model layout and spatial representations} - \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs
     and a reward receiver}. \textbf{b}: \textit{the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to two layer of place cells with different place field granularity}. \textbf{c}: \textit{the neural activity of a grid cell module from
 a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}. \textbf{d}: \textit{the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}.
 \textbf{e}: \textit{neuromodulation activity over the place cells map, with in blue the cells tagged by the collision modulation, and in green the ones targeted by reward modulation.}}
@@ -17,39 +17,33 @@ a random trajectory; in blue the repeating activity of all cell, while in green 
 
 The formation of the spatial representation is instead based on idiothetic information, which is the agent's perception of self-motion \cite{zhouCorticalMechanismsMultisensory2022}.
 In particular, here we assume this cue to be the factual velocity vector, namely the actual displacement of the agent in the environment.
-In the brain, this signal is thought to result from the integration of inertial and relative motion cues \cite{jerjianSelfmotionPerceptionSequential2023, whishawCalibratingSpaceExploration1999a}.
+In the brain, this signal is believed to result from the integration of inertial and relative motion cues \cite{jerjianSelfmotionPerceptionSequential2023, whishawCalibratingSpaceExploration1999a}.
 
 \subsection{Place cell map}
-The formation of place cells is obtained from the activity of a set of grid cells organized into modules, or layers. This simple feed-forward architecture is displayed in plot \ref{fig:model}-\textbf{b}.
-A grid cell module $l$ has been defined as a set of $N^{\text{gc}}$ neurons with gaussian tuning curve evenly distributed over the surface of a two dimensional torus $\mathbf{T}^{2}$.
-Unlike other approaches for generating grid fields \cite{dabaghianGridCellsBorder, schoyenHexagonsAllWay2025}, we defined a correspondance between the global environment in which the agent moves, a two dimensional Euclidean space $\mathbf{R}^{2}$, and a grid module bounded local space, corresponding to the torus.
-The global velocity $\mathbf{v}=\{x,y\}$ is then mapped to a local velocity, scaled by a speed scalar $s^{\text{gc}}_{l}$ specific to the grid cell module $l$, which determines its periodicity in space. This approach has been used in previous works \cite{liModelingPlaceCells2019}.
-The starting position on the torus is randomly chosen when the model is initialized, since what matters is the sequence of displacements without any reference to a meaningful origin.
+The formation of place cells is obtained from the activity of a set of grid cells organized into modules or layers. This simple feed-forward architecture is shown in the plot \ref{fig:model}\textbf{b}.
+A grid cell module $l$ has been defined as a set of neurons $N^{\text{gc}}$ with a Gaussian tuning curve evenly distributed over the surface of a two-dimensional torus $\mathbf{T}^{2}$.
+In plot \ref{fig:model}\textbf{c} is shown the activity of a grid cell module on a trajectory, the periodicity being underlined by the cell in green.
 
-The choice of a toroidal space is motivated by consolidated experimental evidence of the neural space of grid cells, which are organized in modules of different size spanning the animal's environment. However, the shape of their firing pattern is known to be hexagonal, which corresponds to the optimal tiling of a two dimensional plane, giving rise to a neural space lying on a twisted torus.
-In this work, for simplicity, we consider a square tiling and thus a square torus, without much loss of generality except for the slight increase of grid cells required for a sufficiently cover.
-In plot \ref{fig:model}-\textbf{c} is shown the activity of a grid cell module over a trajectory, with the periodicity underlined by the cell in green.
-
-The activity of all grid cell modules, indicated as $\textbf{u}^{\text{GC}}$, is then projected down to two independent layers of initially un-tuned cells, whose feed-forward weights $\textbf{W}^{\text{GC},\text{PC1}}$; $\textbf{W}^{\text{GC},\text{PC2}}$ are initialized at zero.
-As the agent moves and the grid cells activity changes, if no neurons within a place cell layer are active, then one is randomly chosen and its weights are set to the current (at time $t$) grid cells' population vector $\textbf{W}^{\text{GC},\text{PC}}_{i}\leftarrow \textbf{u}^{\text{GC}}_{t}$.
-For the plasticity process to be completed, it is also checked the possible overlap with other cells in the same layer, effectively accounting for lateral inhibition. This mechanism is implemented by computing the cosine similarity with the weight vector of the other tuned cells and comparing it with a threshold $\theta^{\text{PC}}_{\text{rep}}$, with the possibility of aborting the plasticity process if the similarity is too high.
+The activity of all modules of grid cells, indicated as $\textbf{u}^{\text{GC}}$, is then projected down to two independent layers of initially silent cells, whose feedforward weights $\textbf{W}^{\text{GC},\text{PC1}}$; $\textbf{W}^{\text{GC},\text{PC2}}$ are initialized at zero.
+As the agent moves and the activity of the grid cells changes, if no neurons within a place cell layer are active, then one is randomly chosen and its weights are set to the population vector of current grid cells (at time $t$) $\textbf{W}^{\text{GC},\text{PC}}_{i}\leftarrow \textbf{u}^{\text{GC}}_{t}$.
+For the plasticity process to be completed, the possible overlap with other cells in the same layer is also checked, effectively accounting for lateral inhibition. This mechanism is implemented by computing the cosine similarity with the weight vector of the other tuned cells and comparing it with a threshold $\theta^{\text{PC}}_{\text{rep}}$, with the possibility of aborting the plasticity process if the similarity is too high.
 
 The activity of a tuned place cell $i$ is given, again, by the cosine similarity between the current grid cells' population vector and the weight vector of the cell:
 \begin{equation}
     u^{\text{PC}}_{i}=\phi\left(\cos\left(\textbf{u}^{\text{GC}},\textbf{W}^{\text{GC},\text{PC}}_{i}\right)\right)
 \end{equation}
 \noindent where $\phi$ is a generalized sigmoid function $\phi(z)=\left[1 + \exp(-\beta(z-\alpha))\right]^{-1}$ with gain $\beta$ and threshold $\alpha$.
-The two layers of place cells differ in the size of their place fields. This feature is affected by the sensitivity of a cell tuning with respect to the grid cell activation, determined by the parameters of the sigmoid, and the strength of the lateral inhibition, determined by the similarity threshold.
-Within a layer, the connections between cells are calculated by the same cosine similariy, but compared against a different threshold $\theta^{\text{PC}}_{\text{rec}}$.
+The two layers of place cells differ in the size of their place fields. This characteristic is affected by the sensitivity of a cell tuning with respect to the grid cell activation, determined by the parameters of the sigmoid, and the strength of the lateral inhibition, determined by the similarity threshold.
+Within a layer, connections between cells are calculated by the same cosine similarity, but compared against a different threshold $\theta^{\text{PC}}_{\text{rec}}$.
 One layer is set to be more fine-grained, with an overall higher density of place cells over the space, while the other is more coarse-grained, with overall large place field sizes.
-Further, for each layer it is recorded a neural trace $\textbf{m}$ of the activity, decaying with a fixed time constant.
+In addition, for each layer, a neural trace $\textbf{m}$ of activity is recorded, decaying with a fixed time constant.
 
-In figure \ref{fig:model}-\textbf{d} are shown the centers of one of the fine-grained layer and the activity of two cells, with their place field highlighted as an heatmap.
+In figure \ref{fig:model}\textbf{d} are shown the centers of one of the fine-grained layers and the activity of two cells are shown, with their place field highlighted as a heat map.
 
 
 \subsection{Neuromodulators}
 The fine-grained layer of place cells constitutes the main cognitive map of the agent, since it captures the environment with greater detail.
-The neuromodulators are operationalized as analog sensors of meaningful environmental events, here reward and collision, and map directly to the place cells through plastic connections $W^{k,\text{PC}}$.
+Neuromodulators are operationalized as analog sensors of meaningful environmental events, here to reward and collision, and map directly to the place cells through plastic connections $W^{k,\text{PC}}$.
 For each neuromodulator $k$, it is defined a leaky variable $v^{k}$ that accumulates the corresponding signal $I$ over time, and decays exponentially to zero in the absence of inputs with time constant $\tau^{k}$:
 \begin{equation}
     \dot{v}^{k}=-v^{k} / \tau^{k} + I
@@ -60,17 +54,17 @@ For each neuromodulator $k$, it is defined a leaky variable $v^{k}$ that accumul
     \Delta \textbf{W}^{k}_{i}=\eta^{k} v^{k} \textbf{u}^{\text{PC}}_{i}
 \end{equation}
 
-\noindent where $\eta^{k}$ is the neuromodulator-specific learning rate, and weights are kept $\ge 0$.
+\noindent where $\eta^{k}$ is the neuromodulator-specific learning rate, and the weights are kept $\ge 0$.
 
-On the one hand, the reward modulation, signed as $\textbf{W}^{\text{DA}}$, is sensitive to the instantaneous presence of reward, defined as a boolean value. Over time, its coupling with the population vector $\textbf{u}^{PC}_{t}$ delineates a region of the environment where the reward has been experienced.
-On the other hand, the collision modulation, referred to as $\textbf{W}^{\text{BND}}$, signals the occurrence of a collision with a boundary, which is again given as a boolean. After enough events, the profile of the resulting weight matrix with the place cells provides an approximation of the shape of the environment given by its boundaries. From the perspective of the agent, this intuition of the topology of its surroundings is crucial for effectively planning routes to target locations.
+On the one hand, the reward modulation, signed as $\textbf{W}^{\text{DA}}$, is sensitive to the instantaneous presence of the reward, defined as a Boolean value. Over time, its coupling with the population vector $\textbf{u}^{PC}_{t}$ delineates a region of the environment where the reward has been experienced.
+On the other hand, the collision modulation, referred to as $\textbf{W}^{\text{BND}}$, signals the occurrence of a collision with a boundary, which is again given as a boolean. After enough events, the profile of the resulting weight matrix with the place cells provides an approximation of the shape of the environment given by its boundaries. From the perspective of the agent, this intuition of the topology of its surroundings is crucial to efficiently planning routes to target locations.
 
 At each moment during navigation, the weight matrices $\textbf{W}^{\text{DA},\text{PC}},\;\textbf{W}^{\text{BND},\text{PC}}$ act as scalar fields over the neural space of the place cells, and their simultaneous contributions delineate what in this work is referred to as a cognitive map.
-In plot \ref{fig:model}-\textbf{e} is shown the activity of the two neuromodulators over the fine-grained place cells map, showcasing the bounds of the environment and the reward location.
+In plot \ref{fig:model}\textbf{e} the activity of the two neuromodulators is shown on the fine-grained place cells map, showcasing the limits of the environment and the reward location.
 
 \subsubsection{Online adaptation}
-For what concerns the resilience with respect to environmental changes, such as reward location, the model was endowed with a prediction-base mechanism for correcting the accuracy of the internal representations.
-During navigation, before the execution of each movement towards a future location $\textbf{x}_{t+1}$, it is computed and cached a prediction of the activity of neuromodulator $k$: $\hat{v}^{k}=\sum^{N}_{i} \textbf{W}^{\text{DA},\text{PC}}_{i} \cdot \hat{u}^{\text{PC}}_{i}$, where $\hat{u}^{\text{PC}}$ is the predicted population activity at $\textbf{x}_{t+1}$.
+For what concerns resilience with respect to environmental changes, such as reward location, the model was endowed with a prediction-base mechanism to correct for the accuracy of internal representations.
+During navigation, before execution of each movement towards a future location $\textbf{x}_{t+1}$, a prediction of the activity of the neuromodulator $k$ is computed and cached: $\hat{v}^{k}=\sum^{N}_{i} \textbf{W}^{\text{DA},\text{PC}}_{i} \cdot \hat{u}^{\text{PC}}_{i}$, where $\hat{u}^{\text{PC}}$ is the predicted population activity at $\textbf{x}_{t+1}$.
 Then, a prediction error with a specific learning rate is calculated and added to the weight update:
 
 \begin{equation}
@@ -78,62 +72,62 @@ Then, a prediction error with a specific learning rate is calculated and added t
 \end{equation}
 Further, since the rate $\hat{\eta}^{k}$ is less than $1$, it takes several erroneous prediction to effectively set connections to zero.
 
-The rationale is to depress those synapses no longer reliably predicting the sensory experience referenced by the neuromodulator.
+The rationale is to depress those synapses that no longer reliably predict the sensory experience referenced by the neuromodulator.
 % This simple rule is inspired by previous computational work modeling dopaminergic and cholinergic activity in the regulation of exploration-exploitation behaviours through synaptic plasticity \cite{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019, brzoskoSequentialNeuromodulationHebbian2017}.
-This simple rule following the framework of predictive coding and temporal-difference learning \cite{suttonReinforcementLearningProblem}.
-Previous computational models have used neuromodulatory signals for controlling neuronal dynamics, applied to the learning process \cite{brzoskoSequentialNeuromodulationHebbian2017, meiEffectsNeuromodulationinspiredMechanisms2023} or as a feedback error \cite{scleidorovichAdaptingHippocampusMultiscale2022}. 
-Additionally, it alignes experimental evidence of the involvement of neuromodulation in the dynamic update of internal beliefs \cite{montagueFrameworkMesencephalicDopamine1996, decothiPredictiveMapsRats2022, krishnanRewardExpectationExtinction2022}.
+This simple rule follows the framework of predictive coding and temporal-difference learning \cite{suttonReinforcementLearningProblem}.
+Previous computational models have used neuromodulatory signals to control neuronal dynamics, applied to the learning process \cite{brzoskoSequentialNeuromodulationHebbian2017, meiEffectsNeuromodulationinspiredMechanisms2023} or as a feedback error \cite{scleidorovichAdaptingHippocampusMultiscale2022}. 
+Furthermore, it aligns with the experimental evidence for the involvement of neuromodulation in dynamic update of internal beliefs \cite{montagueFrameworkMesencephalicDopamine1996, decothiPredictiveMapsRats2022, krishnanRewardExpectationExtinction2022}.
 
 \subsubsection{Modulation of place fields}
-Lastly, in order to study the possibility of neuromodulatory alteration of neuronal properties, the coarse-grained place cells were subjected to relocation and resizing of their place fields according to neuromodulatory input.
-The choice of the this layer instead of the fine-grained is motivated by empirically better performance results.
+Lastly, in order to study the possibility of neuromodulatory alteration of neuronal properties, coarse-grained place cells were subjected to relocation and resizing of their place fields according to neuromodulatory input.
+The choice of this layer over the fine-grained one is motivated by empirically better performance results.
 
-The movement of the place centers occurred following a reward or collision event, and involved all nearby cells.
+The movement of the place centers occurred after a reward or collision event and affected all nearby cells.
 More in details, each cell center was displaced, within the grid cells space, by a vector in the direction of the current position $\textbf{u}^{\text{GC}}$, and with magnitude proportional to the value $v^{k}$ of the neuromodulator $k$ and its distance:
 \begin{equation}
     \Delta \textbf{W}^{\text{GC},\text{PC}}_{i} = c^{k}\cdot v^{k}\cdot \varphi_{\sigma^{k}}\left(\textbf{u}^{\text{GC}}-\textbf{W}^{\text{GC},\text{PC}}_{i}\right)
 \end{equation}
 
 \noindent where $c^{k}$ is a strength scale and $\varphi$ is a Gaussian distance with width $\sigma^{k}$.
-Additionally, lateral inhibition was still accounted for, such to keep avoiding overlappings.
-This approach has been inspired by the BTSP rule \cite{milsteinBidirectionalSynapticPlasticity2021, bittnerBehavioralTimeScale2017, grienbergerEntorhinalCortexDirects2022}, through which has been accounted the dislocation of of CA1 place cells following reward events (or an external step current), changing their associated spatial position.
+In addition, lateral inhibition was still taken into account, to avoid overlaps.
+This approach has been inspired by the BTSP rule \cite{milsteinBidirectionalSynapticPlasticity2021, bittnerBehavioralTimeScale2017, grienbergerEntorhinalCortexDirects2022}, which has been responsible for the dislocation of the CA1 place cells after reward events (or an external step current), changing their associated spatial position.
 
-Concerning the field resizing, it again takes place when its reference event occured. The neuromodulatory action was determined by scaling the baseline neural activation gain $\bar{\beta}$ of the most recently active neurons, identified by their neural trace $m_{i}$, according to a constant
+Concerning the field resizing, it again occurs when its reference event occurs. The neuromodulatory action was determined by scaling the baseline neural activation gain $\bar{\beta}$ of the most recently active neurons, identified by their neural trace $m_{i}$, according to a constant
 $\gamma^{k}$:
 
 \begin{equation}
     \beta_{i} =  \gamma^{k} \cdot \bar{\beta} \cdot m_{i} + \bar{\beta} \cdot (1 - m_{i})
 \end{equation}
 
-\noindent The rationale is to modulate the surface over which the neurons are sensitive, with $\gamma < 1$ having a shrinking effect while $\gamma > 1$ an enlarging one.
+\noindent The rationale is to modulate the surface over which neurons are sensitive, with $\gamma < 1$ having a shrinking effect while $\gamma > 1$ an enlarging one.
 
 
 \subsection{Policy and behavior}
-In this work, the first interest was to test the usefulness of our simple cognitive map built from minimal assumptions for the tasks of exploration and goal-directed navigation.
-To this end, we defined a simple hard-coded policy that toggles between these two behaviours according to the presence of a goal signal, externally provided, and the presence of an actual goal representation, taken care of by a special component called \textit{reward seeking}, depicted in the pink box of plot \ref{fig:model}-\textbf{a}.
+In this work, the first interest was to test the usefulness of our simple cognitive map built from minimal assumptions for exploration tasks and goal-directed navigation.
+To this end, we defined a simple hard coded policy that toggles between these two behaviors according to the presence of a goal signal, externally provided, and the presence of a real goal representation, cared for by a special component called \textit{reward seeking}, depicted in the pink box of plot \ref{fig:model}\textbf{a}.
 Exploration is accomplished by a random walk, with a variable number of steps in the same direction to avoid stagnation, and occasional plans to visit random positions within the known map, again for limiting stagnation.
-Goal-directed navigation, namely exploitation, serves the dual purpose of going to random position within the map for improving exploration, and reaching the actual reward location.
-In practice, goal navigation is achieved by calculating the shortest path between the current position, identified by the most active place cells, and a target position, picked randomly or by considering the cells with the strongest dopaminergic weights, inspired by hippocampal replay and
+Goal-directed navigation, namely exploitation, serves the dual purpose of going to a random position within the map to improve exploration and reach the actual reward location.
+In practice, goal navigation is achieved by calculating the shortest path between the current position, identified by the cells with the most active place, and a target position, picked randomly or considering the cells with the strongest dopaminergic weights, inspired by hippocampal replay and
 experimental observations \cite{mcnamaraDopaminergicNeuronsPromote2014, michonSingletrialDynamicsHippocampal2021, shamashMiceIdentifySubgoal2021}.
-The place cells are hence treated as nodes of a graph, and their connections constitute its edges.
-We use a Dijkstra algorithm applied to the coarse-grained layer, which contains less and more spread out cells and it is thus cheaper to compute, to derive a coarse-grained plan.
-However, in the case the agent gets stuck or the distance to the target is shorter than the cells' distance, the planning switches to the other layer for devising a fine-grained plan, which it is followed until either the target or the next node in the coarse-grained are reached.
+The place cells are thus treated as nodes of a graph, and their connections constitute its edges.
+We use a Dijkstra algorithm applied to the coarse-grained layer, which contains less and more spread out cells, and it is thus cheaper to compute to derive a coarse-grained plan.
+However, in the case where the agent gets stuck or the distance to the target is shorter than the cells' distance, the planning switches to the other layer for devising a fine-grained plan, which it is followed until either the target or the next node in the coarse-grained are reached.
 
-The advantage of this dual-layer planning lies in its flexibility, as it lightens the computational load of planning by exploing the sparser and lighter map and only invokes the detailed one when necessary.
-In the process of behaviour, learning does not occur explicitly, but it is instead accounted for in the online formation of the cognitive map.
+The advantage of this dual-layer planning lies in its flexibility, as it lightens the computational load of planning by exploding the sparser and lighter map and only invokes the detailed one when necessary.
+In the process of behavior, learning does not occur explicitly, but is instead accounted for in the online formation of the cognitive map.
 
 
 % benchmarks used
 \subsection{Naturalistic task}
-The evaluation of the model ability to construct and utilize a cognitive map was defined as the total count of rewards collected during several trials.
+The evaluation of the model to construct and use a cognitive map was defined as the total count of rewards collected during several trials.
 All environments used were closed boxes with different layouts, determined by the location and number of internal walls.
 
-The testing protocol was inspired by the behaviour of animals who venture in new territories in the search of food.
-First there was an exploration phase, in which the agent was placed in a random location and let roam through a pseudo-random walk for $5000$ time-steps.
+The testing protocol was inspired by the behavior of animals that venture into new territories in search of food.
+First, there was an exploration phase, in which the agent was placed in a random location and walked a pseudo-random route for $5000$ time steps.
 %Depending on environment layout, the formed map  more or less matching the the actual topology.
-Then an exploitation phase began, in which a circle the 5\% of the total are was designated to provide a binary reward $R\sim \mathcal{B}(p_{r})$ drawn from a Bernoully with probability $p_{r}$.
+Then an exploitation phase began, in which a circle of 5\% of the total was designated to provide a binary reward $R\sim \mathcal{B}(p_{r})$ drawn from a Bernoulli with probability $p_{r}$.
 % When the reward was successfully fetched, the agent was teleported to a random location in the environment.
 % Further, in order to mimic the depletion of a food source the reward area was modeled with as leaky variable $\dot{v}_{r}=(E_{r}-v_{r})/\tau_{r} + R$, and its location moved whenever its level went below a threshold $v_{r}<\theta_{r}$.
 
 \hfill \break
-The optimization of the parameters of the model was carried out using the Covariance-Matrix Adaptation evolutionary strategy (CMA-ES) \cite{igelCovarianceMatrixAdaptation2007} with a population of 256 individuals for 100 generations.
+Optimization of the model parameters was carried out using the evolutionary Covariance-Matrix Adaptation strategy (CMA-ES) \cite{igelCovarianceMatrixAdaptation2007} with a population of 256 individuals for 100 generations.

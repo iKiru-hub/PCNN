@@ -1,9 +1,6 @@
-\section{Introduction}
+\section{Introduction2}
 \hfill \break
 \vspace {0.5cm}
-
-
-
 
 % --- catchy intro ---
 Agency in a large environment is a challenging task for any organism. Productive exploration and effective goal-directed navigation are essential in this regard, and become even more crucial when target locations are out of sight. In this scenario, often labelled as \textit{wayfinding}, an adequate understanding of one's surroundings is necessary \cite{golledgeCognitiveMapsSpatial2000, epsteinNeuralSystemsLandmarkbased2014}.
@@ -54,7 +51,6 @@ fuchsbergerModulationHippocampalPlasticity2022}.
 % --- computational models ---
 
 \subsection{Computational models}
-
 There have been several efforts for devising computational models capturing the construction and functionality of cognitive maps.
 In relation to purely spatial navigation, a notable modelling framework is the one proposed by \cite{poucetSpatialCognitiveMaps1993}, in which the hippocampus was envisoned to encode positions with directional information, while metric properties were brought by the pariental cortex.
 Later work has extended it into a route-based formalism \cite{wernerModellingNavigationalKnowledge2000}, centered on the idea of a route graph formed by concatenation of episodic routes. Further, these graphs could have different granularity, organized hierarchially in layers.
@@ -63,7 +59,6 @@ A similar approach for generating task-dependent is the Tolman-Eichenbaum Machin
 Interestingly, some of these artificial neurons resembled the firing pattern of actual hippocampal and entorhinal cells.
 Such bio-realistic neuronal tunings have also been consistently obtained in recurrent neural networks trained to solve \textit{path integration} problems, using only idiothetic information such as the agent's velocity vector \cite{baninoVectorbasedNavigationUsing2018, sorscherUnifiedTheoryOrigin2019, cuevaEmergenceGridlikeRepresentations2018}.
 This line of normative research has been particularly successful in generating a rich ecosystem of spatial cells, such as grid cells and place cells, and reasoning through their functional importance for navigation.
-
 % --- problem statement ---
 However, what these models have in common is the reliance on backpropagation for training, which is not biologically plausible, and the lack of a proper real-time learning dynamics.
 Although they rely solely on locally available information during inference, the type of cognitive map they can support is limited to purely spatial data. For more diffult behaviours such as goal-directed navigation, a richer representation of the environment should be more advantageous.
@@ -80,17 +75,11 @@ Another assumption was that learning occurs entirely online, as animals do, avoi
 This feature is achieved by introducting a structural inductive bias in the form of a pre-defined stack of grid cells layers with different spatial frequencies, from which multiple layers of place cells are generated through network competition \cite{almePlaceCellsHippocampus2014, ormondPlaceFieldExpansion2015}.
 A map is then obtained by connecting neighboring place cells obtained over several trajectories, thus going beyond route learning \cite{wernerModellingNavigationalKnowledge2000} and constructing a topological graph.
 For what concerns neuromodulators, in this work they are best described by nodes working as analog sensors of external events. Their role is to form synaptic connections with the place cells, effectively determing a scalar field over their representation \cite{sosaHippocampalSequencesSpan2024}.
-
 A secondary goal was to investigate the possibility of updating the cognitive map to environmental changes, accounting for the adaptation and flexibility in animals behaviour.
 For this scope, the model was endowed with a way to correct the synaptic weights between neuromodulators and place cells, based on prediction error of future sensory observations.
 This mechanism is aligned with principles of neural predictive coding \cite{schultzNeuralSubstratePrediction1997, aliPredictiveCodingConsequence2021, bonoLearningPredictiveCognitive2023, sheynikhovichLongtermMemorySynaptic2023}, according to which prediction-based learning is a relevant part of brain activity.
 We took inspiration from previous work which has applied neuromodulation in spiking neurons for controlling explorative-exploitative behaviour \cite{brzoskoRetroactiveModulationSpike2015, brzoskoSequentialNeuromodulationHebbian2017}.
 Further, it is well established the role of modulators such as dopamine in actively maintaining and updating the state of neural representations, particularly those associated with reward features \cite{schultzDopamineRewardPrediction2016, inglisModulationDopamineAdaptive2021, toblerAdaptiveCodingReward2005, coolsChemistryAdaptiveMind2019, decothiPredictiveMapsRats2022}.
-
-% While others used it during training of deep artificial networks \cite{meiEffectsNeuromodulationinspiredMechanisms2023}.
-
-% We endowed an artificial agent with this model and simple heuristics for toggling between exploration and exploitation, and tested it in a goal-directed navigation task in environments with different layout.
-
 A last interest of ours regarded the effect of neuromodulation on the density of place cells, and in particular the reshaping of their place field, with respect to task performance.
 The motivation stems in the experimental observations of modulation of place cells representation following meaningful events, in terms of remapping, fields resizing and dislocation on the map \cite{bittnerBehavioralTimeScale2017, milsteinBidirectionalSynapticPlasticity2021, fentonRemappingRevisitedHow2024}.
 

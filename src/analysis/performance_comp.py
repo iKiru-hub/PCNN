@@ -63,56 +63,6 @@ global_parameters = {
     "min_weight_value": 0.5
 }
 
-PARAMETERS2 = {
-    "gain_fine": 33.3,
-    "offset_fine": 1.0,
-    "threshold_fine": 0.3,
-    "rep_threshold_fine": 0.86,
-    "rec_threshold_fine": 50.0,
-    "tau_trace_fine": 20.0,
-
-    "remap_tag_frequency": 23,
-    "num_neighbors": 10,
-    "min_rep_threshold": 35,
-
-    "gain_coarse": 46.5,
-    "offset_coarse": 1.0,
-    "threshold_coarse": 0.4,
-    "rep_threshold_coarse": 0.77,
-    "rec_threshold_coarse": 120.0,
-    "tau_trace_coarse": 30.0,
-
-    "lr_da": 0.99,
-    "lr_pred": 0.3,
-    "threshold_da": 0.03,
-    "tau_v_da": 4.0,
-
-    "lr_bnd": 0.6,
-    "threshold_bnd": 0.3,
-    "tau_v_bnd": 4.0,
-
-    "tau_ssry": 100.0,
-    "threshold_ssry": 0.995,
-
-    "threshold_circuit": 0.9,
-    "remapping_flag": 5,
-
-    "rwd_weight": 4.91,
-    "rwd_sigma": 50.0,
-    "col_weight": -0.29,
-    "col_sigma": 35.0,
-
-    "rwd_field_mod_fine": 1.8,
-    "rwd_field_mod_coarse": 1.8,
-    "col_field_mod_fine": 0.7,
-    "col_field_mod_coarse": 0.5,
-
-    "action_delay": 140.0,
-    "edge_route_interval": 3,
-    "forced_duration": 100,
-    "fine_tuning_min_duration": 10
-}
-
 PARAMETERS = {
     "gain_fine": 19.7,
     "offset_fine": 1.0,
@@ -151,7 +101,8 @@ PARAMETERS = {
     "action_delay": 120.0,
     "edge_route_interval": 5,
     "forced_duration": 1,
-    "fine_tuning_min_duration": 55
+    "fine_tuning_min_duration": 55,
+    'modulation_option': [True] * 4
 }
 
 PARAMETERS_NOREMAP = {
@@ -192,13 +143,15 @@ PARAMETERS_NOREMAP = {
     'action_delay': 120.0,
     'edge_route_interval': 5,
     'forced_duration': 1,
-    'fine_tuning_min_duration': 88
+    'fine_tuning_min_duration': 88,
+    'modulation_option': [False] * 4
 }
+
 
 
 """ FUNCTIONS """
 
-OPTIONS = ["baseline", "no_remap", "default",
+OPTIONS = ["chance", "no_remap", "default",
            "only_da", "only_col"]
 NUM_OPTIONS = len(OPTIONS)
 # ROOM_NAME = "Square.v0"
@@ -208,7 +161,7 @@ ROOM_NAME = "Flat.0010"
 def change_parameters(params: dict, name: int):
 
     # baseline
-    if name == "baseline":
+    if name == "chance":
         params["lr_da"] = 0.
         params["lr_pred"] = 0.
         params["lr_bnd"] = 0.
@@ -305,7 +258,7 @@ def run_local_model(args) -> list:
     logger(f"{ROOM_NAME=}")
 
     for i in tqdm(range(NUM_OPTIONS)):
-        if i == 1:  # noremap case
+        if OPTIONS[i] == 'no_remap':
             results += [safe_run_model(PARAMETERS_NOREMAP, ROOM_NAME)]
         else:
             params = change_parameters(PARAMETERS.copy(), OPTIONS[i])

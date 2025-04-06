@@ -15,16 +15,6 @@ Edward~C Tolman.
 \newblock {{COGNITIVE MAPS IN RATS AND MEN}}.
 \newblock {\em Psychological Review}, 55(4), July 1948.
 
-\bibitem{weisbergCognitiveMapsPeople2018}
-Steven~M. Weisberg and Nora~S. Newcombe.
-\newblock Cognitive {{Maps}}: {{Some People Make Them}}, {{Some People Struggle}}.
-\newblock {\em Current Directions in Psychological Science}, 27(4):220--226, August 2018.
-
-\bibitem{schinaziHippocampalSizePredicts2013}
-Victor~R. Schinazi, Daniele Nardi, Nora~S. Newcombe, Thomas~F. Shipley, and Russell~A. Epstein.
-\newblock Hippocampal size predicts rapid learning of a cognitive map in humans.
-\newblock {\em Hippocampus}, 23(6):515--528, 2013.
-
 \bibitem{peerStructuringKnowledgeCognitive2021}
 Michael Peer, Iva~K. Brunec, Nora~S. Newcombe, and Russell~A. Epstein.
 \newblock Structuring {{Knowledge}} with {{Cognitive Maps}} and {{Cognitive Graphs}}.
@@ -83,6 +73,11 @@ Toru Ishikawa and Daniel~R. Montello.
 R.~W. Byrne.
 \newblock Memory for {{Urban Geography}}.
 \newblock {\em Quarterly Journal of Experimental Psychology}, 31(1):147--154, February 1979.
+
+\bibitem{schinaziHippocampalSizePredicts2013}
+Victor~R. Schinazi, Daniele Nardi, Nora~S. Newcombe, Thomas~F. Shipley, and Russell~A. Epstein.
+\newblock Hippocampal size predicts rapid learning of a cognitive map in humans.
+\newblock {\em Hippocampus}, 23(6):515--528, 2013.
 
 \bibitem{wehnerVisualNavigationInsects1996}
 R{\"u}diger Wehner, Barbara Michel, and Per Antonsen.
@@ -194,16 +189,6 @@ Adrian~J. Duszkiewicz, Colin~G. McNamara, Tomonori Takeuchi, and Lisa Genzel.
 \newblock Novelty and {{Dopaminergic Modulation}} of {{Memory Persistence}}: {{A Tale}} of {{Two Systems}}.
 \newblock {\em Trends in Neurosciences}, 42(2):102--114, February 2019.
 
-\bibitem{igarashiFunctionalDiversityTransverse2014}
-Kei~M. Igarashi, Hiroshi~T. Ito, Edvard~I. Moser, and May-Britt Moser.
-\newblock Functional diversity along the transverse axis of hippocampal area {{CA1}}.
-\newblock {\em FEBS Letters}, 588(15):2470--2476, August 2014.
-
-\bibitem{itoFunctionalDivisionHippocampal2012}
-Hiroshi~T. Ito and Erin~M. Schuman.
-\newblock Functional division of hippocampal area {{CA1}} via modulatory gating of entorhinal cortical inputs.
-\newblock {\em Hippocampus}, 22(2):372--387, 2012.
-
 \bibitem{sheynikhovichLongtermMemorySynaptic2023}
 Denis Sheynikhovich, Satoru Otani, Jing Bai, and Angelo Arleo.
 \newblock Long-term memory, synaptic plasticity and dopamine in rodent medial prefrontal cortex: {{Role}} in executive functions.
@@ -214,30 +199,15 @@ Wolfram Schultz, Peter Dayan, and P.~Read Montague.
 \newblock A {{Neural Substrate}} of {{Prediction}} and {{Reward}}.
 \newblock {\em Science}, 275(5306):1593--1599, March 1997.
 
-\bibitem{fuchsbergerModulationHippocampalPlasticity2022}
-Tanja Fuchsberger and Ole Paulsen.
-\newblock Modulation of hippocampal plasticity in learning and memory.
-\newblock {\em Current Opinion in Neurobiology}, 75:102558, August 2022.
+\bibitem{igarashiFunctionalDiversityTransverse2014}
+Kei~M. Igarashi, Hiroshi~T. Ito, Edvard~I. Moser, and May-Britt Moser.
+\newblock Functional diversity along the transverse axis of hippocampal area {{CA1}}.
+\newblock {\em FEBS Letters}, 588(15):2470--2476, August 2014.
 
-\bibitem{sugisakiCholinergicModulationSpike2011}
-E.~Sugisaki, Y.~Fukushima, M.~Tsukada, and T.~Aihara.
-\newblock Cholinergic modulation on spike timing-dependent plasticity in hippocampal {{CA1}} network.
-\newblock {\em Neuroscience}, 192:91--101, September 2011.
-
-\bibitem{dennisActivationMuscarinicM12016}
-Siobhan~H. Dennis, Francesca Pasqui, Ellen~M. Colvin, Helen Sanger, Adrian~J. Mogg, Christian~C. Felder, Lisa~M. Broad, Steve~M. Fitzjohn, John~T.R. Isaac, and Jack~R. Mellor.
-\newblock Activation of {{Muscarinic M1 Acetylcholine Receptors Induces Long-Term Potentiation}} in the {{Hippocampus}}.
-\newblock {\em Cerebral Cortex}, 26(1):414--426, January 2016.
-
-\bibitem{hasselmoRoleAcetylcholineLearning2006}
-Michael~E Hasselmo.
-\newblock The role of acetylcholine in learning and memory.
-\newblock {\em Current Opinion in Neurobiology}, 16(6):710--715, December 2006.
-
-\bibitem{palacios-filardoAcetylcholinePrioritisesDirect2021}
-Jon {Palacios-Filardo}, Matt Udakis, Giles~A. Brown, Benjamin~G. Tehan, Miles~S. Congreve, Pradeep~J. Nathan, Alastair J.~H. Brown, and Jack~R. Mellor.
-\newblock Acetylcholine prioritises direct synaptic inputs from entorhinal cortex to {{CA1}} by differential modulation of feedforward inhibitory circuits.
-\newblock {\em Nature Communications}, 12(1):5475, September 2021.
+\bibitem{itoFunctionalDivisionHippocampal2012}
+Hiroshi~T. Ito and Erin~M. Schuman.
+\newblock Functional division of hippocampal area {{CA1}} via modulatory gating of entorhinal cortical inputs.
+\newblock {\em Hippocampus}, 22(2):372--387, 2012.
 
 \bibitem{poucetSpatialCognitiveMaps1993}
 Bruno Poucet.
@@ -273,10 +243,20 @@ Ben Sorscher, Gabriel Mel, Surya Ganguli, and Samuel Ocko.
 Christopher~J. Cueva and Xue-Xin Wei.
 \newblock Emergence of grid-like representations by training recurrent neural networks to perform spatial localization, March 2018.
 
+\bibitem{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019}
+Zuzanna Brzosko, Susanna~B. Mierau, and Ole Paulsen.
+\newblock Neuromodulation of {{Spike-Timing-Dependent Plasticity}}: {{Past}}, {{Present}}, and {{Future}}.
+\newblock {\em Neuron}, 103(4):563--581, August 2019.
+
 \bibitem{baumannMetricInformationCognitive2023}
 Tristan Baumann and Hanspeter~A. Mallot.
 \newblock Metric information in cognitive maps: {{Euclidean}} embedding of non-{{Euclidean}} environments.
 \newblock {\em PLOS Computational Biology}, 19(12):e1011748, December 2023.
+
+\bibitem{sosaHippocampalSequencesSpan2024}
+Marielena Sosa, Mark~H. Plitt, and Lisa~M. Giocomo.
+\newblock Hippocampal sequences span experience relative to rewards.
+\newblock {\em bioRxiv}, page 2023.12.27.573490, February 2024.
 
 \bibitem{almePlaceCellsHippocampus2014}
 Charlotte~B. Alme, Chenglin Miao, Karel Jezek, Alessandro Treves, Edvard~I. Moser, and May-Britt Moser.
@@ -287,11 +267,6 @@ Charlotte~B. Alme, Chenglin Miao, Karel Jezek, Alessandro Treves, Edvard~I. Mose
 Jake Ormond and Bruce~L. McNaughton.
 \newblock Place field expansion after focal {{MEC}} inactivations is consistent with loss of {{Fourier}} components and path integrator gain reduction.
 \newblock {\em Proceedings of the National Academy of Sciences of the United States of America}, 112(13):4116--4121, March 2015.
-
-\bibitem{sosaHippocampalSequencesSpan2024}
-Marielena Sosa, Mark~H. Plitt, and Lisa~M. Giocomo.
-\newblock Hippocampal sequences span experience relative to rewards.
-\newblock {\em bioRxiv}, page 2023.12.27.573490, February 2024.
 
 \bibitem{aliPredictiveCodingConsequence2021}
 Abdullahi Ali, Nasir Ahmad, Elgar de~Groot, Marcel A.~J. van Gerven, and Tim~C. Kietzmann.
@@ -356,15 +331,6 @@ Steven~J. Jerjian, Devin~R. Harsch, and Christopher~R. Fetsch.
 Ian~Q. Whishaw and Brian~L. Brooks.
 \newblock Calibrating space: {{Exploration}} is important for allothetic and idiothetic navigation.
 \newblock {\em Hippocampus}, 9(6):659--667, 1999.
-
-\bibitem{dabaghianGridCellsBorder}
-Yuri Dabaghian.
-\newblock Grid {{Cells}}, {{Border Cells}} and {{Discrete Complex Analysis}}.
-
-\bibitem{schoyenHexagonsAllWay2025}
-Vemund~Sigmundson Sch{\o}yen, Kosio Beshkov, Markus~Borud Pettersen, Erik Hermansen, Konstantin Holzhausen, Anders {Malthe-S{\o}renssen}, Marianne Fyhn, and Mikkel~Elle Lepper{\o}d.
-\newblock Hexagons all the way down: Grid cells as a conformal isometric map of space.
-\newblock {\em PLOS Computational Biology}, 21(2):e1012804, February 2025.
 
 \bibitem{suttonReinforcementLearningProblem}
 Richard~S Sutton and Andrew~G Barto.
@@ -518,5 +484,14 @@ Jangho Lee, Jeonghee Jo, Byounghwa Lee, Jung-Hoon Lee, and Sungroh Yoon.
 John~H. Wen, Ben Sorscher, Emily~A. Aery~Jones, Surya Ganguli, and Lisa~M. Giocomo.
 \newblock One-shot entorhinal maps enable flexible navigation in novel environments.
 \newblock {\em Nature}, 635(8040):943--950, November 2024.
+
+\bibitem{dabaghianGridCellsBorder}
+Yuri Dabaghian.
+\newblock Grid {{Cells}}, {{Border Cells}} and {{Discrete Complex Analysis}}.
+
+\bibitem{schoyenHexagonsAllWay2025}
+Vemund~Sigmundson Sch{\o}yen, Kosio Beshkov, Markus~Borud Pettersen, Erik Hermansen, Konstantin Holzhausen, Anders {Malthe-S{\o}renssen}, Marianne Fyhn, and Mikkel~Elle Lepper{\o}d.
+\newblock Hexagons all the way down: Grid cells as a conformal isometric map of space.
+\newblock {\em PLOS Computational Biology}, 21(2):e1012804, February 2025.
 
 \end{thebibliography}
