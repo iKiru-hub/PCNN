@@ -420,6 +420,7 @@ def run_model(parameters: dict,
 
     remap_tag_frequency = parameters["remap_tag_frequency"] if "remap_tag_frequency" in parameters else 200
     remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 1
+    modulation_option = parameters["modulation_option"] if "modulation_option" in parameters else [True]*4
     lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.3
 
     """ make model """

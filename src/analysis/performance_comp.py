@@ -160,6 +160,8 @@ ROOM_NAME = "Flat.0010"
 
 def change_parameters(params: dict, name: int):
 
+    params['modulation_option'] = [True] * 4
+
     # baseline
     if name == "chance":
         params["lr_da"] = 0.
