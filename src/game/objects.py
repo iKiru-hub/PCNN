@@ -141,6 +141,8 @@ class AgentBody:
 
     def set_position(self, position: np.ndarray=None):
 
+        print("moving reward->", position)
+
         if np.all(position == None):
             if np.all(self._possible_positions) != None:
                 position = self._possible_positions[
@@ -267,6 +269,8 @@ class RewardObj:
 
         self.current_sprite = self.sprites["free"] 
 
+        print(f"Reward position={self.position}")
+
     def __str__(self) -> str:
         return f"Reward({self.x}, {self.y}, " + \
             f"silent={self.silent_duration}, " + \
@@ -340,6 +344,8 @@ class RewardObj:
         return self.collected
 
     def set_position(self, position: np.ndarray=None):
+
+        print(f"new position={position}")
 
         if np.all(position == None):
             if np.all(self._possible_positions) != None:

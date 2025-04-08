@@ -6,6 +6,9 @@ import argparse
 import os, sys
 sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 from game.constants import *
+from utils import setup_logger
+
+logger = setup_logger()
 # import game.objects as objects
 # from game.objects import logger
 
@@ -218,7 +221,8 @@ class Room:
 
     def sample_next_position(self) -> Tuple[float, float]:
         self.counter += 1
-        return self.room_positions[self.counter % len(self.room_positions)]
+        pos = self.room_positions[self.counter % len(self.room_positions)]
+        return pos
 
     def sample_random_position(self, limit: int=None) -> Tuple[float, float]:
         if limit is not None:
@@ -370,8 +374,10 @@ def make_room(name: str="square", thickness: float=10.,
         ]
     elif name == "Flat.1001":
         walls_extra += [
-            Wall(2*SCREEN_WIDTH//3, 2*OFFSET,
-                 thickness, 2*SCREEN_HEIGHT//3-OFFSET),
+            Wall(SCREEN_WIDTH//3, 2*OFFSET,
+                 thickness, 2*SCREEN_HEIGHT//3-2*OFFSET),
+            Wall(3*SCREEN_WIDTH//5, SCREEN_HEIGHT//2+1*OFFSET,
+                 thickness, SCREEN_HEIGHT//2-2*OFFSET),
         ]
         room_positions = [
             [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
@@ -476,7 +482,7 @@ def make_room(name: str="square", thickness: float=10.,
     return room
 
 
-def render_room(name: str):
+def render_room(name: str, pos_idx: int=-1):
 
     room = make_room(name=name, thickness=30.)
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -484,6 +490,13 @@ def render_room(name: str):
     pygame.display.flip()
 
     print(f"\nRoom: {name}")
+
+    if pos_idx > -1:
+        pos = room.room_positions[pos_idx]
+    else:
+        pos = None
+
+    print(f"{pos=}")
 
     running = True
     while running:
@@ -493,6 +506,9 @@ def render_room(name: str):
 
         screen.fill(WHITE)
         room.render(screen)
+        if pos is not None:
+            pygame.draw.circle(screen, (25, 155, 10),
+                              (pos[0], pos[1]), 10)
         pygame.display.flip()
 
 
@@ -541,6 +557,9 @@ class Environment:
             pygame.init()
             self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
             pygame.display.set_caption("Simple Pygame Game")
+
+        if self.agent.limit_position_len is not None:
+            logger.debug(f"Agent fixed position: {self.agent.limit_position_len}")
 
     def __str__(self):
         return f"Environment({self.room}, duration={self.duration}, " + \
@@ -629,8 +648,12 @@ class Environment:
         if exploration:
             self.agent.set_position(self.room.sample_next_position())
         else:
-            self.agent.set_position(self.room.sample_random_position(
-                self.agent.limit_position_len))
+            # self.agent.set_position(self.room.sample_random_position( # <==================
+            #     self.agent.limit_position_len))
+            if self.agent.limit_position_len > -1:
+                self.agent.set_position(self.room.get_room_positions()[self.agent.limit_position_len])
+            else:
+                self.agent.set_position(self.room.sample_next_position())
 
         displacement = [(self.agent.position[0] - prev_position[0]),
                         (-self.agent.position[1] + prev_position[1])]
@@ -693,8 +716,10 @@ if __name__ == "__main__":
                          '"Hole.v0", "Flat.0000", "Flat.0001", "Flat.0010", "Flat.0011",' + \
                          '"Flat.0110", "Flat.1000", "Flat.1001", "Flat.1010",' + \
                          '"Flat.1011", "Flat.1110"] or `random`')
+    parser.add_argument("--pos", type=int, default=-1,
+                        help="position idx")
     args = parser.parse_args()
 
 
-    render_room(args.room)
+    render_room(name=args.room, pos_idx=args.pos)
 

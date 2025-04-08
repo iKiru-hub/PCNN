@@ -48,7 +48,7 @@
 
 // blank log function
 void LOG(const std::string& msg) {
-    return;
+    /* return; */
     std::cout << msg << std::endl;
 }
 
@@ -233,7 +233,7 @@ std::vector<int> spatial_shortest_path(const Eigen::MatrixXf& connectivity_matri
                 if (node_weights(neighbor) < -1000.0f) {
                     /* continue; */
                     /* new_distance = node_weights(neighbor); */
-                    /* LOG("Distance penalty: " + std::to_string(new_distance) + " | " + std::to_string(neighbor)); */
+                    LOG("Distance penalty: " + std::to_string(new_distance) + " | " + std::to_string(neighbor));
                     continue;
                 } else {
 
@@ -2211,6 +2211,7 @@ public:
                 if (pred_err > 0.01 && name == "DA") { 
                     /* std::cout << "[+] prediction error: " << std::to_string(pred_err) << std::endl; */
                 } else if (prediction[i] > 0.01 && name == "DA") {
+                    pred_err = 0.0f;
                     /* std::cout << "[+] prediction: " << std::to_string(prediction[i]); */
                     /* std::cout << " actual: " << std::to_string(v * ui)  << std::endl; */
                 }
@@ -2229,7 +2230,7 @@ public:
                 Eigen::Index maxIndex;
                 float maxValue = weights.maxCoeff(&maxIndex);
                 int trg_idx = static_cast<int>(maxIndex);
-                LOG("[+] update " + name + " target: [" + std::to_string(trg_idx) + "] " + std::to_string(maxValue));
+                /* LOG("[+] update " + name + " target: [" + std::to_string(trg_idx) + "] " + std::to_string(maxValue)); */
             }
         }
 
@@ -2334,6 +2335,11 @@ public:
                              collision, simulate);
         output[1] = da.call(representation,
                             reward, simulate);
+
+        if (collision > 0.0f) {
+            LOG("[collision] bnd | output=" + std::to_string(output[0]));
+            
+        }
         return output;
     }
 
@@ -2342,19 +2348,20 @@ public:
         Eigen::VectorXf& bnd_weights = bnd.get_weights();
 
         for (int i = 0; i < space_size; i++) {
-            float bnd_value = bnd_weights(i);
+            /* float bnd_value = bnd_weights(i); */
+            /* float bnd_value = get_bnd_value(i); */
 
             /* if (!strict) { */
             /*     value_mask(i) = bnd_value < 0.01f ? 1.0f : 0.0f; */
             /*     continue; */
             /* } */
 
-            if (bnd_value < 0.01f) {
-                value_mask(i) = 1.0f; }
-            else if (bnd_value < threshold) {
-                value_mask(i) = -4000.0f; }
-            else {
-                value_mask(i) = -10000.0f; }
+            if (get_bnd_value(i) < 0.001f) { value_mask(i) = 1.0f; }
+            else { value_mask(i) = -10000.0f; }
+            /* else if (bnd_value < threshold) { */
+            /*     value_mask(i) = -4000.0f; } */
+            /* else { */
+            /*     value_mask(i) = -10000.0f; } */
         }
 
         return value_mask;
@@ -2614,6 +2621,7 @@ class GoalModule {
 
         // check: current position at the boundary
         if (space_weights(curr_idx) < -1000.0f) {
+            LOG("curr idx has bad value");
             return std::make_pair(std::vector<int>{}, false); }
 
         // make plan path
@@ -2633,7 +2641,9 @@ class GoalModule {
         // check bnd value of each index
         for (int i = 0; i < plan_idxs.size(); i++) {
             LOG("[goal] idx=" + std::to_string(plan_idxs[i]) + \
-                " | value=" + std::to_string(space_weights(plan_idxs[i])));
+                " | value=" + std::to_string(space_weights(plan_idxs[i])) + \
+                " | bnd v=" + std::to_string(circuits.get_bnd_value(plan_idxs[i])));
+
         }
 
         return std::make_pair(plan_idxs, true);
@@ -2718,20 +2728,21 @@ public:
             std::pair<std::array<float, 2>, bool> coarse_progress = \
                         coarse_plan.step_plan();
 
-            /* LOG("[Goal] coarse_progress=" + std::to_string(coarse_progress.second)); */
+            LOG("[Goal] coarse_progress=" + std::to_string(coarse_progress.second));
 
             // exit: coarse action
             if (coarse_progress.second) {
-                /* LOG("[Goal] coarse action" + std::to_string(coarse_progress.second)); */
+                LOG("[Goal] coarse action" + std::to_string(coarse_progress.second));
                 return coarse_progress;
             }
         }
-        /* LOG("[Goal] obstacle=" + std::to_string(obstacle)); */
+        LOG("[Goal] obstacle=" + std::to_string(obstacle));
+        LOG("[Goal] fine_tuning=" + std::to_string(is_fine_tuning));
 
         // -- fine plan
 
         // [] case 1: already fine tuning
-        if (is_fine_tuning) {
+        if (is_fine_tuning && !obstacle) {
             /* LOG("[Goal] fine tuning.."); */
             std::pair<std::array<float, 2>, bool> fine_progress = \
                 fine_plan.step_plan();
@@ -2755,14 +2766,14 @@ public:
             trg_idx_fine = space_fine.calculate_closest_index(
                         coarse_plan.get_next_position());
         }
-        /* LOG("[Goal] trg_idx_fine=" + std::to_string(trg_idx_fine)); */
+        LOG("[Goal] trg_idx_fine=" + std::to_string(trg_idx_fine));
         std::pair<std::vector<int>, bool> fine_progress = \
             make_plan(space_fine, circuits.make_value_mask(true),
                       trg_idx_fine);
 
         // check: failed planning
         if (!fine_progress.second) {
-            /* LOG("[Goal] failed fine planning"); */
+            LOG("[Goal] failed fine planning");
 
             // end coarse plan too
             coarse_plan.reset();
@@ -3334,7 +3345,7 @@ public:
         clock++;
 
         if (collision > 0.0f) {
-            prune_bnd_edges();
+            /* prune_bnd_edges(); */
             LOG("[Brain] collision received");
         }
         if (reward > 0.0f) { LOG("[Brain] reward received"); }
@@ -3488,10 +3499,13 @@ final:
         { return space_coarse.get_position(); }
     Eigen::MatrixXf get_space_fine_centers() { return space_fine.get_centers(); }
     Eigen::MatrixXf get_space_coarse_centers() { return space_coarse.get_centers(); }
+    Eigen::MatrixXf get_wff_fine() { return space_fine.get_wff(); }
+    Eigen::MatrixXf get_wff_coarse() { return space_coarse.get_wff(); }
     Eigen::VectorXf get_da_weights() { return circuits.get_da_weights(); }
     Eigen::VectorXf get_bnd_weights() { return circuits.get_bnd_weights(); }
     Eigen::VectorXf get_gain_fine() { return space_fine.get_gain(); }
     Eigen::VectorXf get_gain_coarse() { return space_coarse.get_gain(); }
+    GCN_REF get_gc_network() { return gcn; }
     std::vector<std::array<std::array<float, 2>, 2>> make_space_fine_edges()
         { return space_fine.make_edges(); }
     std::vector<std::array<std::array<float, 2>, 2>> make_space_coarse_edges()

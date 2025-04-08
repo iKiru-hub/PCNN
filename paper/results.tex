@@ -1,22 +1,21 @@
 \section{Results}
 
-
 \subsection{Performance in wayfinding}
-Our primary aim was to evaluate the formation of the cognitive map through neuromodulation in terms of performance of goal-navigation in different environments.
+Our primary aim was to evaluate the formation of the cognitive map through neuromodulation in terms of the performance of the goal navigation in different environments.
 The best model resulting from evolution reached solid navigation and adaptation skills.
-The agent was able to visit a significant portion of the environment during exploration, and use neuromodulation to produce useful spatial representations.
+The agent was able to visit a significant portion of the environment during exploration and use neuromodulation to produce useful spatial representations.
 
-In figure \ref{fig:main_results}, three emerging cognitive maps are shown different environments.
-The left panel of plot \ref{fig:main_results}-\textbf{a} displays fine-grained place cells associated with collisions and reward events, signaling boundaries (in blue) and reward (in green) locations.
-The overlapping of these two representations and the coarse-grained place cells (in pink) is what we refer to as a cognitive map, since these are the main source of spatial and contextual information used during planned navigation, whose path is depicted as a grey line.
-The right panel instead portraits the actual enviroment with walls (black), reward location (green), and multiple trajectories (red).
-During exploration, the main areas were visited, until the reward position was located, and goal-directed navigation dominated, as highlighted by the density of path lines.
-Considering the position of the walls and corners, the layout of this environment does not make target locations always visible, as it is a non-convex area, and can be thus be classified as wayfinding \cite{meilingerQualitativeDifferencesMemory2016}.
-The challenge of not being able to use straight lines is overcome by the graph approach using local data and the switching between the differently grained place cells layers, allowing the agent to successfully going around obstructions and avoiding being stuck.
-Further, the plans were also minimizing path length by construction, within the part of the space covered by the cognitive map.
+In figure \ref{fig:main_results}, three emerging cognitive maps are shown in different environments.
+The left panel of the plot \ref{fig:main_results}\textbf{a} displays fine-grained place cells associated with collisions and reward events, signaling boundaries (in blue) and reward (in green) locations.
+The overlap of these two representations and the coarse-grained place cells (in pink) is what we refer to as a cognitive map, since these are the main sources of spatial and contextual information used during planned navigation, whose path is depicted as a gray line.
+The right panel instead portrays the actual environment with walls (black), reward location (green), and multiple trajectories (red).
+During exploration, the main areas were visited until the reward position was located and the goal-directed navigation dominated, as highlighted by the density of the path lines.
+Considering the position of the walls and corners, the layout of this environment does not always make the target locations visible, as it is a non-convex area and therefore can be classified as wayfinding \cite{meilingerQualitativeDifferencesMemory2016}.
+The challenge of not being able to use straight lines is overcome by the graph approach using local data and the switching between the differently grained place cells layers, allowing the agent to successfully go around obstructions and avoiding being stuck.
+In addition, the plans also minimized the length of the path by construction, within the part of the space covered by the cognitive map.
 
-Overall, this result confirm the model ability to goal-directed navigation and obstacle avoidance.
-However, it is worth nothing that not all simulations resulted in reward being found in the first place, due to the randomness of the exploratory process; this was more pronounced in complex enviroment.
+In general, this result confirms the ability of the model to focus on navigation and obstacle avoidance.
+However, it is worth nothing that not all simulations resulted in a reward being found in the first place, due to the randomness of the exploratory process; this was more pronounced in complex environment.
 
 \begin{figure}[H]
     \centering
@@ -24,39 +23,49 @@ However, it is worth nothing that not all simulations resulted in reward being f
     \caption{\textsc{Cognitive maps and performance results} - \textbf{a}: \textit{the plot on the left represent a cognitive map over a space, together with the plan (grey line) to reach a target location from a starting position. The  plot on the right is a view of the same enviroment but with highlighted walls (black thick lines) the reward (green circle), trajectory (red line), agent position (black square).} -
     \textbf{b}: \textit{trajectories for multiple trials with the agent starting at the same position (black square) but with the reward location (green circles) periodically moving} -
     \textbf{c}: \textit{performance comparison with same environmental conditions for five different models: one baseline as chance level (plasticity disabled, except for place cells generation), and four variants with different ablations of DA and BND modulations of place fields density and size.
-    Results in terms of reward count and Bonferroni-corrected pairwise t-test, black stars stand for statistical difference with respect to all other groups, red starts only to the DA and DA+BND, and blue stars only to t DA in the case solely the upper median split is considered when testing the significance.} -
-\textbf{d}: \textit{cognitive map but in terms of the activity of the place cells over multiple trajectories with a fixed reward location. Further, it is marked with high opacity the activity of the DA-modulated coarse-grained place cells, with their place fields enlarged near the reward.}}
+    Results in terms of reward count and Bonferroni-corrected pairwise t-test, black stars stand for statistical difference with respect to all other groups, red starts only to the DA and DA+BND.} -
+\textbf{d}: \textit{cognitive map but in terms of the activity of the place cells over multiple trajectories with a fixed reward location. Further, it is marked with high opacity the activity of the DA-modulated coarse-grained place cells, with their place fields enlarged near the reward.} -
+\textbf{e}: \textit{ablation performance comparison similar to} c, \textit{and over the same environment for model variants with different active modulatory mechanisms: no DA and BND place field modulation, full DA and BND, DA-d for PC density, DA-g activation gain, BND-d for PC density,BND-g for
+activation gain.}}
     \label{fig:main_results}
 \end{figure}
 
 
 \subsection{Adaptive goal representation through prediction error}
-Then, we tested the adaptability to environmental changes. In this scenario, the reward object was moved after it was fetched a fixed amount of times.
-Here, the difficulty lied in the unlearning of past locations and the discovery of the new ones.
-In plot \ref{fig:main_results}-\textbf{b} it is reported the set of trajectories over many trials with the reward displaced in three possible locations. The agent was capable of planning behaviour, as earlier, but also to explore and find the new rewards, as shown by the density of lines.
-Whenever a goal path resulted in failed prediction, the DA-based sensory error weakened the association between the place cells and reward signal, leading to an extinction of its representation at that location.
+Then, we tested the adaptability to environmental changes. In this scenario, the reward object was moved after being fetched a fixed number of times.
+Here, the difficulty was to unlearning previous locations and discovering new ones, in a protocol similar to \cite{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019}.
+In plot \ref{fig:main_results}\textbf{b} is reported the set of trajectories over many trials with the reward displaced in three possible locations. The agent was capable of planning behavior, as earlier, but also exploring and finding the new rewards, as shown by the density of lines.
+Whenever a goal path resulted in a failed prediction, the DA-based sensory error weakened the association between the place cells and the reward signal, leading to an extinction of its representation at that location.
 
-This result validates the resilience of the model to changing sensory expectations, in this case reward position.
+This result validates the resilience of the model to changing sensory expectations, in this case the reward position.
 
 \subsection{Modulation of spatial resolution affects performance}
-Lastly, we investigated the effect of modulating the place cells density and field size.
-The goal position was fixed, but the agent was randomly relocated after fetching; performance was defined as total number of reward count within a time window.
-Our working hypothesis is these experience-driven neuronal changes would improve the quality of the cognitive map, and be reflected in the navigation abilities.
-The assessment of this claim was conducted by comparing variants of the model, obtained by progressively ablating the possibility reward (DA) and collision (BND) modulation of density and field size, but a cognitive map was still possible as their representations of goals and boundaries were preserved.
-We also defined a chance level by instead blocking all modulation-based plasticity and allowing only place cells formation.
-All models were ran in two different environments differing by number of internal walls, in total 2048 simulations were done for each case. %However, due to the issue of the reward not being found, only the top 1024 were considered; the number of faulty runs affected all models in equal measure, since it depended solely on exploration noise.
+Lastly, we investigated the effect of modulating the density of place cells and the size of the field.
+The goal position was fixed, but the agent was randomly relocated after fetching; performance was defined as the total number of reward counts within a time window.
+Our working hypothesis is that these experience-driven neuronal changes would improve the quality of the cognitive map and be reflected in navigational abilities.
+The assessment of this claim was conducted by comparing variants of the model, obtained by progressively ablating the reward (DA) and collision (BND) modulation of density and field size, but a cognitive map was still possible as their representations of goals and boundaries were preserved.
+We also defined a chance level by instead blocking all modulation-based plasticity and allowing only place cells to form.
+All models were run in two different environments differing by number of internal walls, in total 2048 simulations were done for each case. %However, due to the issue of the reward not being found, only the top 1024 were considered; the number of faulty runs affected all models in equal measure, since it depended solely on exploration noise.
 
-The results are shown in plot \ref{fig:main_results}-\textbf{c}. The top reports the scores in the setting without internal walls. All models performed above chance, but the main finding is the affirmation of the importance of neuronal modulation, as revealed by the statistical difference between those endowed with it and the one that was not.
-Further, the possession of DA modulation resulted in a significantly higher score with respect to BND modulation alone (red stars). Indeed, in a situation with a convex region such as this one, once the reward has been located boundary information has a limited utility.
+The results are shown in plot \ref{fig:main_results}\textbf{c}. The top reports the scores in the setting without internal walls. All models performed above chance, but the main finding is the affirmation of the importance of neuronal modulation, as revealed by the statistical difference between those endowed with it and the one not.
+Furthermore, possession of DA modulation resulted in a significantly higher score than BND modulation alone (red stars). In fact, in a situation with a convex region such as this, once the reward has been located, the boundary information has limited utility.
 
-A partially different pattern emerged when more internal walls were introduced, as shown by the results at the bottom. In this case, BND modulation became the dominant factor.
-Moreover, in the circumstance of considering only the upper half of the scores it also turned statistically greater than DA modulation, despite the latter still outperforming the absence of either.
+A similar pattern emerged when more internal walls were introduced, as shown by the results at the bottom.
 In this environment, scores were overall lower as navigation became more difficult, and the difference among groups thinner, although noticeable.
+Here, the sole presence of the boundary modulation of place cells did not result in better performance than the baseline.
+This outcome highlights how the main improvements are brought by reward-driven neuronal modulation (DA). 
+% Moreover, in the circumstance of considering only the upper half of the scores it also turned statistically greater than DA modulation, despite the latter still outperforming the absence of either.
 
-Lastly, in plot \ref{fig:main_results}-\textbf{d} is showed a cognitive map for another enviroment, characterized by the place cells activity over several trajectories instead of the centers.
-In particular, the DA-modulated place fields are reported, highlighting their englarged size and density near the reward location.
+Then, in order to enquiry which particular modulatory action was mostly relevant, we conducted a similar test on the same environment but ablating not only specific neuromodulators, but also whether they affected the place cells density or the activation gain parameter.
+In plot \ref{fig:main_results}\textbf{e} are reported the comparions among different variants.
+The general trend matched the previous results \ref{fig:main_results}\textbf{c}, in that DA is the best neuromodulator in terms of correlation with performance.
+The additional finding was that density modulation is significantly the primary action behind the behavioural improvements, and alone does not perform worse that the model with all actions together.
 
-Taken together, these findings support the hypothesis of practical utility of direct modulation of place field structure for active navigation, even in these simple settings.
+Lastly, in the plot \ref{fig:main_results}\textbf{d} is shown a cognitive map for another environment, characterized by the activity of the cells of the place in several trajectories instead of the centers.
+In particular, DA-modulated place fields are reported, highlighting their large size and density near the reward location.
+
+Taken together, these findings support the hypothesis of practical utility of direct modulation of place-field structure for active navigation, even in these simple settings. 
+
 
 
 

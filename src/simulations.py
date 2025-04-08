@@ -54,6 +54,7 @@ game_settings = {
     "room_thickness": 30,
     "t_teleport": 1000,
     "limit_position_len": -1,
+    "start_position_idx": 1,
     "seed": None,
     "pause": -1,
     "verbose": True
@@ -790,18 +791,6 @@ def main_game(global_parameters: dict=global_parameters,
 
     if load:
         parameters = utils.load_parameters()
-        # logger.debug(parameters)
-        # parameters, session_config = utils.load_session()
-
-        # global_parameters = session_config["global_parameters"]
-        # reward_settings = session_config["reward_settings"]
-        # agent_settings = session_config["agent_settings"]
-        # game_settings = session_config["game_settings"]
-        # game_settings["rendering"] = True
-        # game_settings["plot_interval"] = 100
-        # game_settings["rw_event"] = "move both"
-
-
     else:
         parameters = fixed_params
 
@@ -867,23 +856,12 @@ def main_game(global_parameters: dict=global_parameters,
 
     # ===| objects |===
 
-    # rw_position_idx = np.random.randint(0, len(constants.POSSIBLE_POSITIONS))
-    # # rw_position = constants.POSSIBLE_POSITIONS[rw_position_idx]
-    # rw_position = np.array([0.5, 0.5]) * GAME_SCALE
-    # agent_possible_positions = constants.POSSIBLE_POSITIONS.copy()
-    # del agent_possible_positions[rw_position_idx]
-    # agent_position = agent_possible_positions[np.random.randint(0,
-    #                                             len(agent_possible_positions))]
-
     possible_positions = room.get_room_positions()
 
     rw_position_idx = np.random.randint(0, len(possible_positions))
     rw_position = possible_positions [rw_position_idx]
-    agent_possible_positions = possible_positions.copy()
-    # agent_position = agent_possible_positions[np.random.randint(0,
-    #                                             len(agent_possible_positions))]
-    # agent_position = possible_positions[0]
-    agent_position = room.sample_next_position()
+    # agent_possible_positions = possible_positions.copy()
+    agent_position = possible_positions[game_settings['start_position_idx']]
 
     rw_tau = reward_settings["tau"] if "tau" in reward_settings else 400
     if "move_threlshold" in reward_settings:
