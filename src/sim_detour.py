@@ -35,7 +35,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 200,
-    "silent_duration": 10_000,
+    "silent_duration": 12_000,
     "fetching_duration": 10,
     "transparent": False,
     "beta": 40.,
@@ -62,8 +62,8 @@ game_settings = {
 global_parameters = {
     "local_scale_fine": 0.02,
     "local_scale_coarse": 0.006,
-    "N": 32**2,
-    "Nc": 32**2,
+    "N": 42**2,
+    "Nc": 35**2,
     "use_sprites": False,
     "speed": 0.7,
     "min_weight_value": 0.5
@@ -639,10 +639,10 @@ def main_game(global_parameters: dict=global_parameters,
 
     """ make game environment """
 
-    room = games.make_room(name="Flat.1000",
+    room = games.make_room(name="Square.v0",
                            thickness=game_settings["room_thickness"],
                            bounds=[0, 1, 0, 1])
-    room_2 = games.make_room(name="Flat.1001",
+    room_2 = games.make_room(name="Square.b",
                            thickness=game_settings["room_thickness"],
                            bounds=[0, 1, 0, 1])
     room_bounds = [room.bounds[0]+10, room.bounds[2]-10,

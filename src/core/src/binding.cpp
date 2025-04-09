@@ -120,6 +120,10 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_wff", &PCNN::get_wff)
         .def("get_wrec", &PCNN::get_wrec)
         .def("make_edges", &PCNN::make_edges)
+        .def("calculate_closest_index", &PCNN::calculate_closest_index,
+             py::arg("c"))
+        .def("get_neighbourhood_node_degree", &PCNN::get_neighbourhood_node_degree,
+             py::arg("idx"))
         .def("get_connectivity", &PCNN::get_connectivity)
         .def("get_centers", &PCNN::get_centers,
              py::arg("nonzero") = false)
@@ -129,7 +133,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("simulate_one_step", &PCNN::simulate_one_step,
              py::arg("v"))
         .def("reset_gcn", &PCNN::reset_gcn,
-             py::arg("v"));
+             py::arg("v"))
+        .def("reset", &PCNN::reset);
 
     py::class_<VelocitySpace>(m, "VelocitySpace")
         .def(py::init<int, float, int>(),
@@ -210,8 +215,20 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("collision"),
              py::arg("reward"),
              py::arg("simulate") = false)
+        .def("make_value_mask", &Circuits::make_value_mask,
+             py::arg("strict") = false)
+        .def("make_prediction", &Circuits::make_prediction,
+             py::arg("representation"))
         .def("get_output", &Circuits::get_output)
-        .def("get_leaky_v", &Circuits::get_leaky_v);
+        .def("get_da_weights", &Circuits::get_da_weights)
+        .def("get_bnd_weights", &Circuits::get_bnd_weights)
+        .def("get_bnd_mask", &Circuits::get_bnd_mask)
+        .def("get_bnd_value", &Circuits::get_bnd_value)
+        .def("get_value_mask", &Circuits::get_value_mask)
+        .def("get_da_leaky_v", &Circuits::get_da_leaky_v)
+        .def("get_bnd_leaky_v", &Circuits::get_bnd_leaky_v)
+        .def("get_leaky_v", &Circuits::get_leaky_v)
+        .def("reset", &Circuits::reset);
 
     /* MODULES */
 
@@ -388,6 +405,22 @@ PYBIND11_MODULE(pclib, m) {
         /* .def("get_da_prediction_error", &Brain::get_da_prediction_error) */
         .def("reset", &Brain::reset);
 
+    m.def("make_space", &pcl::make_space,
+          py::arg("gc_sigma"),
+          py::arg("gc_scales"),
+          py::arg("local_scale"),
+          py::arg("N"),
+          py::arg("rec_threshold_fine"),
+          py::arg("speed"),
+          py::arg("min_rep_threshold"),
+
+          py::arg("num_neighbors"),
+          py::arg("gain_fine"),
+          py::arg("offset_fine"),
+          py::arg("threshold_fine"),
+          py::arg("rep_threshold_fine"),
+          py::arg("tau_trace_fine"),
+          py::arg("remap_tag_frequency"));
 }
 
 

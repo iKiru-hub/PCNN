@@ -469,9 +469,13 @@ def make_room(name: str="square", thickness: float=10.,
         room_positions = [
             [0.25, 0.5], [0.5, 0.5], [0.75, 0.5]
         ]
+    elif name == "Square.b":
+        room_positions = [[0.8, 0.6], [0.8, 0.6]]
+        walls_bounds += [Wall(5*SCREEN_WIDTH//8, SCREEN_HEIGHT//2-1*OFFSET,
+                 thickness, SCREEN_HEIGHT//2-2*OFFSET)]
     else:
         name = "Square.v0"
-        room_positions = [[0.5, 0.5]] + np.random.uniform(0.25, 0.755, (40, 2)).tolist()
+        room_positions = [[0.5, 0.5]] + [[0.8, 0.6]] + np.random.uniform(0.25, 0.755, (40, 2)).tolist()
 
     room = Room(walls_bounds=walls_bounds,
                 walls_extra=walls_extra,
@@ -560,6 +564,8 @@ class Environment:
 
         if self.agent.limit_position_len is not None:
             logger.debug(f"Agent fixed position: {self.agent.limit_position_len}")
+
+        logger.debug(f"Reward event: {rw_event}")
 
     def __str__(self):
         return f"Environment({self.room}, duration={self.duration}, " + \

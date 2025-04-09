@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <Eigen/Dense>
+#include <string>
 #include <unordered_map>
 #include <memory>
 #include <array>
@@ -35,6 +36,7 @@
 
 #define GCL_SIZE 36
 #define GCL_SIZE_SQRT 6
+#define NUM_GCL 9
 #define PCNN_REF PCNN
 #define GCN_REF GridNetworkSq
 #define GCL_REF GridLayerSq
@@ -901,7 +903,7 @@ public:
             for (int k = 0; k < num_connections; k++) {
                 int j = distances[k].second;
                 float dist = distances[k].first;
- 
+
                 // Establish bidirectional connection
                 this->weights(idx, j) = dist;
                 this->weights(j, idx) = dist;
@@ -1031,7 +1033,7 @@ public:
 
             if (dist < rec_threshold) {
                 /* std::cout << "too close:)" << std::endl; */
-                return true; 
+                return true;
             }
             if (dist < mind) {
                 mind = dist;
@@ -1732,9 +1734,9 @@ public:
         cell_count = 0;
 
         // make vector of free indexes
-        for (int i = 0; i < N; i++) { 
+        for (int i = 0; i < N; i++) {
             gain_v(i) = gain_const;
-            free_indexes.push_back(i); 
+            free_indexes.push_back(i);
         }
         fixed_indexes = {};
     }
@@ -2200,20 +2202,18 @@ public:
                 /* float dw = lr * v * ui; */
 
                 // backward, prediction error
-                float pred_err = lr_pred * (prediction[i] - v * ui);
-                if (pred_err < 0.0) { pred_err = 0.0; }
+                float pred_err = 0.0f;
 
-                // clip the prediction error if within a certain range
-                pred_err = pred_err > 0.001f && pred_err < 0.5 ? 0.5 : pred_err;
+                if (name == "DA") {
+                    pred_err = lr_pred * (prediction[i] - v * ui);
+                    if (pred_err < 0.0) { pred_err = 0.0; }
 
-                if (pred_err > 0.01 && name == "DA") { LOG("[+] prediction error: " + \
-                                                           std::to_string(pred_err));}
-                if (pred_err > 0.01 && name == "DA") { 
-                    /* std::cout << "[+] prediction error: " << std::to_string(pred_err) << std::endl; */
-                } else if (prediction[i] > 0.01 && name == "DA") {
-                    pred_err = 0.0f;
-                    /* std::cout << "[+] prediction: " << std::to_string(prediction[i]); */
-                    /* std::cout << " actual: " << std::to_string(v * ui)  << std::endl; */
+                    // clip the prediction error if within a certain range
+                    pred_err = pred_err > 0.001f && pred_err < 0.01 ? 0.01 : pred_err;
+                }
+
+                if (pred_err > 0.01 && name == "DA") {
+                    /* LOG("[+] prediction error: " + std::to_string(pred_err)); */
                 }
 
                 // update weights
@@ -2251,9 +2251,9 @@ public:
             }
         }
 
-        if (value > 0.00f) {
-            LOG("[+] " + name + " prediction: [" + std::to_string(idx) + "] " + std::to_string(value));
-        }
+        /* if (value > 0.00f) { */
+        /*     LOG("[+] " + name + " prediction: [" + std::to_string(idx) + "] " + std::to_string(value)); */
+        /* } */
     }
 
     float get_output() { return output; }
@@ -2337,8 +2337,12 @@ public:
                             reward, simulate);
 
         if (collision > 0.0f) {
-            LOG("[collision] bnd | output=" + std::to_string(output[0]));
-            
+            /* LOG("[collision] bnd | output=" + std::to_string(output[0]) + \ */
+            /*     " | v=" + std::to_string(bnd.get_leaky_v())); */
+            /* if (simulate) { */
+            /*     LOG("~simulation~"); */
+            /* } */
+
         }
         return output;
     }
@@ -2524,16 +2528,6 @@ struct Plan {
         // retrieve next position
         this->next_position = {space_fine.get_centers()(plan_idxs[counter], 0),
                                space_fine.get_centers()(plan_idxs[counter], 1)};
-
-        // check if it's the last point
-        /* if (plan_idxs[counter] == trg_idx) { */
-            /* LOG("[plan] last point | idx=" + std::to_string(trg_idx)); */
-        /* } else if (plan_idxs[counter] < -10000 || plan_idxs[counter] > 10000) { */
-        /*     LOG("[!plan] !!! possible memory leak?? " + \ */
-        /*         std::to_string(plan_idxs[counter]) + ", counter=" + \ */
-        /*         std::to_string(counter) + " | plan size=" + \ */
-        /*         std::to_string(plan_idxs.size())); */
-        /* } */
 
         counter++;
         return std::make_pair(make_velocity(), true);
@@ -3374,7 +3368,7 @@ public:
         space_fine.update();
 
         if (circuits.get_bnd_leaky_v() < 0.001 && space_fine.get_max_activation() > 0.45) {
-            space_coarse.update(); 
+            space_coarse.update();
         }// else if (collision > 0.01f) { space_coarse.update_upon_collision(); }
 
         // check: still-ness | wrt the fine space
@@ -3396,9 +3390,11 @@ public:
         if (goalmd.is_active()) {
             /* LOG("[Brain] active goal plan"); */
             trg_plan_end = 0;
+            bool obstacle = collision > 0.0f;
             std::pair<std::array<float, 2>, bool> progress = \
-                goalmd.step_plan(collision > 0.0f);
-
+                /* goalmd.step_plan(obstacle); # <---------------------- */
+                    goalmd.step_plan(collision > 0.0f);
+        /* std::pair<std::array<float, 2>, bool> progress = {{0.1f, 0.1f}, false}; */
             // keep going
             if (progress.second) {
                 this->action = progress.first;
@@ -3522,12 +3518,50 @@ final:
 };
 
 
+
+
+
 /* ========================================== */
 /* ========================================== */
 
 
 namespace pcl {
 
+PCNN make_space(float gc_sigma, std::array<float, NUM_GCL> gc_scales,
+                float local_scale, int N,
+                float rec_threshold_fine,
+                float speed,
+                float min_rep_threshold,
+                int num_neighbors,
+
+                float gain_fine,
+                float offset_fine,
+                float threshold_fine,
+                float rep_threshold_fine,
+                float tau_trace_fine,
+                float remap_tag_frequency) {
+
+    std::vector<GridLayerSq> gc_layers = {
+                GridLayerSq(gc_sigma, gc_scales[0] * local_scale),
+                GridLayerSq(gc_sigma, gc_scales[1] * local_scale),
+                GridLayerSq(gc_sigma, gc_scales[2] * local_scale),
+                GridLayerSq(gc_sigma, gc_scales[3] * local_scale),
+                GridLayerSq(gc_sigma, gc_scales[4] * local_scale),
+                GridLayerSq(gc_sigma, gc_scales[5] * local_scale),
+                GridLayerSq(gc_sigma, gc_scales[6] * local_scale),
+                GridLayerSq(gc_sigma, gc_scales[7] * local_scale),
+                GridLayerSq(gc_sigma, gc_scales[8] * local_scale)};
+
+    GridNetworkSq gcn = GridNetworkSq(gc_layers);
+
+    PCNN space = PCNN(N, gcn.len(), gain_fine, offset_fine,
+                      0.01f, threshold_fine, rep_threshold_fine,
+                      rec_threshold_fine, min_rep_threshold, gcn,
+                      tau_trace_fine, remap_tag_frequency,
+                      num_neighbors, "fine");
+
+    return space;
+};
 
 
 struct Reward {

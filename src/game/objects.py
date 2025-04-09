@@ -6,6 +6,10 @@ import os, sys
 
 from game.constants import *
 
+sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src/"))
+from utils import setup_logger
+
+logger = setup_logger(__name__, level=3)
 
 # absolute path to the sprites folder
 sprite_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sprites")
@@ -141,8 +145,6 @@ class AgentBody:
 
     def set_position(self, position: np.ndarray=None):
 
-        print("moving reward->", position)
-
         if np.all(position == None):
             if np.all(self._possible_positions) != None:
                 position = self._possible_positions[
@@ -206,7 +208,6 @@ class RewardObj:
     def __init__(self, position: np.ndarray,
                  radius: int = 10,
                  sigma: int = 10,
-                 tau: int = 10,
                  move_threshold: int = 10,
                  bounds: Tuple[int, int, int, int] = \
                     (100, SCREEN_WIDTH-100,
@@ -222,33 +223,33 @@ class RewardObj:
                  use_sprites: bool = True,
                  **kwargs):
 
+        # parmeters
         self._bounds = bounds
+        self._possible_positions = possible_positions
+        self.preferred_positions = kwargs.get("preferred_positions", None)
+        self.beta = kwargs.get("beta", 10)
+        self.alpha = kwargs.get("alpha", 0.6)
+        self.color = color
+        self._fetching = fetching
+        self._transparent = transparent
+        self.silent_duration = silent_duration
+        self.fetching_duration = fetching_duration
+        self.move_threshold = move_threshold
+        self.use_sprites = use_sprites
+        self.radius = radius
+        self.sigma = sigma
+
+        # variables
         if np.all(position != None):
             self.position = position
         else:
             self.set_position()
-
         self.x = self.position[0]
         self.y = self.position[1]
-        self._possible_positions = possible_positions
-        self.radius = radius
-        self.sigma = sigma
-        self.tau = tau
-        self.move_threshold = move_threshold
-        self.v = 0
-        self.beta = kwargs.get("beta", 10)
-        self.alpha = kwargs.get("alpha", 0.6)
-        self.color = color
         self.collected = False
-        self._fetching = fetching
-        self._transparent = transparent
         self.reward_value = value
-        self.silent_duration = silent_duration
-        self.fetching_duration = fetching_duration
         self.count = 0
         self.moving_count = 0
-        self.use_sprites = use_sprites
-        self.preferred_positions = kwargs.get("preferred_positions", None)
 
         self.available = True
         self.t = 0
@@ -269,19 +270,14 @@ class RewardObj:
 
         self.current_sprite = self.sprites["free"] 
 
-        print(f"Reward position={self.position}")
+        logger(self.__str__())
 
     def __str__(self) -> str:
-        return f"Reward({self.x}, {self.y}, " + \
-            f"silent={self.silent_duration}, " + \
+        return f"Reward({self.x:.1f}, {self.y:.1f}, " + \
             f"{self._fetching}, " + \
-            f"transparency={self._transparent})"
+            f"dur={self.fetching_duration}"
 
     def _probability_function(self, distance: float) -> float:
-
-        # p = 1 / (1 + np.exp(-self.beta * ( np.exp(-distance**2 / \
-        #     self.sigma) - self.alpha)))
-        # p = np.where(p < 0.02, 0, p)
         return self.sigma if distance < self.radius else 0.0
 
     def _update_sprite(self):
@@ -297,19 +293,14 @@ class RewardObj:
 
     def __call__(self, agent_pos: Tuple[int, int]) -> bool:
 
-        # decay
-        self.v += -self.v / self.tau
-
         # distance from the agent
         distance = np.sqrt((self.x - agent_pos[0])**2 +
                       (self.y - agent_pos[1])**2)
 
         # if distance < self.radius and self.available and \
-        if distance < self.radius: #and \
-            # print(f"[Rw] {distance} ({self.radius})")
+        if distance < self.radius:
 
             if self.available:
-
                 if self._fetching == "deterministic":
                     if self.reward_value == "continuous":
                         self.collected = np.exp(-distance / \
@@ -325,12 +316,10 @@ class RewardObj:
         else:
             self.collected = 0.
 
-
-        if self.collected:
+        if self.collected and (self.t- self.t_collected) > self.fetching_duration:
             self.count += 1
             self.moving_count += 1
             self.t_collected = self.t
-            self.v += 1
 
         self.available = ((self.t - self.t_collected) > self.delay) and \
                 (self.t > self.silent_duration) and \
@@ -345,7 +334,7 @@ class RewardObj:
 
     def set_position(self, position: np.ndarray=None):
 
-        print(f"new position={position}")
+        logger(f"[Reward] new position={position}")
 
         if np.all(position == None):
             if np.all(self._possible_positions) != None:
@@ -365,8 +354,8 @@ class RewardObj:
 
     @property
     def is_ready_to_move(self) -> bool:
-        # out = self.v > self.move_threshold
         out = self.moving_count > self.move_threshold
+        # logger.debug(f"[Reward] count={self.moving_count} | {self.move_threshold}")
         if out: self.moving_count = 0
         return out
 

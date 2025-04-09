@@ -13,6 +13,7 @@ import game.constants as constants
 try:
     # import libs.pclib as pclib
     import core.build.pclib as pclib
+    import libs.pclib2 as pclib2
 except ImportError:
     import warnings
     warnings.warn("pclib [c++] not found, using python version")
@@ -34,13 +35,12 @@ reward_settings = {
     "rw_sigma": 0.8,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 200,
-    "silent_duration": 10_000,
+    "delay": 10,
+    "silent_duration": 4_000,
     "fetching_duration": 10,
     "transparent": False,
     "beta": 40.,
     "alpha": 0.06,# * GAME_SCALE,
-    "tau": 300,# * GAME_SCALE,
     "move_threshold": 4,# * GAME_SCALE,
 }
 
@@ -71,55 +71,44 @@ global_parameters = {
 }
 
 parameters = {
-
-    "gain_fine": 15.,
-    "offset_fine": 1.0,
-    "threshold_fine": 0.3,
-    "rep_threshold_fine": 0.9,
-    "rec_threshold_fine": 45.,
-    "tau_trace_fine": 30.0,
-
-    "remap_tag_frequency": 1,
-    "num_neighbors": 8,
-    "min_rep_threshold": 34,
-
-    "gain_coarse": 21.,
-    "offset_coarse": 1.1,
-    "threshold_coarse": 0.3,
-    "rep_threshold_coarse": 0.6,
-    "rec_threshold_coarse": 50.,
-    "tau_trace_coarse": 50.0,
-
-    "lr_da": 0.5,
-    "lr_pred": 0.2,
-    "threshold_da": 0.03,
-    "tau_v_da": 20.0,
-
-    "lr_bnd": 0.6,
-    "threshold_bnd": 0.3,
-    "tau_v_bnd": 3.0,
-
-    "tau_ssry": 100.,
-    "threshold_ssry": 0.995,
-
-    "threshold_circuit": 0.9,
-    "remapping_flag": 7,
-
-    "rwd_weight": 15.0,
-    "rwd_sigma": 80.0,
-    "col_weight": 0.0,
-    "col_sigma": 35.0,
-
-    "rwd_field_mod_fine": 2.5,
-    "rwd_field_mod_coarse": 4.5,
-    "col_field_mod_fine": 1.5,
-    "col_field_mod_coarse": 0.3,
-
-    "action_delay": 80.,
-    "edge_route_interval": 50000, # <<<<<<<<<<<<<<<<<<<
-
-    "forced_duration": 100,
-    "fine_tuning_min_duration": 10,
+     'gain_fine': 33.0,
+     'offset_fine': 1.0,
+     'threshold_fine': 0.4,
+     'rep_threshold_fine': 0.86,
+     'rec_threshold_fine': 43,
+     'tau_trace_fine': 140,
+     'remap_tag_frequency': 3,
+     'num_neighbors': 13,
+     'min_rep_threshold': 0.77,
+     'gain_coarse': 16.6,
+     'offset_coarse': 1.0,
+     'threshold_coarse': 0.4,
+     'rep_threshold_coarse': 0.76,
+     'rec_threshold_coarse': 41,
+     'tau_trace_coarse': 24,
+     'lr_da': 0.99,
+     'lr_pred': 0.0,
+     'threshold_da': 0.04,
+     'tau_v_da': 2.0,
+     'lr_bnd': 0.6,
+     'threshold_bnd': 0.3,
+     'tau_v_bnd': 4.0,
+     'tau_ssry': 437.0,
+     'threshold_ssry': 1.986, # <-----------------
+     'threshold_circuit': 0.9,
+     'remapping_flag': 8,
+     'rwd_weight': 2.96,
+     'rwd_sigma': 33.6,
+     'col_weight': 0.06,
+     'col_sigma': 20.6,
+     'rwd_field_mod_fine': 0.0,
+     'rwd_field_mod_coarse': 0.6,
+     'col_field_mod_fine': -0.6,
+     'col_field_mod_coarse': 1.8,
+     'action_delay': 120.0,
+     'edge_route_interval': 5,
+     'forced_duration': 1,
+     'fine_tuning_min_duration': 32
 }
 
 
@@ -137,8 +126,8 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, brain: object, boundsx: tuple=(-110, 450),
-                 boundsy: tuple=(-450, 110),
+    def __init__(self, brain: object, boundsx: tuple=(-450, 450),
+                 boundsy: tuple=(-450, 450),
                  render_type: str="space"):
 
         self.brain = brain
@@ -153,9 +142,12 @@ class Renderer:
         self.render_type = render_type
         if render_type == "space0":
             self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
+            self.fig.set_tight_layout(True)
+        elif render_type == "space3":
+            self.fig, self.axs = plt.subplots(figsize=(6, 6))
         else:
             self.fig, self.axs = plt.subplots(1, 1, figsize=(4, 4))
-        self.fig.set_tight_layout(True)
+            self.fig.set_tight_layout(True)
 
     def __call__(self):
 
@@ -163,6 +155,10 @@ class Renderer:
             self.render()
         elif self.render_type == "space0":
             self.render2()
+        elif self.render_type == "space3":
+            self.render3()
+        elif self.render_type == 'none':
+            pass
         else:
             raise ValueError("render_type not recognized")
 
@@ -403,6 +399,43 @@ class Renderer:
 
         plt.pause(0.00001)
 
+    def render3(self):
+
+        # -- BND
+        self.axs.clear()
+        self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
+                               c=self.brain.get_bnd_weights(),
+                               cmap="Blues", alpha=0.8,
+                               s=40, vmin=0., vmax=0.5,
+                               label="BND")
+
+        daw = self.brain.get_da_weights()
+        self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
+                               c=daw,
+                               s=np.where(daw > 0.01, 40, 0),
+                               cmap="Greens", alpha=0.8,
+                               label="DA",
+                               vmin=0., vmax=0.4)
+        self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
+                               color="brown", s=20, alpha=0.2)
+        plan_centers = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
+        self.axs.plot(*plan_centers.T, color="grey", alpha=0.7, lw=4.,
+                            label="plan")
+        self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
+                               c=self.brain.get_trg_representation(),
+                               s=200*self.brain.get_trg_representation(),
+                               marker="x",
+                               label="goal",
+                               cmap="Greens", alpha=0.7)
+
+        self.axs.set_xlim(self.boundsx)
+        self.axs.set_ylim(self.boundsy)
+        self.axs.set_xticks(())
+        self.axs.set_yticks(())
+        self.axs.set_aspect('equal', adjustable='box')
+        plt.pause(0.00001)
+
+
 
 def run_model(parameters: dict,
               global_parameters: dict,
@@ -426,29 +459,68 @@ def run_model(parameters: dict,
 
     """ make model """
 
-    brain = pclib.Brain(
-                local_scale_fine=global_parameters["local_scale_fine"],
-                local_scale_coarse=global_parameters["local_scale_coarse"],
+    # brain = pclib.Brain(
+    #             local_scale_fine=global_parameters["local_scale_fine"],
+    #             local_scale_coarse=global_parameters["local_scale_coarse"],
+    #             N=global_parameters["N"],
+    #             Nc=global_parameters["Nc"],
+    #             min_rep_threshold=parameters["min_rep_threshold"],
+    #             num_neighbors=parameters["num_neighbors"],
+    #             rec_threshold_fine=parameters["rec_threshold_fine"],
+    #             rec_threshold_coarse=parameters["rec_threshold_coarse"],
+    #             speed=global_parameters["speed"],
+    #             gain_fine=parameters["gain_fine"],
+    #             offset_fine=parameters["offset_fine"],
+    #             threshold_fine=parameters["threshold_fine"],
+    #             rep_threshold_fine=parameters["rep_threshold_fine"],
+    #             tau_trace_fine=parameters["tau_trace_fine"],
+    #             remap_tag_frequency=parameters['remap_tag_frequency'],
+    #             gain_coarse=parameters["gain_coarse"],
+    #             offset_coarse=parameters["offset_coarse"],
+    #             threshold_coarse=parameters["threshold_coarse"],
+    #             rep_threshold_coarse=parameters["rep_threshold_coarse"],
+    #             tau_trace_coarse=parameters["tau_trace_coarse"],
+    #             lr_da=parameters["lr_da"],
+    #             lr_pred=parameters['lr_pred'],
+    #             threshold_da=parameters["threshold_da"],
+    #             tau_v_da=parameters["tau_v_da"],
+    #             lr_bnd=parameters["lr_bnd"],
+    #             threshold_bnd=parameters["threshold_bnd"],
+    #             tau_v_bnd=parameters["tau_v_bnd"],
+    #             tau_ssry=parameters["tau_ssry"],
+    #             threshold_ssry=parameters["threshold_ssry"],
+    #             threshold_circuit=parameters["threshold_circuit"],
+    #             remapping_flag=parameters['remapping_flag'],
+    #             modulation_option=parameters['modulation_option'],
+    #             rwd_weight=parameters["rwd_weight"],
+    #             rwd_sigma=parameters["rwd_sigma"],
+    #             col_weight=parameters["col_weight"],
+    #             col_sigma=parameters["col_sigma"],
+    #             rwd_field_mod_fine=parameters["rwd_field_mod_fine"],
+    #             rwd_field_mod_coarse=parameters["rwd_field_mod_coarse"],
+    #             col_field_mod_fine=parameters["col_field_mod_fine"],
+    #             col_field_mod_coarse=parameters["col_field_mod_coarse"],
+    #             action_delay=parameters["action_delay"],
+    #             edge_route_interval=parameters["edge_route_interval"],
+    #             forced_duration=parameters["forced_duration"],
+    #             fine_tuning_min_duration=parameters["fine_tuning_min_duration"],
+    #             min_weight_value=parameters["fine_tuning_min_duration"])
+
+    brain = pclib2.Brain(
+                local_scale=global_parameters["local_scale_fine"],
                 N=global_parameters["N"],
-                Nc=global_parameters["Nc"],
+                rec_threshold=parameters["rec_threshold_fine"],
+                speed=global_parameters["speed"],
                 min_rep_threshold=parameters["min_rep_threshold"],
                 num_neighbors=parameters["num_neighbors"],
-                rec_threshold_fine=parameters["rec_threshold_fine"],
-                rec_threshold_coarse=parameters["rec_threshold_coarse"],
-                speed=global_parameters["speed"],
-                gain_fine=parameters["gain_fine"],
-                offset_fine=parameters["offset_fine"],
-                threshold_fine=parameters["threshold_fine"],
-                rep_threshold_fine=parameters["rep_threshold_fine"],
-                tau_trace_fine=parameters["tau_trace_fine"],
-                remap_tag_frequency=parameters['remap_tag_frequency'],
-                gain_coarse=parameters["gain_coarse"],
-                offset_coarse=parameters["offset_coarse"],
-                threshold_coarse=parameters["threshold_coarse"],
-                rep_threshold_coarse=parameters["rep_threshold_coarse"],
-                tau_trace_coarse=parameters["tau_trace_coarse"],
+                gain=parameters["gain_fine"],
+                offset=parameters["offset_fine"],
+                threshold=parameters["threshold_fine"],
+                rep_threshold=parameters["rep_threshold_fine"],
+                tau_trace=parameters["tau_trace_fine"],
+                remap_tag_frequency=remap_tag_frequency,
                 lr_da=parameters["lr_da"],
-                lr_pred=parameters['lr_pred'],
+                lr_pred=lr_pred,
                 threshold_da=parameters["threshold_da"],
                 tau_v_da=parameters["tau_v_da"],
                 lr_bnd=parameters["lr_bnd"],
@@ -457,16 +529,14 @@ def run_model(parameters: dict,
                 tau_ssry=parameters["tau_ssry"],
                 threshold_ssry=parameters["threshold_ssry"],
                 threshold_circuit=parameters["threshold_circuit"],
-                remapping_flag=parameters['remapping_flag'],
-                modulation_option=parameters['modulation_option'],
+                remapping_flag=remapping_flag,
+                modulation_option=None,
                 rwd_weight=parameters["rwd_weight"],
                 rwd_sigma=parameters["rwd_sigma"],
                 col_weight=parameters["col_weight"],
                 col_sigma=parameters["col_sigma"],
-                rwd_field_mod_fine=parameters["rwd_field_mod_fine"],
-                rwd_field_mod_coarse=parameters["rwd_field_mod_coarse"],
-                col_field_mod_fine=parameters["col_field_mod_fine"],
-                col_field_mod_coarse=parameters["col_field_mod_coarse"],
+                rwd_field_mod=parameters["rwd_field_mod_fine"],
+                col_field_mod=parameters["col_field_mod_fine"],
                 action_delay=parameters["action_delay"],
                 edge_route_interval=parameters["edge_route_interval"],
                 forced_duration=parameters["forced_duration"],
@@ -782,6 +852,7 @@ def main_game(global_parameters: dict=global_parameters,
               reward_settings: dict=reward_settings,
               game_settings: dict=game_settings,
               room_name: str="Square.v0", load: bool=False,
+              load_idx: int=-1,
               render_type: str="space", duration: int=-1):
 
     """
@@ -790,7 +861,8 @@ def main_game(global_parameters: dict=global_parameters,
 
 
     if load:
-        parameters = utils.load_parameters()
+        load_idx = load_idx if load_idx > -1 else -1
+        parameters = utils.load_parameters(idx=load_idx)
     else:
         parameters = fixed_params
 
@@ -800,27 +872,65 @@ def main_game(global_parameters: dict=global_parameters,
     remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 0
     lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.2
 
-    brain = pclib.Brain(
-                local_scale_fine=global_parameters["local_scale_fine"],
-                local_scale_coarse=global_parameters["local_scale_coarse"],
+    # brain = pclib.Brain(
+    #             local_scale_fine=global_parameters["local_scale_fine"],
+    #             local_scale_coarse=global_parameters["local_scale_coarse"],
+    #             N=global_parameters["N"],
+    #             Nc=global_parameters["Nc"],
+    #             min_rep_threshold=parameters["min_rep_threshold"],
+    #             num_neighbors=parameters["num_neighbors"],
+    #             rec_threshold_fine=parameters["rec_threshold_fine"],
+    #             rec_threshold_coarse=parameters["rec_threshold_coarse"],
+    #             tau_trace_fine=parameters["tau_trace_fine"],
+    #             speed=global_parameters["speed"],
+    #             gain_fine=parameters["gain_fine"],
+    #             offset_fine=parameters["offset_fine"],
+    #             threshold_fine=parameters["threshold_fine"],
+    #             rep_threshold_fine=parameters["rep_threshold_fine"],
+    #             remap_tag_frequency=remap_tag_frequency,
+    #             tau_trace_coarse=parameters["tau_trace_coarse"],
+    #             gain_coarse=parameters["gain_coarse"],
+    #             offset_coarse=parameters["offset_coarse"],
+    #             threshold_coarse=parameters["threshold_coarse"],
+    #             rep_threshold_coarse=parameters["rep_threshold_coarse"],
+    #             lr_da=parameters["lr_da"],
+    #             lr_pred=lr_pred,
+    #             threshold_da=parameters["threshold_da"],
+    #             tau_v_da=parameters["tau_v_da"],
+    #             lr_bnd=parameters["lr_bnd"],
+    #             threshold_bnd=parameters["threshold_bnd"],
+    #             tau_v_bnd=parameters["tau_v_bnd"],
+    #             tau_ssry=parameters["tau_ssry"],
+    #             threshold_ssry=parameters["threshold_ssry"],
+    #             threshold_circuit=parameters["threshold_circuit"],
+    #             remapping_flag=remapping_flag,
+    #             rwd_weight=parameters["rwd_weight"],
+    #             rwd_sigma=parameters["rwd_sigma"],
+    #             col_weight=parameters["col_weight"],
+    #             col_sigma=parameters["col_sigma"],
+    #             rwd_field_mod_fine=parameters["rwd_field_mod_fine"],
+    #             rwd_field_mod_coarse=parameters["rwd_field_mod_coarse"],
+    #             col_field_mod_fine=parameters["col_field_mod_fine"],
+    #             col_field_mod_coarse=parameters["col_field_mod_coarse"],
+    #             action_delay=parameters["action_delay"],
+    #             edge_route_interval=parameters["edge_route_interval"],
+    #             forced_duration=parameters["forced_duration"],
+    #             fine_tuning_min_duration=parameters["fine_tuning_min_duration"],
+    #             min_weight_value=parameters["fine_tuning_min_duration"])
+
+    brain = pclib2.Brain(
+                local_scale=global_parameters["local_scale_fine"],
                 N=global_parameters["N"],
-                Nc=global_parameters["Nc"],
+                rec_threshold=parameters["rec_threshold_fine"],
+                speed=global_parameters["speed"],
                 min_rep_threshold=parameters["min_rep_threshold"],
                 num_neighbors=parameters["num_neighbors"],
-                rec_threshold_fine=parameters["rec_threshold_fine"],
-                rec_threshold_coarse=parameters["rec_threshold_coarse"],
-                tau_trace_fine=parameters["tau_trace_fine"],
-                speed=global_parameters["speed"],
-                gain_fine=parameters["gain_fine"],
-                offset_fine=parameters["offset_fine"],
-                threshold_fine=parameters["threshold_fine"],
-                rep_threshold_fine=parameters["rep_threshold_fine"],
+                gain=parameters["gain_fine"],
+                offset=parameters["offset_fine"],
+                threshold=parameters["threshold_fine"],
+                rep_threshold=parameters["rep_threshold_fine"],
+                tau_trace=parameters["tau_trace_fine"],
                 remap_tag_frequency=remap_tag_frequency,
-                tau_trace_coarse=parameters["tau_trace_coarse"],
-                gain_coarse=parameters["gain_coarse"],
-                offset_coarse=parameters["offset_coarse"],
-                threshold_coarse=parameters["threshold_coarse"],
-                rep_threshold_coarse=parameters["rep_threshold_coarse"],
                 lr_da=parameters["lr_da"],
                 lr_pred=lr_pred,
                 threshold_da=parameters["threshold_da"],
@@ -832,14 +942,13 @@ def main_game(global_parameters: dict=global_parameters,
                 threshold_ssry=parameters["threshold_ssry"],
                 threshold_circuit=parameters["threshold_circuit"],
                 remapping_flag=remapping_flag,
+                modulation_option=None,
                 rwd_weight=parameters["rwd_weight"],
                 rwd_sigma=parameters["rwd_sigma"],
                 col_weight=parameters["col_weight"],
                 col_sigma=parameters["col_sigma"],
-                rwd_field_mod_fine=parameters["rwd_field_mod_fine"],
-                rwd_field_mod_coarse=parameters["rwd_field_mod_coarse"],
-                col_field_mod_fine=parameters["col_field_mod_fine"],
-                col_field_mod_coarse=parameters["col_field_mod_coarse"],
+                rwd_field_mod=parameters["rwd_field_mod_fine"],
+                col_field_mod=parameters["col_field_mod_fine"],
                 action_delay=parameters["action_delay"],
                 edge_route_interval=parameters["edge_route_interval"],
                 forced_duration=parameters["forced_duration"],
@@ -860,7 +969,7 @@ def main_game(global_parameters: dict=global_parameters,
 
     rw_position_idx = np.random.randint(0, len(possible_positions))
     rw_position = possible_positions [rw_position_idx]
-    # agent_possible_positions = possible_positions.copy()
+    agent_possible_positions = possible_positions.copy()
     agent_position = possible_positions[game_settings['start_position_idx']]
 
     rw_tau = reward_settings["tau"] if "tau" in reward_settings else 400
@@ -1070,8 +1179,8 @@ def main_cartpole(load: bool=False,
     """ run game """
 
     if rendering:
-        renderer = Renderer(brain=brain, boundsx=(-200.0, 200.0),
-                            boundsy=(-200.0, 200.0))
+        renderer = Renderer(brain=brain, boundsx=(-400.0, 400.0),
+                            boundsy=(-400.0, 400.0))
     else:
         renderer = None
 
@@ -1115,6 +1224,7 @@ if __name__ == "__main__":
     parser.add_argument("--interval", type=int, default=20,
                         help="plotting interval")
     parser.add_argument("--load", action="store_true")
+    parser.add_argument("--idx", type=int, default=-1)
     parser.add_argument("--render", action="store_true")
     parser.add_argument("--render_type", type=str, default="space")
 
@@ -1143,7 +1253,8 @@ if __name__ == "__main__":
         if args.main == "game":
             main_game(room_name=args.room, load=args.load,
                       duration=args.duration,
-                      render_type=args.render_type)
+                      render_type=args.render_type,
+                      load_idx=args.idx)
         if args.main == "cartpole":
             main_cartpole(load=args.load,
                           duration=args.duration,
