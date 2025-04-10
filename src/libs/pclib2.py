@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 import core.build.pclib as pclib
 from utils import setup_logger
 
-logger = setup_logger(__name__, level=2)
+logger = setup_logger('PCLIB', level=-1)
 
 """ FUNCTIONS """
 
@@ -97,15 +97,12 @@ def euclidean_distance(v1: np.ndarray, v2: np.ndarray) -> float:
 """ NEURONS """
 
 
-class DensityPolicy:
+class DensityPolicy2:
 
-    def __init__(self,
-                 rwd_weight, rwd_sigma,
-                 col_weight, col_sigma,
-                 rwd_field_mod,
-                 col_field_mod,
-                 modulation_option,
-                 remapping_flag=-1):
+    def __init__(self, rwd_weight: float, rwd_sigma: float,
+                 col_weight: float, col_sigma: float,
+                 rwd_field_mod: float,
+                 col_field_mod: float):
 
         self.rwd_weight = rwd_weight
         self.rwd_sigma = rwd_sigma
@@ -118,42 +115,33 @@ class DensityPolicy:
         self.rwd_field_mod = rwd_field_mod
         self.col_field_mod = col_field_mod
 
-        self.modulation_option = modulation_option
-        self.remapping_flag = remapping_flag
-        self.remapping_option = self.remapping_options(remapping_flag)
-
-    def remapping_options(self, flag: bool):
-        # User-defined logic, placeholder here
-        # Converts an int flag into a list of 4 booleans
-        return [bool(flag & (1 << i)) for i in range(4)]
-
-    def call(self, space: object, circuits: object, goalmd: object,
+    def __call__(self, space: object, circuits: object, goalmd: object,
              displacement: np.ndarray, curr_da: float, curr_bnd: float,
              reward: float, collision: float):
 
-        if self.remapping_flag < 0 or len(space) < 3:
-            return
-
+        # --- reward mod
         if reward > 0.1 and circuits.get_da_leaky_v() > 0.01:
+
             self.rwd_drive = self.rwd_weight * curr_da
 
-            if self.remapping_option[0]:
-                if self.modulation_option[0]:
-                    space.remap(circuits.get_da_weights(), displacement,
-                                     self.rwd_sigma, self.rwd_drive)
-                if self.modulation_option[1]:
-                    space.modulate_gain(self.rwd_field_mod)
+            # +density
+            space.remap(circuits.get_da_weights(), displacement,
+                        self.rwd_sigma, self.rwd_drive)
+            # +gain
+            space.modulate_gain(self.rwd_field_mod)
 
+        # --- collision mod
         elif collision > 0.1:
+
             self.col_drive = self.col_weight * curr_bnd
             neg_disp = [-displacement[0], -displacement[1]]
 
-            if self.remapping_option[2]:
-                if self.modulation_option[2]:
-                    space.remap(circuits.get_bnd_weights(), neg_disp,
-                                     self.col_sigma, self.col_drive)
-                if self.modulation_option[3]:
-                    space.modulate_gain(self.col_field_mod)
+            # +density
+            print(dir(space))
+            space.remap(circuits.get_bnd_weights(), neg_disp,
+                        self.col_sigma, self.col_drive)
+            # +gain
+            space.modulate_gain(self.col_field_mod)
 
     def remap_space(self, block_weights: np.ndarray, space: object, goalmd: object,
                     displacement: np.ndarray, sigma: float, drive: float):
@@ -414,7 +402,7 @@ class GoalModule:
 
         # Check if the plan is valid, i.e., size > 1
         if len(plan_idxs) < 1:
-            logger("[Goal] plan too short")
+            logger(f"[Goal] plan too short | {plan_idxs}")
             return [], False
 
         logger("[Goal] new plan ############################### " + \
@@ -631,8 +619,6 @@ class Brain:
                  tau_ssry,
                  threshold_ssry,
                  threshold_circuit,
-                 remapping_flag,
-                 modulation_option,
                  rwd_weight,
                  rwd_sigma,
                  col_weight,
@@ -642,8 +628,7 @@ class Brain:
                  action_delay,
                  edge_route_interval,
                  forced_duration,
-                 fine_tuning_min_duration,
-                 min_weight_value=0.3):
+                 min_weight_value):
 
         self.clock = 0
         self.forced_duration = forced_duration
@@ -667,10 +652,8 @@ class Brain:
         # Initialize modules
         self.goalmd = GoalModule(self.space, self.circuits, speed)
         self.rwobj = RewardObject(min_weight_value)
-        self.dpolicy = DensityPolicy(rwd_weight, rwd_sigma, col_weight, col_sigma,
-                                     rwd_field_mod,
-                                     col_field_mod,
-                                     modulation_option, remapping_flag)
+        self.dpolicy = pclib.DensityPolicy(rwd_weight, rwd_sigma, col_weight, col_sigma,
+                                           rwd_field_mod, col_field_mod)
         self.expmd = ExplorationModule(speed * 2.0, self.circuits, self.space,
                                       action_delay, edge_route_interval)
 
@@ -687,60 +670,8 @@ class Brain:
         self.action = [0.0, 0.0]
         self.expmd_res = ([0.0, 0.0], 0)  # (action, index)
 
-    def attempt_boundary_plan(self, idx: int):
-
-        # Reset the set of rejected indexes
-        self.expmd.reset_rejected_indexes()
-
-        # Attempt for a bunch of times | use 404 as final rejection
-        for i in range(3):
-
-            # Attempt a plan
-            self.goalmd.reset()
-            valid_plan = self.goalmd.update(idx, False)
-
-            # Valid plan
-            if valid_plan:
-                self.directive = "trg ob"
-                progress = self.goalmd.step_plan(False)
-
-                # Confirm the edge walk
-                self.expmd.confirm_edge_walk()
-                logger.debug("[Brian] edge walk")
-                return progress[0]
-
-            # Invalid plan -> try again
-            self.expmd_res = self.expmd.call(self.directive, idx)
-            idx = self.expmd_res[1]
-
-        # Tried too many times, make a random walk plan instead
-        self.expmd_res = self.expmd.call(self.directive, 404)
-
-        return self.expmd_res[0]
-
-    def make_prediction(self):
-
-        # Simulate a step
-        next_representation = self.space.simulate_one_step(self.action)
-
-        # Make prediction
-        self.circuits.make_prediction(next_representation)
-
-    def prune_bnd_edges(self):
-        # Get the current idx
-        curr_idx = self.space.calculate_closest_index(
-            self.space.get_position())
-
-        if curr_idx < 0:
-            return
-
-        # Go over the neighborhood
-        for j in range(self.space.get_size()):
-            if self.space.check_edge(curr_idx, j):
-                if self.circuits.get_bnd_value(j) > 0.01:
-                    self.space.delete_edge(curr_idx, j)
-
     def __call__(self, velocity, collision, reward, trigger):
+
         self.clock += 1
 
         if reward > 0.0:
@@ -756,12 +687,11 @@ class Brain:
         internal_state = self.circuits(u, collision, reward, False)
 
         # :dpolicy fine space
-        self.dpolicy.call(self.space,
-                         self.circuits,
-                         self.goalmd,
-                         velocity,
-                         internal_state[1], internal_state[0],
-                         reward, collision)
+        self.dpolicy(self.space,
+                     self.circuits,
+                     velocity,
+                     internal_state[1], internal_state[0],
+                     reward, collision)
 
         self.space.update()
 
@@ -833,6 +763,60 @@ class Brain:
 
         # Fall through to exploration
         return self._explore(collision)
+
+    def attempt_boundary_plan(self, idx: int):
+
+        # Reset the set of rejected indexes
+        self.expmd.reset_rejected_indexes()
+
+        # Attempt for a bunch of times | use 404 as final rejection
+        for i in range(3):
+
+            # Attempt a plan
+            self.goalmd.reset()
+            valid_plan = self.goalmd.update(idx, False)
+
+            # Valid plan
+            if valid_plan:
+                self.directive = "trg ob"
+                progress = self.goalmd.step_plan(False)
+
+                # Confirm the edge walk
+                self.expmd.confirm_edge_walk()
+                logger.debug("[Brian] edge walk")
+                return progress[0]
+
+            # Invalid plan -> try again
+            self.expmd_res = self.expmd.call(self.directive, idx)
+            idx = self.expmd_res[1]
+
+        # Tried too many times, make a random walk plan instead
+        self.expmd_res = self.expmd.call(self.directive, 404)
+
+        return self.expmd_res[0]
+
+    def make_prediction(self):
+
+        # Simulate a step
+        next_representation = self.space.simulate_one_step(self.action)
+
+        # Make prediction
+        self.circuits.make_prediction(next_representation)
+
+    def prune_bnd_edges(self):
+        # Get the current idx
+        curr_idx = self.space.calculate_closest_index(
+            self.space.get_position())
+
+        if curr_idx < 0:
+            return
+
+        # Go over the neighborhood
+        for j in range(self.space.get_size()):
+            if self.space.check_edge(curr_idx, j):
+                if self.circuits.get_bnd_value(j) > 0.01:
+                    self.space.delete_edge(curr_idx, j)
+
 
     def _explore(self, collision):
 
@@ -966,8 +950,6 @@ if __name__ == "__main__":
                   tau_ssry=3.,
                   threshold_ssry=0.2,
                   threshold_circuit=10.,
-                  remapping_flag=2,
-                  modulation_option=0,
                   rwd_weight=1.,
                   rwd_sigma=1.,
                   col_weight=1.,
@@ -977,7 +959,6 @@ if __name__ == "__main__":
                   action_delay=20.,
                   edge_route_interval=0.1,
                   forced_duration=1.,
-                  fine_tuning_min_duration=1.,
                   min_weight_value=0.3)
 
     # test

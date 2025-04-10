@@ -40,7 +40,7 @@ def setup_logger(name: str="MAIN",
     # create a custom formatter
     if colored:
         formatter = coloredlogs.ColoredFormatter(
-            "%(asctime)s | %(message)s",
+            f"{name} | %(asctime)s | %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S"
         )
 

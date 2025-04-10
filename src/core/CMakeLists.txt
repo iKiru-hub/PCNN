@@ -31,13 +31,13 @@ set(MODULE_SOURCES
 # Add the pybind11 module
 pybind11_add_module(pclib ${MODULE_SOURCES})
 
-# Test executable
-set(TEST_SOURCES
-    src/test.cpp
-)
+# # Test executable
+# set(TEST_SOURCES
+#     src/test.cpp
+# )
 
 # Add the test executable
-add_executable(pcnn_test ${TEST_SOURCES})
+# add_executable(pcnn_test ${TEST_SOURCES})
 
 # Include directories for both targets
 target_include_directories(pclib
@@ -45,10 +45,10 @@ target_include_directories(pclib
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_include_directories(pcnn_test
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
+# target_include_directories(pcnn_test
+#     PRIVATE
+#         ${CMAKE_CURRENT_SOURCE_DIR}/include
+# )
 
 # Link libraries for both targets
 target_link_libraries(pclib
@@ -56,10 +56,10 @@ target_link_libraries(pclib
         Eigen3::Eigen
 )
 
-target_link_libraries(pcnn_test
-    PRIVATE
-        Eigen3::Eigen
-)
+# target_link_libraries(pcnn_test
+#     PRIVATE
+#         Eigen3::Eigen
+# )
 
 # Set compiler flags for macOS
 if(APPLE)
@@ -76,16 +76,16 @@ if(APPLE)
     )
     
     # Flags for test executable
-    target_compile_options(pcnn_test PRIVATE 
-        -stdlib=libc++ 
-        -O3
-        -Wall
-        -Wextra
-        -mmacosx-version-min=10.9
-    )
-    set_target_properties(pcnn_test PROPERTIES
-        LINK_FLAGS "-stdlib=libc++ -mmacosx-version-min=10.9"
-    )
+    # target_compile_options(pcnn_test PRIVATE 
+    #     -stdlib=libc++ 
+    #     -O3
+    #     -Wall
+    #     -Wextra
+    #     -mmacosx-version-min=10.9
+    # )
+    # set_target_properties(pcnn_test PROPERTIES
+    #     LINK_FLAGS "-stdlib=libc++ -mmacosx-version-min=10.9"
+    # )
 endif()
 
 

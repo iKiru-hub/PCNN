@@ -17,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 2
+NUM_SAMPLES = 4
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
                              replace=False).tolist() + \
            ["Square.v0"]
@@ -41,20 +41,19 @@ reward_settings = {
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
-    "move_threshold": 5,# * GAME_SCALE,
+    "tau": 500,# * GAME_SCALE,
+    "move_threshold": 3,# * GAME_SCALE,
 }
 
 game_settings = {
     "plot_interval": 5,
-    "rw_event": "move agent",
+    "rw_event": "move both",
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "rendering": False,
     "max_duration": 20_000,
     "room_thickness": 20,
-    "t_teleport": 1_500,
-    "limit_position_len": -1,
-    "start_position_idx": 1,
+    "t_teleport": 2_000,
     "seed": None,
     "pause": -1,
     "verbose": False,
@@ -62,10 +61,12 @@ game_settings = {
 }
 
 global_parameters = {
-    "local_scale": 0.015,
-    "N": 42**2,
+    "local_scale_fine": 0.015,
+    "local_scale_coarse": 0.006,
+    "N": 31**2,
+    "Nc": 24**2,
     "use_sprites": False,
-    "speed": 0.7,
+    "speed": 1.,
     "min_weight_value": 0.5
 }
 
@@ -73,31 +74,100 @@ global_parameters = {
 """ ENVIRONMENT """
 
 
+def convert_numpy(obj):
+
+    """Helper function to convert NumPy arrays to lists for JSON serialization."""
+
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+
+def safe_run_model(agent, room_name):
+    """Runs sim.run_model in a subprocess to prevent crashes."""
+    try:
+        # Convert agent parameters to JSON, handling NumPy arrays
+        params = json.dumps(agent.model.get_params(), default=convert_numpy)
+
+        # Convert all other settings while handling NumPy arrays
+        global_params_json = json.dumps(global_parameters, default=convert_numpy)
+        reward_settings_json = json.dumps(reward_settings, default=convert_numpy)
+        game_settings_json = json.dumps(game_settings, default=convert_numpy)
+
+        # Construct the command to execute sim.run_model in a subprocess
+        command = [
+            "python3", "-c",
+            f"""
+import json, simulations, numpy as np
+params = json.loads('{params}')
+global_parameters = json.loads('{global_params_json}')
+reward_settings = json.loads('{reward_settings_json}')
+game_settings = json.loads('{game_settings_json}')
+result = simulations.run_model(
+    parameters=params,
+    global_parameters=global_parameters,
+    reward_settings=reward_settings,
+    game_settings=game_settings,
+    room_name='{room_name}',
+    verbose=False,
+    verbose_min=False
+)
+print(result)
+            """
+        ]
+
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
+
+        # Extract the last line of output (assuming sim.run_model()
+        # prints only the result last)
+        last_line = result.stdout.strip().split("\n")[-1]
+
+        return float(last_line)
+
+    except subprocess.CalledProcessError as e:
+        #logger.error(f"Error: sim.run_model() crashed with: {e.stderr}")
+        return 0
+    except ValueError as e:
+        #logger.warning(f"Warning: sim.run_model() returned unexpected output: {result.stdout.strip()}")
+        return 0
+
+
 class Model:
 
-    def __init__(self, gain, offset, threshold, rep_threshold,
-                 tau_trace, min_rep_threshold, num_neighbors,
-                 remap_tag_frequency, rec_threshold,
+    def __init__(self, gain_fine, offset_fine, threshold_fine, rep_threshold_fine,
+                 tau_trace_fine, gain_coarse, offset_coarse, threshold_coarse,
+                 rep_threshold_coarse, tau_trace_coarse,
+                 min_rep_threshold, num_neighbors, remap_tag_frequency,
+                 rec_threshold_fine, rec_threshold_coarse,
                  lr_da, lr_pred, threshold_da, tau_v_da,
                  lr_bnd, threshold_bnd, tau_v_bnd,
-                 tau_ssry, threshold_ssry, threshold_circuit,
+                 tau_ssry, threshold_ssry,
+                 threshold_circuit, remapping_flag,
                  rwd_weight, rwd_sigma, col_weight, col_sigma,
-                 rwd_field_mod, col_field_mod, action_delay,
-                 min_weight_value, edge_route_interval,
-                 forced_duration):
+                 rwd_field_mod_fine, rwd_field_mod_coarse,
+                 col_field_mod_fine, col_field_mod_coarse,
+                 action_delay, edge_route_interval,
+                 forced_duration, fine_tuning_min_duration):
 
         self._params = {
 
-            "gain": gain,
-            "offset": offset,
-            "threshold": threshold,
-            "rep_threshold": rep_threshold,
-            "rec_threshold": rec_threshold,
-            "tau_trace": tau_trace,
+            "gain_fine": gain_fine,
+            "offset_fine": offset_fine,
+            "threshold_fine": threshold_fine,
+            "rep_threshold_fine": rep_threshold_fine,
+            "rec_threshold_fine": rec_threshold_fine,
+            "tau_trace_fine": tau_trace_fine,
 
             "min_rep_threshold": min_rep_threshold,
             "num_neighbors": num_neighbors,
             "remap_tag_frequency": remap_tag_frequency,
+
+            "gain_coarse": gain_coarse,
+            "offset_coarse": offset_coarse,
+            "threshold_coarse": threshold_coarse,
+            "rep_threshold_coarse": rep_threshold_coarse,
+            "rec_threshold_coarse": rec_threshold_coarse,
+            "tau_trace_coarse": tau_trace_coarse,
 
             "lr_da": lr_da,
             "lr_pred": lr_pred,
@@ -110,21 +180,25 @@ class Model:
 
             "tau_ssry": tau_ssry,
             "threshold_ssry": threshold_ssry,
+
             "threshold_circuit": threshold_circuit,
+            "remapping_flag": remapping_flag,
 
             "rwd_weight": rwd_weight,
             "rwd_sigma": rwd_sigma,
             "col_weight": col_weight,
             "col_sigma": col_sigma,
 
-            "rwd_field_mod": rwd_field_mod,
-            "col_field_mod": col_field_mod,
+            "rwd_field_mod_fine": rwd_field_mod_fine,
+            "rwd_field_mod_coarse": rwd_field_mod_coarse,
+            "col_field_mod_fine": col_field_mod_fine,
+            "col_field_mod_coarse": col_field_mod_coarse,
 
             "action_delay": action_delay,
             "edge_route_interval": edge_route_interval,
 
             "forced_duration": forced_duration,
-            "min_weight_value": min_weight_value,
+            "fine_tuning_min_duration": fine_tuning_min_duration
         }
 
         self.name = "".join(np.random.choice(list(string.ascii_uppercase), 5))
@@ -155,16 +229,11 @@ class Env:
         fitness = 0
         zero_scores = 0
         for i in range(self._num_samples):
-            # score = safe_run_model(agent, ROOM_LIST[i])
-
-            score = sim.run_model(
-                parameters=agent.model.get_params(),
-                global_parameters=global_parameters,
-                reward_settings=reward_settings,
-                game_settings=game_settings,
-                room_name=ROOM_LIST[i],
-                verbose=False,
-                verbose_min=False)[0]
+            score = safe_run_model(agent, ROOM_LIST[i])
+            # if score == 0: zero_scores += 1
+            # if zero_scores == 3:
+            #     fitness = 0
+            #     break
 
             # cap
             score = min(MAX_SCORE, score)
@@ -182,60 +251,120 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
 
-     'gain': 33.0,
-     'offset': 1.0,
-     'threshold': 0.4,
-     'rep_threshold': 0.86,
-     'rec_threshold': 63,
-     'tau_trace': 140,
+    #"gain_fine": 15.,
+    "offset_fine": 1.0,
+    "threshold_fine": 0.4,
+    #"rep_threshold_fine": 0.7,
+    #"rec_threshold_fine": 50.,
+    #"tau_trace_fine": 20.0,
 
+    #"remap_tag_frequency": 1,
+    #"num_neighbors": 8,
+    #"min_rep_threshold": 35,
+
+    #"gain_coarse": 15.,
+    "offset_coarse": 1.0,
+    "threshold_coarse": 0.4,
+    #"rep_threshold_coarse": 0.35,
+    #"rec_threshold_coarse": 120.,
+    #"tau_trace_coarse": 30.0,
+
+    "lr_da": 0.99,
+    "lr_pred": 0.3,
+    "threshold_da": 0.04,
+    "tau_v_da": 2.0,
+
+    "lr_bnd": 0.6,
+    "threshold_bnd": 0.3,
+    "tau_v_bnd": 4.0,
+
+    # "tau_ssry": 100.,
+    # "threshold_ssry": 0.995,
+
+    "threshold_circuit": 0.9,
+    "remapping_flag": 8,
+
+    #"rwd_weight": 3.0,
+    #"rwd_sigma": 50.0,
+    #"col_weight": 0.0,
+    #"col_sigma": 35.0,
+
+    # "rwd_field_mod_fine": 1.0,
+    # "rwd_field_mod_coarse": 1.0,
+    # "col_field_mod_fine": 1.0,
+    # "col_field_mod_coarse": 1.0,
+
+    "action_delay": 120.,
+    "edge_route_interval": 5,
+
+    "forced_duration": 1,
+    #"fine_tuning_min_duration": 50,
+}
+
+FIXED_PARAMETERS = {
+     'gain_fine': 33.0,
+     'offset_fine': 1.0,
+     'threshold_fine': 0.4,
+     'rep_threshold_fine': 0.86,
+     'rec_threshold_fine': 63,
+     'tau_trace_fine': 140,
      'remap_tag_frequency': 3,
      'num_neighbors': 20,
      'min_rep_threshold': 0.87,
-
+     'gain_coarse': 16.6,
+     'offset_coarse': 1.0,
+     'threshold_coarse': 0.4,
+     'rep_threshold_coarse': 0.76,
+     'rec_threshold_coarse': 41,
+     'tau_trace_coarse': 24,
      'lr_da': 0.99,
      'lr_pred': 0.1,
      'threshold_da': 0.04,
      'tau_v_da': 2.0,
-
      'lr_bnd': 0.6,
      'threshold_bnd': 0.3,
      'tau_v_bnd': 4.0,
-
      'tau_ssry': 437.0,
      'threshold_ssry': 1.986, # <-----------------
      'threshold_circuit': 0.9,
-
+     'remapping_flag': 8,
      'rwd_weight': 2.96,
      'rwd_sigma': 33.6,
      'col_weight': 0.06,
      'col_sigma': 20.6,
-     'rwd_field_mod': 0.0,
-     'col_field_mod': -0.6,
-
+     'rwd_field_mod_fine': 0.0,
+     'rwd_field_mod_coarse': 0.6,
+     'col_field_mod_fine': -0.6,
+     'col_field_mod_coarse': 1.8,
      'action_delay': 120.0,
      'edge_route_interval': 5000,
-     # 'forced_duration': 1,
-     'min_weight_value': 0.2
+     'forced_duration': 1,
+     'fine_tuning_min_duration': 32
 }
 
 
 # Define the genome as a dict of parameters
 PARAMETERS = {
 
-    "gain": lambda: round(random.uniform(2., 50.), 1),
-    "offset": lambda: round(random.uniform(0.5, 2.0), 1),
-    "threshold": lambda: round(random.uniform(0.05, 0.5), 2),
-    "rep_threshold": lambda: round(random.uniform(0.1, 0.95), 2),
-    "rec_threshold": lambda: round(random.uniform(20., 100.)),
-    "tau_trace": lambda: round(random.uniform(1., 300.)),
-
+    "gain_fine": lambda: round(random.uniform(2., 50.), 1),
+    "offset_fine": lambda: round(random.uniform(0.5, 2.0), 1),
+    "threshold_fine": lambda: round(random.uniform(0.05, 0.5), 2),
+    "rep_threshold_fine": lambda: round(random.uniform(0.1, 0.95), 2),
+    "rec_threshold_fine": lambda: round(random.uniform(20., 100.)),
+    "tau_trace_fine": lambda: round(random.uniform(1., 300.)),
     "remap_tag_frequency": lambda: random.choice([1, 2, 3, 4]),
     "num_neighbors": lambda: int(random.randint(3, 20)),
     "min_rep_threshold": lambda: round(random.uniform(0.2, 0.95), 2),
 
-    "lr_da": lambda: round(random.uniform(0.4, 0.99), 2),
-    "lr_pred": lambda: round(random.uniform(0.05, 0.8), 2),
+    "gain_coarse": lambda: round(random.uniform(2., 50.), 1),
+    "offset_coarse": lambda: round(random.uniform(0.5, 2.0), 1),
+    "threshold_coarse": lambda: round(random.uniform(0.05, 0.5), 2),
+    "rep_threshold_coarse": lambda: round(random.uniform(0.1, 0.95), 2),
+    "rec_threshold_coarse": lambda: round(random.uniform(30., 130.)),
+    "tau_trace_coarse": lambda: round(random.uniform(1., 500.)),
+
+    "lr_da": lambda: round(random.uniform(0.05, 0.99), 2),
+    "lr_pred": lambda: round(random.uniform(0.05, 0.99), 2),
     "threshold_da": lambda: round(random.uniform(0.01, 0.5), 2),
     "tau_v_da": lambda: float(random.randint(1, 10)),
 
@@ -243,23 +372,27 @@ PARAMETERS = {
     "threshold_bnd": lambda: round(random.uniform(0.01, 0.5), 2),
     "tau_v_bnd": lambda: float(random.randint(1, 10)),
 
-    "tau_ssry": lambda: float(random.randint(100, 800)),
-    "threshold_ssry": lambda: round(random.uniform(0.8, 1.2), 3),
-    "threshold_circuit": lambda: round(random.uniform(0.2, 1.3), 2),
+    "tau_ssry": lambda: float(random.randint(5, 600)),
+    "threshold_ssry": lambda: round(random.uniform(0.9, 1.), 3),
+
+    "threshold_circuit": lambda: round(random.uniform(0.2, 0.9), 2),
+    "remapping_flag": lambda: int(np.random.randint(0, 7)),
 
     "rwd_weight": lambda: round(random.uniform(-5.0, 10.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 130.0), 1),
     "col_weight": lambda: round(random.uniform(-5.0, 10.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
 
-    "rwd_field_mod": lambda: round(random.uniform(-2.0, 2.0), 1),
-    "col_field_mod": lambda: round(random.uniform(-2.0, 2.0), 1),
+    "rwd_field_mod_fine": lambda: round(random.uniform(-2.0, 2.0), 1),
+    "rwd_field_mod_coarse": lambda: round(random.uniform(-2.0, 2.0), 1),
+    "col_field_mod_fine": lambda: round(random.uniform(-2.0, 2.0), 1),
+    "col_field_mod_coarse": lambda: round(random.uniform(-2.0, 2.0), 1),
 
-    "action_delay": lambda: round(random.uniform(1., 300.), 1),
-    "edge_route_interval": lambda: random.randint(1, 10_000),
+    "action_delay": lambda: round(random.uniform(1., 200.), 1),
+    "edge_route_interval": lambda: random.randint(1, 200),
 
     "forced_duration": lambda: random.randint(1, 50),
-    "min_weight_value": lambda: random.uniform(0., 0.5),
+    "fine_tuning_min_duration": lambda: random.randint(1, 100),
 }
 
 
@@ -370,7 +503,7 @@ if __name__ == "__main__" :
         "data": {"game_settings": game_settings.copy(),
                  "reward_settings": reward_settings.copy(),
                  "global_parameters": global_parameters.copy()},
-        "other": "single space",
+        "other": "remapping, 0 0 1 1",
     }
     logger(f"Note: {info['other']}")
 

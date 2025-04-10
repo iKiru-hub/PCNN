@@ -36,8 +36,8 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 10,
-    "silent_duration": 4_000,
-    "fetching_duration": 10,
+    "silent_duration": 2_000,
+    "fetching_duration": 2,
     "transparent": False,
     "beta": 40.,
     "alpha": 0.06,# * GAME_SCALE,
@@ -61,54 +61,49 @@ game_settings = {
 }
 
 global_parameters = {
-    "local_scale_fine": 0.02,
-    "local_scale_coarse": 0.006,
+    "local_scale": 0.015,
     "N": 32**2,
-    "Nc": 32**2,
     "use_sprites": False,
     "speed": 0.7,
     "min_weight_value": 0.5
 }
 
 parameters = {
-     'gain_fine': 33.0,
-     'offset_fine': 1.0,
-     'threshold_fine': 0.4,
-     'rep_threshold_fine': 0.86,
-     'rec_threshold_fine': 43,
-     'tau_trace_fine': 140,
+     'gain': 33.0,
+     'offset': 1.0,
+     'threshold': 0.4,
+     'rep_threshold': 0.86,
+     'rec_threshold': 63,
+     'tau_trace': 140,
+
      'remap_tag_frequency': 3,
-     'num_neighbors': 13,
-     'min_rep_threshold': 0.77,
-     'gain_coarse': 16.6,
-     'offset_coarse': 1.0,
-     'threshold_coarse': 0.4,
-     'rep_threshold_coarse': 0.76,
-     'rec_threshold_coarse': 41,
-     'tau_trace_coarse': 24,
+     'num_neighbors': 20,
+     'min_rep_threshold': 0.87,
+
      'lr_da': 0.99,
-     'lr_pred': 0.0,
+     'lr_pred': 0.1,
      'threshold_da': 0.04,
      'tau_v_da': 2.0,
+
      'lr_bnd': 0.6,
      'threshold_bnd': 0.3,
      'tau_v_bnd': 4.0,
+
      'tau_ssry': 437.0,
      'threshold_ssry': 1.986, # <-----------------
      'threshold_circuit': 0.9,
-     'remapping_flag': 8,
+
      'rwd_weight': 2.96,
      'rwd_sigma': 33.6,
      'col_weight': 0.06,
      'col_sigma': 20.6,
-     'rwd_field_mod_fine': 0.0,
-     'rwd_field_mod_coarse': 0.6,
-     'col_field_mod_fine': -0.6,
-     'col_field_mod_coarse': 1.8,
+     'rwd_field_mod': 0.0,
+     'col_field_mod': -0.6,
+
      'action_delay': 120.0,
-     'edge_route_interval': 5,
+     'edge_route_interval': 5000,
      'forced_duration': 1,
-     'fine_tuning_min_duration': 32
+     'min_weight_value': 0.2
 }
 
 
@@ -436,12 +431,11 @@ class Renderer:
         plt.pause(0.00001)
 
 
-
 def run_model(parameters: dict,
               global_parameters: dict,
               reward_settings: dict,
               game_settings: dict,
-              room_name: str="Flat.1011",
+              room_name: str,
               pause: int=-1, verbose: bool=True,
               record_flag: bool=False,
               limit_position_len: int=-1,
@@ -452,10 +446,6 @@ def run_model(parameters: dict,
     meant to be run standalone
     """
 
-    remap_tag_frequency = parameters["remap_tag_frequency"] if "remap_tag_frequency" in parameters else 200
-    remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 1
-    modulation_option = parameters["modulation_option"] if "modulation_option" in parameters else [True]*4
-    lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.3
 
     """ make model """
 
@@ -507,20 +497,20 @@ def run_model(parameters: dict,
     #             min_weight_value=parameters["fine_tuning_min_duration"])
 
     brain = pclib2.Brain(
-                local_scale=global_parameters["local_scale_fine"],
+                local_scale=global_parameters["local_scale"],
                 N=global_parameters["N"],
-                rec_threshold=parameters["rec_threshold_fine"],
+                rec_threshold=parameters["rec_threshold"],
                 speed=global_parameters["speed"],
                 min_rep_threshold=parameters["min_rep_threshold"],
                 num_neighbors=parameters["num_neighbors"],
-                gain=parameters["gain_fine"],
-                offset=parameters["offset_fine"],
-                threshold=parameters["threshold_fine"],
-                rep_threshold=parameters["rep_threshold_fine"],
-                tau_trace=parameters["tau_trace_fine"],
-                remap_tag_frequency=remap_tag_frequency,
+                gain=parameters["gain"],
+                offset=parameters["offset"],
+                threshold=parameters["threshold"],
+                rep_threshold=parameters["rep_threshold"],
+                tau_trace=parameters["tau_trace"],
+                remap_tag_frequency=parameters["remap_tag_frequency"],
                 lr_da=parameters["lr_da"],
-                lr_pred=lr_pred,
+                lr_pred=parameters["lr_pred"],
                 threshold_da=parameters["threshold_da"],
                 tau_v_da=parameters["tau_v_da"],
                 lr_bnd=parameters["lr_bnd"],
@@ -529,19 +519,16 @@ def run_model(parameters: dict,
                 tau_ssry=parameters["tau_ssry"],
                 threshold_ssry=parameters["threshold_ssry"],
                 threshold_circuit=parameters["threshold_circuit"],
-                remapping_flag=remapping_flag,
-                modulation_option=None,
                 rwd_weight=parameters["rwd_weight"],
                 rwd_sigma=parameters["rwd_sigma"],
                 col_weight=parameters["col_weight"],
                 col_sigma=parameters["col_sigma"],
-                rwd_field_mod=parameters["rwd_field_mod_fine"],
-                col_field_mod=parameters["col_field_mod_fine"],
+                rwd_field_mod=parameters["rwd_field_mod"],
+                col_field_mod=parameters["col_field_mod"],
                 action_delay=parameters["action_delay"],
                 edge_route_interval=parameters["edge_route_interval"],
                 forced_duration=parameters["forced_duration"],
-                fine_tuning_min_duration=parameters["fine_tuning_min_duration"],
-                min_weight_value=parameters["fine_tuning_min_duration"])
+                min_weight_value=parameters["min_weight_value"])
 
     """ make game environment """
 
@@ -651,7 +638,7 @@ def run_model(parameters: dict,
         "brain": brain
     }
 
-    return env.rw_count, info 
+    return env.rw_count, info
 
 
 def run_game(env: games.Environment,
@@ -868,10 +855,6 @@ def main_game(global_parameters: dict=global_parameters,
 
     """ make model """
 
-    remap_tag_frequency = parameters["remap_tag_frequency"] if "remap_tag_frequency" in parameters else 200
-    remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 0
-    lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.2
-
     # brain = pclib.Brain(
     #             local_scale_fine=global_parameters["local_scale_fine"],
     #             local_scale_coarse=global_parameters["local_scale_coarse"],
@@ -919,20 +902,20 @@ def main_game(global_parameters: dict=global_parameters,
     #             min_weight_value=parameters["fine_tuning_min_duration"])
 
     brain = pclib2.Brain(
-                local_scale=global_parameters["local_scale_fine"],
+                local_scale=global_parameters["local_scale"],
                 N=global_parameters["N"],
-                rec_threshold=parameters["rec_threshold_fine"],
+                rec_threshold=parameters["rec_threshold"],
                 speed=global_parameters["speed"],
                 min_rep_threshold=parameters["min_rep_threshold"],
                 num_neighbors=parameters["num_neighbors"],
-                gain=parameters["gain_fine"],
-                offset=parameters["offset_fine"],
-                threshold=parameters["threshold_fine"],
-                rep_threshold=parameters["rep_threshold_fine"],
-                tau_trace=parameters["tau_trace_fine"],
-                remap_tag_frequency=remap_tag_frequency,
+                gain=parameters["gain"],
+                offset=parameters["offset"],
+                threshold=parameters["threshold"],
+                rep_threshold=parameters["rep_threshold"],
+                tau_trace=parameters["tau_trace"],
+                remap_tag_frequency=parameters["remap_tag_frequency"],
                 lr_da=parameters["lr_da"],
-                lr_pred=lr_pred,
+                lr_pred=parameters["lr_pred"],
                 threshold_da=parameters["threshold_da"],
                 tau_v_da=parameters["tau_v_da"],
                 lr_bnd=parameters["lr_bnd"],
@@ -941,19 +924,16 @@ def main_game(global_parameters: dict=global_parameters,
                 tau_ssry=parameters["tau_ssry"],
                 threshold_ssry=parameters["threshold_ssry"],
                 threshold_circuit=parameters["threshold_circuit"],
-                remapping_flag=remapping_flag,
-                modulation_option=None,
                 rwd_weight=parameters["rwd_weight"],
                 rwd_sigma=parameters["rwd_sigma"],
                 col_weight=parameters["col_weight"],
                 col_sigma=parameters["col_sigma"],
-                rwd_field_mod=parameters["rwd_field_mod_fine"],
-                col_field_mod=parameters["col_field_mod_fine"],
+                rwd_field_mod=parameters["rwd_field_mod"],
+                col_field_mod=parameters["col_field_mod"],
                 action_delay=parameters["action_delay"],
                 edge_route_interval=parameters["edge_route_interval"],
                 forced_duration=parameters["forced_duration"],
-                fine_tuning_min_duration=parameters["fine_tuning_min_duration"],
-                min_weight_value=parameters["fine_tuning_min_duration"])
+                min_weight_value=parameters["min_weight_value"])
 
     """ make game environment """
 

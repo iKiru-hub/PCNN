@@ -8,7 +8,7 @@ sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 from game.constants import *
 from utils import setup_logger
 
-logger = setup_logger()
+logger = setup_logger(name='ENV', level=-2, is_debugging=False)
 # import game.objects as objects
 # from game.objects import logger
 

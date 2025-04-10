@@ -21,7 +21,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 1_000,
+    "silent_duration": 5_000,
     "fetching_duration": 1,
 
     "transparent": False,
@@ -92,6 +92,7 @@ sim_parameters_2 = {
     'fine_tuning_min_duration': 88
 }
 
+
 sim_parameters = {
      'gain_fine': 33.0,
      'offset_fine': 1.0,
@@ -99,38 +100,36 @@ sim_parameters = {
      'rep_threshold_fine': 0.86,
      'rec_threshold_fine': 63,
      'tau_trace_fine': 140,
+
      'remap_tag_frequency': 3,
      'num_neighbors': 20,
      'min_rep_threshold': 0.87,
-     'gain_coarse': 16.6,
-     'offset_coarse': 1.0,
-     'threshold_coarse': 0.4,
-     'rep_threshold_coarse': 0.76,
-     'rec_threshold_coarse': 41,
-     'tau_trace_coarse': 24,
+
      'lr_da': 0.99,
      'lr_pred': 0.1,
      'threshold_da': 0.04,
      'tau_v_da': 2.0,
+
      'lr_bnd': 0.6,
      'threshold_bnd': 0.3,
      'tau_v_bnd': 4.0,
+
      'tau_ssry': 437.0,
      'threshold_ssry': 1.986, # <-----------------
      'threshold_circuit': 0.9,
+
      'remapping_flag': 8,
      'rwd_weight': 2.96,
      'rwd_sigma': 33.6,
      'col_weight': 0.06,
      'col_sigma': 20.6,
      'rwd_field_mod_fine': 0.0,
-     'rwd_field_mod_coarse': 0.6,
      'col_field_mod_fine': -0.6,
-     'col_field_mod_coarse': 1.8,
+
      'action_delay': 120.0,
      'edge_route_interval': 5000,
      'forced_duration': 1,
-     'fine_tuning_min_duration': 32
+     'min_weight_value': 0.2
 }
 
 

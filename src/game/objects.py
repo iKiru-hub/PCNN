@@ -9,7 +9,7 @@ from game.constants import *
 sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src/"))
 from utils import setup_logger
 
-logger = setup_logger(__name__, level=3)
+logger = setup_logger('OBJ', level=-1, is_debugging=False)
 
 # absolute path to the sprites folder
 sprite_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sprites")
