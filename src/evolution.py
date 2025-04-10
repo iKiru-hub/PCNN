@@ -17,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 2
+NUM_SAMPLES = 4
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
                              replace=False).tolist() + \
            ["Square.v0"]
@@ -41,7 +41,7 @@ reward_settings = {
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
-    "move_threshold": 5,# * GAME_SCALE,
+    "move_threshold": 6,# * GAME_SCALE,
 }
 
 game_settings = {
@@ -63,7 +63,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 42**2,
+    "N": 43**2,
     "use_sprites": False,
     "speed": 0.7,
     "min_weight_value": 0.5
@@ -182,41 +182,41 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
 
-     'gain': 33.0,
-     'offset': 1.0,
-     'threshold': 0.4,
-     'rep_threshold': 0.86,
-     'rec_threshold': 63,
-     'tau_trace': 140,
+     # 'gain': 33.0,
+     # 'offset': 1.0,
+     # 'threshold': 0.4,
+     # 'rep_threshold': 0.86,
+     # 'rec_threshold': 63,
+     # 'tau_trace': 140,
 
-     'remap_tag_frequency': 3,
+     'remap_tag_frequency': 2,
      'num_neighbors': 20,
-     'min_rep_threshold': 0.87,
+     # 'min_rep_threshold': 0.87,
 
-     'lr_da': 0.99,
-     'lr_pred': 0.1,
-     'threshold_da': 0.04,
-     'tau_v_da': 2.0,
+     # 'lr_da': 0.99,
+     # 'lr_pred': 0.1,
+     # 'threshold_da': 0.04,
+     # 'tau_v_da': 2.0,
 
      'lr_bnd': 0.6,
-     'threshold_bnd': 0.3,
-     'tau_v_bnd': 4.0,
+     # 'threshold_bnd': 0.3,
+     # 'tau_v_bnd': 4.0,
 
-     'tau_ssry': 437.0,
-     'threshold_ssry': 1.986, # <-----------------
-     'threshold_circuit': 0.9,
+     # 'tau_ssry': 437.0,
+     # 'threshold_ssry': 1.986, # <-----------------
+     # 'threshold_circuit': 0.9,
 
-     'rwd_weight': 2.96,
-     'rwd_sigma': 33.6,
-     'col_weight': 0.06,
-     'col_sigma': 20.6,
-     'rwd_field_mod': 0.0,
-     'col_field_mod': -0.6,
+     # 'rwd_weight': 2.96,
+     # 'rwd_sigma': 33.6,
+     # 'col_weight': 0.06,
+     # 'col_sigma': 20.6,
+     # 'rwd_field_mod': 0.0,
+     # 'col_field_mod': -0.6,
 
-     'action_delay': 120.0,
-     'edge_route_interval': 5000,
+     # 'action_delay': 120.0,
+     # 'edge_route_interval': 5000,
      # 'forced_duration': 1,
-     'min_weight_value': 0.2
+     # 'min_weight_value': 0.2
 }
 
 
@@ -237,11 +237,11 @@ PARAMETERS = {
     "lr_da": lambda: round(random.uniform(0.4, 0.99), 2),
     "lr_pred": lambda: round(random.uniform(0.05, 0.8), 2),
     "threshold_da": lambda: round(random.uniform(0.01, 0.5), 2),
-    "tau_v_da": lambda: float(random.randint(1, 10)),
+    "tau_v_da": lambda: float(random.randint(1, 5)),
 
     "lr_bnd": lambda: round(random.uniform(0.3, 0.99), 2),
     "threshold_bnd": lambda: round(random.uniform(0.01, 0.5), 2),
-    "tau_v_bnd": lambda: float(random.randint(1, 10)),
+    "tau_v_bnd": lambda: float(random.randint(1, 5)),
 
     "tau_ssry": lambda: float(random.randint(100, 800)),
     "threshold_ssry": lambda: round(random.uniform(0.8, 1.2), 3),

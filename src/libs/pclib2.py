@@ -652,7 +652,8 @@ class Brain:
         # Initialize modules
         self.goalmd = GoalModule(self.space, self.circuits, speed)
         self.rwobj = RewardObject(min_weight_value)
-        self.dpolicy = pclib.DensityPolicy(rwd_weight, rwd_sigma, col_weight, col_sigma,
+        self.dpolicy = pclib.DensityPolicy(rwd_weight, rwd_sigma,
+                                           col_weight, col_sigma,
                                            rwd_field_mod, col_field_mod)
         self.expmd = ExplorationModule(speed * 2.0, self.circuits, self.space,
                                       action_delay, edge_route_interval)
