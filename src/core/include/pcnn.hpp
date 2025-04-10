@@ -15,6 +15,7 @@
 #include <tuple>
 #include <cassert>
 #include <vector>
+#include <random>
 #include <queue>
 
 
@@ -44,6 +45,29 @@
 void LOG(const std::string& msg) {
     /* return; */
     std::cout << msg << std::endl;
+}
+
+
+int SEED = 0;
+
+
+
+std::mt19937& get_rng(unsigned int seed = 0) {
+    static std::mt19937 rng(std::random_device{}());  // Persistent generator
+    if (seed) rng.seed(seed);  // Reset the seed if provided
+    return rng;
+}
+
+
+int random_int(int min, int max, unsigned int seed) {
+    std::uniform_int_distribution<int> dist(min, max);
+    return dist(get_rng(seed));
+}
+
+
+double random_float(double min, double max, unsigned int seed) {
+    std::uniform_real_distribution<double> dist(min, max);
+    return dist(get_rng(seed));
 }
 
 
@@ -379,6 +403,129 @@ float gaussian_distance(const Eigen::VectorXf& v1,
 
 
 /* MISCELLANEOUS */
+
+
+// Return type that contains both intersection status and coordinates
+struct IntersectionResult {
+    bool intersects;
+    float x;
+    float y;
+};
+
+// Alternative using std::tuple if preferred
+using IntersectionTuple = std::tuple<bool, float, float>;
+
+IntersectionResult get_segments_intersection(
+    float p0_x, float p0_y,
+    float p1_x, float p1_y,
+    float p2_x, float p2_y,
+    float p3_x, float p3_y)
+{
+    // Calculate segment vectors
+    float s10_x = p1_x - p0_x;
+    float s10_y = p1_y - p0_y;
+    float s32_x = p3_x - p2_x;
+    float s32_y = p3_y - p2_y;
+
+    // Calculate denominator
+    float denom = s10_x * s32_y - s32_x * s10_y;
+    if (denom == 0) {
+        return {false, 0.0f, 0.0f}; // Collinear
+    }
+
+    bool denomPositive = denom > 0;
+
+    // Calculate vector between first points of each segment
+    float s02_x = p0_x - p2_x;
+    float s02_y = p0_y - p2_y;
+
+    // Calculate numerators
+    float s_numer = s10_x * s02_y - s10_y * s02_x;
+    if ((s_numer < 0) == denomPositive) {
+        return {false, 0.0f, 0.0f}; // No collision
+    }
+
+    float t_numer = s32_x * s02_y - s32_y * s02_x;
+    if ((t_numer < 0) == denomPositive) {
+        return {false, 0.0f, 0.0f}; // No collision
+    }
+
+    if (((s_numer > denom) == denomPositive) ||
+        ((t_numer > denom) == denomPositive)) {
+        return {false, 0.0f, 0.0f}; // No collision
+    }
+
+    // Collision detected, calculate intersection point
+    float t = t_numer / denom;
+    float intersection_x = p0_x + (t * s10_x);
+    float intersection_y = p0_y + (t * s10_y);
+
+    return {true, intersection_x, intersection_y};
+}
+
+// Alternative version using std::tuple if preferred
+IntersectionTuple get_segments_intersection_tuple(
+    float p0_x, float p0_y,
+    float p1_x, float p1_y,
+    float p2_x, float p2_y,
+    float p3_x, float p3_y)
+{
+    auto result = get_segments_intersection(p0_x, p0_y, p1_x, p1_y,
+                                          p2_x, p2_y, p3_x, p3_y);
+    return {result.intersects, result.x, result.y};
+}
+
+
+std::array<float, 2> reflect_point_over_segment(
+                    float x, float y, float x1,
+                    float y1, float x2, float y2) {
+
+    if (x1 == x2) {
+        return {2*x1 - x, y};
+    } else if (y1 == y2) {
+        return {x, 2*y1 - y};
+    }
+
+    /* printf("\nx1: %f, y1: %f, x2: %f, y2: %f\n", x1, y1, x2, y2); */
+    /* printf("x: %f, y: %f\n", x, y); */
+
+    // define line equation
+    float m = (y2-y1) / (x2 - x1);
+    float q = (x1-x2)*y1 + (y2-y1)*x1;
+
+    /* printf("\nm: %f, q: %f\n", m, q); */
+
+    // rotate x2,y2 around x1,y1 by 90 degrees
+    float x3 = x2 - x1;
+    float y3 = y2 - y1;
+    float _x3 = -y3 + x1;
+    float _y3 = x3 + y1;
+    /* printf("_x3: %f, _y3: %f\n", _x3, _y3); */
+
+    float _m = (_y3 - y1) / (_x3 - x1);
+
+    // calculate q for perpendicular line
+    // y - _m*x = q
+    float _q = y - _m*x;
+    /* printf("_m: %f, _q: %f\n", _m, _q); */
+
+    // find intersection between line and perpendicular line
+    // _m * x + _q = m * x + q
+    // x = (q - _q) / (_m - m)
+    float xc = (q - _q) / (_m - m);
+    float yc = m * xc + q;
+
+    // reflect x,y over xc,yc
+    float xr = 2*xc - x;
+    float yr = 2*yc - y;
+    /* printf("x: %f, y: %f\n", x, y); */
+    /* printf("m, _m: %f, %f\n", m, _m); */
+    /* printf("q, _q: %f, %f\n", q, _q); */
+    /* printf("xc: %f, yc: %f\n", xc, yc); */
+    /* printf("xr: %f, yr: %f\n", xr, yr); */
+
+    return {xr, yr};
+}
 
 
 Eigen::VectorXf linspace(float start, float end, int num)
