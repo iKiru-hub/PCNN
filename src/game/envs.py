@@ -637,7 +637,7 @@ class Environment:
                 else:
                     self.reward_obj.set_position(self.room.sample_next_position())
             return False
-        elif self.rw_event == "nothing":
+        elif self.rw_event == "nothing" or self.rw_event == 'none':
             return False
         elif self.rw_event == "terminate":
             return True

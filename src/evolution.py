@@ -17,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 4
+NUM_SAMPLES = 3
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
                              replace=False).tolist() + \
            ["Square.v0"]
@@ -63,7 +63,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 43**2,
+    "N": 34**2,
     "use_sprites": False,
     "speed": 0.7,
     "min_weight_value": 0.5

@@ -1960,6 +1960,7 @@ struct DensityPolicy {
 
             space.remap(circuits.get_da_weights(),
                         displacement, rwd_sigma, rwd_drive);
+
             space.modulate_gain(rwd_field_mod);
         } else if (collision > 0.1) {
 
@@ -1996,7 +1997,8 @@ struct DensityPolicy {
 
 namespace pcl {
 
-PCNN make_space(float gc_sigma, std::array<float, NUM_GCL> gc_scales,
+std::pair<PCNN, GridNetwork>
+make_space(float gc_sigma, std::array<float, NUM_GCL> gc_scales,
                 float local_scale, int N,
                 float rec_threshold_fine,
                 float speed,
@@ -2029,7 +2031,7 @@ PCNN make_space(float gc_sigma, std::array<float, NUM_GCL> gc_scales,
                       tau_trace_fine, remap_tag_frequency,
                       num_neighbors, "fine");
 
-    return space;
+    return std::make_pair(space, gcn);
 };
 
 };

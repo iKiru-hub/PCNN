@@ -180,8 +180,10 @@ print(result)
 
 def run_local_model(args):
 
-    values = np.concatenate((np.around(np.linspace(-0.3, 0., TOT_VALUES//2, endpoint=False), 2),
-                             np.around(np.linspace(0, 0.3, TOT_VALUES//2, endpoint=False), 2),
+    values = np.concatenate((np.around(np.linspace(-0.3, 0., TOT_VALUES//2,
+                                                   endpoint=False), 2),
+                             np.around(np.linspace(0, 0.3, TOT_VALUES//2,
+                                                   endpoint=False), 2),
                              np.array([0.3])))
     tot = len(values)
     res = np.zeros((tot, tot))

@@ -642,8 +642,8 @@ class Brain:
         self.ssry = pclib.StationarySensory(N, tau_ssry, threshold_ssry, 0.99)
         self.circuits = pclib.Circuits(self.da, self.bnd, threshold_circuit)
 
-        self.space = pclib.make_space(0.4, [1., 0.8, 0.7, 0.5, 0.4,
-                                            0.3, 0.2, 0.1, 0.07],
+        gc_scales = [1., 0.8, 0.7, 0.5, 0.4, 0.3, 0.2, 0.1, 0.07]
+        self.space, self.gcn = pclib.make_space(0.4, gc_scales,
                                       local_scale, N, rec_threshold, speed,
                                       min_rep_threshold, num_neighbors, gain,
                                       offset, threshold, rep_threshold,
@@ -788,11 +788,11 @@ class Brain:
                 return progress[0]
 
             # Invalid plan -> try again
-            self.expmd_res = self.expmd.call(self.directive, idx)
+            self.expmd_res = self.expmd(self.directive, idx)
             idx = self.expmd_res[1]
 
         # Tried too many times, make a random walk plan instead
-        self.expmd_res = self.expmd.call(self.directive, 404)
+        self.expmd_res = self.expmd(self.directive, 404)
 
         return self.expmd_res[0]
 

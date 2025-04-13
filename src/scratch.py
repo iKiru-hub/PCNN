@@ -13,7 +13,7 @@ import utils
 
 reward_settings = {
     "rw_fetching": "deterministic",
-    "rw_value": "discrete",
+    "rw_value": "probabilistic",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_position_idx": 3,
     "rw_radius": 0.08 * GAME_SCALE,
@@ -21,7 +21,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 5_000,
+    "silent_duration": 2_000,
     "fetching_duration": 1,
 
     "transparent": False,
@@ -37,7 +37,7 @@ game_settings = {
     "rendering": False,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
-    "max_duration": 40_000,
+    "max_duration": 20_000,
     "t_teleport": 1_000,
     "limit_position_len": -1,
     "room_thickness": 20,
@@ -94,12 +94,12 @@ sim_parameters_2 = {
 
 
 sim_parameters = {
-     'gain_fine': 33.0,
-     'offset_fine': 1.0,
-     'threshold_fine': 0.4,
-     'rep_threshold_fine': 0.86,
-     'rec_threshold_fine': 63,
-     'tau_trace_fine': 140,
+     'gain': 33.0,
+     'offset': 1.0,
+     'threshold': 0.4,
+     'rep_threshold': 0.86,
+     'rec_threshold': 63,
+     'tau_trace': 140,
 
      'remap_tag_frequency': 3,
      'num_neighbors': 20,
@@ -118,13 +118,12 @@ sim_parameters = {
      'threshold_ssry': 1.986, # <-----------------
      'threshold_circuit': 0.9,
 
-     'remapping_flag': 8,
      'rwd_weight': 2.96,
      'rwd_sigma': 33.6,
      'col_weight': 0.06,
      'col_sigma': 20.6,
-     'rwd_field_mod_fine': 0.0,
-     'col_field_mod_fine': -0.6,
+     'rwd_field_mod': 0.0,
+     'col_field_mod': -0.6,
 
      'action_delay': 120.0,
      'edge_route_interval': 5000,

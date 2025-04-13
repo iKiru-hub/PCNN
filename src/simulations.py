@@ -62,8 +62,8 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 32**2,
-    "use_sprites": False,
+    "N": 36**2,
+    "use_sprites": bool(1),
     "speed": 0.7,
     "min_weight_value": 0.5
 }
@@ -659,8 +659,10 @@ def run_game(env: games.Environment,
     observation = [[0., 0.], 0., 0., False, False]
     prev_position = env.position
 
-    record = {"activity_fine": [],
-              "activity_coarse": [],
+    # record = {"activity_fine": [],
+    #           "activity_coarse": [],
+    #           "trajectory": []}
+    record = {"activity": [],
               "trajectory": []}
 
 
@@ -731,9 +733,14 @@ def run_game(env: games.Environment,
         #         logger(f"{env.t/env.duration*100:.1f}%")
 
         # -check: record
+        # if record_flag:
+        #     record["activity_fine"] += [brain.get_representation_fine()]
+        #     record["activity_coarse"] += [brain.get_representation_coarse()]
+        #     record["trajectory"] += [env.position]
+        # -check: record
         if record_flag:
-            record["activity_fine"] += [brain.get_representation_fine()]
-            record["activity_coarse"] += [brain.get_representation_coarse()]
+            record["activity"] += [brain.get_representation()]
+            # record["activity_coarse"] += [brain.get_representation_coarse()]
             record["trajectory"] += [env.position]
 
         # -check: exit
