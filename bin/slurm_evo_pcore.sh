@@ -26,7 +26,7 @@ echo "[git 'main']"
 
 # --- RUN
 
-srun python3 evolution.py --cores 128 --npop 256 --ngen 100
+srun python3 evolution.py --cores 128 --npop 128 --ngen 100
 
 echo "[finished]"
 

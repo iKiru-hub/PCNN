@@ -63,7 +63,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 34**2,
+    "N": 35**2,
     "use_sprites": False,
     "speed": 0.7,
     "min_weight_value": 0.5
