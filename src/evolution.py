@@ -26,7 +26,6 @@ MAX_SCORE = 100.
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
 
 
-
 reward_settings = {
     "rw_fetching": "probabilistic",
     "rw_value": "discrete",
@@ -63,7 +62,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 35**2,
+    "N": 28**2,
     "use_sprites": False,
     "speed": 0.7,
     "min_weight_value": 0.5
@@ -182,29 +181,29 @@ class Env:
 # parameters that are not evolved
 FIXED_PARAMETERS = {
 
-     # 'gain': 33.0,
-     # 'offset': 1.0,
-     # 'threshold': 0.4,
-     # 'rep_threshold': 0.86,
-     # 'rec_threshold': 63,
-     # 'tau_trace': 140,
+     'gain': 33.0,
+     'offset': 1.0,
+     'threshold': 0.4,
+     'rep_threshold': 0.85,
+     'rec_threshold': 63,
+     'tau_trace': 100,
 
-     'remap_tag_frequency': 2,
+     'remap_tag_frequency': 1,
      'num_neighbors': 20,
-     # 'min_rep_threshold': 0.87,
+     'min_rep_threshold': 0.91,
 
-     # 'lr_da': 0.99,
+     'lr_da': 0.90,
      # 'lr_pred': 0.1,
-     # 'threshold_da': 0.04,
-     # 'tau_v_da': 2.0,
+     'threshold_da': 0.05,
+     'tau_v_da': 4.0,
 
-     'lr_bnd': 0.6,
-     # 'threshold_bnd': 0.3,
-     # 'tau_v_bnd': 4.0,
+     'lr_bnd': 0.9,
+     'threshold_bnd': 0.3,
+     'tau_v_bnd': 3.0,
 
-     # 'tau_ssry': 437.0,
-     # 'threshold_ssry': 1.986, # <-----------------
-     # 'threshold_circuit': 0.9,
+     'tau_ssry': 437.0,
+     'threshold_ssry': 1.986, # <-----------------
+     'threshold_circuit': 0.9,
 
      # 'rwd_weight': 2.96,
      # 'rwd_sigma': 33.6,
@@ -213,10 +212,10 @@ FIXED_PARAMETERS = {
      # 'rwd_field_mod': 0.0,
      # 'col_field_mod': -0.6,
 
-     # 'action_delay': 120.0,
-     # 'edge_route_interval': 5000,
-     # 'forced_duration': 1,
-     # 'min_weight_value': 0.2
+     'action_delay': 120.0,
+     'edge_route_interval': 5000,
+     'forced_duration': 19,
+     'min_weight_value': 0.2
 }
 
 
@@ -247,13 +246,13 @@ PARAMETERS = {
     "threshold_ssry": lambda: round(random.uniform(0.8, 1.2), 3),
     "threshold_circuit": lambda: round(random.uniform(0.2, 1.3), 2),
 
-    "rwd_weight": lambda: round(random.uniform(-5.0, 10.0), 2),
+    "rwd_weight": lambda: round(random.uniform(-10.0, 10.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 130.0), 1),
-    "col_weight": lambda: round(random.uniform(-5.0, 10.0), 2),
+    "col_weight": lambda: round(random.uniform(-10.0, 10.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
 
-    "rwd_field_mod": lambda: round(random.uniform(-2.0, 2.0), 1),
-    "col_field_mod": lambda: round(random.uniform(-2.0, 2.0), 1),
+    "rwd_field_mod": lambda: round(random.uniform(-3.0, 3.0), 1),
+    "col_field_mod": lambda: round(random.uniform(-3.0, 3.0), 1),
 
     "action_delay": lambda: round(random.uniform(1., 300.), 1),
     "edge_route_interval": lambda: random.randint(1, 10_000),

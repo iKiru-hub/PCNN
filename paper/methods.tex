@@ -5,16 +5,6 @@ The architecture relies on the core assumption that the external information is 
 
 % briefly describe where in the brain these signals are processed
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]{figures/figure_model.png}
-    \caption{\textsc{Model layout and spatial representations} - \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs
-    and a reward receiver}. \textbf{b}: \textit{the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to two layer of place cells with different place field granularity}. \textbf{c}: \textit{the neural activity of a grid cell module from
-a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}. \textbf{d}: \textit{the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}.
-\textbf{e}: \textit{neuromodulation activity over the place cells map, with in blue the cells tagged by the collision modulation, and in green the ones targeted by reward modulation.}}
-    \label{fig:model}
-\end{figure}
-
 The formation of the spatial representation is instead based on idiothetic information, which is the agent's perception of self-motion \cite{zhouCorticalMechanismsMultisensory2022}.
 In particular, here we assume this cue to be the factual velocity vector, namely the actual displacement of the agent in the environment.
 In the brain, this signal is believed to result from the integration of inertial and relative motion cues \cite{jerjianSelfmotionPerceptionSequential2023, whishawCalibratingSpaceExploration1999a}.
@@ -37,6 +27,16 @@ The two layers of place cells differ in the size of their place fields. This cha
 Within a layer, connections between cells are calculated by the same cosine similarity, but compared against a different threshold $\theta^{\text{PC}}_{\text{rec}}$.
 One layer is set to be more fine-grained, with an overall higher density of place cells over the space, while the other is more coarse-grained, with overall large place field sizes.
 In addition, for each layer, a neural trace $\textbf{m}$ of activity is recorded, decaying with a fixed time constant.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/figure_model.png}
+    \caption{\textsc{Model layout and spatial representations} - \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs
+    and a reward receiver}. \textbf{b}: \textit{the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to two layer of place cells with different place field granularity}. \textbf{c}: \textit{the neural activity of a grid cell module from
+a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}. \textbf{d}: \textit{the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}.
+\textbf{e}: \textit{neuromodulation activity over the place cells map, with in blue the cells tagged by the collision modulation, and in green the ones targeted by reward modulation.}}
+    \label{fig:model}
+\end{figure}
 
 In figure \ref{fig:model}\textbf{d} are shown the centers of one of the fine-grained layers and the activity of two cells are shown, with their place field highlighted as a heat map.
 
@@ -116,6 +116,56 @@ However, in the case where the agent gets stuck or the distance to the target is
 The advantage of this dual-layer planning lies in its flexibility, as it lightens the computational load of planning by exploding the sparser and lighter map and only invokes the detailed one when necessary.
 In the process of behavior, learning does not occur explicitly, but is instead accounted for in the online formation of the cognitive map.
 
+\subsection{Comparison with previous architectures}
+
+\begin{table}[H]
+\centering
+\caption{Comparison of neural network models for spatial navigation and representation}
+\label{tab:models_comparison}
+\small
+\begin{tabular}{l p{2.5cm} p{3.cm} c}
+\toprule
+\textbf{Model} & \textbf{Architecture} & \textbf{Training Method} & \textbf{Ext. C.} \\
+\midrule
+Banino et al. \cite{baninoVectorbasedNavigationUsing2018} & LSTM + linear layers + CNN & BPTT and deep RL, supervised & Yes \\
+\midrule
+Cueva et al. \cite{cuevaEmergenceGridlikeRepresentations2018} & RNN + linear layers & Hessian-free algorithm with regularization & Yes \\
+\midrule
+Sorcher et al. \cite{sorscherUnifiedTheoryOrigin2019} & RNN + linear layers & Backpropagation with regularization & Yes \\
+\midrule
+Whittington et al. \cite{whittingtonTolmanEichenbaumMachineUnifying2020} & Attractor network and deep networks & Backpropagation and Hebbian learning & No \\
+\midrule
+de-Cothi et al. \cite{decothiPredictiveMapsRats2022} & Successor representation & TD-learning + eligibility traces & Yes \\
+\midrule
+Brozsko et al. \cite{brzoskoSequentialNeuromodulationHebbian2017} & One spiking layer & Online modulated Hebbian plasticity & Yes \\
+\midrule
+\textbf{ours} & Rate layers & Online neuro-modulated plasticity & No \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.3cm}
+
+\begin{tabular}{l p{2.8cm} p{2.8cm} p{2.cm}}
+\toprule
+\textbf{Model} & \textbf{Task} & \textbf{Input} & \textbf{Output} \\
+\midrule
+Banino et al. & Path integration, goal navigation & Velocity, visual input, reward & PC, HDC \\
+\midrule
+Cueva et al. & Path integration & Velocity & Position \\
+\midrule
+Sorcher et al. & Path integration & Velocity & PC \\
+\midrule
+Whittington et al. & Relational graph knowledge & Observation and action & Observation \\
+\midrule
+de-Cothi et al. & Planned navigation & Observation & -- \\
+\midrule
+Brozsko et al. & Goal navigation & Position, reward & Action \\
+\midrule
+\textbf{ours} & Goal navigation & Velocity, reward, collision & Action \\
+\bottomrule
+\end{tabular}
+\caption*{Note: PC = Place Cells, HDC = Head Direction Cells, Ext. C. = External Spatial Coordinates}
+\end{table}
 
 % benchmarks used
 \subsection{Naturalistic task}
@@ -131,3 +181,5 @@ Then an exploitation phase began, in which a circle of 5\% of the total was desi
 
 \hfill \break
 Optimization of the model parameters was carried out using the evolutionary Covariance-Matrix Adaptation strategy (CMA-ES) \cite{igelCovarianceMatrixAdaptation2007} with a population of 256 individuals for 100 generations.
+
+

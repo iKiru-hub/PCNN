@@ -62,48 +62,42 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 36**2,
+    "N": 27**2,
     "use_sprites": bool(1),
     "speed": 0.7,
     "min_weight_value": 0.5
 }
 
 parameters = {
-     'gain': 33.0,
-     'offset': 1.0,
-     'threshold': 0.4,
-     'rep_threshold': 0.86,
-     'rec_threshold': 63,
-     'tau_trace': 140,
-
-     'remap_tag_frequency': 3,
-     'num_neighbors': 20,
-     'min_rep_threshold': 0.87,
-
-     'lr_da': 0.99,
-     'lr_pred': 0.1,
-     'threshold_da': 0.04,
-     'tau_v_da': 2.0,
-
-     'lr_bnd': 0.6,
-     'threshold_bnd': 0.3,
-     'tau_v_bnd': 4.0,
-
-     'tau_ssry': 437.0,
-     'threshold_ssry': 1.986, # <-----------------
-     'threshold_circuit': 0.9,
-
-     'rwd_weight': 2.96,
-     'rwd_sigma': 33.6,
-     'col_weight': 0.06,
-     'col_sigma': 20.6,
-     'rwd_field_mod': 0.0,
-     'col_field_mod': -0.6,
-
-     'action_delay': 120.0,
-     'edge_route_interval': 5000,
-     'forced_duration': 1,
-     'min_weight_value': 0.2
+        "gain": 30.5,
+        "offset": 2.0,
+        "threshold": 0.47,
+        "rep_threshold": 0.82,
+        "rec_threshold": 68,
+        "tau_trace": 71,
+        "remap_tag_frequency": 1,
+        "num_neighbors": 20,
+        "min_rep_threshold": 0.1,
+        "lr_da": 0.9,
+        "lr_pred": 0.1,
+        "threshold_da": 0.38,
+        "tau_v_da": 3.0,
+        "lr_bnd": 0.6,
+        "threshold_bnd": 0.01,
+        "tau_v_bnd": 1.0,
+        "tau_ssry": 411.0,
+        "threshold_ssry": 0.951,
+        "threshold_circuit": 1.26,
+        "rwd_weight": -1.71,
+        "rwd_sigma": 64.4,
+        "col_weight": 5.01,
+        "col_sigma": 16.0,
+        "rwd_field_mod": 1.9,
+        "col_field_mod": 0.5,
+        "action_delay": 285.6,
+        "edge_route_interval": 6752,
+        "forced_duration": 19,
+        "min_weight_value": 0.20426050964748704
 }
 
 

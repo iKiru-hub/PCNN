@@ -225,16 +225,51 @@ brain = pclib2.Brain(
 
 """ TRAIN WITHOUT REWARD """
 
-def _train(brain: object, is_reward: bool):
+def train(mid_time: int):
+
+    brain = pclib2.Brain(
+                local_scale=global_parameters["local_scale"],
+                N=global_parameters["N"],
+                rec_threshold=parameters["rec_threshold"],
+                speed=global_parameters["speed"],
+                min_rep_threshold=parameters["min_rep_threshold"],
+                num_neighbors=parameters["num_neighbors"],
+                gain=parameters["gain"],
+                offset=parameters["offset"],
+                threshold=parameters["threshold"],
+                rep_threshold=parameters["rep_threshold"],
+                tau_trace=parameters["tau_trace"],
+                remap_tag_frequency=parameters["remap_tag_frequency"],
+                lr_da=parameters["lr_da"],
+                lr_pred=parameters["lr_pred"],
+                threshold_da=parameters["threshold_da"],
+                tau_v_da=parameters["tau_v_da"],
+                lr_bnd=parameters["lr_bnd"],
+                threshold_bnd=parameters["threshold_bnd"],
+                tau_v_bnd=parameters["tau_v_bnd"],
+                tau_ssry=parameters["tau_ssry"],
+                threshold_ssry=parameters["threshold_ssry"],
+                threshold_circuit=parameters["threshold_circuit"],
+                rwd_weight=parameters["rwd_weight"],
+                rwd_sigma=parameters["rwd_sigma"],
+                col_weight=parameters["col_weight"],
+                col_sigma=parameters["col_sigma"],
+                rwd_field_mod=parameters["rwd_field_mod"],
+                col_field_mod=parameters["col_field_mod"],
+                action_delay=parameters["action_delay"],
+                edge_route_interval=parameters["edge_route_interval"],
+                forced_duration=parameters["forced_duration"],
+                min_weight_value=parameters["min_weight_value"])
 
     """ make game environment """
 
     verbose = False
     verbose_min = True
     game_settings["rendering"] = False
-    reward_settings["silent_duration"] = 0 if is_reward else 40_000
-    game_settings["max_duration"] = 40_000 if is_reward else 20_000
-    game_settings["rw_event"] = "none"
+    reward_settings["silent_duration"] = 0_000
+    game_settings["max_duration"] = 20_000
+    game_settings["rw_event"] = "move agent"
+    t_teleport = game_settings["t_teleport"]
 
     room_name = "Square.v0"
 
@@ -272,7 +307,7 @@ def _train(brain: object, is_reward: bool):
                 fetching_duration=reward_settings["fetching_duration"],
                 use_sprites=global_parameters["use_sprites"],
                 move_threshold=20000,
-                transparent=not is_reward)
+                transparent=True)
 
     body = objects.AgentBody(
                 position=agent_position,
@@ -299,16 +334,105 @@ def _train(brain: object, is_reward: bool):
 
     if verbose_min:
         logger("[@simulations.py]")
-    record = sim.run_game(env=env,
-             brain=brain,
-             renderer=None,
-             plot_interval=game_settings["plot_interval"],
-             pause=-1,
-             record_flag=True,
-             verbose=verbose,
-             verbose_min=verbose_min)
+
+   # ===| run |===
+    clock = pygame.time.Clock()
+    last_position = np.zeros(2)
+    plot_interval = game_settings["plot_interval"]
+    renderer = None
+    pause = -1
+    record_flag = True
+
+    # [position, velocity, collision, reward, done, terminated]
+    observation = [[0., 0.], 0., 0., False, False]
+    prev_position = env.position
+    record = {"activity": [],
+              "trajectory": []}
+
+    pc_record = {}
+
+    # ===| main loop |===
+    for t in tqdm(range(env.duration), desc="Game", leave=False,
+                  disable=not verbose_min):
+
+        # -check: switch game state
+        if t == mid_time:
+            reward_settings["silent_duration"] = 0
+            game_settings["max_duration"] = 40_000
+            env.reward_object._transparent = False
+
+            # record pc data
+            pc, cc = _make_pc_fields(brain=brain)
+            pc_record['before'] = {'pc': pc, 'cc': cc}
+            logger("[+] reward switch")
+
+        # Event handling
+        if env.visualize:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+        # -check: teleport
+        if env.t % t_teleport == 0 and env.reward_obj.is_silent:
+            env._reset_agent_position(brain, True)
+
+        # velocity
+        v = [(env.position[0] - prev_position[0]),
+             (-env.position[1] + prev_position[1])]
+
+        # brain step
+        try:
+            velocity = brain(v,
+                             observation[1],
+                             observation[2],
+                             env.reward_availability)
+        except IndexError:
+            logger.debug(f"IndexError: {len(observation)}")
+            raise IndexError
+        # velocity = np.around(velocity, 2)
+
+        # store past position
+        prev_position = env.position
+
+        # env step
+        observation = env(velocity=np.array([velocity[0], -velocity[1]]),
+                          brain=brain)
+
+        # -check: reset agent's brain
+        if observation[3]:
+            if verbose and verbose_min:
+                logger.info(">> Game reset <<")
+            break
+
+        # -check: render
+        if env.visualize:
+            if env.t % plot_interval == 0:
+                env.render()
+                if renderer:
+                    renderer()
+
+        # -check: record
+        if record_flag:
+            record["activity"] += [brain.get_representation()]
+            record["trajectory"] += [env.position]
+
+        # -check: exit
+        if observation[4]:
+            if verbose and verbose_min:
+                logger.debug(">> Game terminated <<")
+            break
+
+        # pause
+        if pause > 0:
+            pygame.time.wait(pause)
 
     logger(f"rw_count={env.rw_count}")
+
+    # record pc data
+    pc, cc = _make_pc_fields(brain=brain)
+    pc_record['after'] = {'pc': pc, 'cc': cc}
+
+    return record, pc_record
 
 
 def _make_pc_fields(brain: object):
@@ -335,7 +459,7 @@ def _make_pc_fields(brain: object):
     plotting = False
 
     for t in tqdm(range(tot)):
-        
+
         x += s[0]
         y += s[1]
 
@@ -355,7 +479,7 @@ def _make_pc_fields(brain: object):
 
         activity[:, t] = gc([points[-1][0]-old_point[0],
                              points[-1][1]-old_point[1]])
-        
+
         old_point = points[-1]
 
         if t % 100 == 0 and plotting:
@@ -363,7 +487,7 @@ def _make_pc_fields(brain: object):
             plt.figure(figsize=(4, 4))
             #plt.subplot(121)
             plt.plot(*np.array(points).T, 'k-', lw=0.3, alpha=0.3)
-            
+
             plt.title(f"{t=}")
             plt.scatter(*points[-1], s=100, c='r')
 

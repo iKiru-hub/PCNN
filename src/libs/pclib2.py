@@ -687,6 +687,10 @@ class Brain:
         # :circuits
         internal_state = self.circuits(u, collision, reward, False)
 
+        if reward > 0.0:
+            logger(f"{internal_state=}")
+            logger(f"da_v={self.circuits.get_da_leaky_v():.3f}")
+
         # :dpolicy fine space
         self.dpolicy(self.space,
                      self.circuits,
@@ -885,7 +889,7 @@ class Brain:
         return self.space.get_size()
 
     def get_space_count(self):
-        return self.len(space)()
+        return len(self.space)
 
     def get_plan_idxs(self):
         return self.goalmd.get_plan_idxs()

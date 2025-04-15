@@ -1875,14 +1875,6 @@ public:
         output[1] = da.call(representation,
                             reward, simulate);
 
-        if (collision > 0.0f) {
-            /* LOG("[collision] bnd | output=" + std::to_string(output[0]) + \ */
-            /*     " | v=" + std::to_string(bnd.get_leaky_v())); */
-            /* if (simulate) { */
-            /*     LOG("~simulation~"); */
-            /* } */
-
-        }
         return output;
     }
 
@@ -1953,7 +1945,7 @@ struct DensityPolicy {
               float reward, float collision) {
 
         // +reward -collision
-        if (reward > 0.1 && circuits.get_da_leaky_v() > 0.01f) {
+        if (reward > 0.1) {
 
             // update & remap
             rwd_drive = rwd_weight * curr_da;
@@ -1962,6 +1954,7 @@ struct DensityPolicy {
                         displacement, rwd_sigma, rwd_drive);
 
             space.modulate_gain(rwd_field_mod);
+
         } else if (collision > 0.1) {
 
             // udpate & remap
