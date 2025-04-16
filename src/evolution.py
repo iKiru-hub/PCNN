@@ -189,7 +189,6 @@ FIXED_PARAMETERS = {
      'tau_trace': 100,
 
      'remap_tag_frequency': 1,
-     'num_neighbors': 20,
      'min_rep_threshold': 0.91,
 
      'lr_da': 0.90,

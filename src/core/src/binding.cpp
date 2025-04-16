@@ -53,7 +53,7 @@ PYBIND11_MODULE(pclib, m) {
         .def(py::init<int, int, float, float,
              float, float, float, float, \
              float, GridNetwork, float,
-             int, int, std::string>(),
+             int, std::string>(),
              py::arg("N"),
              py::arg("Nj"),
              py::arg("gain"),
@@ -66,7 +66,6 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("xfilter"),
              py::arg("tau_trace") = 2.0f,
              py::arg("remap_tag_frequency") = 1,
-             py::arg("num_neighbors") = 3,
              py::arg("name") = "fine")
         .def("__call__", &PCNN::call,
              py::arg("v"))
@@ -204,7 +203,6 @@ PYBIND11_MODULE(pclib, m) {
           py::arg("speed"),
           py::arg("min_rep_threshold"),
 
-          py::arg("num_neighbors"),
           py::arg("gain_fine"),
           py::arg("offset_fine"),
           py::arg("threshold_fine"),

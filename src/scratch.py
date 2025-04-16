@@ -55,7 +55,6 @@ sim_parameters_2 = {
     'rec_threshold_fine': 32,
     'tau_trace_fine': 220,
     'remap_tag_frequency': 2,
-    'num_neighbors': 3,
     'min_rep_threshold': 0.92,
     'gain_coarse': 49.6,
     'offset_coarse': 1.0,
@@ -102,7 +101,6 @@ sim_parameters = {
         "tau_trace": 71,
 
         "remap_tag_frequency": 2,
-        "num_neighbors": 20,
         "min_rep_threshold": 0.1,
 
         "lr_da": 0.9,

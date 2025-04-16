@@ -219,6 +219,7 @@ class Plan:
         # end of plan wherabout
         self._wduration = 10
         self._wt = 0
+        self.is_overshooting = False
 
     def step_plan(self) -> tuple:
 
@@ -238,6 +239,8 @@ class Plan:
 
             if self._wt < self._wduration:
                 self._wt += 1
+                logger(f"[Plan] ... overshoot [{self._wt}|{self._wduration}]")
+                self.is_overshooting
                 return self._action, True
 
             self.reset()
@@ -298,6 +301,7 @@ class Plan:
         self._next_idx = -1
         self._trg_idx = -1
         self._wt = 0
+        self.is_overshooting = False
 
 
 class RewardObject:
@@ -314,6 +318,8 @@ class RewardObject:
 
             # exit: weights not strong enough
             if np.max(da_weights) < self.min_weight_value:
+                logger(f"weak weights | {max(da_weights):.3f}" + \
+                    f" < {self.min_weight_value}")
                 return -1
 
         # --- update the target representation ---
@@ -328,17 +334,16 @@ class RewardObject:
 
         # exit: no trg index
         if self.trg_idx < 0:
-            # logger("[RwO] no trg index")
+            logger("[RwO] no trg index")
             return -1
 
         # exit: low trg value
         if da_weights[self.trg_idx] < 0.00001:
-            # logger("[RwO] low trg value")
+            logger(f"[RwO] low trg value : {da_weights[self.trg_idx]:.5f} max={da_weights.max():.5f} argmax={da_weights.argmax()}")
             return -1
 
         # update the target value
         self.trg_value = da_weights[self.trg_idx]
-        # logger(f"[RwO] goal_idx={self.trg_idx} | goal_value={self.trg_value}")
 
         return self.trg_idx
 
@@ -352,6 +357,10 @@ class RewardObject:
             # logger("[-] sum is zero")
             return -1
 
+        # method 2 : argmax
+        return da_weights.argmax()
+
+        # method 1 : weighted center
         centers = space.get_centers()
         for i in range(len(da_weights)):
             cx += da_weights[i] * centers[i, 0]
@@ -363,6 +372,7 @@ class RewardObject:
 
         # get closest center
         closest_idx = space.calculate_closest_index([cx, cy])
+        # logger.debug(f"{closest_idx=}")
         return closest_idx
 
 
@@ -471,7 +481,7 @@ class GoalModule:
         self.plan.reset()
 
     def is_active(self):
-        return not self.plan.is_finished()
+        return not self.plan.is_finished() or self.plan.is_overshooting
 
     def get_plan_idxs(self):
         return self.plan._plan_idxs
@@ -602,7 +612,6 @@ class Brain:
                  rec_threshold,
                  speed,
                  min_rep_threshold,
-                 num_neighbors,
                  gain,
                  offset,
                  threshold,
@@ -635,17 +644,20 @@ class Brain:
         self.directive = "new"
 
         # Initialize modulations and sensory systems
-        self.da = pclib.BaseModulation("DA", N, lr_da, lr_pred, threshold_da, 1.0,
+        self.da = pclib.BaseModulation("DA", N, lr_da, lr_pred,
+                                       threshold_da, 1.0,
                                 tau_v_da, 0.0, 0.4, 0.1)
-        self.bnd = pclib.BaseModulation("BND", N, lr_bnd, 0.0, threshold_bnd, 1.0,
+        self.bnd = pclib.BaseModulation("BND", N, lr_bnd, 0.0,
+                                        threshold_bnd, 1.0,
                                  tau_v_bnd, 0.0, 0.1)
-        self.ssry = pclib.StationarySensory(N, tau_ssry, threshold_ssry, 0.99)
+        self.ssry = pclib.StationarySensory(N, tau_ssry,
+                                            threshold_ssry, 0.99)
         self.circuits = pclib.Circuits(self.da, self.bnd, threshold_circuit)
 
         gc_scales = [1., 0.8, 0.7, 0.5, 0.4, 0.3, 0.2, 0.1, 0.07]
         self.space, self.gcn = pclib.make_space(0.4, gc_scales,
                                       local_scale, N, rec_threshold, speed,
-                                      min_rep_threshold, num_neighbors, gain,
+                                      min_rep_threshold, gain,
                                       offset, threshold, rep_threshold,
                                       tau_trace, remap_tag_frequency)
 
@@ -655,8 +667,9 @@ class Brain:
         self.dpolicy = pclib.DensityPolicy(rwd_weight, rwd_sigma,
                                            col_weight, col_sigma,
                                            rwd_field_mod, col_field_mod)
-        self.expmd = ExplorationModule(speed * 2.0, self.circuits, self.space,
-                                      action_delay, edge_route_interval)
+        self.expmd = ExplorationModule(speed * 2.0, self.circuits,
+                                       self.space, action_delay,
+                                       edge_route_interval)
 
         # failed planning despite goal
         self._t_attempt = 0
@@ -683,6 +696,9 @@ class Brain:
         # :space
         u, _ = self.space(velocity)
         self.curr_representation = u
+
+        # if collision > 0.0001:
+        #     logger.debug("+collision")
 
         # :circuits
         internal_state = self.circuits(u, collision, reward, False)
@@ -822,7 +838,6 @@ class Brain:
                 if self.circuits.get_bnd_value(j) > 0.01:
                     self.space.delete_edge(curr_idx, j)
 
-
     def _explore(self, collision):
 
         # === EXPLORATIVE BEHAVIOUR =======================================
@@ -877,7 +892,8 @@ class Brain:
 
     def get_trg_position(self):
         centers = self.space.get_centers()
-        return [centers[self.rwobj.trg_idx, 0], centers[self.rwobj.trg_idx, 1]]
+        return [centers[self.rwobj.trg_idx, 0],
+                centers[self.rwobj.trg_idx, 1]]
 
     def get_expmd(self):
         return self.expmd
@@ -938,7 +954,6 @@ if __name__ == "__main__":
                   rec_threshold=1.,
                   speed=1.,
                   min_rep_threshold=1.,
-                  num_neighbors=4,
                   gain=10.,
                   offset=1.,
                   threshold=1.,

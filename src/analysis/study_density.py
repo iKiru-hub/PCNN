@@ -157,7 +157,6 @@ parameters = {
      'tau_trace': 140,
 
      'remap_tag_frequency': 3,
-     'num_neighbors': 20,
      'min_rep_threshold': 0.87,
 
      'lr_da': 0.99,
@@ -194,7 +193,6 @@ brain = pclib2.Brain(
                 rec_threshold=parameters["rec_threshold"],
                 speed=global_parameters["speed"],
                 min_rep_threshold=parameters["min_rep_threshold"],
-                num_neighbors=parameters["num_neighbors"],
                 gain=parameters["gain"],
                 offset=parameters["offset"],
                 threshold=parameters["threshold"],
@@ -233,7 +231,6 @@ def train(mid_time: int):
                 rec_threshold=parameters["rec_threshold"],
                 speed=global_parameters["speed"],
                 min_rep_threshold=parameters["min_rep_threshold"],
-                num_neighbors=parameters["num_neighbors"],
                 gain=parameters["gain"],
                 offset=parameters["offset"],
                 threshold=parameters["threshold"],
@@ -520,7 +517,6 @@ if __name__ == "__main__":
                 rec_threshold=parameters["rec_threshold"],
                 speed=global_parameters["speed"],
                 min_rep_threshold=parameters["min_rep_threshold"],
-                num_neighbors=parameters["num_neighbors"],
                 gain=parameters["gain"],
                 offset=parameters["offset"],
                 threshold=parameters["threshold"],

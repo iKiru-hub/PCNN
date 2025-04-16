@@ -654,10 +654,10 @@ class Environment:
         if exploration:
             self.agent.set_position(self.room.sample_next_position())
         else:
-            # self.agent.set_position(self.room.sample_random_position( # <==================
-            #     self.agent.limit_position_len))
             if self.agent.limit_position_len > -1:
-                self.agent.set_position(self.room.get_room_positions()[self.agent.limit_position_len])
+                self.agent.set_position(
+                    self.room.get_room_positions()[
+                            self.agent.limit_position_len])
             else:
                 self.agent.set_position(self.room.sample_next_position())
 
@@ -692,7 +692,8 @@ class Environment:
                 # print(traj)
                 # print(*np.array(traj).T)
                 if len(traj) > 1:
-                    pygame.draw.lines(self.screen, (*self.traj_color, 0.5/(len(self.trajectory_set)-i+1)),
+                    pygame.draw.lines(self.screen, (*self.traj_color,
+                                0.5/(len(self.trajectory_set)-i+1)),
                                         False, traj, 1)
             # pygame.draw.lines(self.screen, (*self.traj_color, 0.1),
             #                   False, self.trajectory, 1)
