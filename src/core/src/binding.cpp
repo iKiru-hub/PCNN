@@ -82,7 +82,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("make_edges", &PCNN::make_edges)
         .def("calculate_closest_index", &PCNN::calculate_closest_index,
              py::arg("c"))
-        .def("get_neighbourhood_node_degree", &PCNN::get_neighbourhood_node_degree,
+        .def("get_neighbourhood_node_degree",
+                    &PCNN::get_neighbourhood_node_degree,
              py::arg("idx"))
         .def("get_connectivity", &PCNN::get_connectivity)
         .def("get_centers", &PCNN::get_centers,
@@ -92,6 +93,7 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_position", &PCNN::get_position)
         .def("get_trace_value", &PCNN::get_trace_value,
              py::arg("idx"))
+        .def("get_trace_v2", &PCNN::get_trace_v2)
         .def("remap", &PCNN::remap,
              py::arg("block_weights"),
              py::arg("velocity"),

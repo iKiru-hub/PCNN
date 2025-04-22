@@ -137,9 +137,9 @@ Whittington et al. \cite{whittingtonTolmanEichenbaumMachineUnifying2020} & Attra
 \midrule
 de-Cothi et al. \cite{decothiPredictiveMapsRats2022} & Successor representation & TD-learning + eligibility traces & Yes \\
 \midrule
-Brozsko et al. \cite{brzoskoSequentialNeuromodulationHebbian2017} & One spiking layer & Online modulated Hebbian plasticity & Yes \\
+Brozsko et al. \cite{brzoskoSequentialNeuromodulationHebbian2017} & Spike Response Model & Online modulated Hebbian plasticity & Yes \\
 \midrule
-\textbf{ours} & Rate layers & Online neuro-modulated plasticity & No \\
+\textbf{Ours} & Rate layers & Online neuro-modulated plasticity & No \\
 \bottomrule
 \end{tabular}
 
@@ -161,11 +161,22 @@ de-Cothi et al. & Planned navigation & Observation & -- \\
 \midrule
 Brozsko et al. & Goal navigation & Position, reward & Action \\
 \midrule
-\textbf{ours} & Goal navigation & Velocity, reward, collision & Action \\
+\textbf{Ours} & Goal navigation & Velocity, reward, collision & Action \\
 \bottomrule
 \end{tabular}
 \caption*{Note: PC = Place Cells, HDC = Head Direction Cells, Ext. C. = External Spatial Coordinates}
 \end{table}
+
+\noindent There are previous computational models bear similarity with the current work.
+One class of these made use of deep neural networks, mostly with recurrent units, and they were thus bound to utilize variants of gradient descent for learning of the connection weights.
+This aspect constitues an important difference with our model, which relies on synaptic plasticity and only requires one episode for training.
+Nevertheless, a relevant similarity is the type of outputs and emergent internal representations, involving the place cells population vector.
+
+Another class of models instead used spiking neurons \cite{brzoskoSequentialNeuromodulationHebbian2017} and esplicit neural representations \cite{decothiPredictiveMapsRats2022}, and using online learning rules closer to ours.
+Also the most explicit goal-directed navigation is more similar than solely path integration.
+However, both rely on external coordinate information for representing the current spatial position while our model exploits its tracking, obtained by integrating effective output velocities in an internal coordinate system.
+
+
 
 % benchmarks used
 \subsection{Naturalistic task}

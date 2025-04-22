@@ -216,6 +216,10 @@ class Room:
         self.walls_extra[idx] = new_wall
         self.walls[idx] = new_wall
 
+    def set_room_positions(self, room_positions: list):
+        assert isinstance(room_positions, list), "shall be list"
+        self.room_positions = np.array(room_positions)
+
     def get_room_positions(self) -> Tuple[float, float]:
         return self.room_positions.copy()
 
@@ -475,7 +479,8 @@ def make_room(name: str="square", thickness: float=10.,
                  thickness, SCREEN_HEIGHT//2-2*OFFSET)]
     else:
         name = "Square.v0"
-        room_positions = [[0.5, 0.5]] + [[0.8, 0.6]] + np.random.uniform(0.25, 0.755, (40, 2)).tolist()
+        room_positions = [[0.5, 0.5]] + [[0.8, 0.6]] + \
+            np.random.uniform(0.25, 0.755, (40, 2)).tolist()
 
     room = Room(walls_bounds=walls_bounds,
                 walls_extra=walls_extra,
@@ -553,6 +558,7 @@ class Environment:
         self._reward = 0
 
         self.rw_time = 0
+        self.time_flag = None
 
         # rendering
         self.visualize = visualize
@@ -658,6 +664,7 @@ class Environment:
                 self.agent.set_position(
                     self.room.get_room_positions()[
                             self.agent.limit_position_len])
+                logger.debug(f"reset position to {self.agent.position}")
             else:
                 self.agent.set_position(self.room.sample_next_position())
 
@@ -673,6 +680,9 @@ class Environment:
     @property
     def reward_availability(self):
         return self.reward_obj.available
+
+    def set_time_flag(self):
+        self.time_flag = len(self.trajectory_set)-1
 
     def render(self, **kargs):
 

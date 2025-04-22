@@ -15,7 +15,6 @@
 #include <tuple>
 #include <cassert>
 #include <vector>
-#include <random>
 #include <queue>
 
 
@@ -49,26 +48,6 @@ void LOG(const std::string& msg) {
 
 
 int SEED = 0;
-
-
-
-std::mt19937& get_rng(unsigned int seed = 0) {
-    static std::mt19937 rng(std::random_device{}());  // Persistent generator
-    if (seed) rng.seed(seed);  // Reset the seed if provided
-    return rng;
-}
-
-
-int random_int(int min, int max, unsigned int seed) {
-    std::uniform_int_distribution<int> dist(min, max);
-    return dist(get_rng(seed));
-}
-
-
-double random_float(double min, double max, unsigned int seed) {
-    std::uniform_real_distribution<double> dist(min, max);
-    return dist(get_rng(seed));
-}
 
 
 Eigen::MatrixXf generate_lattice(int N, int length) {
@@ -283,34 +262,34 @@ inline float cosine_similarity_vec(const Eigen::VectorXf& v1,
 }
 
 
-inline float cosine_similarity_vec(const std::vector<float>& v1,
-                                   const std::vector<float>& v2) {
-    // Ensure the vectors are of the same size
-    if (v1.size() != v2.size()) {
-        throw std::invalid_argument("Vectors must be of the same size.");
-    }
+/* inline float cosine_similarity_vec(const std::vector<float>& v1, */
+/*                                    const std::vector<float>& v2) { */
+/*     // Ensure the vectors are of the same size */
+/*     if (v1.size() != v2.size()) { */
+/*         throw std::invalid_argument("Vectors must be of the same size."); */
+/*     } */
 
-    // Calculate dot product
-    float dot_product = std::inner_product(v1.begin(),
-                                           v1.end(), v2.begin(), 0.0f);
+/*     // Calculate dot product */
+/*     float dot_product = std::inner_product(v1.begin(), */
+/*                                            v1.end(), v2.begin(), 0.0f); */
 
-    // Calculate norms of the vectors
-    float norm_v1 = std::sqrt(std::inner_product(v1.begin(),
-                                                 v1.end(),
-                                                 v1.begin(), 0.0f));
-    float norm_v2 = std::sqrt(std::inner_product(v2.begin(),
-                                                 v2.end(),
-                                                 v2.begin(), 0.0f));
+/*     // Calculate norms of the vectors */
+/*     float norm_v1 = std::sqrt(std::inner_product(v1.begin(), */
+/*                                                  v1.end(), */
+/*                                                  v1.begin(), 0.0f)); */
+/*     float norm_v2 = std::sqrt(std::inner_product(v2.begin(), */
+/*                                                  v2.end(), */
+/*                                                  v2.begin(), 0.0f)); */
 
-    // Handle potential division by zero
-    if (norm_v1 == 0.0f || norm_v2 == 0.0f) {
-        throw std::invalid_argument(
-            "Vectors must not have zero magnitude.");
-    }
+/*     // Handle potential division by zero */
+/*     if (norm_v1 == 0.0f || norm_v2 == 0.0f) { */
+/*         throw std::invalid_argument( */
+/*             "Vectors must not have zero magnitude."); */
+/*     } */
 
-    // Return cosine similarity
-    return dot_product / (norm_v1 * norm_v2);
-}
+/*     // Return cosine similarity */
+/*     return dot_product / (norm_v1 * norm_v2); */
+/* } */
 
 
 Eigen::VectorXf cosine_similarity_vector_matrix(
@@ -933,13 +912,13 @@ struct VelocitySpace {
     void update_node_degree(int idx, int current_size) {
 
         // update the node itself
-        node_degree(idx) = connectivity.row(idx).sum();
+        node_degrees(idx) = connectivity.row(idx).sum();
 
         // update the neighbors
         int degree = 0;
         for (int j = 0; j < current_size; j++) {
             if (connectivity(idx, j) == 1.0) {
-                node_degree(j) = connectivity.row(j).sum();
+                node_degrees(j) = connectivity.row(j).sum();
             }
         }
     }
@@ -950,7 +929,7 @@ public:
     Eigen::MatrixXf connectivity;
     Eigen::MatrixXf weights;
     Eigen::VectorXf nodes_max_angle;
-    Eigen::VectorXf node_degree;
+    Eigen::VectorXf node_degrees;
     Eigen::VectorXf one_trace;
     std::array<float, 2> position;
     int size;
@@ -967,7 +946,7 @@ public:
         position = {0.00124789f, 0.00147891f};
         blocked_edges = {};
         nodes_max_angle = Eigen::VectorXf::Zero(size);
-        node_degree = Eigen::VectorXf::Zero(size);
+        node_degrees = Eigen::VectorXf::Zero(size);
     }
 
     // CALL
@@ -1130,7 +1109,7 @@ public:
             connectivity.row(i) = connectivity.row(i+1);
             weights.row(i) = weights.row(i+1);
             nodes_max_angle(i) = nodes_max_angle(i+1);
-            node_degree(i) = node_degree(i+1);
+            node_degrees(i) = node_degrees(i+1);
         }
     }
 
@@ -1193,6 +1172,7 @@ class PCNN {
     const float rep_threshold_const;
     const float gain_const;
     const float tau_trace;
+    const float tau_trace_v2 = 1000.0f;
 
     // ~activation
     float rep_threshold;
@@ -1217,6 +1197,7 @@ class PCNN {
     int cell_count;
     Eigen::VectorXf u;
     Eigen::VectorXf traces;
+    Eigen::VectorXf traces_v2;
     Eigen::VectorXf gain_v;
     std::vector<bool> remap_tag = {};
     Eigen::VectorXf x_filtered;
@@ -1277,6 +1258,7 @@ public:
         mask = Eigen::VectorXf::Zero(N);
         u = Eigen::VectorXf::Zero(N);
         traces = Eigen::VectorXf::Zero(N);
+        traces_v2 = Eigen::VectorXf::Zero(N);
         gain_v = Eigen::VectorXf::Zero(N);
         delta_wff = 0.0;
         x_filtered = Eigen::VectorXf::Zero(N);
@@ -1289,7 +1271,8 @@ public:
         }
         fixed_indexes = {};
 
-        std::cout << "gain " << gain << ", offset " << offset << "thr" << threshold << "\n";
+        std::cout << "gain " << gain << ", offset " <<
+            offset << "thr" << threshold << "\n";
 
     }
 
@@ -1316,8 +1299,12 @@ public:
             u(i) = generalized_sigmoid(u(i), offset, gain_v(i), clip_min);
         }
         /* u = generalized_sigmoid_vec(u, offset, gain, clip_min); */
+
         traces = traces - traces / tau_trace + u;
         traces = traces.cwiseMin(1.0f);
+
+        traces_v2 = traces_v2 - traces_v2 / tau_trace_v2 + u;
+        traces_v2 = traces_v2.cwiseMin(1.0f);
 
         return std::make_pair(u, x_filtered);
     }
@@ -1415,28 +1402,29 @@ public:
                  vspace.position[1] - vspace.centers(i, 1)};
 
             // gaussian activation function centered at zero
-            float dist = std::exp(-std::sqrt(displacement[0] * displacement[0] + \
-                                    displacement[1] * displacement[1]) / width) * \
-                                    magnitude;
+            /* float dist = std::exp(-std::sqrt(displacement[0] * displacement[0] + \ */
+            /*                         displacement[1] * displacement[1]) / width) * \ */
+            /*                         magnitude; */
 
             if (vspace.is_too_close(i, {displacement[0] * magnitude,
                                         displacement[1] * magnitude},
                                     min_rep_threshold)) { continue; }
 
             // weight the displacement
-            /* std::array<float, 2> gc_displacement = {dist * magnitude, */
-            /*                                         dist * magnitude}; */
+            std::array<float, 2> gc_displacement = {displacement[0] * magnitude,
+                                                    displacement[1] * magnitude};
 
             // pass the input through the filter layer
-            /* x_filtered = xfilter.simulate_one_step(gc_displacement); */
-            x_filtered = xfilter.simulate_one_step(displacement);
+            x_filtered = xfilter.simulate_one_step(gc_displacement);
 
             // update the weights & centers
-            Wff.row(i) += x_filtered.transpose() - Wff.row(i).transpose();
+            /* Wff.row(i) += x_filtered.transpose() - Wff.row(i).transpose(); */
+            Wff.row(i) = x_filtered.transpose();
 
             Wffbackup.row(i) = Wff.row(i);
-            vspace.remap_center(i, {displacement[0] * magnitude,
-                displacement[1] * magnitude});
+            vspace.remap_center(i, gc_displacement);
+            /* vspace.remap_center(i, {displacement[0] * magnitude, */
+            /*     displacement[1] * magnitude}); */
         }
     }
 
@@ -1444,12 +1432,12 @@ public:
         { return vspace.calculate_closest_index(c); }
 
     int get_neighbourhood_node_degree(int idx) {
-        int node_degree = vspace.node_degree(idx);
+        int node_degree = vspace.node_degrees(idx);
         int count = 1;
 
         for (int i = 0; i < N; i++) {
             if (vspace.connectivity(idx, i) > 0.0f) {
-                node_degree += vspace.node_degree(i);
+                node_degree += vspace.node_degrees(i);
                 count++;
             }
         }
@@ -1459,7 +1447,8 @@ public:
     void modulate_gain(float modulation) {
         for (int i = 0; i < N; i++) {
             if (u(i) > 0.1) {
-                gain_v(i) = modulation * gain_const * traces(i) + (1 - traces(i)) * gain_const;
+                gain_v(i) = modulation * gain_const * traces(i) + \
+                    (1 - traces(i)) * gain_const;
 
                 // mimumum value of 5.0f
                 gain_v(i) = std::max(gain_v(i), 5.0f);
@@ -1522,6 +1511,7 @@ public:
     Eigen::MatrixXf& get_wff() { return Wff; }
     Eigen::MatrixXf& get_wrec() { return Wrec; }
     float get_trace_value(int idx) { return traces(idx); }
+    Eigen::VectorXf get_trace_v2() { return traces_v2; }
     float get_max_activation() { return u.maxCoeff(); }
     std::vector<std::array<std::array<float, 2>, 2>> make_edges()
         { return vspace.make_edges(); }
@@ -1530,7 +1520,7 @@ public:
     Eigen::MatrixXf& get_connectivity() { return connectivity; }
     Eigen::MatrixXf get_centers(bool nonzero = false)
         { return vspace.get_centers(nonzero); }
-    Eigen::VectorXf& get_node_degrees() { return vspace.node_degree; }
+    Eigen::VectorXf& get_node_degrees() { return vspace.node_degrees; }
     Eigen::VectorXf& get_gain() { return gain_v; }
     float get_delta_update() { return delta_wff; }
     Eigen::MatrixXf get_positions_gcn()

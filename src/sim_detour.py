@@ -28,7 +28,7 @@ GAME_SCALE = games.SCREEN_WIDTH
 
 
 reward_settings = {
-    "rw_fetching": "probabilistic",
+    "rw_fetching": "deterministic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.05 * GAME_SCALE,
@@ -36,7 +36,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 200,
-    "silent_duration": 10_000,
+    "silent_duration": 1_000,
     "fetching_duration": 10,
     "transparent": False,
     "beta": 40.,
@@ -72,75 +72,24 @@ global_parameters = {
     "min_weight_value": 0.5
 }
 
-# parameters = {
-
-#     "gain_fine": 15.,
-#     "offset_fine": 1.0,
-#     "threshold_fine": 0.3,
-#     "rep_threshold_fine": 0.9,
-#     "rec_threshold_fine": 45.,
-#     "tau_trace_fine": 30.0,
-
-#     "remap_tag_frequency": 1,
-#     "min_rep_threshold": 34,
-
-#     "gain_coarse": 21.,
-#     "offset_coarse": 1.1,
-#     "threshold_coarse": 0.3,
-#     "rep_threshold_coarse": 0.6,
-#     "rec_threshold_coarse": 50.,
-#     "tau_trace_coarse": 50.0,
-
-#     "lr_da": 0.5,
-#     "lr_pred": 0.2,
-#     "threshold_da": 0.03,
-#     "tau_v_da": 20.0,
-
-#     "lr_bnd": 0.6,
-#     "threshold_bnd": 0.3,
-#     "tau_v_bnd": 3.0,
-
-#     "tau_ssry": 100.,
-#     "threshold_ssry": 0.995,
-
-#     "threshold_circuit": 0.9,
-#     "remapping_flag": 7,
-
-#     "rwd_weight": 15.0,
-#     "rwd_sigma": 80.0,
-#     "col_weight": 0.0,
-#     "col_sigma": 35.0,
-
-#     "rwd_field_mod_fine": 2.5,
-#     "rwd_field_mod_coarse": 4.5,
-#     "col_field_mod_fine": 1.5,
-#     "col_field_mod_coarse": 0.3,
-
-#     "action_delay": 80.,
-#     "edge_route_interval": 50000, # <<<<<<<<<<<<<<<<<<<
-
-#     "forced_duration": 100,
-#     "fine_tuning_min_duration": 10,
-# }
-
 parameters = {
         "gain": 33.0,
-        "offset": 1.0,
-        "threshold": 0.4,
-        "rep_threshold": 0.9,
+        "offset": 1.08,
+        "threshold": 0.3,
+        "rep_threshold": 0.97,
         "rec_threshold": 63,
-        "tau_trace": 10,
+        "tau_trace": 20,
         "remap_tag_frequency": 1,
-        "min_rep_threshold": 0.95,
+        "min_rep_threshold": 0.98,
 
         "lr_da": 0.9,
-        "lr_pred": 0.44,
-        "threshold_da": 0.2,
+        "lr_pred": 0.01,
+        "threshold_da": 0.03,
         "tau_v_da": 2.0,
 
         "lr_bnd": 0.9,
-        "threshold_bnd": 0.1,
-        "tau_v_bnd": 2.0,
+        "threshold_bnd": 0.01,
+        "tau_v_bnd": 3.0,
 
         "tau_ssry": 437.0,
         "threshold_ssry": 1.986,
@@ -246,10 +195,6 @@ class Renderer:
         self.axs.set_aspect('equal', adjustable='box')
         # self.axs.legend(loc="upper right")
         plt.pause(0.00001)
-
-        # if self.brain.get_directive() == "trg" or \
-        #     self.brain.get_directive() == "trg rw" or len(plan_center_coarse) > 0:
-        #     input(">>")
 
     def render2(self, show: bool=False):
 
@@ -386,10 +331,11 @@ class Renderer:
         # -- BND
         self.axs.clear()
 
-        for edge in self.brain.make_space_edges():
-            self.axs.plot((edge[0][0], edge[1][0]),
-                                (edge[0][1], edge[1][1]),
-                             alpha=0.3, lw=0.5, color="black")
+        # for edge in self.brain.make_space_edges():
+        #     self.axs.plot((edge[0][0], edge[1][0]),
+        #                         (edge[0][1], edge[1][1]),
+        #                      alpha=0.3, lw=0.5, color="black")
+
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
                                c=self.brain.get_bnd_weights(),
                                cmap="Blues", alpha=0.8,
@@ -547,20 +493,20 @@ def run_model(parameters: dict,
     rw_tau = reward_settings["tau"] if "tau" in reward_settings else 100
 
     reward_obj = objects.RewardObj(
-                position=possible_positions[0],
-                possible_positions=possible_positions,
-                radius=reward_settings["rw_radius"],
-                sigma=reward_settings["rw_sigma"],
-                fetching=reward_settings["rw_fetching"],
-                value=reward_settings["rw_value"],
-                bounds=room_bounds,
-                delay=reward_settings["delay"],
-                use_sprites=global_parameters["use_sprites"],
-                silent_duration=reward_settings["silent_duration"],
-                tau=rw_tau,
-                preferred_positions=preferred_positions,
-                move_threshold=reward_settings["move_threshold"],
-                transparent=reward_settings["transparent"])
+                    position=possible_positions[0],
+                    possible_positions=possible_positions,
+                    radius=reward_settings["rw_radius"],
+                    sigma=reward_settings["rw_sigma"],
+                    fetching=reward_settings["rw_fetching"],
+                    value=reward_settings["rw_value"],
+                    bounds=room_bounds,
+                    delay=reward_settings["delay"],
+                    use_sprites=global_parameters["use_sprites"],
+                    silent_duration=reward_settings["silent_duration"],
+                    tau=rw_tau,
+                    preferred_positions=preferred_positions,
+                    move_threshold=reward_settings["move_threshold"],
+                    transparent=reward_settings["transparent"])
 
     body = objects.AgentBody(
                 position=agent_position,
@@ -737,7 +683,6 @@ def main_game(global_parameters: dict=global_parameters,
     # ===| objects |===
 
     possible_positions = room.get_room_positions()
-    logger.debug(f"{possible_positions=}")
 
     agent_possible_positions = possible_positions.copy()
     agent_position = room.sample_next_position()
@@ -831,7 +776,7 @@ def main_game(global_parameters: dict=global_parameters,
                     running = False
 
         # -check: teleport
-        if env.t % t_teleport == 0 and env.reward_obj.is_silent: # <=================================
+        if env.t % t_teleport == 0 and env.reward_obj.is_silent: # <=========================
             env._reset_agent_position(brain, True)
 
         # -check: change room

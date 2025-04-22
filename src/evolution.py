@@ -17,7 +17,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 
-NUM_SAMPLES = 3
+NUM_SAMPLES = 4
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
                              replace=False).tolist() + \
            ["Square.v0"]
@@ -62,7 +62,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 28**2,
+    "N": 30**2,
     "use_sprites": False,
     "speed": 0.7,
     "min_weight_value": 0.5
@@ -174,22 +174,21 @@ class Env:
         return fitness,
 
 
-
 """ Game setup """
 
 
 # parameters that are not evolved
 FIXED_PARAMETERS = {
 
-     'gain': 33.0,
+     # 'gain': 33.0,
      'offset': 1.0,
      'threshold': 0.4,
-     'rep_threshold': 0.85,
-     'rec_threshold': 63,
-     'tau_trace': 100,
+     # 'rep_threshold': 0.85,
+     # 'rec_threshold': 63,
+     'tau_trace': 20,
 
      'remap_tag_frequency': 1,
-     'min_rep_threshold': 0.91,
+     'min_rep_threshold': 0.99,
 
      'lr_da': 0.90,
      # 'lr_pred': 0.1,
@@ -197,7 +196,7 @@ FIXED_PARAMETERS = {
      'tau_v_da': 4.0,
 
      'lr_bnd': 0.9,
-     'threshold_bnd': 0.3,
+     'threshold_bnd': 0.2,
      'tau_v_bnd': 3.0,
 
      'tau_ssry': 437.0,
@@ -212,9 +211,9 @@ FIXED_PARAMETERS = {
      # 'col_field_mod': -0.6,
 
      'action_delay': 120.0,
-     'edge_route_interval': 5000,
+     # 'edge_route_interval': 5000,
      'forced_duration': 19,
-     'min_weight_value': 0.2
+     'min_weight_value': 0.1
 }
 
 
@@ -258,7 +257,7 @@ PARAMETERS = {
 
     "forced_duration": lambda: random.randint(1, 50),
     "min_weight_value": lambda: random.uniform(0., 0.5),
-}
+ww}
 
 
 
