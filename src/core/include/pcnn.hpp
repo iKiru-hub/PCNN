@@ -1271,8 +1271,8 @@ public:
         }
         fixed_indexes = {};
 
-        std::cout << "gain " << gain << ", offset " <<
-            offset << "thr" << threshold << "\n";
+        /* std::cout << "gain " << gain << ", offset " << */
+        /*     offset << "thr" << threshold << "\n"; */
 
     }
 

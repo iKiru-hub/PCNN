@@ -257,7 +257,7 @@ PARAMETERS = {
 
     "forced_duration": lambda: random.randint(1, 50),
     "min_weight_value": lambda: random.uniform(0., 0.5),
-ww}
+}
 
 
 

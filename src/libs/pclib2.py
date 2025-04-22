@@ -978,7 +978,13 @@ class Brain:
     def get_space_centers(self):
         return self.space.get_centers()
 
-    def get_wff(self):
+    def get_space_connectivity(self):
+        return self.space.get_connectivity()
+
+    def get_space_wrec(self):
+        return self.space.get_wrec()
+
+    def get_space_wff(self):
         return self.space.get_wff()
 
     def get_da_weights(self):
