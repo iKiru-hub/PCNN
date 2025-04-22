@@ -2,7 +2,7 @@
 
 ### main
 
-- [ ] abstract
+- [x] abstract
 
 - [x] introduction
 
@@ -10,20 +10,25 @@
 
 - [x] results
 
-- [ ] discussion
+- [x] discussion
 
-- [ ] appendix
+- [x] appendix
 
 
 ### details
 
-- [ ] code availability statement
-- [ ] acknowledgments
-- [ ] front-page
-
+- [x] code availability statement
+- [x] acknowledgments
+- [x] front-page
 
 
 ### easy todo
-- [ ] plot of place cell density
+- [x] plot of place cell density
+
+- [ ] main results figure
+    - [ ] detour
+    - [ ] field remapping
+    - [ ] node degrees
+
 
 
