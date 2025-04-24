@@ -203,12 +203,12 @@ FIXED_PARAMETERS = {
      'threshold_ssry': 1.986, # <-----------------
      'threshold_circuit': 0.9,
 
-     # 'rwd_weight': 2.96,
-     # 'rwd_sigma': 33.6,
-     # 'col_weight': 0.06,
-     # 'col_sigma': 20.6,
-     # 'rwd_field_mod': 0.0,
-     # 'col_field_mod': -0.6,
+     'rwd_weight': 0.0,
+     'rwd_sigma': 0.,
+     'col_weight': 0.0,
+     'col_sigma': 0.,
+     'rwd_field_mod': 0.0,
+     'col_field_mod': 0.0,
 
      'action_delay': 120.0,
      # 'edge_route_interval': 5000,
