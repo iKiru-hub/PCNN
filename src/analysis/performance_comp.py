@@ -170,9 +170,6 @@ def change_parameters(params: dict, name: int):
         return params
 
     # no remap option
-    if name == "no_remap":
-        params["remapping_flag"] = -1
-        return params
 
     # default
     if name == "default":

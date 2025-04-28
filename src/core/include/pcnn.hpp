@@ -1835,6 +1835,8 @@ struct DensityPolicy {
     float rwd_field_mod;
     float col_field_mod;
 
+    std::array<bool, 4> options;
+
     void call(PCNN& space,
               Circuits& circuits,
               std::array<float, 2> displacement,
@@ -1847,33 +1849,41 @@ struct DensityPolicy {
             // update & remap
             rwd_drive = rwd_weight * curr_da;
 
-            /* std::cout << "remap drive: " << rwd_drive << "\n"; */
+            if (options[0]) {
+                space.remap(circuits.get_da_weights(),
+                            displacement, rwd_sigma, rwd_drive);
+            }
 
-            space.remap(circuits.get_da_weights(),
-                        displacement, rwd_sigma, rwd_drive);
-
-            space.modulate_gain(rwd_field_mod);
+            if (options[1]) {
+                space.modulate_gain(rwd_field_mod);
+            }
 
         } else if (collision > 0.1) {
 
             // udpate & remap
             col_drive = col_weight * curr_bnd;
 
-            space.remap(circuits.get_bnd_weights(),
-                        {-1.0f*displacement[0], -1.0f*displacement[1]},
-                        col_sigma, col_drive);
-            space.modulate_gain(col_field_mod);
+            if (options[2]) {
+                space.remap(circuits.get_bnd_weights(),
+                            {-1.0f*displacement[0], -1.0f*displacement[1]},
+                            col_sigma, col_drive);
+            }
+            if (options[3]) {
+                space.modulate_gain(col_field_mod);
+            }
         }
     }
 
     DensityPolicy(float rwd_weight, float rwd_sigma,
                   float col_weight, float col_sigma,
                   float rwd_field_mod,
-                  float col_field_mod):
+                  float col_field_mod,
+                  std::array<bool, 4> options):
         rwd_weight(rwd_weight), rwd_sigma(rwd_sigma),
         col_sigma(col_sigma), col_weight(col_weight),
         rwd_field_mod(rwd_field_mod),
-        col_field_mod(col_field_mod){}
+        col_field_mod(col_field_mod),
+        options(options){}
 
     std::string str() { return "DensityPolicy"; }
     std::string repr() { return "DensityPolicy"; }

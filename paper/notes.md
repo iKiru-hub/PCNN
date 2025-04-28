@@ -25,10 +25,11 @@
 ### easy todo
 - [x] plot of place cell density
 
-- [ ] main results figure
-    - [ ] detour
-    - [ ] field remapping
-    - [ ] node degrees
+- [x] main results figure
+    - [x] detour
+    - [x] field remapping
+    - [x] node degrees
 
+- [ ] update paper
 
 

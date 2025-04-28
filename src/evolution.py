@@ -185,7 +185,7 @@ FIXED_PARAMETERS = {
      'threshold': 0.4,
      # 'rep_threshold': 0.85,
      # 'rec_threshold': 63,
-     'tau_trace': 20,
+     # 'tau_trace': 20,
 
      'remap_tag_frequency': 1,
      'min_rep_threshold': 0.99,
@@ -196,19 +196,19 @@ FIXED_PARAMETERS = {
      'tau_v_da': 4.0,
 
      'lr_bnd': 0.9,
-     'threshold_bnd': 0.2,
+     # 'threshold_bnd': 0.2,
      'tau_v_bnd': 3.0,
 
      'tau_ssry': 437.0,
      'threshold_ssry': 1.986, # <-----------------
      'threshold_circuit': 0.9,
 
-     'rwd_weight': 0.0,
-     'rwd_sigma': 0.,
-     'col_weight': 0.0,
-     'col_sigma': 0.,
-     'rwd_field_mod': 0.0,
-     'col_field_mod': 0.0,
+     # 'rwd_weight': 0.0,
+     # 'rwd_sigma': 0.,
+     # 'col_weight': 0.0,
+     # 'col_sigma': 0.,
+     # 'rwd_field_mod': 0.0,
+     # 'col_field_mod': 0.0,
 
      'action_delay': 120.0,
      # 'edge_route_interval': 5000,

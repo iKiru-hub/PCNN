@@ -23,26 +23,27 @@ The activity of a tuned place cell $i$ is given, again, by the cosine similarity
     u^{\text{PC}}_{i}=\phi\left(\cos\left(\textbf{u}^{\text{GC}},\textbf{W}^{\text{GC},\text{PC}}_{i}\right)\right)
 \end{equation}
 \noindent where $\phi$ is a generalized sigmoid function $\phi(z)=\left[1 + \exp(-\beta(z-\alpha))\right]^{-1}$ with gain $\beta$ and threshold $\alpha$.
-The two layers of place cells differ in the size of their place fields. This characteristic is affected by the sensitivity of a cell tuning with respect to the grid cell activation, determined by the parameters of the sigmoid, and the strength of the lateral inhibition, determined by the similarity threshold.
-Within a layer, connections between cells are calculated by the same cosine similarity, but compared against a different threshold $\theta^{\text{PC}}_{\text{rec}}$.
-One layer is set to be more fine-grained, with an overall higher density of place cells over the space, while the other is more coarse-grained, with overall large place field sizes.
+Recurrent connections between place cells are calculated by the same cosine similarity, but compared against a different threshold $\theta^{\text{PC}}_{\text{rec}}$.
 In addition, for each layer, a neural trace $\textbf{m}$ of activity is recorded, decaying with a fixed time constant.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{figures/figure_model.png}
-    \caption{\textsc{Model layout and spatial representations} - \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs
-    and a reward receiver}. \textbf{b}: \textit{the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to two layer of place cells with different place field granularity}. \textbf{c}: \textit{the neural activity of a grid cell module from
-a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}. \textbf{d}: \textit{the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}.
-\textbf{e}: \textit{neuromodulation activity over the place cells map, with in blue the cells tagged by the collision modulation, and in green the ones targeted by reward modulation.}}
+    \includegraphics[width=0.95\textwidth]{figures/figure_model_v2.png}
+    \caption{\textsc{Model layout and spatial representations} -
+    \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs
+    and a reward receiver}.
+    \textbf{b}: \textit{the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to the layer of place cells}.
+    \textbf{c}: \textit{the neural activity of a grid cell module from
+a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}.
+    \textbf{d}: \textit{the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}.
+    \textbf{e}: \textit{neuromodulation activity over the place cells map, with in blue the cells tagged by the collision modulation, and in green the ones targeted by reward modulation.}}
     \label{fig:model}
 \end{figure}
 
-In figure \ref{fig:model}\textbf{d} are shown the centers of one of the fine-grained layers and the activity of two cells are shown, with their place field highlighted as a heat map.
+In figure \ref{fig:model}\textbf{d} are shown the place cells centers and the activity of two cells are shown, with their place field highlighted as a heat map.
 
 
 \subsection{Neuromodulators}
-The fine-grained layer of place cells constitutes the main cognitive map of the agent, since it captures the environment with greater detail.
 Neuromodulators are operationalized as analog sensors of meaningful environmental events, here to reward and collision, and map directly to the place cells through plastic connections $W^{k,\text{PC}}$.
 For each neuromodulator $k$, it is defined a leaky variable $v^{k}$ that accumulates the corresponding signal $I$ over time, and decays exponentially to zero in the absence of inputs with time constant $\tau^{k}$:
 \begin{equation}
@@ -60,7 +61,7 @@ On the one hand, the reward modulation, signed as $\textbf{W}^{\text{DA}}$, is s
 On the other hand, the collision modulation, referred to as $\textbf{W}^{\text{BND}}$, signals the occurrence of a collision with a boundary, which is again given as a boolean. After enough events, the profile of the resulting weight matrix with the place cells provides an approximation of the shape of the environment given by its boundaries. From the perspective of the agent, this intuition of the topology of its surroundings is crucial to efficiently planning routes to target locations.
 
 At each moment during navigation, the weight matrices $\textbf{W}^{\text{DA},\text{PC}},\;\textbf{W}^{\text{BND},\text{PC}}$ act as scalar fields over the neural space of the place cells, and their simultaneous contributions delineate what in this work is referred to as a cognitive map.
-In plot \ref{fig:model}\textbf{e} the activity of the two neuromodulators is shown on the fine-grained place cells map, showcasing the limits of the environment and the reward location.
+In plot \ref{fig:model}\textbf{e} the activity of the two neuromodulators is shown on place cells map, showcasing the limits of the environment and the reward location.
 
 \subsubsection{Online adaptation}
 For what concerns resilience with respect to environmental changes, such as reward location, the model was endowed with a prediction-base mechanism to correct for the accuracy of internal representations.
@@ -79,8 +80,7 @@ Previous computational models have used neuromodulatory signals to control neuro
 Furthermore, it aligns with the experimental evidence for the involvement of neuromodulation in dynamic update of internal beliefs \cite{montagueFrameworkMesencephalicDopamine1996, decothiPredictiveMapsRats2022, krishnanRewardExpectationExtinction2022}.
 
 \subsubsection{Modulation of place fields}
-Lastly, in order to study the possibility of neuromodulatory alteration of neuronal properties, coarse-grained place cells were subjected to relocation and resizing of their place fields according to neuromodulatory input.
-The choice of this layer over the fine-grained one is motivated by empirically better performance results.
+Lastly, in order to study the possibility of neuromodulatory alteration of neuronal properties, the cells were subjected to relocation and resizing of their place fields according to neuromodulatory input.
 
 The movement of the place centers occurred after a reward or collision event and affected all nearby cells.
 More in details, each cell center was displaced, within the grid cells space, by a vector in the direction of the current position $\textbf{u}^{\text{GC}}$, and with magnitude proportional to the value $v^{k}$ of the neuromodulator $k$ and its distance:
@@ -110,11 +110,9 @@ Goal-directed navigation, namely exploitation, serves the dual purpose of going 
 In practice, goal navigation is achieved by calculating the shortest path between the current position, identified by the cells with the most active place, and a target position, picked randomly or considering the cells with the strongest dopaminergic weights, inspired by hippocampal replay and
 experimental observations \cite{mcnamaraDopaminergicNeuronsPromote2014, michonSingletrialDynamicsHippocampal2021, shamashMiceIdentifySubgoal2021}.
 The place cells are thus treated as nodes of a graph, and their connections constitute its edges.
-We use a Dijkstra algorithm applied to the coarse-grained layer, which contains less and more spread out cells, and it is thus cheaper to compute to derive a coarse-grained plan.
-However, in the case where the agent gets stuck or the distance to the target is shorter than the cells' distance, the planning switches to the other layer for devising a fine-grained plan, which it is followed until either the target or the next node in the coarse-grained are reached.
+Then, we used a Dijkstra algorithm coupled with a value function over the nodes, such that boundary neurons are penalized and a planning near walls is avoided.
 
-The advantage of this dual-layer planning lies in its flexibility, as it lightens the computational load of planning by exploding the sparser and lighter map and only invokes the detailed one when necessary.
-In the process of behavior, learning does not occur explicitly, but is instead accounted for in the online formation of the cognitive map.
+% In the process of behavior, learning does not occur explicitly, but is instead accounted for in the online formation of the cognitive map.
 
 \subsection{Comparison with previous architectures}
 

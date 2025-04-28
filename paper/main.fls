@@ -199,11 +199,11 @@ INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmb10.tfm
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmbx8.tfm
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmbx6.tfm
-INPUT ./figures/figure_model.png
-INPUT ./figures/figure_model.png
-INPUT ./figures/figure_model.png
-INPUT ./figures/figure_model.png
-INPUT ./figures/figure_model.png
+INPUT ./figures/figure_model_v2.png
+INPUT ./figures/figure_model_v2.png
+INPUT ./figures/figure_model_v2.png
+INPUT ./figures/figure_model_v2.png
+INPUT ./figures/figure_model_v2.png
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmcsc10.tfm
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmmi9.tfm
 INPUT /opt/homebrew/Cellar/texlive/20240312_3/share/texmf-dist/fonts/tfm/public/cm/cmsy9.tfm

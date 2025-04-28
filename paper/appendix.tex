@@ -12,45 +12,45 @@ The global velocity $\mathbf{v}=\{x,y\}$ is then mapped to a local velocity, sca
 The choice of a toroidal space is motivated by consolidated experimental evidence of the neural space of grid cells, which are organized in modules of different sizes spanning the animal's environment. However, the shape of their firing pattern is known to be hexagonal, which corresponds to the optimal tiling of a two-dimensional plane, giving rise to a neural space lying on a twisted torus.
 In this work, for simplicity, we consider a square tiling and thus a square torus, without much loss of generality except for the slight increase of grid cells required for a sufficiently cover.
 
-A grid cell module $l$ of size $N^{\text{gc}}$ is identified by a set of positions defined over a square centered at the origin and size of $2$, such that $\{(x_{i}, y_{i})\;\vert\; i \in N^{\text{gc}}\;\land\;x_{i},y_{i}\in (-1, 1)\}$.
-This local square space has boundary conditions for each dimensions, such that for instance when $x_{t} + s^{\text{gc}}_{l} \cdot v_{x} > 2$ then the position update is taken to the other side $x_{t+1} = x_{t} + s^{\text{gc}}_{l} \cdot v_{x} - 2$, where $s^{\text{gc}}_{l}$ is the scale of the velocity in the local space of module $l$ with respect to the real global agent velocity $v=\{v_{x}, v_{y}\}$.
-When the module is initialized, the starting positions of its cells are uniformely distributed over the square forming a lattice.
-When the agent is reset in a new position at the beginning of new trial, a displacement vector is applied to the last cells positions, such that the mapping between the module local space and the global environment is preserved.
+A grid cell module $l$ of size $N^{\text{gc}}$ is identified by a set of positions defined over a square centered on the origin and size of $2$, such that $\{(x_{i}, y_{i})\;\vert\; i \in N^{\text{gc}}\;\land\;x_{i},y_{i}\in (-1, 1)\}$.
+This local square space has boundary conditions for each dimension, such that, for instance, when $x_{t} + s^{\text{gc}}_{l} \cdot v_{x} > 2$ the position update is taken to the other side $x_{t+1} = x_{t} + s^{\text{gc}}_{l} \cdot v_{x} - 2$, where $s^{\text{gc}}_{l}$ is the scale of the velocity in the local space of the module $l$ with respect to the real global agent velocity $v=\{v_{x}, v_{y}\}$.
+When the module is initialized, the starting positions of its cells are uniformly distributed over the square forming a lattice.
+When the agent is reset in a new position at the beginning of new trial, a displacement vector is applied to the last cells positions such that the mapping between the module local space and the global environment is preserved.
 
 The firing rate vector of each cell is determined with respect to a 2D Gaussian tuning curve centered at the origin at $(0,0)$, and it is calculated as \\ $r_{i} = \exp\left(-\frac{x^{2}_{i} + y^{2}_{i}}{\sigma^{\text{gc}}_{l}}\right)$, where $\sigma^{\text{gc}}_{l}$ is the width of the tuning curve for module $l$.
 
 The final population vector of the grid cell network GC is the concatenated and flattened firing rate vector of all modules $\textbf{u}^{\text{GC}}$.
 
 \hfill \break
-In our model, each grid cell had a tuning width of 0.04. They were defined 8 modules of size 36, and the relative speed scale were \\ $\{1., 0.8, 0.7, 0.5, 0.4, 0.3, 0.2, 0.1, 0.07\}$.
+In our model, each grid cell had a tuning width of 0.04. They were defined as 8 modules of size 36, and the relative speed scales were \\ $\{1., 0.8, 0.7, 0.5, 0.4, 0.3, 0.2, 0.1, 0.07\}$.
 
 \subsection{Place cells}
 
 \paragraph{Tuning formation}
 % formation | forward + competition
-A new place cell's tuning is simply defined as the current GC population vector $\textbf{u}^{\text{GC}}_{t}$, and its index is that of the first silent cell, which gets added to the forward weight matrix $\textbf{W}_{i}^{\text{GC}to \text{PC}}\rightarrow \textbf{u}^{\text{GC}}$.
+The tuning of a new place cell is simply defined as the current GC population vector $\textbf{u}^{\text{GC}}_{t}$, and its index is that of the first silent cell, which is added to the forward weight matrix $\textbf{W}_{i}^{\text{GC}to \text{PC}}\rightarrow \textbf{u}^{\text{GC}}$.
 
-In order to avoid overlapping of place fields, the tuning process is aborted in case the cosine similarity of the new pattern and the old ones is greter than a threshold $\theta^{\text{PC}}_{\text{rep}}$.
+In order to avoid overlapping of place fields, the tuning process is aborted in case the cosine similarity of the new pattern and the old ones is greater than a threshold $\theta^{\text{PC}}_{\text{rep}}$.
 
 Each cell represents a position in the GC activity space, which can be considered a node within a graph of place cells (PC).
-Although it is totally possible to only use the $N^{\text{GC}}$-dimensional tuning patterns and be agnostic about the dimensionality of the space in which the agent lives, to simplify the calculations we mapped each pattern to a 2D positions in a vector space.
-Then, the PC recurrent connectivity matrix is calculated with a nearest neighbors algorithm, which instead of a fixed number $K$ of neighbors it uses a distance threshold $\theta^{\text{PC}}_{\text{rec}}$.
+Although it is totally possible to only use the $N^{\text{GC}}$-dimensional tuning patterns and be agnostic about the dimensionality of the space in which the agent lives, to simplify the calculations, we mapped each pattern to 2D positions in a vector space.
+Then, the PC recurrent connectivity matrix is calculated with a nearest neighbors algorithm, which instead of a fixed number $K$ of neighbors uses a distance threshold $\theta^{\text{PC}}_{\text{rec}}$.
 
 \hfill \break
 \paragraph{Activity} The current firing rate of the PC population is determined by the cosine similarity between the GC input and the forward weight matrix, then passed through a generalized sigmoid $\phi(z)=\left[1 + \exp(-\beta(z-\alpha))\right]^{-1}$.
 The parameter $\alpha$ represents the activation threshold, or horizontal offset, while $\beta$ the gain, or steepness.
-It is also defined an activity trace, which has an upper value of 1 and decay exponentially:
+It is also defined as an activity trace, which has an upper value of 1 and decays exponentially:
 
 \begin{equation}
     m_{i} = - m_{i} / \tau^{\text{PC}} + u_{i}
 \end{equation}
 
-\noindent it is used as a proxy for a memory trace.
+\noindent It is used as a proxy for a memory trace.
 
 \hfill \break
-In the model, two PC populations are defined, which are named \textit{fine}-grained and \textit{coarse}-grained as their main difference were their average place field size, determining the granularity of the place representation.
+In the model, a PC population is defined by its average place field size, determining the granularity of the representation of the place.
 
-Below it is reported a table of the parameters specific to the two PC populations.
+Below, a table of the parameters specific to the two PC populations is reported.
 
 \begin{table}[h]
     \centering
@@ -58,11 +58,10 @@ Below it is reported a table of the parameters specific to the two PC population
         \toprule
         & $\beta$ & $\alpha$ & $\theta_{\text{rep}}^{\text{PC}}$ & $\theta_{\text{rec}}^{\text{PC}}$ & $\tau^{\text{PC}}$ \\
         \midrule
-        Fine   & 33.0  & 1.0  & 0.86  & 43  & 140 \\
-        Coarse & 16.6  & 1.0  & 0.76  & 41  & 24 \\
+        pc   & 33.0  & 1.0  & 0.86  & 43  & 140 \\
         \bottomrule
     \end{tabular}
-    \caption{\textsc{Comparison of fine and coarse Parameters}}
+    \caption{\textsc{PC layer parameters}}
 \end{table}
 
 \subsection{Modulation}
@@ -189,7 +188,6 @@ Its particularity is the use of a weighting $\widetilde{\textbf{W}}$ of the node
 \end{algorithm}
 % policy algorithm
 
-\subsection{Evolutionary optimization}
 
 % settings
 
