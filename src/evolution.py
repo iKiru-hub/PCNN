@@ -35,12 +35,12 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 10_000,
+    "silent_duration": 8_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
-    "move_threshold": 6,# * GAME_SCALE,
+    "move_threshold": 150,# * GAME_SCALE,
 }
 
 game_settings = {
@@ -65,7 +65,7 @@ global_parameters = {
     "N": 30**2,
     "use_sprites": False,
     "speed": 0.7,
-    "min_weight_value": 0.5
+    "min_weight_value": 0.3
 }
 
 
@@ -183,7 +183,7 @@ FIXED_PARAMETERS = {
      # 'gain': 33.0,
      'offset': 1.0,
      'threshold': 0.4,
-     # 'rep_threshold': 0.85,
+     'rep_threshold': 0.85,
      # 'rec_threshold': 63,
      # 'tau_trace': 20,
 
@@ -191,7 +191,7 @@ FIXED_PARAMETERS = {
      'min_rep_threshold': 0.99,
 
      'lr_da': 0.90,
-     # 'lr_pred': 0.1,
+     'lr_pred': 0.05,
      'threshold_da': 0.05,
      'tau_v_da': 4.0,
 
