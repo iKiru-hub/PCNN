@@ -23,6 +23,8 @@ ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
            ["Square.v0"]
 MAX_SCORE = 100.
 
+OPTIONS = [True, True, False, False]
+
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
 
 
@@ -83,7 +85,7 @@ class Model:
                  rwd_weight, rwd_sigma, col_weight, col_sigma,
                  rwd_field_mod, col_field_mod, action_delay,
                  min_weight_value, edge_route_interval,
-                 forced_duration):
+                 forced_duration, options=[True]*4):
 
         self._params = {
 
@@ -124,6 +126,8 @@ class Model:
 
             "forced_duration": forced_duration,
             "min_weight_value": min_weight_value,
+
+            "options": options
         }
 
         self.name = "".join(np.random.choice(list(string.ascii_uppercase), 5))
@@ -152,7 +156,7 @@ class Env:
     def run(self, agent: object) -> tuple:
 
         fitness = 0
-        zero_scores = 0
+        nb_zeros = 0
         for i in range(self._num_samples):
             # score = safe_run_model(agent, ROOM_LIST[i])
 
@@ -168,9 +172,12 @@ class Env:
             # cap
             score = min(MAX_SCORE, score)
 
+            if score == 0:
+                nb_zeros += 1
+
             fitness += score
 
-        fitness /= self._num_samples
+        fitness /= max(self._num_samples-nb_zeros, 1)
         return fitness,
 
 
@@ -213,7 +220,8 @@ FIXED_PARAMETERS = {
      'action_delay': 120.0,
      # 'edge_route_interval': 5000,
      'forced_duration': 19,
-     'min_weight_value': 0.1
+     'min_weight_value': 0.1,
+     'options': OPTIONS
 }
 
 
@@ -367,7 +375,7 @@ if __name__ == "__main__" :
         "data": {"game_settings": game_settings.copy(),
                  "reward_settings": reward_settings.copy(),
                  "global_parameters": global_parameters.copy()},
-        "other": "single space",
+        "other": f"single space, options={OPTIONS}",
     }
     logger(f"Note: {info['other']}")
 
