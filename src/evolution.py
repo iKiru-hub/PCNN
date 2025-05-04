@@ -23,7 +23,7 @@ ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
            ["Square.v0"]
 MAX_SCORE = 100.
 
-OPTIONS = [True, True, False, False]
+OPTIONS = [False, False, False, True]
 
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
 
