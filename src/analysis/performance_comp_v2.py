@@ -137,32 +137,32 @@ def change_parameters(params: dict, name: int):
 
     # baseline
     if name == "DA-d":
-        params['modulation_option'] = [True] + [False] * 3
+        params['modulation_option'] = [True, False, False, False]
         return params
 
     # no remap option
     if name == "DA-r":
-        params['modulation_option'] = [False, True] + [False] * 2
+        params['modulation_option'] = [False, True, False, False]
         return params
 
     # default
     if name == "BND-d":
-        params['modulation_option'] = [False] * 2 + [True, False]
+        params['modulation_option'] = [False, False, True, False]
         return params
 
     # only da remap
     if name == "BND-r":
-        params['modulation_option'] = [False] * 3 + [True]
+        params['modulation_option'] = [False, False, False, True]
         return params
 
     # only col remap
     if name == "baseline":
-        params['modulation_option'] = [True] * 4
+        params['modulation_option'] = [True, True, True, True]
         return params
 
     # no remap option
     if name == "no_remap":
-        params['modulation_option'] = [False] * 4
+        params['modulation_option'] = [False, False, False, False]
         params["remapping_flag"] = -1
         return params
 
