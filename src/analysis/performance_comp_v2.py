@@ -281,15 +281,6 @@ if __name__ == "__main__":
         PARAMETERS = utils.load_parameters(idx)
         logger.debug(f"LOADED: {PARAMETERS}")
 
-    if args.room == "random":
-        update_room_name(get_random_room())
-        logger(f"random room: {ROOM_NAME}")
-    elif args.room in ROOMS:
-        update_room_name(args.room)
-        logger(f"room: {args.room}")
-    elif args.room != "none":
-        logger.warning(f"default room: {ROOM_NAME}")
-
 
     logger(f"save={args.save}")
     logger(f"{NUM_CORES=}")
