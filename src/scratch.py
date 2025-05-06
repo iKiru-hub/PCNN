@@ -93,39 +93,75 @@ sim_parameters_2 = {
 
 
 sim_parameters = {
-        "gain": 33.0,
-        "offset": 1.02,
-        "threshold": 0.3,
-        "rep_threshold": 0.9,
-        "rec_threshold": 63,
-        "tau_trace": 20,
-        "remap_tag_frequency": 1,
-        "min_rep_threshold": 0.98,
+      "gain": 18.6,
+      "offset": 1.0,
+      "threshold": 0.4,
+      "rep_threshold": 0.82,
+      "rec_threshold": 55,
+      "tau_trace": 20,
+      "remap_tag_frequency": 1,
+      "num_neighbors": 3,
+      "min_rep_threshold": 0.99,
+      "lr_da": 0.9,
+      "lr_pred": 0.44,
+      "threshold_da": 0.05,
+      "tau_v_da": 4.0,
+      "lr_bnd": 0.9,
+      "threshold_bnd": 0.2,
+      "tau_v_bnd": 3.0,
+      "tau_ssry": 437.0,
+      "threshold_ssry": 1.986,
+      "threshold_circuit": 0.9,
+      "rwd_weight": 0.0,
+      "rwd_sigma": 0.0,
+      "col_weight": 0.0,
+      "col_sigma": 0.0,
+      "rwd_field_mod": 1.0,
+      "col_field_mod": 1.0,
+      "action_delay": 120.0,
+      "edge_route_interval": 5275,
+      "forced_duration": 19,
+      "min_weight_value": 0.1
+}
 
-        "lr_da": 0.9,
-        "lr_pred": 0.01,
-        "threshold_da": 0.03,
-        "tau_v_da": 2.0,
+sim_parameters_3 = {
+      "gain": 42.0,
+      "offset": 1.0,
+      "threshold": 0.4,
+      "rep_threshold": 0.84,
+      "rec_threshold": 94,
+      "tau_trace": 20,
+      "remap_tag_frequency": 1,
+      "num_neighbors": 16,
+      "min_rep_threshold": 0.99,
+      "lr_da": 0.9,
+      "lr_pred": 0.12,
+      "threshold_da": 0.05,
+      "tau_v_da": 4.0,
+      "lr_bnd": 0.9,
+      "threshold_bnd": 0.2,
+      "tau_v_bnd": 3.0,
+      "tau_ssry": 437.0,
+      "threshold_ssry": 1.986,
+      "threshold_circuit": 0.9,
+      "rwd_weight": -2.68,
+      "rwd_sigma": 67.7,
+      "col_weight": 3.14,
+      "col_sigma": 27.8,
+      # "rwd_weight": 0.0,
+      # "rwd_sigma": 0.0,
+      # "col_weight": 0.0,
+      # "col_sigma": 0.0,
+      "rwd_field_mod": 3.0,
+      "col_field_mod": 0.9,
+      # "rwd_field_mod": 1.0,
+      # "col_field_mod": 1.0,
+      "action_delay": 120.0,
+      "edge_route_interval": 6991,
+      "forced_duration": 19,
+      "min_weight_value": 0.1
 
-        "lr_bnd": 0.9,
-        "threshold_bnd": 0.01,
-        "tau_v_bnd": 3.0,
-
-        "tau_ssry": 437.0,
-        "threshold_ssry": 1.986,
-        "threshold_circuit": 0.9,
-
-        "rwd_weight": 1.,
-        "rwd_sigma": 40.,
-        "col_weight": 0.,
-        "col_sigma": 2.6,
-        "rwd_field_mod": 1.0,
-        "col_field_mod": 2.6,
-
-        "action_delay": 120.0,
-        "edge_route_interval": 5000,
-        "forced_duration": 19,
-        "min_weight_value": 0.2}
+}
 
 
 
@@ -171,7 +207,8 @@ if __name__ == "__main__":
     else:
         logger.debug("using local parameters")
         # parameters = sim_parameters
-        parameters = sim_parameters_73
+        parameters = sim_parameters_3
+        # parameters = sim_parameters_73
 
     if args.room == "random":
         args.room = get_random_room()

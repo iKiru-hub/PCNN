@@ -148,6 +148,13 @@ def change_parameters(params: dict, name: int):
         return params
 
     # no remap option
+    if name == "no_remap":
+        params["lr_da"] = 0.
+        params["lr_pred"] = 0.
+        params["lr_bnd"] = 0.
+        params["col_field_mod_fine"] = 1.
+        params["col_field_mod_coarse"] = 1.
+        return params
 
     # default
     if name == "default":
@@ -235,11 +242,13 @@ def run_local_model(args) -> list:
     logger(f"{ROOM_NAME=}")
 
     for i in tqdm(range(NUM_OPTIONS)):
-        if OPTIONS[i] == 'no_remap':
-            results += [safe_run_model(PARAMETERS_NOREMAP, ROOM_NAME)]
-        else:
-            params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
-            results += [safe_run_model(params, ROOM_NAME)]
+        params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
+        results += [safe_run_model(params, ROOM_NAME)]
+        # if OPTIONS[i] == 'no_remap':
+        #     results += [safe_run_model(PARAMETERS_NOREMAP, ROOM_NAME)]
+        # else:
+        #     params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
+        #     results += [safe_run_model(params, ROOM_NAME)]
 
     return results
 
