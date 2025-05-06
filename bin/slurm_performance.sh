@@ -26,8 +26,8 @@ echo "[git 'main']"
 
 # --- RUN
 
-srun python3 analysis/study_performance.py --reps 16 --cores 64 --save --room "Square.v0"
-# srun python3 analysis/performance_comp.py --reps 16 --cores 128 --save --room "Flat.0010" --load_idx 53
+#srun python3 analysis/study_performance.py --reps 16 --cores 64 --save --room "Square.v0"
+srun python3 analysis/performance_comp.py --reps 16 --cores 64 --save --room "Flat.0010"
 
 echo "[finished]"
 
