@@ -128,42 +128,47 @@ PARAMETERS_NOREMAP = {
 
 """ FUNCTIONS """
 
-OPTIONS = ["no_remap", "baseline", "DA-d", "DA-r", "BND-d", "BND-r"]
+OPTIONS = ["no_remap", "default", "DA-d", "DA-r", "BND-d", "BND-r"]
 NUM_OPTIONS = len(OPTIONS)
 ROOM_NAME = "Flat.0010"
 
 
 def change_parameters(params: dict, name: int):
 
-    # baseline
+    # +density
     if name == "DA-d":
         params['modulation_option'] = [True, False, False, False]
         return params
 
-    # no remap option
+    # +gain
     if name == "DA-r":
         params['modulation_option'] = [False, True, False, False]
         return params
 
-    # default
+    # +density
     if name == "BND-d":
         params['modulation_option'] = [False, False, True, False]
         return params
 
-    # only da remap
+    # +gain
     if name == "BND-r":
         params['modulation_option'] = [False, False, False, True]
         return params
 
-    # only col remap
-    if name == "baseline":
+    # default
+    if name == "default":
         params['modulation_option'] = [True, True, True, True]
         return params
 
     # no remap option
     if name == "no_remap":
-        params['modulation_option'] = [False, False, False, False]
-        params["remapping_flag"] = -1
+        params['modulation_option'] = [False] * 4
+        params["rwd_weight"] = 0.
+        params["rwd_sigma"] = 0.
+        params["col_weight"] = 0.
+        params["col_sigma"] = 0.
+        params["col_field_mod_fine"] = 1.
+        params["col_field_mod_coarse"] = 1.
         return params
 
     else:

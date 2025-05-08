@@ -133,7 +133,7 @@ OPTIONS = ["chance", "no_remap", "default",
            "only_da", "only_col"]
 NUM_OPTIONS = len(OPTIONS)
 # ROOM_NAME = "Square.v0"
-ROOM_NAME = "Flat.1000"
+ROOM_NAME = "Flat.0010"
 
 
 def change_parameters(params: dict, name: int):
@@ -150,9 +150,10 @@ def change_parameters(params: dict, name: int):
     # no remap option
     if name == "no_remap":
         params['modulation_option'] = [False] * 4
-        params["lr_da"] = 0.
-        params["lr_pred"] = 0.
-        params["lr_bnd"] = 0.
+        params["rwd_weight"] = 0.
+        params["rwd_sigma"] = 0.
+        params["col_weight"] = 0.
+        params["col_sigma"] = 0.
         params["col_field_mod_fine"] = 1.
         params["col_field_mod_coarse"] = 1.
         return params
@@ -270,8 +271,6 @@ if __name__ == "__main__":
                         help='Number of repetitions')
     parser.add_argument('--cores', type=int, default=4,
                         help='Number of cores')
-    parser.add_argument("--room", type=str, default="none",
-                        help=f'room name: {ROOMS} or `random`')
     parser.add_argument('--save', action='store_true',
                         help='save the results')
     parser.add_argument('--load_idx', type=int, default=-1,
@@ -290,16 +289,6 @@ if __name__ == "__main__":
         assert isinstance(idx, int), "agent idx must be int"
         PARAMETERS = utils.load_parameters(idx)
         logger.debug(f"LOADED: {PARAMETERS}")
-
-    if args.room == "random":
-        update_room_name(get_random_room())
-        logger(f"random room: {ROOM_NAME}")
-    elif args.room in ROOMS:
-        update_room_name(args.room)
-        logger(f"room: {args.room}")
-    elif args.room != "none":
-        logger.warning(f"default room: {ROOM_NAME}")
-
 
     logger(f"save={args.save}")
     logger(f"{NUM_CORES=}")

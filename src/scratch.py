@@ -124,6 +124,7 @@ sim_parameters = {
       "min_weight_value": 0.1
 }
 
+
 sim_parameters_3 = {
     "gain": 42.0,
     "offset": 1.0,
@@ -145,21 +146,21 @@ sim_parameters_3 = {
     "threshold_ssry": 1.986,
     "threshold_circuit": 0.9,
 
-    "rwd_weight": -2.68,
-    "rwd_sigma": 67.7,
-    "col_weight": 3.14,
-    "col_sigma": 27.8,
-    "rwd_field_mod": 3.0,
-    "col_field_mod": 0.9,
-    "modulation_option": [True] * 4,
+    # "rwd_weight": -2.68,
+    # "rwd_sigma": 67.7,
+    # "col_weight": 3.14,
+    # "col_sigma": 27.8,
+    # "rwd_field_mod": 3.0,
+    # "col_field_mod": 0.9,
+    # "modulation_option": [True] * 4,
 
-    # "rwd_weight": 0.0,
-    # "rwd_sigma": 0.0,
-    # "col_weight": 0.0,
-    # "col_sigma": 0.0,
-    # "rwd_field_mod": 1.0,
-    # "col_field_mod": 1.0,
-    # "modulation_option": [False] * 4,
+    "rwd_weight": 0.0,
+    "rwd_sigma": 0.0,
+    "col_weight": 0.0,
+    "col_sigma": 0.0,
+    "rwd_field_mod": 1.0,
+    "col_field_mod": 1.0,
+    "modulation_option": [False] * 4,
 
     "action_delay": 120.0,
     "edge_route_interval": 6991,
