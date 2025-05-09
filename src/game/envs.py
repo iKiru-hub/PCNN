@@ -5,6 +5,10 @@ from typing import Tuple, List
 import argparse
 import os, sys
 sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
+
+import gym
+from gym import spaces
+
 from game.constants import *
 from utils import setup_logger
 
@@ -738,6 +742,73 @@ class Environment:
         self.time_flag = None
 
 
+class EnvironmentWrapper(gym.Env):
+    def __init__(self, env: Environment):
+        super(EnvironmentWrapper, self).__init__()
+        self.env = env
+        self.prev_position = self.env.position.copy()
+
+        # Define action and observation space
+        # Action: 2D velocity in range [-1, 1]
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32)
+
+        # Observation: velocity_x, velocity_y, agent_y_velocity, collision_flag, reward_available_flag
+        self.observation_space = spaces.Box(
+            low=-np.inf, high=np.inf, shape=(5,), dtype=np.float32
+        )
+
+    def reset(self):
+        self.env.reset()
+        self.prev_position = self.env.position.copy()
+        velocity = [0.0, 0.0]
+        obs = self._get_obs(velocity)
+        return obs
+
+    def step(self, action):
+        # Clip actions just in case
+        action = np.clip(action, -1.0, 1.0)
+
+        # Get previous position
+        prev_position = self.env.position.copy()
+
+        # Your env does not use brain during training
+        obs_tuple = self.env(velocity=np.array([action[0], -action[1]]), brain=None)
+
+        # Compute velocity (displacement)
+        new_position = self.env.position.copy()
+        velocity = [new_position[0] - prev_position[0],
+                    -(new_position[1] - prev_position[1])]
+
+        # Construct observation
+        obs = self._get_obs(velocity)
+
+        # Reward
+        reward = float(obs_tuple[2]) if obs_tuple[2] is not False else 0.0
+
+        # Done flag from your environment (based on time)
+        done = bool(obs_tuple[3])
+
+        return obs, reward, done, {}
+
+    def render(self, mode='human'):
+        self.env.render()
+
+    @property
+    def duration(self):
+        return self.env.duration
+
+    @property
+    def count(self):
+        return self.env.count
+
+    def _get_obs(self, velocity):
+        return np.array([
+            velocity[0],
+            velocity[1],
+            float(self.env.velocity[1]),           # from your env
+            float(self.env._collision),            # from your env
+            float(self.env.reward_availability)    # from your env
+        ], dtype=np.float32)
 
 if __name__ == "__main__":
 

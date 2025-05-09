@@ -9,6 +9,11 @@ from collections import deque, namedtuple
 import copy, os
 import argparse
 
+from stable_baselines3 import DQN, TD3
+from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.vec_env import DummyVecEnv
+import gym
+
 import game.envs as games
 from utils import setup_logger
 import simulations as sim
@@ -24,7 +29,7 @@ RLPATH = os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src/rlmodels")
 GAME_SCALE = games.SCREEN_WIDTH
 
 rl_parameters = {
-    'model_type': 'DQN',
+    'model_type': 'TD3',
     'hidden_dim': 64,
     'learning_rate': 0.001,
     'gamma': 0.99,
@@ -487,6 +492,9 @@ class TD3Agent:
         self.critic2_optimizer.load_state_dict(checkpoint['critic2_optimizer'])
         self.total_it = checkpoint.get('total_it', self.total_it)
 
+    def reset(self):
+        return
+
 
 class Actor(nn.Module):
     """Actor (Policy) Model for TD3"""
@@ -539,7 +547,7 @@ def make_rl_name(model: object):
 
 def run_rl_model(env: object,
                  num_episodes: int,
-                 model_type="DQN",
+                 model_type: str,
                  load: bool=False,
                  idx: int=0,
                  hidden_dim=64,
@@ -643,7 +651,6 @@ def run_rl_model(env: object,
     for epoch in tqdm(range(num_episodes), desc=f"Game ({model_type})",
                       disable=True):
 
-        model.reset()
         env.reset()
 
         for _ in range(env.duration):
@@ -763,17 +770,14 @@ def main_rl(global_parameters: dict,
                                     preferred_positions=preferred_positions,
                                     verbose_min=verbose_min)
 
-    record, model = run_rl_model(env=env,
+    record, model = run_rl_model_2(env=env,
                                  load=load,
                                  num_episodes=num_episodes,
                                  model_type=rl_parameters['model_type'],
-                                 hidden_dim=rl_parameters['hidden_dim'],
                                  learning_rate=rl_parameters['learning_rate'],
                                  gamma=rl_parameters['gamma'],
                                  buffer_size=rl_parameters['buffer_size'],
                                  batch_size=rl_parameters['batch_size'],
-                                 update_every=rl_parameters['update_every'],
-                                 renderer=None,
                                  plot_interval=game_settings['plot_interval'],
                                  t_teleport=game_settings['t_teleport'],
                                  pause=game_settings['pause'],
@@ -781,6 +785,25 @@ def main_rl(global_parameters: dict,
                                  verbose=game_settings['verbose'],
                                  verbose_min=verbose_min,
                                  training_mode=rl_parameters['training_mode'])
+
+    # record, model = run_rl_model(env=env,
+    #                              load=load,
+    #                              num_episodes=num_episodes,
+    #                              model_type=rl_parameters['model_type'],
+    #                              hidden_dim=rl_parameters['hidden_dim'],
+    #                              learning_rate=rl_parameters['learning_rate'],
+    #                              gamma=rl_parameters['gamma'],
+    #                              buffer_size=rl_parameters['buffer_size'],
+    #                              batch_size=rl_parameters['batch_size'],
+    #                              update_every=rl_parameters['update_every'],
+    #                              renderer=None,
+    #                              plot_interval=game_settings['plot_interval'],
+    #                              t_teleport=game_settings['t_teleport'],
+    #                              pause=game_settings['pause'],
+    #                              record_flag=False,
+    #                              verbose=game_settings['verbose'],
+    #                              verbose_min=verbose_min,
+    #                              training_mode=rl_parameters['training_mode'])
 
     logger(f"rw_count={env.rw_count}")
 
@@ -790,135 +813,76 @@ def main_rl(global_parameters: dict,
     return record
 
 
-def compare_models(env, custom_model, rl_model_type="DQN", num_episodes=10, **kwargs):
-    """
-    Compare the custom model with a standard RL model
 
-    Args:
-        env: Environment to run the models on
-        custom_model: The custom model to compare against
-        rl_model_type: Type of RL model to use for comparison
-        num_episodes: Number of episodes to run for comparison
-        **kwargs: Additional arguments to pass to both model runs
+def run_rl_model_2(env: gym.Env,
+                 num_episodes: int,
+                 model_type: str,
+                 load: bool = False,
+                 idx: int = 0,
+                 learning_rate=0.001,
+                 gamma=0.99,
+                 buffer_size=10000,
+                 batch_size=64,
+                 renderer=None,
+                 plot_interval=10,
+                 t_teleport=100,
+                 pause=-1,
+                 record_flag=False,
+                 verbose=True,
+                 verbose_min=True,
+                 training_mode=True):
 
-    Returns:
-        Dictionary containing comparison metrics
-    """
-    # Set up metrics
-    metrics = {
-        "custom_model": {"rewards": [], "steps": []},
-        "rl_model": {"rewards": [], "steps": []}
-    }
+    env = games.EnvironmentWrapper(env)
 
-    # Run episodes with custom model
-    for episode in range(num_episodes):
-        env.reset()
-        env_copy = copy.deepcopy(env)  # Create a copy for fair comparison
+    # Wrap your custom environment if needed
+    if not isinstance(env, gym.Env):
+        raise ValueError("Your environment must inherit from gym.Env")
 
-        if kwargs.get('verbose', True):
-            print(f"Running custom model - Episode {episode+1}/{num_episodes}")
+    vec_env = DummyVecEnv([lambda: env])
 
-        record = run_game(env_copy, custom_model, **kwargs)
+    model_class = {"DQN": DQN, "TD3": TD3}.get(model_type)
+    if model_class is None:
+        raise ValueError(f"Unsupported model type: {model_type}")
 
-        # Calculate and store metrics
-        total_reward = sum([1 if obs[3] else 0 for obs in env_copy.observation_history])
-        steps_taken = len(env_copy.observation_history)
+    model_path = f"{RLPATH}/model_{model_type}_{idx}"
 
-        metrics["custom_model"]["rewards"].append(total_reward)
-        metrics["custom_model"]["steps"].append(steps_taken)
+    if load and os.path.exists(model_path + ".zip"):
+        model = model_class.load(model_path, env=vec_env)
+        logger(f"Loaded model from {model_path}")
+    else:
+        model = model_class("MlpPolicy", vec_env,
+                            learning_rate=learning_rate,
+                            gamma=gamma,
+                            buffer_size=buffer_size,
+                            batch_size=batch_size,
+                            verbose=1 if verbose else 0)
 
-    # Run episodes with RL model
-    rl_model_kwargs = kwargs.copy()
-    rl_model_kwargs["model_type"] = rl_model_type
+    if training_mode:
+        model.learn(total_timesteps=num_episodes * env.duration)
+        if record_flag:
+            model.save(model_path)
+            logger(f"Saved model to {model_path}")
 
-    for episode in range(num_episodes):
-        env.reset()
-        env_copy = copy.deepcopy(env)  # Create a copy for fair comparison
+    # Evaluation run
+    obs = vec_env.reset()
+    record = {"activity": [], "trajectory": []}
+    for _ in range(env.duration):
+        action, _ = model.predict(obs, deterministic=True)
+        obs, reward, done, info = vec_env.step(action)
 
-        if kwargs.get('verbose', True):
-            print(f"Running RL model ({rl_model_type}) - Episode {episode+1}/{num_episodes}")
+        if record_flag:
+            record["trajectory"].append(env.unwrapped.position)
+            # You could define activity = model.policy.forward() if needed
 
-        record = run_rl_model(env_copy, **rl_model_kwargs)
+        if done:
+            break
 
-        # Calculate and store metrics
-        total_reward = sum([1 if obs[3] else 0 for obs in env_copy.observation_history])
-        steps_taken = len(env_copy.observation_history)
+        if env.visualize and env.t % plot_interval == 0:
+            env.render()
+            if renderer:
+                renderer()
 
-        metrics["rl_model"]["rewards"].append(total_reward)
-        metrics["rl_model"]["steps"].append(steps_taken)
-
-    # Calculate summary statistics
-    for model_type in metrics:
-        metrics[model_type]["avg_reward"] = np.mean(metrics[model_type]["rewards"])
-        metrics[model_type]["avg_steps"] = np.mean(metrics[model_type]["steps"])
-
-    return metrics
-
-
-# Example usage of the run_rl_model function that replaces your original run_game function
-
-def main():
-    # Initialize your environment
-    env = games.Environment(
-        # Your environment parameters here
-        duration=10000,
-        visualize=True,
-        # Other parameters...
-    )
-
-    # Choose which RL algorithm to use
-    # Options: "DQN" (Deep Q-Network) or "TD3" (Twin Delayed DDPG)
-    rl_model_type = "DQN"
-
-    # Run the environment with the RL model
-    record = run_rl_model(
-        env=env,
-        model_type=rl_model_type,
-        renderer=None,  # Your renderer object if needed
-        plot_interval=10,
-        t_teleport=100,
-        pause=-1,
-        record_flag=True,
-        verbose=True,
-        verbose_min=True,
-        # RL-specific parameters
-        hidden_dim=64,
-        learning_rate=0.001,
-        gamma=0.99,
-        buffer_size=10000,
-        batch_size=64,
-        update_every=4,
-        training_mode=True  # Set to False for evaluation only
-    )
-
-    # Analyze results
-    print(f"Trajectory length: {len(record['trajectory'])}")
-
-    # For comparison with your custom model
-    if hasattr(env, 'reset'):
-        env.reset()
-
-    # Initialize your custom model
-    custom_model = YourCustomModel()  # Replace with your actual model class
-
-    # Compare your custom model with an RL model
-    comparison_metrics = compare_models(
-        env=env,
-        custom_model=custom_model,
-        rl_model_type="DQN",
-        num_episodes=10,
-        # Other parameters similar to above
-        renderer=None,
-        plot_interval=10,
-        verbose=True
-    )
-
-    # Print comparison results
-    print("\nComparison Results:")
-    print(f"Custom Model - Avg Reward: {comparison_metrics['custom_model']['avg_reward']:.2f}, "
-          f"Avg Steps: {comparison_metrics['custom_model']['avg_steps']:.2f}")
-    print(f"RL Model ({rl_model_type}) - Avg Reward: {comparison_metrics['rl_model']['avg_reward']:.2f}, "
-          f"Avg Steps: {comparison_metrics['rl_model']['avg_steps']:.2f}")
+    return record, model
 
 
 if __name__ == "__main__":
