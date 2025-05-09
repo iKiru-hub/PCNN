@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name="perfpcv2"
-#SBATCH -p ipuq #rome16q #milanq #ipuq #milanq #armq #milanq #fpgaq #milanq # partition (queue)
+#SBATCH -p rome16q #milanq #ipuq #milanq #armq #milanq #fpgaq #milanq # partition (queue)
 #SBATCH -N 1 # number of nodes
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
@@ -27,7 +27,7 @@ echo "[git 'main']"
 # --- RUN
 
 # srun python3 analysis/study_performance.py --reps 5 --cores 64 --save --room "Square.v0"
-srun python3 analysis/performance_comp_v2.py --reps 32 --cores 64 --save
+srun python3 analysis/performance_comp_v2.py --reps 32 --cores 32 --save
 
 echo "[finished]"
 
