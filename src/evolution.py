@@ -13,7 +13,6 @@ import simulations as sim
 from game.constants import ROOMS, GAME_SCALE
 
 
-
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
 

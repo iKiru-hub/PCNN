@@ -723,6 +723,20 @@ class Environment:
         self.screen.blit(score_text, (200, 5))
         pygame.display.flip()
 
+    def reset(self):
+
+        self.rw_count = 0
+        self.t = 0
+        self.velocity = np.zeros(2)
+        self.trajectory = []
+        self.trajectory_set = [[]]
+        self.traj_color = (255, 0, 0)
+        self._collision = 0
+        self._reward = 0
+
+        self.rw_time = 0
+        self.time_flag = None
+
 
 
 if __name__ == "__main__":
