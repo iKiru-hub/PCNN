@@ -590,7 +590,7 @@ class Environment:
 
         if (self.t == self.rw_time): #> self.reward_obj.fetching_duration:
             # print(f"[ENV] [t={self.t} = {self.rw_time}")
-            terminated = self._reward_event(brain=brain)
+            terminated = self._reward_event(brain=None)
             # self.trajectory_set += [self.trajectory]
             # self.trajectory_set += [[]]
             # self.trajectory = []
@@ -655,10 +655,12 @@ class Environment:
             raise ValueError(f"Unknown reward " + \
                 f"event: {self.rw_event}")
 
-    def _reset_agent_position(self, brain: object,
+    def _reset_agent_position(self, brain: object=None,
                               exploration: bool = False):
 
-        brain.reset()
+        if brain is not None:
+            brain.reset()
+
         prev_position = self.agent.position.copy()
 
         if exploration:
@@ -752,7 +754,8 @@ class EnvironmentWrapper(gym.Env):
         # Action: 2D velocity in range [-1, 1]
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32)
 
-        # Observation: velocity_x, velocity_y, agent_y_velocity, collision_flag, reward_available_flag
+        # Observation: velocity_x, velocity_y, agent_y_velocity,
+        # collision_flag, reward_available_flag
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(5,), dtype=np.float32
         )
@@ -786,7 +789,7 @@ class EnvironmentWrapper(gym.Env):
         reward = float(obs_tuple[2]) if obs_tuple[2] is not False else 0.0
 
         # Done flag from your environment (based on time)
-        done = bool(obs_tuple[3])
+        done = bool(obs_tuple[3]) or reward > 0
 
         return obs, reward, done, {}
 
@@ -800,6 +803,10 @@ class EnvironmentWrapper(gym.Env):
     @property
     def count(self):
         return self.env.count
+
+    @property
+    def visualize(self):
+        return self.env.visualize
 
     def _get_obs(self, velocity):
         return np.array([

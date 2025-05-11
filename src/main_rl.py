@@ -9,7 +9,7 @@ from collections import deque, namedtuple
 import copy, os
 import argparse
 
-from stable_baselines3 import DQN, TD3
+from stable_baselines3 import DQN, TD3, PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.vec_env import DummyVecEnv
 import gym
@@ -807,10 +807,11 @@ def main_rl(global_parameters: dict,
 
     logger(f"rw_count={env.rw_count}")
 
-    if save:
-        model.save_model(path=make_rl_name(model))
+    # if save:
+    #     model.save_model(path=make_rl_name(model))
 
     return record
+
 
 
 
@@ -834,31 +835,48 @@ def run_rl_model_2(env: gym.Env,
 
     env = games.EnvironmentWrapper(env)
 
-    # Wrap your custom environment if needed
     if not isinstance(env, gym.Env):
         raise ValueError("Your environment must inherit from gym.Env")
 
     vec_env = DummyVecEnv([lambda: env])
 
-    model_class = {"DQN": DQN, "TD3": TD3}.get(model_type)
+    model_classes = {
+        "DQN": DQN,
+        "TD3": TD3,
+        "PPO": PPO
+    }
+
+    model_class = model_classes.get(model_type)
     if model_class is None:
         raise ValueError(f"Unsupported model type: {model_type}")
 
     model_path = f"{RLPATH}/model_{model_type}_{idx}"
 
+    # Define model-specific kwargs
+    model_kwargs = {
+        "learning_rate": learning_rate,
+        "gamma": gamma,
+        "verbose": 1 if verbose else 0,
+        "device": "cuda",  # ✅ Use GPU
+    }
+
+    # Add only relevant arguments based on the algorithm
+    if model_type in ["DQN", "TD3"]:
+        model_kwargs.update({
+            "buffer_size": buffer_size,
+            "batch_size": batch_size,
+        })
+
     if load and os.path.exists(model_path + ".zip"):
-        model = model_class.load(model_path, env=vec_env)
+        model = model_class.load(model_path, env=vec_env, device="cuda",
+                                 verbose=0)
         logger(f"Loaded model from {model_path}")
     else:
-        model = model_class("MlpPolicy", vec_env,
-                            learning_rate=learning_rate,
-                            gamma=gamma,
-                            buffer_size=buffer_size,
-                            batch_size=batch_size,
-                            verbose=1 if verbose else 0)
+        model = model_class("MlpPolicy", vec_env, **model_kwargs)
 
     if training_mode:
-        model.learn(total_timesteps=num_episodes * env.duration)
+        model.learn(total_timesteps=num_episodes,
+                    progress_bar=True)
         if record_flag:
             model.save(model_path)
             logger(f"Saved model to {model_path}")
@@ -872,15 +890,12 @@ def run_rl_model_2(env: gym.Env,
 
         if record_flag:
             record["trajectory"].append(env.unwrapped.position)
-            # You could define activity = model.policy.forward() if needed
 
         if done:
             break
 
-        if env.visualize and env.t % plot_interval == 0:
-            env.render()
-            if renderer:
-                renderer()
+        # if env.visualize and env.t % plot_interval == 0:
+        #     env.render()
 
     return record, model
 
