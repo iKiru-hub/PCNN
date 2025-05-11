@@ -9,7 +9,7 @@ from game.constants import *
 sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src/"))
 from utils import setup_logger
 
-logger = setup_logger('OBJ', level=-1, is_debugging=False)
+logger = setup_logger('OBJ', level=-1, is_debugging=True)
 
 # absolute path to the sprites folder
 sprite_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sprites")
@@ -270,12 +270,13 @@ class RewardObj:
 
         self.current_sprite = self.sprites["free"] 
 
-        logger(self.__str__())
+        logger.debug(self.__str__())
 
     def __str__(self) -> str:
         return f"Reward({self.x:.1f}, {self.y:.1f}, " + \
             f"{self._fetching}, " + \
-            f"dur={self.fetching_duration}"
+            f"dur={self.fetching_duration}, " +\
+            f"pos={np.around(self.position, 3)}"
 
     def _probability_function(self, distance: float) -> float:
         return self.sigma if distance < self.radius else 0.0

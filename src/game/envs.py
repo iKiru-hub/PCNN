@@ -12,7 +12,7 @@ from gym import spaces
 from game.constants import *
 from utils import setup_logger
 
-logger = setup_logger(name='ENV', level=-2, is_debugging=False)
+logger = setup_logger(name='ENV', level=-2, is_debugging=True)
 # import game.objects as objects
 # from game.objects import logger
 
@@ -484,7 +484,15 @@ def make_room(name: str="square", thickness: float=10.,
     else:
         name = "Square.v0"
         room_positions = [[0.5, 0.5]] + [[0.8, 0.6]] + \
-            np.random.uniform(0.25, 0.755, (40, 2)).tolist()
+                [[0.2806364523971874, 0.2435772280597547],
+                 [0.84758117279920714, 0.8512782166456011],
+                 [0.621934808306112, 0.34311630349521194],
+                 [0.29821968919291714, 0.5418489965017503],
+                 [0.4599671145340115, 0.6945489730728632],
+                 [0.39576820293662573, 0.29145453982651204],
+                 [0.6186957334336476, 0.4516116142178095]]
+
+            # np.random.uniform(0.25, 0.755, (40, 2)).tolist()
 
     room = Room(walls_bounds=walls_bounds,
                 walls_extra=walls_extra,
@@ -537,6 +545,7 @@ class Environment:
 
     def __init__(self, room: Room, agent: object,
                  reward_obj: object,
+                 agent_position_list: list=None,
                  rw_event: str = "nothing",
                  duration: int=np.inf,
                  # scale: float=1.0,
@@ -547,6 +556,7 @@ class Environment:
         self.room = room
         self.agent = agent
         self.reward_obj = reward_obj
+        self._agent_position_list = agent_position_list
 
         # Reward event
         self.rw_event = rw_event
@@ -571,11 +581,14 @@ class Environment:
             pygame.init()
             self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
             pygame.display.set_caption("Simple Pygame Game")
+            logger.debug("%env rendering")
 
         if self.agent.limit_position_len is not None:
             logger.debug(f"Agent fixed position: {self.agent.limit_position_len}")
 
         logger.debug(f"Reward event: {rw_event}")
+
+        logger.debug(self)
 
     def __str__(self):
         return f"Environment({self.room}, duration={self.duration}, " + \
@@ -623,7 +636,7 @@ class Environment:
         self._reward = float(reward)
 
         # return self.agent.position.copy(), velocity, reward, float(collision), float(self.t >= self.duration), terminated
-        return np.around(velocity, 3), float(collision), reward, float(self.t >= self.duration), terminated
+        return self.agent.position, float(collision), self._reward > 0., float(self.t >= self.duration), terminated
 
     def _reward_event(self, brain: object):
 
@@ -666,7 +679,9 @@ class Environment:
         if exploration:
             self.agent.set_position(self.room.sample_next_position())
         else:
-            if self.agent.limit_position_len > -1:
+            if self._agent_position_list is not None:
+                self.agent.set_position(np.random.choice(self._agent_position_list))
+            elif self.agent.limit_position_len > -1:
                 self.agent.set_position(
                     self.room.get_room_positions()[
                             self.agent.limit_position_len])
@@ -739,6 +754,7 @@ class Environment:
         self.traj_color = (255, 0, 0)
         self._collision = 0
         self._reward = 0
+        self._reset_agent_position()
 
         self.rw_time = 0
         self.time_flag = None
@@ -750,9 +766,11 @@ class EnvironmentWrapper(gym.Env):
         self.env = env
         self.prev_position = self.env.position.copy()
 
+        self.speed = 1.
+
         # Define action and observation space
         # Action: 2D velocity in range [-1, 1]
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1.5, high=1.5, shape=(2,), dtype=np.float32)
 
         # Observation: velocity_x, velocity_y, agent_y_velocity,
         # collision_flag, reward_available_flag
@@ -760,16 +778,23 @@ class EnvironmentWrapper(gym.Env):
             low=-np.inf, high=np.inf, shape=(5,), dtype=np.float32
         )
 
+        if self.env.visualize:
+            logger.debug("env rendering")
+
+    def set_speed(self, speed: float):
+        self.speed = speed
+
     def reset(self):
         self.env.reset()
         self.prev_position = self.env.position.copy()
         velocity = [0.0, 0.0]
         obs = self._get_obs(velocity)
+
         return obs
 
     def step(self, action):
         # Clip actions just in case
-        action = np.clip(action, -1.0, 1.0)
+        action = np.clip(action, -1., 1.) * self.speed 
 
         # Get previous position
         prev_position = self.env.position.copy()
@@ -789,7 +814,7 @@ class EnvironmentWrapper(gym.Env):
         reward = float(obs_tuple[2]) if obs_tuple[2] is not False else 0.0
 
         # Done flag from your environment (based on time)
-        done = bool(obs_tuple[3]) or reward > 0
+        done = bool(obs_tuple[3])# or reward > 0)
 
         return obs, reward, done, {}
 
@@ -808,14 +833,19 @@ class EnvironmentWrapper(gym.Env):
     def visualize(self):
         return self.env.visualize
 
+    @property
+    def t(self):
+        return self.env.t
+
     def _get_obs(self, velocity):
         return np.array([
-            velocity[0],
-            velocity[1],
-            float(self.env.velocity[1]),           # from your env
+            self.env.position[0],
+            self.env.position[1],
+            float(self.env._reward),           # from your env
             float(self.env._collision),            # from your env
-            float(self.env.reward_availability)    # from your env
+            float(np.sqrt(velocity[0]**2 + velocity[1]**2))    # from your env
         ], dtype=np.float32)
+
 
 if __name__ == "__main__":
 

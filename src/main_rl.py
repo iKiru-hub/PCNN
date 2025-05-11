@@ -7,11 +7,12 @@ from tqdm import tqdm
 import random
 from collections import deque, namedtuple
 import copy, os
-import argparse
+import argparse, time
 
 from stable_baselines3 import DQN, TD3, PPO
 from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+
 import gym
 
 import game.envs as games
@@ -29,14 +30,15 @@ RLPATH = os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src/rlmodels")
 GAME_SCALE = games.SCREEN_WIDTH
 
 rl_parameters = {
-    'model_type': 'TD3',
+    'model_type': 'PPO',
     'hidden_dim': 64,
     'learning_rate': 0.001,
     'gamma': 0.99,
     'buffer_size': 10000,
     'batch_size': 64,
     'update_every': 4,
-    'training_mode': True}
+    'training_mode': True,
+}
 
 
 reward_settings = {
@@ -55,7 +57,8 @@ reward_settings = {
     "transparent": False,
     "beta": 40.,
     "alpha": 0.06,# * GAME_SCALE,
-    "move_threshold": 20,# * GAME_SCALE,
+    "move_threshold": 5,# * GAME_SCALE,
+    "rw_position_idx": 3,
 }
 
 
@@ -66,7 +69,7 @@ game_settings = {
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "max_duration": 20_000,
-    "t_teleport": 1_000,
+    "t_teleport": 0,
     "limit_position_len": -1,
     "room_thickness": 20,
     "seed": None,
@@ -75,10 +78,8 @@ game_settings = {
 }
 
 global_parameters = {
-    "local_scale": 0.015,
-    "N": 25**2,
     "use_sprites": bool(0),
-    "speed": 0.7,
+    "speed": 20.,
     "min_weight_value": 0.5
 }
 
@@ -535,14 +536,96 @@ class Critic(nn.Module):
         x = torch.cat([state, action], dim=1)
         return self.network(x)
 
-def make_rl_name(model: object):
-    model_str = str(model)
+def make_rl_name(model_str: str):
     existing = [fname for fname in os.listdir(RLPATH) if model_str in fname]
     num = len(existing)
-    return f"{RLPATH}/model_{model_str}_{num}"
+    return f"model_{model_str}_{num}"
 
 
 """ RUN FUNCTIONS """
+
+
+def setup_env(global_parameters: dict,
+              reward_settings: dict,
+              game_settings: dict,
+              room_name: str,
+              pause: int=-1, verbose: bool=True,
+              record_flag: bool=False,
+              limit_position_len: int=-1,
+              preferred_positions: list=None,
+              verbose_min: bool=True):
+
+    """ make game environment """
+
+    if verbose and verbose_min:
+        logger(f"room_name={room_name}")
+
+    room = games.make_room(name=room_name,
+                           thickness=game_settings["room_thickness"],
+                           bounds=[0, 1, 0, 1])
+    room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
+                   room.bounds[1]+10, room.bounds[3]-10]
+
+    # ===| objects settings |===
+
+    possible_positions = room.get_room_positions()
+
+    # reward
+    if reward_settings['rw_position_idx'] > -1:
+        rw_position_idx = reward_settings['rw_position_idx']
+    else:
+        rw_position_idx = np.random.randint(0, len(possible_positions))
+    rw_position = possible_positions[rw_position_idx]
+
+    # agent
+    agent_position = room.sample_next_position()
+    agent_position_list = [p for p in possible_positions]
+    del agent_position_list[rw_position_idx]
+
+    rw_tau = reward_settings["tau"] if "tau" in reward_settings else 100
+
+    # ===| object declaration |===
+
+    reward_obj = objects.RewardObj(
+                position=rw_position,
+                # possible_positions=constants.POSSIBLE_POSITIONS.copy(),
+                possible_positions=possible_positions,
+                radius=reward_settings["rw_radius"],
+                sigma=reward_settings["rw_sigma"],
+                fetching=reward_settings["rw_fetching"],
+                value=reward_settings["rw_value"],
+                bounds=room_bounds,
+                delay=reward_settings["delay"],
+                use_sprites=global_parameters["use_sprites"],
+                silent_duration=reward_settings["silent_duration"],
+                tau=rw_tau,
+                preferred_positions=preferred_positions,
+                move_threshold=reward_settings["move_threshold"],
+                transparent=reward_settings["transparent"])
+
+    body = objects.AgentBody(
+                position=agent_position,
+                speed=global_parameters["speed"],
+                possible_positions=possible_positions,
+                use_sprites=global_parameters["use_sprites"],
+                bounds=game_settings["agent_bounds"],
+                room=room,
+                limit_position_len=game_settings["limit_position_len"],
+                color=(10, 10, 10))
+
+    # --- env
+    env = games.Environment(room=room,
+                            agent=body,
+                            reward_obj=reward_obj,
+                            agent_position_list=agent_position_list,
+                            rw_event=game_settings["rw_event"],
+                            verbose=False,
+                            duration=game_settings["max_duration"],
+                            visualize=game_settings["rendering"])
+
+    return env, reward_obj
+
+
 
 
 def run_rl_model(env: object,
@@ -751,8 +834,10 @@ def main_rl(global_parameters: dict,
             game_settings: dict,
             room_name: str,
             num_episodes: int,
+            num_envs: int=1,
             save: bool=False,
             load: bool=False,
+            idx: int=0,
             pause: int=-1,
             verbose: bool=True,
             record_flag: bool=False,
@@ -771,20 +856,23 @@ def main_rl(global_parameters: dict,
                                     verbose_min=verbose_min)
 
     record, model = run_rl_model_2(env=env,
-                                 load=load,
-                                 num_episodes=num_episodes,
-                                 model_type=rl_parameters['model_type'],
-                                 learning_rate=rl_parameters['learning_rate'],
-                                 gamma=rl_parameters['gamma'],
-                                 buffer_size=rl_parameters['buffer_size'],
-                                 batch_size=rl_parameters['batch_size'],
-                                 plot_interval=game_settings['plot_interval'],
-                                 t_teleport=game_settings['t_teleport'],
-                                 pause=game_settings['pause'],
-                                 record_flag=False,
-                                 verbose=game_settings['verbose'],
-                                 verbose_min=verbose_min,
-                                 training_mode=rl_parameters['training_mode'])
+                                   load=load,
+                                   idx=idx,
+                                   num_episodes=num_episodes,
+                                   num_envs=num_envs,
+                                   model_type=rl_parameters['model_type'],
+                                   learning_rate=rl_parameters['learning_rate'],
+                                   gamma=rl_parameters['gamma'],
+                                   buffer_size=rl_parameters['buffer_size'],
+                                   batch_size=rl_parameters['batch_size'],
+                                   plot_interval=game_settings['plot_interval'],
+                                   t_teleport=game_settings['t_teleport'],
+                                   pause=game_settings['pause'],
+                                   record_flag=False,
+                                   verbose=game_settings['verbose'],
+                                   verbose_min=verbose_min,
+                                   save=save,
+                                   training_mode=rl_parameters['training_mode'])
 
     # record, model = run_rl_model(env=env,
     #                              load=load,
@@ -813,32 +901,35 @@ def main_rl(global_parameters: dict,
     return record
 
 
-
-
 def run_rl_model_2(env: gym.Env,
-                 num_episodes: int,
-                 model_type: str,
-                 load: bool = False,
-                 idx: int = 0,
-                 learning_rate=0.001,
-                 gamma=0.99,
-                 buffer_size=10000,
-                 batch_size=64,
-                 renderer=None,
-                 plot_interval=10,
-                 t_teleport=100,
-                 pause=-1,
-                 record_flag=False,
-                 verbose=True,
-                 verbose_min=True,
-                 training_mode=True):
+                   num_episodes: int,
+                   model_type: str,
+                   num_envs: int = 1,
+                   load: bool = False,
+                   idx: int = 0,
+                   learning_rate=0.001,
+                   gamma=0.99,
+                   buffer_size=10000,
+                   batch_size=64,
+                   renderer=None,
+                   plot_interval=10,
+                   t_teleport=100,
+                   pause=-1,
+                   record_flag=False,
+                   verbose=True,
+                   verbose_min=True,
+                   training_mode=True,
+                   save=True):
 
     env = games.EnvironmentWrapper(env)
+    env.set_speed(global_parameters["speed"])
 
     if not isinstance(env, gym.Env):
         raise ValueError("Your environment must inherit from gym.Env")
 
-    vec_env = DummyVecEnv([lambda: env])
+    if num_envs > 1:
+        logger(f"Using {num_envs} environments in parallel")
+    vec_env = DummyVecEnv([lambda: env] * num_envs)
 
     model_classes = {
         "DQN": DQN,
@@ -850,52 +941,69 @@ def run_rl_model_2(env: gym.Env,
     if model_class is None:
         raise ValueError(f"Unsupported model type: {model_type}")
 
-    model_path = f"{RLPATH}/model_{model_type}_{idx}"
+    model_path = f"{RLPATH}/{make_rl_name(model_type)}"
 
-    # Define model-specific kwargs
+    # Model-specific configuration
     model_kwargs = {
         "learning_rate": learning_rate,
         "gamma": gamma,
         "verbose": 1 if verbose else 0,
-        "device": "cuda",  # ✅ Use GPU
+        "device": "cuda",  # GPU usage
     }
 
-    # Add only relevant arguments based on the algorithm
     if model_type in ["DQN", "TD3"]:
         model_kwargs.update({
             "buffer_size": buffer_size,
             "batch_size": batch_size,
         })
 
+    # Load or initialize model
     if load and os.path.exists(model_path + ".zip"):
-        model = model_class.load(model_path, env=vec_env, device="cuda",
-                                 verbose=0)
+        model = model_class.load(model_path, env=vec_env, device="cuda", verbose=0)
         logger(f"Loaded model from {model_path}")
     else:
         model = model_class("MlpPolicy", vec_env, **model_kwargs)
 
+    # Training
     if training_mode:
-        model.learn(total_timesteps=num_episodes,
-                    progress_bar=True)
-        if record_flag:
+        model.learn(total_timesteps=num_episodes, progress_bar=True)
+        if save:
+            os.makedirs(RLPATH, exist_ok=True)
             model.save(model_path)
-            logger(f"Saved model to {model_path}")
+            logger(f"[✓] Trained model saved to {model_path}")
 
-    # Evaluation run
-    obs = vec_env.reset()
-    record = {"activity": [], "trajectory": []}
-    for _ in range(env.duration):
-        action, _ = model.predict(obs, deterministic=True)
-        obs, reward, done, info = vec_env.step(action)
+    # Evaluation
+    for _i in range(10):
+        obs = vec_env.reset()
+        record = {"activity": [], "trajectory": []}
 
-        if record_flag:
-            record["trajectory"].append(env.unwrapped.position)
+        # ---
+        for _ in range(env.duration):
+            action, _ = model.predict(obs, deterministic=True)
+            obs, reward, done, info = vec_env.step(action)
 
-        if done:
-            break
+            if record_flag:
+                record["trajectory"].append(env.unwrapped.position)
 
-        # if env.visualize and env.t % plot_interval == 0:
-        #     env.render()
+            try:
+                if done:
+                    break
+            except Exception:
+                done = done[0]
+                if done:
+                    break
+
+            if env.visualize:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        break
+
+            if env.visualize and env.t % plot_interval == 0:
+                env.render()
+
+        #
+        env.render()
+        logger.debug(f"test {_i} | R={reward.tolist()}")
 
     return record, model
 
@@ -906,9 +1014,11 @@ if __name__ == "__main__":
     parser.add_argument("--duration", type=int, default=-1)
     parser.add_argument("--load", action="store_true")
     parser.add_argument("--episodes", type=int, default=1)
-    parser.add_argument("--transparent", action="store_true")
     parser.add_argument("--rendering", action="store_true")
+    parser.add_argument("--num_envs", type=int, default=1)
+    parser.add_argument("--idx", type=int, default=0)
     parser.add_argument("--save", action="store_true")
+    parser.add_argument("--test", action="store_true")
     parser.add_argument("--interval", type=int, default=20,
                         help="plotting interval")
     parser.add_argument("--room", type=str, default="Square.v0",
@@ -919,14 +1029,24 @@ if __name__ == "__main__":
                          '"Flat.1011", "Flat.1110"] or `random`')
     args = parser.parse_args()
 
+    if args.rendering:
+        game_settings['rendering'] = True
+
+    if args.test:
+        rl_parameters['training_mode'] = False
+
+    game_settings['max_duration'] = args.duration
+
     # main()
     main_rl(global_parameters=global_parameters,
             reward_settings=reward_settings,
             game_settings=game_settings,
             room_name=args.room,
             num_episodes=args.episodes,
+            num_envs=args.num_envs,
             save=args.save,
             load=args.load,
+            idx=args.idx,
             pause=-1,
             verbose=False,
             record_flag=False,

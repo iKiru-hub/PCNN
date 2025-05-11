@@ -42,6 +42,7 @@ reward_settings = {
     "beta": 40.,
     "alpha": 0.06,# * GAME_SCALE,
     "move_threshold": 4,# * GAME_SCALE,
+    "rw_position_idx": 0,
 }
 
 game_settings = {
@@ -137,7 +138,6 @@ parameters = {
 
 
 fixed_params = parameters.copy()
-
 
 possible_positions = np.array([
     [0.25, 0.75], [0.75, 0.75],
@@ -485,10 +485,13 @@ def setup_env(global_parameters: dict,
 
     possible_positions = room.get_room_positions()
 
-    rw_position_idx = np.random.randint(0, len(possible_positions))
-    rw_position = possible_positions [rw_position_idx]
-    agent_possible_positions = possible_positions.copy()
+    if reward_settings['rw_position_idx'] > -1:
+        rw_position_idx = reward_settings['rw_position_idx']
+    else:
+        rw_position_idx = np.random.randint(0, len(possible_positions))
 
+    rw_position = possible_positions[rw_position_idx]
+    agent_possible_positions = possible_positions.copy()
     agent_position = room.sample_next_position()
 
     rw_tau = reward_settings["tau"] if "tau" in reward_settings else 100
@@ -628,6 +631,7 @@ def run_model(parameters: dict,
 
     return env.rw_count, info
 
+
 def run_game(env: games.Environment,
              model: object,
              renderer: object,
@@ -648,7 +652,6 @@ def run_game(env: games.Environment,
 
     record = {"activity": [],
               "trajectory": []}
-
 
     # ===| main loop |===
     for _ in tqdm(range(env.duration), desc="Game", leave=False,
