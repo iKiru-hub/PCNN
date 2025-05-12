@@ -598,42 +598,31 @@ class Environment:
         Tuple[float, np.ndarray, bool, bool]:
 
         # scale velocity
-        # velocity *= self.scale
         self.t += 1
 
         if (self.t == self.rw_time): #> self.reward_obj.fetching_duration:
-            # print(f"[ENV] [t={self.t} = {self.rw_time}")
             terminated = self._reward_event(brain=None)
-            # self.trajectory_set += [self.trajectory]
-            # self.trajectory_set += [[]]
-            # self.trajectory = []
-            # print("trajectory_set: ", len(self.trajectory_set))
 
-        # Update agent position with improved collision handling
+        # --- step
         velocity, collision = self.agent(velocity)
-        # self.velocity = np.around(velocity, 3)
 
-        # Check reward collisions
+        # --- reward
         reward = self.reward_obj(self.agent.rect.center)
         terminated = False
         if reward and self.rw_time <= self.t:
             self.rw_time = self.t + self.reward_obj.fetching_duration
-            # print(f"[ENV] [t={self.t}] +reward [{self.rw_time=}, {self.t=}]")
             self.rw_count += 1
 
-        # if self.verbose:
-            # if reward:
-            #     logger.info(f"[t={self.t}] +reward")
-            # if collision:
-            #     logger.info(f"[t={self.t}] -collision")
-
-        # position = self.agent.position.copy() / self.scale
+        # --- record
         self.trajectory.append([self.agent.position[0]+8,
                                 self.agent.position[1]+8])
         self.trajectory_set[-1].append([self.agent.position[0]+8,
                                         self.agent.position[1]+8])
         self._collision = float(collision)
         self._reward = float(reward)
+
+        self.velocity[0] = velocity[0]
+        self.velocity[1] = velocity[1]
 
         # return self.agent.position.copy(), velocity, reward, float(collision), float(self.t >= self.duration), terminated
         return self.agent.position, float(collision), self._reward > 0., float(self.t >= self.duration), terminated
@@ -680,7 +669,8 @@ class Environment:
             self.agent.set_position(self.room.sample_next_position())
         else:
             if self._agent_position_list is not None:
-                self.agent.set_position(np.random.choice(self._agent_position_list))
+                ridx = np.random.choice(range(len(self._agent_position_list)))
+                self.agent.set_position(self._agent_position_list[ridx])
             elif self.agent.limit_position_len > -1:
                 self.agent.set_position(
                     self.room.get_room_positions()[
@@ -775,7 +765,7 @@ class EnvironmentWrapper(gym.Env):
         # Observation: velocity_x, velocity_y, agent_y_velocity,
         # collision_flag, reward_available_flag
         self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=(5,), dtype=np.float32
+            low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32
         )
 
         if self.env.visualize:
@@ -841,9 +831,10 @@ class EnvironmentWrapper(gym.Env):
         return np.array([
             self.env.position[0],
             self.env.position[1],
+            self.env.velocity[1],
+            self.env.velocity[0],
             float(self.env._reward),           # from your env
             float(self.env._collision),            # from your env
-            float(np.sqrt(velocity[0]**2 + velocity[1]**2))    # from your env
         ], dtype=np.float32)
 
 

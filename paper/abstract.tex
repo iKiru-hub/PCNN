@@ -16,4 +16,17 @@ The agent proved successful in exploring, retrieving and reaching goal locations
 Further, the analysis of the neuromodulated place cells showed the importance of dynamically changing neuronal density and tuning field size following relevant events.
 These results align with experimental evidence of reward effects on hippocamapal spatial cells, and provides additional computational support to the labeled graph approach.
 
+
+Animals naturally form personalized cognitive maps to support efficient navigation and goal-directed behavior.
+In the brain, the hippocampal CA1 region plays a key role in this process, hosting spatially tuned neurons that adapt based on behavioral context and internal states.
+Computational models of this ability include labeled graphs with locally specified spatial information, avoiding global metric structure, and deep neural networks trained on spatial tasks that exhibit emergent spatial tuning.
+However, these approaches often struggle to model one-shot adaptive mapping and employ non-biologically plausible plasticity rules.
+
+We propose a biologically inspired place-cell architecture based on velocity inputs and grid cells modules that enables rapid, on-the-fly construction of cognitive maps during exploration of novel environments. Our agent learns to navigate reward-driven tasks using an architecture that integrates neuromodulatory signals responsive to boundaries and rewards, with learning mechanisms that combine Hebbian plasticity, lateral inhibition, and modulatory gating of place-cell activity.
+
+Compared to reinforcement learning (RL) models, our approach demonstrates superior efficiency, accomplishing in a single trial what RL agents typically require thousands of episodes to learn.
+Simulations show that the agent can also adapt to changing reward locations and it maintains successful navigation across diverse environments.
+Analysis of neuromodulated place cells reveals dynamic changes in tuning field size and spatial density after behaviorally salient events, mirroring experimental observations in hippocampal neurons.
+Our findings support the efficacy of biologically grounded models and locally structured graph representations in cognitive map formation.
+
 \end{abstract}

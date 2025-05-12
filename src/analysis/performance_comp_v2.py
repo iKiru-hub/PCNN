@@ -130,7 +130,7 @@ PARAMETERS_NOREMAP = {
 
 OPTIONS = ["no_remap", "default", "DA-d", "DA-r", "BND-d", "BND-r"]
 NUM_OPTIONS = len(OPTIONS)
-ROOM_NAME = "Flat.0010"
+ROOM_NAME = "Flat.1000"
 
 
 def change_parameters(params: dict, name: int):

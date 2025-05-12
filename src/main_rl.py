@@ -18,6 +18,7 @@ import gym
 import game.envs as games
 from utils import setup_logger
 import simulations as sim
+import game.objects as objects
 
 # Setup logging
 logger = setup_logger(name="RL", level=2, is_debugging=True, is_warning=True)
@@ -30,7 +31,7 @@ RLPATH = os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src/rlmodels")
 GAME_SCALE = games.SCREEN_WIDTH
 
 rl_parameters = {
-    'model_type': 'PPO',
+    'model_type': 'TD3',
     'hidden_dim': 64,
     'learning_rate': 0.001,
     'gamma': 0.99,
@@ -39,7 +40,6 @@ rl_parameters = {
     'update_every': 4,
     'training_mode': True,
 }
-
 
 reward_settings = {
     "rw_fetching": "probabilistic",
@@ -61,7 +61,6 @@ reward_settings = {
     "rw_position_idx": 3,
 }
 
-
 game_settings = {
     "plot_interval": 5,
     "rw_event": "move agent",
@@ -79,7 +78,7 @@ game_settings = {
 
 global_parameters = {
     "use_sprites": bool(0),
-    "speed": 20.,
+    "speed": 10.,
     "min_weight_value": 0.5
 }
 
@@ -536,6 +535,7 @@ class Critic(nn.Module):
         x = torch.cat([state, action], dim=1)
         return self.network(x)
 
+
 def make_rl_name(model_str: str):
     existing = [fname for fname in os.listdir(RLPATH) if model_str in fname]
     num = len(existing)
@@ -575,6 +575,7 @@ def setup_env(global_parameters: dict,
         rw_position_idx = reward_settings['rw_position_idx']
     else:
         rw_position_idx = np.random.randint(0, len(possible_positions))
+
     rw_position = possible_positions[rw_position_idx]
 
     # agent
@@ -624,8 +625,6 @@ def setup_env(global_parameters: dict,
                             visualize=game_settings["rendering"])
 
     return env, reward_obj
-
-
 
 
 def run_rl_model(env: object,
@@ -845,7 +844,7 @@ def main_rl(global_parameters: dict,
             preferred_positions: list=None,
             verbose_min: bool=True) -> dict:
 
-    env, reward_obj = sim.setup_env(global_parameters=global_parameters,
+    env, reward_obj = setup_env(global_parameters=global_parameters,
                                     reward_settings=reward_settings,
                                     game_settings=game_settings,
                                     room_name=room_name,

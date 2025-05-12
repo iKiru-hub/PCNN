@@ -132,8 +132,8 @@ PARAMETERS = {
 OPTIONS = ["chance", "no_remap", "default",
            "only_da", "only_col"]
 NUM_OPTIONS = len(OPTIONS)
-#ROOM_NAME = "Square.v0"
-ROOM_NAME = "Flat.1000"
+ROOM_NAME = "Square.v0"
+# ROOM_NAME = "Flat.1000"
 
 
 def change_parameters(params: dict, name: int):
