@@ -26,7 +26,7 @@ echo "[git 'main']"
 
 # --- RUN
 
-srun python3 main_rl.py --duration 50_000 --room "Square.v0" --interval 5 --episodes 10_000_000 --save --num_envs = 3
+srun python3 main_rl.py --duration 50_000 --room "Square.v0" --interval 5 --episodes 10_000_000 --save --num_envs 4 --idx 5
 
 echo "[finished]"
 

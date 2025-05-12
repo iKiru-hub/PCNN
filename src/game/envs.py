@@ -6,8 +6,9 @@ import argparse
 import os, sys
 sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
+import pygame.surfarray
 
 from game.constants import *
 from utils import setup_logger
@@ -582,6 +583,8 @@ class Environment:
             self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
             pygame.display.set_caption("Simple Pygame Game")
             logger.debug("%env rendering")
+        else:
+            self.screen = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
 
         if self.agent.limit_position_len is not None:
             logger.debug(f"Agent fixed position: {self.agent.limit_position_len}")
@@ -703,36 +706,26 @@ class Environment:
         self.room.render(self.screen)
 
         # plot trajectory
-        # if len(self.trajectory) > 1:
-        #     pygame.draw.lines(self.screen, (*self.traj_color, 0.1),
-        #                       False, self.trajectory, 1)
-
         if len(self.trajectory_set) > 0:
             # print(self.t, self.trajectory_set)
             for i, traj in enumerate(self.trajectory_set):
-                # print(traj)
-                # print(*np.array(traj).T)
                 if len(traj) > 1:
                     pygame.draw.lines(self.screen, (*self.traj_color,
                                 0.5/(len(self.trajectory_set)-i+1)),
                                         False, traj, 1)
-            # pygame.draw.lines(self.screen, (*self.traj_color, 0.1),
-            #                   False, self.trajectory, 1)
 
-        # write text
-        font = pygame.font.Font(None, 36)
-        text = f"#R={self.reward_obj.count} | "
-        text += f"t: {self.t:04d}"
-        # text += f"-R={self.reward_availability} | "
-        # text += f"C={self._collision} |"
-        # text += f"v={np.around(self.velocity, 2)}"
-        score_text = font.render(text, True, BLACK)
+        # # write text
+        # font = pygame.font.Font(None, 36)
+        # text = f"#R={self.reward_obj.count} | "
+        # text += f"t: {self.t:04d}"
+        # score_text = font.render(text, True, BLACK)
 
         self.reward_obj.render(self.screen)
         self.agent.render(self.screen)
 
-        self.screen.blit(score_text, (200, 5))
-        pygame.display.flip()
+        if self.visualize:
+            # self.screen.blit(score_text, (200, 5))
+            pygame.display.flip()
 
     def reset(self):
 
@@ -751,22 +744,30 @@ class Environment:
 
 
 class EnvironmentWrapper(gym.Env):
-    def __init__(self, env: Environment):
+
+    def __init__(self, env: Environment, image_obs: bool = False, resize_to=(84, 84)):
         super(EnvironmentWrapper, self).__init__()
         self.env = env
+        self.image_obs = image_obs
+        self.resize_to = resize_to
         self.prev_position = self.env.position.copy()
-
         self.speed = 1.
 
-        # Define action and observation space
-        # Action: 2D velocity in range [-1, 1]
+        # --- Action space: 2D velocity
         self.action_space = spaces.Box(low=-1.5, high=1.5, shape=(2,), dtype=np.float32)
 
-        # Observation: velocity_x, velocity_y, agent_y_velocity,
-        # collision_flag, reward_available_flag
-        self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32
-        )
+        # --- Observation space: image or vector
+        if self.image_obs:
+            # image shape (H, W, C), later transposed to (C, H, W) for SB3
+            self.observation_space = spaces.Box(
+                low=0, high=255,
+                shape=(3, self.resize_to[1], self.resize_to[0]),
+                dtype=np.uint8
+            )
+        else:
+            self.observation_space = spaces.Box(
+                low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32
+            )
 
         if self.env.visualize:
             logger.debug("env rendering")
@@ -774,42 +775,63 @@ class EnvironmentWrapper(gym.Env):
     def set_speed(self, speed: float):
         self.speed = speed
 
-    def reset(self):
+    def reset(self, **kwargs):
         self.env.reset()
         self.prev_position = self.env.position.copy()
         velocity = [0.0, 0.0]
         obs = self._get_obs(velocity)
-
-        return obs
+        return obs, {}
 
     def step(self, action):
-        # Clip actions just in case
-        action = np.clip(action, -1., 1.) * self.speed 
-
-        # Get previous position
+        action = np.clip(action, -1., 1.) * self.speed
         prev_position = self.env.position.copy()
 
-        # Your env does not use brain during training
         obs_tuple = self.env(velocity=np.array([action[0], -action[1]]), brain=None)
 
-        # Compute velocity (displacement)
         new_position = self.env.position.copy()
         velocity = [new_position[0] - prev_position[0],
                     -(new_position[1] - prev_position[1])]
 
-        # Construct observation
         obs = self._get_obs(velocity)
-
-        # Reward
         reward = float(obs_tuple[2]) if obs_tuple[2] is not False else 0.0
+        done = bool(obs_tuple[3]) or reward > 0
 
-        # Done flag from your environment (based on time)
-        done = bool(obs_tuple[3])# or reward > 0)
-
-        return obs, reward, done, {}
+        return obs, reward, done, False, {}
 
     def render(self, mode='human'):
         self.env.render()
+
+    def _get_obs(self, velocity):
+        if self.image_obs:
+            return self._get_image_obs()
+        else:
+            return np.array([
+                self.env.position[0]/1000,
+                self.env.position[1]/1000,
+                self.env.velocity[1]/10,
+                self.env.velocity[0]/10,
+                float(self.env._reward),
+                float(self.env._collision),
+            ], dtype=np.float32)
+
+    def _get_image_obs(self):
+
+        self.env.render()
+
+        surface = self.env.screen  # use the hidden buffer
+        frame = pygame.surfarray.array3d(surface)
+
+        # surface = pygame.display.get_surface()
+        # frame = pygame.surfarray.array3d(surface)  # shape (W, H, 3)
+        frame = np.transpose(frame, (1, 0, 2))     # shape (H, W, 3)
+
+        # Optional resize using PIL
+        from PIL import Image
+        img = Image.fromarray(frame)
+        img = img.resize(self.resize_to)  # resize_to = (W, H)
+        frame_resized = np.array(img)  # shape (H, W, 3)
+        frame_resized = np.transpose(frame_resized, (2, 0, 1))  # to (C, H, W)
+        return frame_resized.astype(np.uint8)
 
     @property
     def duration(self):
@@ -827,15 +849,9 @@ class EnvironmentWrapper(gym.Env):
     def t(self):
         return self.env.t
 
-    def _get_obs(self, velocity):
-        return np.array([
-            self.env.position[0],
-            self.env.position[1],
-            self.env.velocity[1],
-            self.env.velocity[0],
-            float(self.env._reward),           # from your env
-            float(self.env._collision),            # from your env
-        ], dtype=np.float32)
+    @property
+    def rw_count(self):
+        return self.env.rw_count
 
 
 if __name__ == "__main__":

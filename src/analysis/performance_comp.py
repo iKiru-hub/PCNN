@@ -33,7 +33,8 @@ reward_settings = {
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
-    "move_threshold": 6,# * GAME_SCALE,
+    "move_threshold": 600,# * GAME_SCALE,
+    "rw_position_idx": -1,
 }
 
 game_settings = {
