@@ -262,36 +262,6 @@ inline float cosine_similarity_vec(const Eigen::VectorXf& v1,
 }
 
 
-/* inline float cosine_similarity_vec(const std::vector<float>& v1, */
-/*                                    const std::vector<float>& v2) { */
-/*     // Ensure the vectors are of the same size */
-/*     if (v1.size() != v2.size()) { */
-/*         throw std::invalid_argument("Vectors must be of the same size."); */
-/*     } */
-
-/*     // Calculate dot product */
-/*     float dot_product = std::inner_product(v1.begin(), */
-/*                                            v1.end(), v2.begin(), 0.0f); */
-
-/*     // Calculate norms of the vectors */
-/*     float norm_v1 = std::sqrt(std::inner_product(v1.begin(), */
-/*                                                  v1.end(), */
-/*                                                  v1.begin(), 0.0f)); */
-/*     float norm_v2 = std::sqrt(std::inner_product(v2.begin(), */
-/*                                                  v2.end(), */
-/*                                                  v2.begin(), 0.0f)); */
-
-/*     // Handle potential division by zero */
-/*     if (norm_v1 == 0.0f || norm_v2 == 0.0f) { */
-/*         throw std::invalid_argument( */
-/*             "Vectors must not have zero magnitude."); */
-/*     } */
-
-/*     // Return cosine similarity */
-/*     return dot_product / (norm_v1 * norm_v2); */
-/* } */
-
-
 Eigen::VectorXf cosine_similarity_vector_matrix(
     const Eigen::VectorXf& vector,
     const Eigen::MatrixXf& matrix) {
@@ -1653,7 +1623,8 @@ public:
                 }
 
                 // update weights
-                weights[i] += lr * v * ui - pred_err;
+                // weights[i] += lr * v * ui - pred_err;
+                weights[i] += lr * ui * (v - weights[i]);
 
                 // clip the weights in (0, max_w)
                 if (weights[i] < 0.01) { weights[i] = 0.0; }

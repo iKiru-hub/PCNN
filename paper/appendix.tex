@@ -1,7 +1,6 @@
 
 \section{Appendix}
 
-\subsection{Spatial representations}
 \subsection{Grid cell module}
 
 Unlike other approaches to generate grid fields \cite{dabaghianGridCellsBorder, schoyenHexagonsAllWay2025}, we defined a correspondence between the global environment in which the agent moves, a two-dimensional Euclidean space $\mathbf{R}^{2}$, and a bounded local space of a grid module, corresponding to the torus.
@@ -28,7 +27,7 @@ In our model, each grid cell had a tuning width of 0.04. They were defined as 8 
 
 \paragraph{Tuning formation}
 % formation | forward + competition
-The tuning of a new place cell is simply defined as the current GC population vector $\textbf{u}^{\text{GC}}_{t}$, and its index is that of the first silent cell, which is added to the forward weight matrix $\textbf{W}_{i}^{\text{GC}to \text{PC}}\rightarrow \textbf{u}^{\text{GC}}$.
+The tuning of a new place cell is simply defined as the current GC population vector $\textbf{u}^{\text{GC}}_{t}$, and its index is that of the first silent cell, which is added to the forward weight matrix $\textbf{W}_{i}^{\text{GC}to \text{PC}}\leftarrow \textbf{u}^{\text{GC}}$.
 
 In order to avoid overlapping of place fields, the tuning process is aborted in case the cosine similarity of the new pattern and the old ones is greater than a threshold $\theta^{\text{PC}}_{\text{rep}}$.
 
@@ -36,9 +35,13 @@ Each cell represents a position in the GC activity space, which can be considere
 Although it is totally possible to only use the $N^{\text{GC}}$-dimensional tuning patterns and be agnostic about the dimensionality of the space in which the agent lives, to simplify the calculations, we mapped each pattern to 2D positions in a vector space.
 Then, the PC recurrent connectivity matrix is calculated with a nearest neighbors algorithm, which instead of a fixed number $K$ of neighbors uses a distance threshold $\theta^{\text{PC}}_{\text{rec}}$.
 
-\hfill \break
 \paragraph{Activity} The current firing rate of the PC population is determined by the cosine similarity between the GC input and the forward weight matrix, then passed through a generalized sigmoid $\phi(z)=\left[1 + \exp(-\beta(z-\alpha))\right]^{-1}$.
 The parameter $\alpha$ represents the activation threshold, or horizontal offset, while $\beta$ the gain, or steepness.
+
+\begin{equation}
+    u^{\text{PC}}_{i}=\phi\left(\cos\left(\textbf{u}^{\text{GC}},\textbf{W}^{\text{GC},\text{PC}}_{i}\right)\right)
+\end{equation}
+
 It is also defined as an activity trace, which has an upper value of 1 and decays exponentially:
 
 \begin{equation}
@@ -80,13 +83,13 @@ Neuromodulation is defined in terms of a leaky variable $v$ whose state is pertu
 \paragraph{Learning rule}
 The connection weights $\textbf{W}^{k}$ are updated according to a plasticity rule composed of an Hebbian term, involving the leaky variable and the place cells above a certain threshold $\theta^{k}$, and a prediction error.
 
-A prediction $\textbf{p}$ is calculated before each time-step and signifies the expected neuromodulation activation for a given place cell $p_{i} = \textbf{W}^{k}_{i} \hat{u}^{\text{PC}}$, where $\hat{u}^{\text{PC}}$ is the PC population vector obtained by simulating the planned action.
+A prediction $\textbf{p}$ is calculated before each time-step and signifies the expected neuromodulation activation for a given place cell $\hat{v}^{k}_{i} = \textbf{W}^{k}_{i} \hat{u}^{\text{PC}}_{i}$, where $\hat{u}^{\text{PC}}_{i}$ is the PC population vector obtained by simulating the planned action.
 A prediction error is computed as the difference between the prediction and the current modulated place activation.
 
 The full connection update then becomes:
 
 \begin{equation}
-    \Delta \textbf{W}^{k}_{i} = \eta^{k} v^{k} u^{\text{PC}}_{i} - \eta^{k}_{\text{pred}} (p_{i} - v^{k} u^{\text{PC}})
+    \Delta \textbf{W}^{k}_{i} = \eta^{k} v^{k} u^{\text{PC}}_{i} - \eta^{k}_{\text{pred}} (\hat{v}^{k}_{i} - v^{k}_{i}) u^{\text{PC}}
 \end{equation}
 
 \noindent where $\eta^{k},\,\eta^{k}_{\text{pred}}$ are the learning rates, interpretable as the weight contribution of the Hebbian coupling and prediction accuracy respectively.
@@ -97,7 +100,7 @@ Neuromodulation acts on the neuronal profile of the place cells by affecting the
 
 Gain modulation is implemented using the activity traces and a constant reference gain value $\bar{\beta}$:
 \begin{equation}
-    \beta_{i} = c^{k}_{a} \bar{\beta} m_{i} + (1 - m_{i}) \bar{\beta}
+    \beta_{i} = c^{k}_{a} m_{i} \bar{\beta} + (1 - m_{i}) \bar{\beta}
 \end{equation}
 
 \noindent where $c^{k}_{a}$ is a scaling gain parameter, and if it is 1 then no modulation takes place.
@@ -119,9 +122,8 @@ Also in this case, it is ensured that the new place field center is at a minimum
 
 \subsection{Decision making}
 
-\subsubsection{Path-planning algorithm}
-The planning of a new route is implemented as a modified Dijkstra algorithm over the coarse-grained place cell graph, provided as connectivity matrix $C$.
-Its particularity is the use of a weighting $\widetilde{\textbf{W}}$ of the nodes according to the neuromodulation map.
+\paragraph{Path-planning algorithm}
+\hfill \break
 
 \begin{algorithm}
 \caption{Modified Dijkstra algorithm}
@@ -188,7 +190,6 @@ Its particularity is the use of a weighting $\widetilde{\textbf{W}}$ of the node
 \end{algorithm}
 % policy algorithm
 
-
-% settings
-
 % result figure
+The planning of a new route is implemented as a modified Dijkstra algorithm over the coarse-grained place cell graph, provided as connectivity matrix $C$.
+Its particularity is the use of a weighting $\widetilde{\textbf{W}}$ of the nodes according to the neuromodulation map.

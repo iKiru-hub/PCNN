@@ -1,4 +1,4 @@
-\begin{thebibliography}{100}
+\begin{thebibliography}{10}
 
 \bibitem{golledgeCognitiveMapsSpatial2000}
 Reginald Golledge, Dan Jacobson, Rob Kitchin, and Mark Blades.
@@ -9,11 +9,6 @@ Reginald Golledge, Dan Jacobson, Rob Kitchin, and Mark Blades.
 Russell~A. Epstein and Lindsay~K. Vass.
 \newblock Neural systems for landmark-based wayfinding in humans.
 \newblock {\em Philosophical Transactions of the Royal Society B: Biological Sciences}, 369(1635):20120533, February 2014.
-
-\bibitem{tolmanCOGNITIVEMAPSRATS1948}
-Edward~C Tolman.
-\newblock {{COGNITIVE MAPS IN RATS AND MEN}}.
-\newblock {\em Psychological Review}, 55(4), July 1948.
 
 \bibitem{peerStructuringKnowledgeCognitive2021}
 Michael Peer, Iva~K. Brunec, Nora~S. Newcombe, and Russell~A. Epstein.
@@ -64,35 +59,10 @@ Tobias Meilinger.
 Jane~X. Wang, Zeb {Kurth-Nelson}, Dhruva Tirumala, Hubert Soyer, Joel~Z. Leibo, Remi Munos, Charles Blundell, Dharshan Kumaran, and Matt Botvinick.
 \newblock Learning to reinforcement learn, January 2017.
 
-\bibitem{ishikawaSpatialKnowledgeAcquisition2006}
-Toru Ishikawa and Daniel~R. Montello.
-\newblock Spatial knowledge acquisition from direct experience in the environment: {{Individual}} differences in the development of metric knowledge and the integration of separately learned places.
-\newblock {\em Cognitive Psychology}, 52(2):93--129, March 2006.
-
-\bibitem{byrneMemoryUrbanGeography1979}
-R.~W. Byrne.
-\newblock Memory for {{Urban Geography}}.
-\newblock {\em Quarterly Journal of Experimental Psychology}, 31(1):147--154, February 1979.
-
 \bibitem{schinaziHippocampalSizePredicts2013}
 Victor~R. Schinazi, Daniele Nardi, Nora~S. Newcombe, Thomas~F. Shipley, and Russell~A. Epstein.
 \newblock Hippocampal size predicts rapid learning of a cognitive map in humans.
 \newblock {\em Hippocampus}, 23(6):515--528, 2013.
-
-\bibitem{wehnerVisualNavigationInsects1996}
-R{\"u}diger Wehner, Barbara Michel, and Per Antonsen.
-\newblock Visual {{Navigation}} in {{Insects}}: {{Coupling}} of {{Egocentric}} and {{Geocentric Information}}.
-\newblock {\em Journal of Experimental Biology}, 199(1):129--140, January 1996.
-
-\bibitem{gillnerNavigationAcquisitionSpatial1998}
-Sabine Gillner and Hanspeter~A. Mallot.
-\newblock Navigation and {{Acquisition}} of {{Spatial Knowledge}} in a {{Virtual Maze}}.
-\newblock {\em Journal of Cognitive Neuroscience}, 10(4):445--463, July 1998.
-
-\bibitem{gallinaroSynapticWeightsThat2023}
-J{\'u}lia~V. Gallinaro, Benjamin Scholl, and Claudia Clopath.
-\newblock Synaptic weights that correlate with presynaptic selectivity increase decoding performance.
-\newblock {\em PLOS Computational Biology}, 19(8):e1011362, August 2023.
 
 \bibitem{sargoliniConjunctiveRepresentationPosition2006}
 Francesca Sargolini, Marianne Fyhn, Torkel Hafting, Bruce~L. McNaughton, Menno~P. Witter, May-Britt Moser, and Edvard~I. Moser.
@@ -129,11 +99,6 @@ Tianyi Li, Angelo Arleo, and Denis Sheynikhovich.
 \newblock {\em Modeling Place Cells and Grid Cells in Multi-Compartment Environments: Hippocampal-Entorhinal Loop as a Multisensory Integration Circuit}.
 \newblock April 2019.
 
-\bibitem{kubieSpatialFrequenciesGrid2015}
-John~L. Kubie and Steven~E. Fox.
-\newblock Do the spatial frequencies of grid cells mold the firing fields of place cells?
-\newblock {\em Proceedings of the National Academy of Sciences}, 112(13):3860--3861, March 2015.
-
 \bibitem{bilashLateralEntorhinalCortex2023}
 Olesia~M. Bilash, Spyridon Chavlis, Cara~D. Johnson, Panayiota Poirazi, and Jayeeta Basu.
 \newblock Lateral entorhinal cortex inputs modulate hippocampal dendritic excitability by recruiting a local disinhibitory microcircuit.
@@ -144,25 +109,15 @@ John~E. Lisman and Anthony~A. Grace.
 \newblock The {{Hippocampal-VTA Loop}}: {{Controlling}} the {{Entry}} of {{Information}} into {{Long-Term Memory}}.
 \newblock {\em Neuron}, 46(5):703--713, June 2005.
 
-\bibitem{tsetsenisActivationLocusCoeruleus2022}
-Theodoros Tsetsenis, Julia~K. Badyna, Rebecca Li, and John~A. Dani.
-\newblock Activation of a {{Locus Coeruleus}} to {{Dorsal Hippocampus Noradrenergic Circuit Facilitates Associative Learning}}.
-\newblock {\em Frontiers in Cellular Neuroscience}, 16:887679, April 2022.
+\bibitem{duszkiewiczNoveltyDopaminergicModulation2019}
+Adrian~J. Duszkiewicz, Colin~G. McNamara, Tomonori Takeuchi, and Lisa Genzel.
+\newblock Novelty and {{Dopaminergic Modulation}} of {{Memory Persistence}}: {{A Tale}} of {{Two Systems}}.
+\newblock {\em Trends in Neurosciences}, 42(2):102--114, February 2019.
 
-\bibitem{zhangExpectancyrelatedChangesFiring2024}
-Zhewei Zhang, Yuji~K. Takahashi, Marlian {Montesinos-Cartegena}, Thorsten Kahnt, Angela~J. Langdon, and Geoffrey Schoenbaum.
-\newblock Expectancy-related changes in firing of dopamine neurons depend on hippocampus.
-\newblock {\em Nature Communications}, 15(1):8911, October 2024.
-
-\bibitem{edelmannDopaminergicInnervationModulation2018}
-Elke Edelmann and Volkmar Lessmann.
-\newblock Dopaminergic innervation and modulation of hippocampal networks.
-\newblock {\em Cell and Tissue Research}, 373(3):711--727, September 2018.
-
-\bibitem{wagatsumaLocusCoeruleusInput2018}
-Akiko Wagatsuma, Teruhiro Okuyama, Chen Sun, Lillian~M. Smith, Kuniya Abe, and Susumu Tonegawa.
-\newblock Locus coeruleus input to hippocampal {{CA3}} drives single-trial learning of a novel context.
-\newblock {\em Proceedings of the National Academy of Sciences}, 115(2):E310--E316, January 2018.
+\bibitem{schultzNeuralSubstratePrediction1997}
+Wolfram Schultz, Peter Dayan, and P.~Read Montague.
+\newblock A {{Neural Substrate}} of {{Prediction}} and {{Reward}}.
+\newblock {\em Science}, 275(5306):1593--1599, March 1997.
 
 \bibitem{kempadooDopamineReleaseLocus2016}
 Kimberly~A. Kempadoo, Eugene~V. Mosharov, Se~Joon Choi, David Sulzer, and Eric~R. Kandel.
@@ -184,21 +139,6 @@ Alexandra~Mansell Kaufman, Tristan Geiller, and Attila Losonczy.
 \newblock A {{Role}} for the {{Locus Coeruleus}} in {{Hippocampal CA1 Place Cell Reorganization}} during {{Spatial Reward Learning}}.
 \newblock {\em Neuron}, 105(6):1018--1026.e4, March 2020.
 
-\bibitem{duszkiewiczNoveltyDopaminergicModulation2019}
-Adrian~J. Duszkiewicz, Colin~G. McNamara, Tomonori Takeuchi, and Lisa Genzel.
-\newblock Novelty and {{Dopaminergic Modulation}} of {{Memory Persistence}}: {{A Tale}} of {{Two Systems}}.
-\newblock {\em Trends in Neurosciences}, 42(2):102--114, February 2019.
-
-\bibitem{sheynikhovichLongtermMemorySynaptic2023}
-Denis Sheynikhovich, Satoru Otani, Jing Bai, and Angelo Arleo.
-\newblock Long-term memory, synaptic plasticity and dopamine in rodent medial prefrontal cortex: {{Role}} in executive functions.
-\newblock {\em Frontiers in Behavioral Neuroscience}, 16, January 2023.
-
-\bibitem{schultzNeuralSubstratePrediction1997}
-Wolfram Schultz, Peter Dayan, and P.~Read Montague.
-\newblock A {{Neural Substrate}} of {{Prediction}} and {{Reward}}.
-\newblock {\em Science}, 275(5306):1593--1599, March 1997.
-
 \bibitem{igarashiFunctionalDiversityTransverse2014}
 Kei~M. Igarashi, Hiroshi~T. Ito, Edvard~I. Moser, and May-Britt Moser.
 \newblock Functional diversity along the transverse axis of hippocampal area {{CA1}}.
@@ -208,6 +148,11 @@ Kei~M. Igarashi, Hiroshi~T. Ito, Edvard~I. Moser, and May-Britt Moser.
 Hiroshi~T. Ito and Erin~M. Schuman.
 \newblock Functional division of hippocampal area {{CA1}} via modulatory gating of entorhinal cortical inputs.
 \newblock {\em Hippocampus}, 22(2):372--387, 2012.
+
+\bibitem{sheynikhovichLongtermMemorySynaptic2023}
+Denis Sheynikhovich, Satoru Otani, Jing Bai, and Angelo Arleo.
+\newblock Long-term memory, synaptic plasticity and dopamine in rodent medial prefrontal cortex: {{Role}} in executive functions.
+\newblock {\em Frontiers in Behavioral Neuroscience}, 16, January 2023.
 
 \bibitem{poucetSpatialCognitiveMaps1993}
 Bruno Poucet.
@@ -248,25 +193,10 @@ Zuzanna Brzosko, Susanna~B. Mierau, and Ole Paulsen.
 \newblock Neuromodulation of {{Spike-Timing-Dependent Plasticity}}: {{Past}}, {{Present}}, and {{Future}}.
 \newblock {\em Neuron}, 103(4):563--581, August 2019.
 
-\bibitem{baumannMetricInformationCognitive2023}
-Tristan Baumann and Hanspeter~A. Mallot.
-\newblock Metric information in cognitive maps: {{Euclidean}} embedding of non-{{Euclidean}} environments.
-\newblock {\em PLOS Computational Biology}, 19(12):e1011748, December 2023.
-
 \bibitem{sosaHippocampalSequencesSpan2024}
 Marielena Sosa, Mark~H. Plitt, and Lisa~M. Giocomo.
 \newblock Hippocampal sequences span experience relative to rewards.
 \newblock {\em bioRxiv}, page 2023.12.27.573490, February 2024.
-
-\bibitem{almePlaceCellsHippocampus2014}
-Charlotte~B. Alme, Chenglin Miao, Karel Jezek, Alessandro Treves, Edvard~I. Moser, and May-Britt Moser.
-\newblock Place cells in the hippocampus: {{Eleven}} maps for eleven rooms.
-\newblock {\em Proceedings of the National Academy of Sciences}, 111(52):18428--18435, December 2014.
-
-\bibitem{ormondPlaceFieldExpansion2015}
-Jake Ormond and Bruce~L. McNaughton.
-\newblock Place field expansion after focal {{MEC}} inactivations is consistent with loss of {{Fourier}} components and path integrator gain reduction.
-\newblock {\em Proceedings of the National Academy of Sciences of the United States of America}, 112(13):4116--4121, March 2015.
 
 \bibitem{aliPredictiveCodingConsequence2021}
 Abdullahi Ali, Nasir Ahmad, Elgar de~Groot, Marcel A.~J. van Gerven, and Tim~C. Kietzmann.
@@ -276,16 +206,6 @@ Abdullahi Ali, Nasir Ahmad, Elgar de~Groot, Marcel A.~J. van Gerven, and Tim~C. 
 Jacopo Bono, Sara Zannone, Victor Pedrosa, and Claudia Clopath.
 \newblock Learning predictive cognitive maps with spiking neurons during behavior and replays.
 \newblock {\em eLife}, 12:e80671, March 2023.
-
-\bibitem{brzoskoRetroactiveModulationSpike2015}
-Zuzanna Brzosko, Wolfram Schultz, and Ole Paulsen.
-\newblock Retroactive modulation of spike timing-dependent plasticity by dopamine.
-\newblock {\em eLife}, 4:e09685, October 2015.
-
-\bibitem{brzoskoSequentialNeuromodulationHebbian2017}
-Zuzanna Brzosko, Sara Zannone, Wolfram Schultz, Claudia Clopath, and Ole Paulsen.
-\newblock Sequential neuromodulation of {{Hebbian}} plasticity offers mechanism for effective reward-based navigation.
-\newblock {\em eLife}, 6:e27756, 2017.
 
 \bibitem{schultzDopamineRewardPrediction2016}
 Wolfram Schultz.
@@ -336,16 +256,6 @@ Ian~Q. Whishaw and Brian~L. Brooks.
 Richard~S Sutton and Andrew~G Barto.
 \newblock The {{Reinforcement Learning Problem}}.
 
-\bibitem{meiEffectsNeuromodulationinspiredMechanisms2023}
-Jie Mei, Rouzbeh Meshkinnejad, and Yalda Mohsenzadeh.
-\newblock Effects of neuromodulation-inspired mechanisms on the performance of deep neural networks in a spatial learning task.
-\newblock {\em iScience}, 26(2):106026, February 2023.
-
-\bibitem{scleidorovichAdaptingHippocampusMultiscale2022}
-Pablo Scleidorovich, Jean-Marc Fellous, and Alfredo Weitzenfeld.
-\newblock Adapting hippocampus multi-scale place field distributions in cluttered environments optimizes spatial navigation and learning.
-\newblock {\em Frontiers in Computational Neuroscience}, 16:1039822, December 2022.
-
 \bibitem{montagueFrameworkMesencephalicDopamine1996}
 P.~R. Montague, P.~Dayan, and T.~J. Sejnowski.
 \newblock A framework for mesencephalic dopamine systems based on predictive {{Hebbian}} learning.
@@ -355,11 +265,6 @@ P.~R. Montague, P.~Dayan, and T.~J. Sejnowski.
 Seetha Krishnan, Chad Heer, Chery Cherian, and Mark E.~J. Sheffield.
 \newblock Reward expectation extinction restructures and degrades {{CA1}} spatial maps through loss of a dopaminergic reward proximity signal.
 \newblock {\em Nature Communications}, 13(1):6662, November 2022.
-
-\bibitem{grienbergerEntorhinalCortexDirects2022}
-Christine Grienberger and Jeffrey~C. Magee.
-\newblock Entorhinal cortex directs learning-related changes in {{CA1}} representations.
-\newblock {\em Nature}, 611(7936):554--562, November 2022.
 
 \bibitem{mcnamaraDopaminergicNeuronsPromote2014}
 Colin~G. McNamara, {\'A}lvaro {Tejero-Cantero}, St{\'e}phanie Trouche, Natalia {Campo-Urriza}, and David Dupret.
@@ -375,10 +280,10 @@ Fr{\'e}d{\'e}ric Michon, Esther Krul, Jyh-Jang Sun, and Fabian Kloosterman.
 Philip Shamash and Tiago Branco.
 \newblock Mice identify subgoal locations through an action-driven mapping process, December 2021.
 
-\bibitem{igelCovarianceMatrixAdaptation2007}
-Christian Igel, Nikolaus Hansen, and Stefan Roth.
-\newblock Covariance {{Matrix Adaptation}} for {{Multi-objective Optimization}}.
-\newblock {\em Evolutionary Computation}, 15(1):1--28, March 2007.
+\bibitem{brzoskoSequentialNeuromodulationHebbian2017}
+Zuzanna Brzosko, Sara Zannone, Wolfram Schultz, Claudia Clopath, and Ole Paulsen.
+\newblock Sequential neuromodulation of {{Hebbian}} plasticity offers mechanism for effective reward-based navigation.
+\newblock {\em eLife}, 6:e27756, 2017.
 
 \bibitem{meilingerQualitativeDifferencesMemory2016}
 Tobias Meilinger, Marianne Strickrodt, and Heinrich~H. B{\"u}lthoff.
@@ -389,6 +294,16 @@ Tobias Meilinger, Marianne Strickrodt, and Heinrich~H. B{\"u}lthoff.
 Vincent Hok, Pierre-Pascal {Lenck-Santini}, S{\'e}bastien Roux, Etienne Save, Robert~U. Muller, and Bruno Poucet.
 \newblock Goal-{{Related Activity}} in {{Hippocampal Place Cells}}.
 \newblock {\em Journal of Neuroscience}, 27(3):472--482, January 2007.
+
+\bibitem{ishikawaSpatialKnowledgeAcquisition2006}
+Toru Ishikawa and Daniel~R. Montello.
+\newblock Spatial knowledge acquisition from direct experience in the environment: {{Individual}} differences in the development of metric knowledge and the integration of separately learned places.
+\newblock {\em Cognitive Psychology}, 52(2):93--129, March 2006.
+
+\bibitem{gillnerNavigationAcquisitionSpatial1998}
+Sabine Gillner and Hanspeter~A. Mallot.
+\newblock Navigation and {{Acquisition}} of {{Spatial Knowledge}} in a {{Virtual Maze}}.
+\newblock {\em Journal of Cognitive Neuroscience}, 10(4):445--463, July 1998.
 
 \bibitem{mcnaughtonPathIntegrationNeural2006}
 Bruce~L. McNaughton, Francesco~P. Battaglia, Ole Jensen, Edvard~I. Moser, and May-Britt Moser.
@@ -469,6 +384,11 @@ S.N. Burke, A.P. Maurer, S.~Nematollahi, A.R. Uprety, J.L. Wallace, and C.A. Bar
 Sander Tanni, William De~Cothi, and Caswell Barry.
 \newblock State transitions in the statistically stable place cell population correspond to rate of perceptual change.
 \newblock {\em Current Biology}, 32(16):3505--3514.e7, August 2022.
+
+\bibitem{scleidorovichAdaptingHippocampusMultiscale2022}
+Pablo Scleidorovich, Jean-Marc Fellous, and Alfredo Weitzenfeld.
+\newblock Adapting hippocampus multi-scale place field distributions in cluttered environments optimizes spatial navigation and learning.
+\newblock {\em Frontiers in Computational Neuroscience}, 16:1039822, December 2022.
 
 \bibitem{mehtaExperiencedependentAsymmetricExpansion1997}
 Mayank~R. Mehta, Carol~A. Barnes, and Bruce~L. McNaughton.

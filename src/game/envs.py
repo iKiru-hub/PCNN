@@ -1,5 +1,6 @@
 import pygame
 import numpy as np
+import matplotlib.pyplot as plt
 from typing import Tuple, List
 
 import argparse
@@ -9,6 +10,7 @@ sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 import gymnasium as gym
 from gymnasium import spaces
 import pygame.surfarray
+import cv2
 
 from game.constants import *
 from utils import setup_logger
@@ -597,7 +599,7 @@ class Environment:
         return f"Environment({self.room}, duration={self.duration}, " + \
                f"verbose={self.verbose})"
 
-    def __call__(self, velocity: np.ndarray, brain: object) -> \
+    def __call__(self, velocity: np.ndarray, brain: object=None) -> \
         Tuple[float, np.ndarray, bool, bool]:
 
         # scale velocity
@@ -626,6 +628,8 @@ class Environment:
 
         self.velocity[0] = velocity[0]
         self.velocity[1] = velocity[1]
+
+        # print(self.agent.position, velocity)
 
         # return self.agent.position.copy(), velocity, reward, float(collision), float(self.t >= self.duration), terminated
         return self.agent.position, float(collision), self._reward > 0., float(self.t >= self.duration), terminated
@@ -698,34 +702,31 @@ class Environment:
     def set_time_flag(self):
         self.time_flag = len(self.trajectory_set)-1
 
-    def render(self, **kargs):
-
+    def render(self, mode="human", **kwargs):
         self.screen.fill(WHITE)
 
-        # Render game objects
+        # Draw game elements
         self.room.render(self.screen)
-
-        # plot trajectory
-        if len(self.trajectory_set) > 0:
-            # print(self.t, self.trajectory_set)
-            for i, traj in enumerate(self.trajectory_set):
-                if len(traj) > 1:
-                    pygame.draw.lines(self.screen, (*self.traj_color,
-                                0.5/(len(self.trajectory_set)-i+1)),
-                                        False, traj, 1)
-
-        # # write text
-        # font = pygame.font.Font(None, 36)
-        # text = f"#R={self.reward_obj.count} | "
-        # text += f"t: {self.t:04d}"
-        # score_text = font.render(text, True, BLACK)
-
         self.reward_obj.render(self.screen)
         self.agent.render(self.screen)
 
+        # Draw trajectory
+        if len(self.trajectory_set) > 0:
+            for i, traj in enumerate(self.trajectory_set):
+                if len(traj) > 1:
+                    pygame.draw.lines(self.screen, (*self.traj_color,
+                        0.5/(len(self.trajectory_set)-i+1)),
+                        False, traj, 1)
+
+        # Only display on screen if visualize is enabled
         if self.visualize:
-            # self.screen.blit(score_text, (200, 5))
             pygame.display.flip()
+
+        # Return image as RGB array if requested
+        if mode == "rgb_array":
+            return pygame.surfarray.array3d(self.screen).swapaxes(0, 1)
+
+        return None
 
     def reset(self):
 
@@ -744,94 +745,100 @@ class Environment:
 
 
 class EnvironmentWrapper(gym.Env):
-
-    def __init__(self, env: Environment, image_obs: bool = False, resize_to=(84, 84)):
+    def __init__(self, env, resize_to=(84, 84)):
         super(EnvironmentWrapper, self).__init__()
         self.env = env
-        self.image_obs = image_obs
         self.resize_to = resize_to
-        self.prev_position = self.env.position.copy()
-        self.speed = 1.
 
-        # --- Action space: 2D velocity
-        self.action_space = spaces.Box(low=-1.5, high=1.5, shape=(2,), dtype=np.float32)
+        # --- Action space: Discrete (left, right, up, down)
+        self.action_space = spaces.Discrete(4)  # 0=left, 1=right, 2=up, 3=down
 
-        # --- Observation space: image or vector
-        if self.image_obs:
-            # image shape (H, W, C), later transposed to (C, H, W) for SB3
-            self.observation_space = spaces.Box(
-                low=0, high=255,
-                shape=(3, self.resize_to[1], self.resize_to[0]),
-                dtype=np.uint8
-            )
-        else:
-            self.observation_space = spaces.Box(
-                low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32
-            )
+        # --- Observation space: image (1 channel), reward, collision, velocity
+        self.observation_space = spaces.Dict({
+            'image': spaces.Box(low=0, high=255, shape=(1, self.resize_to[1], self.resize_to[0]), dtype=np.uint8),
+            'reward': spaces.Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32),
+            'collision': spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            'velocity': spaces.Box(low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32)
+        })
 
         if self.env.visualize:
             logger.debug("env rendering")
 
     def set_speed(self, speed: float):
-        self.speed = speed
+        self.env.speed = speed
 
     def reset(self, **kwargs):
         self.env.reset()
-        self.prev_position = self.env.position.copy()
-        velocity = [0.0, 0.0]
-        obs = self._get_obs(velocity)
+        image_obs = self._get_image_obs()
+        reward_obs = np.array([float(self.env._reward)], dtype=np.float32)
+        collision_obs = np.array([float(self.env._collision)], dtype=np.float32)
+        velocity_obs = np.array(self.env.velocity.copy(), dtype=np.float32)
+        obs = {
+            'image': image_obs,
+            'reward': reward_obs,
+            'collision': collision_obs,
+            'velocity': velocity_obs
+        }
         return obs, {}
 
     def step(self, action):
-        action = np.clip(action, -1., 1.) * self.speed
-        prev_position = self.env.position.copy()
+        # Map discrete actions to velocity vectors
+        if action == 0:    # left
+            velocity = np.array([-self.env.speed, 0.])
+        elif action == 1: # right
+            velocity = np.array([self.env.speed, 0.])
+        elif action == 2: # up
+            velocity = np.array([0., -self.env.speed])
+        elif action == 3: # down
+            velocity = np.array([0., self.env.speed])
+        else:
+            raise ValueError("Invalid action index")
 
-        obs_tuple = self.env(velocity=np.array([action[0], -action[1]]), brain=None)
+        obs_tuple = self.env(velocity=velocity, brain=None)
 
-        new_position = self.env.position.copy()
-        velocity = [new_position[0] - prev_position[0],
-                    -(new_position[1] - prev_position[1])]
+        self.env.render()
 
-        obs = self._get_obs(velocity)
+        image_obs = self._get_image_obs()
         reward = float(obs_tuple[2]) if obs_tuple[2] is not False else 0.0
+        reward_obs = np.array([reward], dtype=np.float32)
+        collision = float(obs_tuple[3]) if obs_tuple[3] is not False else 0.0
+        collision_obs = np.array([collision], dtype=np.float32)
+        velocity_obs = np.array(self.env.velocity.copy(), dtype=np.float32)
+        obs = {
+            'image': image_obs,
+            'reward': reward_obs,
+            'collision': collision_obs,
+            'velocity': velocity_obs
+        }
         done = bool(obs_tuple[3]) or reward > 0
 
         return obs, reward, done, False, {}
 
-    def render(self, mode='human'):
-        self.env.render()
-
-    def _get_obs(self, velocity):
-        if self.image_obs:
-            return self._get_image_obs()
-        else:
-            return np.array([
-                self.env.position[0]/1000,
-                self.env.position[1]/1000,
-                self.env.velocity[1]/10,
-                self.env.velocity[0]/10,
-                float(self.env._reward),
-                float(self.env._collision),
-            ], dtype=np.float32)
-
     def _get_image_obs(self):
+        surface = self.env.screen
+        if surface is None:
+            raise RuntimeError("self.env.screen is not set.")
 
-        self.env.render()
+        # Convert screen to array (W, H, C)
+        raw = pygame.surfarray.array3d(surface).swapaxes(0, 1)
+        frame = np.transpose(raw, (1, 0, 2))  # (W, H, C) -> (H, W, C)
 
-        surface = self.env.screen  # use the hidden buffer
-        frame = pygame.surfarray.array3d(surface)
+        # Convert to grayscale (single channel)
+        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
-        # surface = pygame.display.get_surface()
-        # frame = pygame.surfarray.array3d(surface)  # shape (W, H, 3)
-        frame = np.transpose(frame, (1, 0, 2))     # shape (H, W, 3)
+        # Normalize to [0, 1] and then scale to [0, 255] as integers
+        normalized_gray = (gray / 255.0 * 255).astype(np.uint8)
 
-        # Optional resize using PIL
-        from PIL import Image
-        img = Image.fromarray(frame)
-        img = img.resize(self.resize_to)  # resize_to = (W, H)
-        frame_resized = np.array(img)  # shape (H, W, 3)
-        frame_resized = np.transpose(frame_resized, (2, 0, 1))  # to (C, H, W)
-        return frame_resized.astype(np.uint8)
+        # Resize the frame
+        resized = cv2.resize(normalized_gray, self.resize_to, interpolation=cv2.INTER_AREA)
+
+        # Reshape to (C, H, W) = (1, H, W)
+        resized = resized.reshape(1, self.resize_to[1], self.resize_to[0])
+
+        return resized
+
+    def render(self, mode='human'):
+        return self.env.render()
 
     @property
     def duration(self):

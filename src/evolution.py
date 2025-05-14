@@ -36,7 +36,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 8_000,
+    "silent_duration": 20_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 35.,
@@ -50,9 +50,9 @@ game_settings = {
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "rendering": False,
-    "max_duration": 20_000,
+    "max_duration": 40_000,
     "room_thickness": 20,
-    "t_teleport": 1_500,
+    "t_teleport": 3_000,
     "limit_position_len": -1,
     "start_position_idx": 1,
     "seed": None,
@@ -63,9 +63,9 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 30**2,
+    "N": 32**2,
     "use_sprites": False,
-    "speed": 0.7,
+    "speed": 1.0,
     "min_weight_value": 0.3
 }
 
@@ -189,21 +189,21 @@ FIXED_PARAMETERS = {
      # 'gain': 33.0,
      'offset': 1.0,
      'threshold': 0.4,
-     'rep_threshold': 0.85,
+     # 'rep_threshold': 0.85,
      # 'rec_threshold': 63,
      # 'tau_trace': 20,
 
      'remap_tag_frequency': 1,
      'min_rep_threshold': 0.99,
 
-     'lr_da': 0.90,
+     'lr_da': 0.9,
      'lr_pred': 0.05,
-     'threshold_da': 0.05,
-     'tau_v_da': 4.0,
+     # 'threshold_da': 0.05,
+     # 'tau_v_da': 4.0,
 
      'lr_bnd': 0.9,
      # 'threshold_bnd': 0.2,
-     'tau_v_bnd': 3.0,
+     # 'tau_v_bnd': 3.0,
 
      'tau_ssry': 437.0,
      'threshold_ssry': 1.986, # <-----------------

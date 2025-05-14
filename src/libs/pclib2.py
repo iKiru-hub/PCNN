@@ -9,10 +9,14 @@ sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 import core.build.pclib as pclib
 from utils import setup_logger
 
-logger = setup_logger('PCLIB', level=-2)
+logger = setup_logger('PCLIB', level=-2, is_debugging=False)
+
+MAX_ATTEMPTS = 5
+MIN_PC_NUMBER = 5
+
+
 
 """ FUNCTIONS """
-
 
 
 def spatial_shortest_path(connectivity_matrix: np.ndarray,
@@ -217,7 +221,7 @@ class Plan:
         self._action = np.zeros(2)
 
         # end of plan wherabout
-        self._wduration = 10
+        self._wduration = 20
         self._wt = 0
         self.is_overshooting = False
 
@@ -464,14 +468,14 @@ class GoalModule:
 
         # -- Coarse plan
         if not obstacle:
-            progress = self.plan.step_plan()
+            action, flag = self.plan.step_plan()
 
-            logger(f"[Goal] progress={progress[1]}")
+            logger(f"[Goal] progress={flag}")
 
             # Exit: coarse action
-            if progress[1]:
-                logger(f"[Goal] action {progress[0]} [flag={progress[1]}]")
-                return progress
+            if flag and action.sum()**2 > 0:
+                logger(f"[Goal] action {action} [{flag=}] /{action.sum()=}")
+                return action, flag
 
         logger(f"[Goal] obstacle={obstacle}")
         # logger(f"[Goal] fine_tuning={self.is_tuning}")
@@ -505,7 +509,7 @@ class ExplorationModule:
 
         # plan
         self.t = 0
-        self.action = [0.0, 0.0]
+        self.action = [0.1, 0.1]
         self.edge_idx = -1
 
         # alternate between random walk and edge exploration
@@ -514,67 +518,64 @@ class ExplorationModule:
 
         self.new_plan = True
 
-    def __call__(self, directive: str, rejected_idx: int=-1):
+    def __call__(self, directive: str, random_walk_directive: bool=False):
 
-        next_step = self.step_random_plan()
+        # check ongoing plan
+        action, plan_status = self._step_random_plan()
 
-        if directive == "new" or next_step[1]:
-            idx = self._make_plan(rejected_idx=rejected_idx)
+        # new plan | directive of plan end
+        if directive == "new" or plan_status:
+
             self.new_plan = True
+            # plan_flag = self._make_plan(rejected_idx=rejected_idx)
 
-            if idx > -1:
-                return [-1.0, -1.0], idx
+            if self.edge_route_time > self.edge_route_interval and not \
+                random_walk_directive:
+                logger.debug(f"edge route time < {self.edge_route_time}")
+                self.edge_route_time = 0
+                return [-1.0, -1.0], True
             else:
-                self.random_action_plan()
-                next_step = self.step_random_plan()
+                self._random_action_plan()
+                action, _ = self._step_random_plan()
                 self.edge_route_time += 1
-                return next_step[0], -2
+                return action, False
 
         self.new_plan = False
-        return next_step[0], -1
+        return action, False
 
-    def _make_plan(self, rejected_idx: int):
-        # check: evaluate current position
-        if self.is_edge_position():
-            return -1
-
-        rand_idx = self.sample_random_idx(0)
-
-        if rand_idx < 0 or rejected_idx == 404 or \
-                self.edge_route_time < self.edge_route_interval:
-            return -1
-
-        #print("[Exp] new trg plan to reach a random point")
-        return rand_idx
-
-    def random_action_plan(self):
+    def _random_action_plan(self):
 
         angle = random.uniform(0.0, 2.0 * math.pi)
         self.action = [math.cos(angle) * self.speed, math.sin(angle) * self.speed]
         self.t = 0
 
-    def step_random_plan(self):
+    def _step_random_plan(self):
 
         if self.t > (self.action_delay - 1):
+            logger.debug(f"PLAN END | {self.edge_route_time=}")
             return self.action, True
+
         self.t += 1
         return self.action, False
 
-    def sample_random_idx(self, num_attempts: int):
+    def _sample_random_idx(self, num_attempts: int):
 
         if num_attempts > 20:
             return -1
 
-        idx = random.randint(0, self.space.get_size() - 1)
+        idx = random.randint(0, self.space.__len__() - 1)
+
+        if idx == 0:
+            return -1
 
         if self.rejected_indexes[idx] > 0.0:
-            return self.sample_random_idx(num_attempts + 1)
+            return self._sample_random_idx(num_attempts + 1)
 
         if self.circuits.get_bnd_weights()[idx] < 0.01 or \
                 self.space.get_trace_value(idx) > 0.001:
             return idx
 
-        return self.sample_random_idx(num_attempts + 1)
+        return self._sample_random_idx(num_attempts + 1)
 
     def is_edge_position(self):
         curr_idx = self.space.calculate_closest_index(self.space.get_position())
@@ -642,7 +643,6 @@ class Brain:
 
         self.clock = 0
         self.forced_duration = forced_duration
-        self.directive = "new"
 
         # Initialize modulations and sensory systems
         self.da = pclib.BaseModulation("DA", N, lr_da, lr_pred,
@@ -675,7 +675,7 @@ class Brain:
 
         # failed planning despite goal
         self._t_attempt = 0
-        self._attempt_pause = 100
+        self._attempt_pause = 1000
 
         # Variables
         self.curr_representation = None
@@ -693,7 +693,10 @@ class Brain:
             "collision": 0.0,
         }
 
-    def __call__(self, velocity, collision, reward, trigger):
+        logger.debug(f"{offset=}")
+
+    def __call__(self, velocity: list, collision: float,
+                 reward: float, trigger: bool):
 
         self.clock += 1
 
@@ -795,13 +798,10 @@ class Brain:
                 self._t_attempt = self.clock
                 logger("[Brain] invalid goal plan")
 
-        # else:
-        #     logger(f"[Brain] attempts paused | t={self._t_attempt} [{self.clock}]")
-
         # Fall through to exploration
         return self._explore(collision)
 
-    def make_prediction(self):
+    def _make_prediction(self):
 
         # Simulate a step
         next_representation = self.space.simulate_one_step(self.action)
@@ -809,111 +809,73 @@ class Brain:
         # Make prediction
         self.circuits.make_prediction(next_representation)
 
-    def prune_bnd_edges(self):
-        # Get the current idx
-        curr_idx = self.space.calculate_closest_index(
-            self.space.get_position())
-
-        if curr_idx < 0:
-            return
-
-        # Go over the neighborhood
-        for j in range(self.space.get_size()):
-            if self.space.check_edge(curr_idx, j):
-                if self.circuits.get_bnd_value(j) > 0.01:
-                    self.space.delete_edge(curr_idx, j)
-
-    def _explore(self, collision):
+    def _explore(self, collision: float):
 
         # === EXPLORATIVE BEHAVIOUR =======================================
 
         # Check: collision
         if collision > 0.0:
             self.directive = "new"
-            # logger.debug('NEW EXPL PLAN?')
+            logger.debug('NEW EXPL PLAN')
         else:
             self.directive = "continue"
 
         # :experience module
-        self.expmd_res = self.expmd(self.directive)
+        exp_action, edge_route_flag = self.expmd(directive=self.directive,
+                                                 random_walk_directive=False)
 
         # Check: plan to go to the open boundary
-        if self.expmd_res[1] > -1 or self.expmd_res[1] == -2:
-            # self.action = self._attempt_boundary_plan(self.expmd_res[1])
-            self.action = self._attempt_boundary_plan_v2()
-            logger("[Brain] exploration->boundary plan")
+        # if flag > -1 or flag == -2:
+        if edge_route_flag:
+            logger.debug("[Brain] exploration->boundary plan")
+            self.action = self._attempt_boundary_plan()
         else:
-            self.action = self.expmd_res[0]
+            self.action = exp_action
 
         return self._finalize()
 
     def _finalize(self):
-        # Make prediction
-        self.make_prediction()
 
-        # logger(f"[brain] action={self.action[0]}, {self.action[1]}")
+        # Make prediction
+        self._make_prediction()
         return self.action
 
-    def _attempt_boundary_plan_v2(self):
+    def _attempt_boundary_plan(self):
 
-        expl_idx = self._sample_expl_idx()
+        logger.debug(f"attempting boundary plan | {self.expmd.edge_route_time=}")
 
-        # Attempt for a bunch of times | use 404 as final rejection
-        for i in range(5):
-
-            # Attempt a plan
-            self.goalmd.reset()
-            valid_plan = self.goalmd.update(expl_idx, False)
-
-            # Valid plan
-            if valid_plan:
-                self.directive = "trg ob"
-                progress = self.goalmd.step_plan(False)
-                # print('edge walk!')
-
-                # Confirm the edge walk
-                # logger.debug("[Brain] edge walk")
-                return progress[0]
-
-            # Invalid plan -> try again
-            expl_idx = self._sample_expl_idx()
-
-        # Tried too many times, make a random walk plan instead
-        self.expmd_res = self.expmd(self.directive, 404)
-        # print('failed..')
-
-        return self.expmd_res[0]
-
-    def _attempt_boundary_plan(self, idx: int):
-
-        # Reset the set of rejected indexes
-        self.expmd.reset_rejected_indexes()
+        expl_idx, sample_flag = self._sample_expl_idx()
 
         # Attempt for a bunch of times | use 404 as final rejection
-        for i in range(3):
+        if sample_flag: # only if enough pc are formed
 
-            # Attempt a plan
-            self.goalmd.reset()
-            valid_plan = self.goalmd.update(idx, False)
+            for i in range(MAX_ATTEMPTS):
 
-            # Valid plan
-            if valid_plan:
-                self.directive = "trg ob"
-                progress = self.goalmd.step_plan(False)
+                # Attempt a plan
+                self.goalmd.reset()
+                valid_plan = self.goalmd.update(expl_idx, False)
 
-                # Confirm the edge walk
-                self.expmd.confirm_edge_walk()
-                logger.debug("[Brain] edge walk")
-                return progress[0]
+                # Valid plan
+                if valid_plan:
 
-            # Invalid plan -> try again
-            self.expmd_res = self.expmd(self.directive, idx)
-            idx = self.expmd_res[1]
+                    self.directive = "trg ob"
+                    goal_action, goal_flag = self.goalmd.step_plan(False)
 
+                    # Confirm the edge walk
+                    logger.debug(f"valid plan | {goal_flag} | {goal_action=}")
+                    if goal_flag:
+                        return goal_action
+
+                # Invalid plan -> try again
+                expl_idx, _ = self._sample_expl_idx()
+
+        logger.debug("\tfailed")
         # Tried too many times, make a random walk plan instead
-        self.expmd_res = self.expmd(self.directive, 404)
+        exp_action, _ = self.expmd(directive="new",
+                                   random_walk_directive=True)
+        logger.debug(f"{exp_action=}")
 
-        return self.expmd_res[0]
+        return exp_action
 
     def _sample_expl_idx(self):
 
@@ -922,11 +884,14 @@ class Brain:
         low trace v2
         """
 
+        if len(self.space) < MIN_PC_NUMBER:
+            return -1, False
+
         traces = self.space.get_trace_v2()
         idxs =  np.argsort(traces[:len(self.space)])
         idx = np.random.choice(idxs[:len(traces)//3])
 
-        return idx
+        return idx, True
 
     def __str__(self):
         return "Brain"
@@ -1011,6 +976,7 @@ class Brain:
         self.goalmd.reset()
         self.circuits.reset()
         self.space.reset()
+        logger.debug("[Brain reset]")
 
 
 """ main """

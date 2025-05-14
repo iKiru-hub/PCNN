@@ -63,35 +63,39 @@ global_parameters = {
 }
 
 PARAMETERS = {
-      "gain": 42.0,
+      "gain": 80.0,
       "offset": 1.0,
-      "threshold": 0.4,
-      "rep_threshold": 0.84,
-      "rec_threshold": 94,
+      "threshold": 0.1,
+      "rep_threshold": 0.999,
+      "rec_threshold": 70,
       "tau_trace": 20,
       "remap_tag_frequency": 1,
       "num_neighbors": 16,
       "min_rep_threshold": 0.99,
+
       "lr_da": 0.9,
       "lr_pred": 0.12,
       "threshold_da": 0.05,
-      "tau_v_da": 4.0,
+      "tau_v_da": 1.0,
       "lr_bnd": 0.9,
-      "threshold_bnd": 0.2,
-      "tau_v_bnd": 3.0,
+      "threshold_bnd": 0.05,
+      "tau_v_bnd": 2.0,
+
       "tau_ssry": 437.0,
       "threshold_ssry": 1.986,
       "threshold_circuit": 0.9,
+
       "rwd_weight": -2.68,
       "rwd_sigma": 67.7,
       "col_weight": 3.14,
       "col_sigma": 27.8,
       "rwd_field_mod": 3.0,
       "col_field_mod": 0.9,
-      "action_delay": 120.0,
-      "edge_route_interval": 6991,
+
+      "action_delay": 100.0,
+      "edge_route_interval": 100,
       "forced_duration": 19,
-      "min_weight_value": 0.1
+      "min_weight_value": 0.01
 }
 
 # PARAMETERS_NOREMAP = {
