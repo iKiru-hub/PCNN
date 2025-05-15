@@ -125,38 +125,46 @@ def calc_gains(brain: object):
     return len(no_g), np.mean(no_g), len(bnd_g), np.mean(bnd_g), len(da_g), np.mean(da_g)
 
 
-def run_experiment(rep_i, room, parameters, global_parameters, reward_settings, game_settings):
-    """Runs a single experiment for a given repetition and room."""
-    logger(f"REP={rep_i}, {room=}")
-    out, info = sim.run_model(parameters=parameters,
-                                global_parameters=global_parameters,
-                                reward_settings=reward_settings,
-                                game_settings=game_settings,
-                                room_name=room,
-                                record_flag=True,
-                                limit_position_len=2,
-                                verbose=False,
-                                verbose_min=False,
-                                pause=game_settings.get("pause"))
-    env_ = info['env']
-    gain_info = calc_gains(info['brain'])
-    return {
-        'collisions': env_.nb_collisions,
-        'rewards': out,
-        'len_no_g': gain_info[0],
-        'mean_no_g': gain_info[1],
-        'len_bnd_g': gain_info[2],
-        'mean_bnd_g': gain_info[3],
-        'len_da_g': gain_info[4],
-        'mean_da_g': gain_info[5]
+def run_experiments_for_reps(reps_range, room, parameters, global_parameters,
+                             reward_settings, game_settings, total_reps):
+    """Runs a batch of repetitions for a single room."""
+    all_room_records = {
+        "collisions": [],
+        "rewards": [],
+        "len_no_g": [],
+        "mean_no_g": [],
+        "len_da_g": [],
+        "mean_da_g": [],
+        "len_bnd_g": [],
+        "mean_bnd_g": []
     }
+    for rep_i in reps_range:
+        logger(f"REP={rep_i+1}/{total_reps}, {room=}")
+        out, info = sim.run_model(parameters=parameters,
+                                    global_parameters=global_parameters,
+                                    reward_settings=reward_settings,
+                                    game_settings=game_settings,
+                                    room_name=room,
+                                    record_flag=True,
+                                    limit_position_len=2,
+                                    verbose=False,
+                                    verbose_min=False,
+                                    pause=game_settings.get("pause"),
+                                    )
+        env_ = info['env']
+        gain_info = calc_gains(info['brain'])
+        all_room_records['collisions'].append(int(env_.nb_collisions))
+        all_room_records['rewards'].append(float(out))
+        all_room_records['len_no_g'].append(int(gain_info[0]))
+        all_room_records['mean_no_g'].append(float(gain_info[1]))
+        all_room_records['len_bnd_g'].append(int(gain_info[2]))
+        all_room_records['mean_bnd_g'].append(float(gain_info[3]))
+        all_room_records['len_da_g'].append(int(gain_info[4]))
+        all_room_records['mean_da_g'].append(float(gain_info[5]))
+    return all_room_records
 
 if __name__ == "__main__":
-
     """ args """
-
-    import argparse
-
     parser = argparse.ArgumentParser(description='study gains')
     parser.add_argument('--reps', type=int, default=4,
                         help='Number of repetitions')
@@ -164,37 +172,45 @@ if __name__ == "__main__":
                         help='Number of cores')
     parser.add_argument('--save', action='store_true',
                         help='save the results')
-
     args = parser.parse_args()
-
 
     """ settings """
 
     rooms = ['Square.v0', 'Flat.0010', 'Flat.1000', 'Flat.1001', 'Flat.0011']
-
     game_settings['rendering'] = False
-    reward_settings["silent_duration"] = 10_000
-    game_settings["max_duration"] = 40_000
+    reward_settings["silent_duration"] = 10
+    game_settings["max_duration"] = 40
 
-    # Create a list of all experiment configurations
-    tasks = [(rep_i, room) for rep_i in range(args.reps) for room in rooms]
-
-    # Use a pool of worker processes
+    total_reps = args.reps
     num_cores = args.cores
-    logger(f"Running on {num_cores} cores.")
+    logger(f"Running {total_reps} repetitions across {num_cores} cores.")
     pool = mp.Pool(processes=num_cores)
 
-    """ run """
+    # Calculate how to split the repetitions
+    reps_per_core = [total_reps // num_cores] * num_cores
+    for i in range(total_reps % num_cores):
+        reps_per_core[i] += 1
+
+    # Create tasks for each core
+    tasks = []
+    start_rep = 0
+    for i in range(num_cores):
+        end_rep = start_rep + reps_per_core[i]
+        rep_range = range(start_rep, end_rep)
+        for room in rooms:
+            tasks.append((rep_range, room))
+        start_rep = end_rep
 
     # Prepare the function with static arguments
-    partial_run_experiment = partial(run_experiment,
-                                     parameters=parameters,
-                                     global_parameters=global_parameters,
-                                     reward_settings=reward_settings,
-                                     game_settings=game_settings)
+    partial_run_experiments = partial(run_experiments_for_reps,
+                                       parameters=parameters,
+                                       global_parameters=global_parameters,
+                                       reward_settings=reward_settings,
+                                       game_settings=game_settings,
+                                       total_reps=total_reps)
 
     # Run the experiments in parallel
-    results = pool.starmap(partial_run_experiment, tasks)
+    results = pool.starmap(partial_run_experiments, tasks)
 
     # Close the pool and wait for all processes to finish
     pool.close()
@@ -203,17 +219,27 @@ if __name__ == "__main__":
     logger("run finished")
 
     """ save """
-
     record_final = {
-        "collisions": [int(res['collisions']) for res in results],
-        "rewards": [float(res['rewards']) for res in results],
-        "len_no_g": [int(res['len_no_g']) for res in results],
-        "mean_no_g": [float(res['mean_no_g']) for res in results],
-        "len_da_g": [int(res['len_da_g']) for res in results],
-        "mean_da_g": [float(res['mean_da_g']) for res in results],
-        "len_bnd_g": [int(res['len_bnd_g']) for res in results],
-        "mean_bnd_g": [float(res['mean_bnd_g']) for res in results]
+        "collisions": [],
+        "rewards": [],
+        "len_no_g": [],
+        "mean_no_g": [],
+        "len_da_g": [],
+        "mean_da_g": [],
+        "len_bnd_g": [],
+        "mean_bnd_g": []
     }
+
+    # Aggregate the results from each core's processing of rooms
+    for res in results:
+        record_final["collisions"].extend(res["collisions"])
+        record_final["rewards"].extend(res["rewards"])
+        record_final["len_no_g"].extend(res["len_no_g"])
+        record_final["mean_no_g"].extend(res["mean_no_g"])
+        record_final["len_da_g"].extend(res["len_da_g"])
+        record_final["mean_da_g"].extend(res["mean_da_g"])
+        record_final["len_bnd_g"].extend(res["len_bnd_g"])
+        record_final["mean_bnd_g"].extend(res["mean_bnd_g"])
 
     # Save the results to a JSON file
     output_filename = f"results_gains_{time.localtime().tm_hour}{time.localtime().tm_min}.json"
