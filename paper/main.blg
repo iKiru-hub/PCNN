@@ -8,45 +8,45 @@ Warning--empty journal in suttonReinforcementLearningProblem
 Warning--empty year in suttonReinforcementLearningProblem
 Warning--empty journal in dabaghianGridCellsBorder
 Warning--empty year in dabaghianGridCellsBorder
-You've used 84 entries,
+You've used 85 entries,
             1791 wiz_defined-function locations,
-            1025 strings with 26197 characters,
-and the built_in function-call counts, 22121 in all, are:
-= -- 1909
-> -- 1164
+            1031 strings with 26416 characters,
+and the built_in function-call counts, 22349 in all, are:
+= -- 1930
+> -- 1175
 < -- 6
-+ -- 417
-- -- 333
-* -- 1949
-:= -- 3538
-add.period$ -- 250
-call.type$ -- 84
-change.case$ -- 83
++ -- 421
+- -- 336
+* -- 1970
+:= -- 3575
+add.period$ -- 253
+call.type$ -- 85
+change.case$ -- 84
 chr.to.int$ -- 0
-cite$ -- 89
-duplicate$ -- 815
-empty$ -- 2014
-format.name$ -- 333
-if$ -- 4737
+cite$ -- 90
+duplicate$ -- 824
+empty$ -- 2035
+format.name$ -- 336
+if$ -- 4785
 int.to.chr$ -- 0
-int.to.str$ -- 84
-missing$ -- 81
-newline$ -- 417
-num.names$ -- 90
-pop$ -- 146
+int.to.str$ -- 85
+missing$ -- 82
+newline$ -- 422
+num.names$ -- 91
+pop$ -- 147
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 360
+skip$ -- 363
 stack$ -- 0
-substring$ -- 1851
-swap$ -- 149
+substring$ -- 1867
+swap$ -- 150
 text.length$ -- 6
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 5
-while$ -- 213
-width$ -- 86
-write$ -- 911
+while$ -- 216
+width$ -- 87
+write$ -- 922
 (There were 5 warnings)

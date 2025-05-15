@@ -35,8 +35,8 @@ reward_settings = {
     "rw_sigma": 0.8,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 10,
-    "silent_duration": 5_000,
+    "delay": 120,
+    "silent_duration": 15_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 40.,
@@ -53,7 +53,7 @@ game_settings = {
                               0.23, 0.77]) * GAME_SCALE,
     "max_duration": 50_000,
     "room_thickness": 30,
-    "t_teleport": 5_000,
+    "t_teleport": 2_000,
     "limit_position_len": -1,
     "start_position_idx": 1,
     "seed": None,
@@ -63,7 +63,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 25**2,
+    "N": 35**2,
     "use_sprites": bool(0),
     "speed": 0.7,
     "min_weight_value": 0.5
@@ -104,7 +104,7 @@ parameters3 = {
         "forced_duration": 19,
         "min_weight_value": 0.2}
 
-parameters = {
+parameters4 = {
           "gain": 80.0,
           "offset": 1.0,
           "threshold": 0.1,
@@ -140,6 +140,43 @@ parameters = {
           "min_weight_value": 0.01
 }
 
+parameters = {
+          "gain": 140.0,
+          "offset": 1.0,
+          "threshold": 0.0,
+          "rep_threshold": 0.99,
+          "rec_threshold": 50,
+          "tau_trace": 99,
+          "remap_tag_frequency": 1,
+          "num_neighbors": 12,
+          "min_rep_threshold": 0.99,
+
+          "lr_da": 0.9,
+          "lr_pred": 0.05,
+          "threshold_da": 0.05,
+          "tau_v_da": 1.0,
+          "lr_bnd": 0.9,
+          "threshold_bnd": 0.1,
+          "tau_v_bnd": 1.0,
+
+          "tau_ssry": 437.0,
+          "threshold_ssry": 1.986,
+          "threshold_circuit": 0.9,
+
+          "rwd_weight": -2.22,
+          "rwd_sigma": 50.4,
+          "col_weight": -4.05,
+          "col_sigma": 51.5,
+          "rwd_field_mod": 1.5,
+          "col_field_mod": 5.3,
+          "modulation_option": [True] * 4,
+
+          "action_delay": 100.0,
+          "edge_route_interval": 15,
+          "forced_duration": 19,
+          "min_weight_value": 0.01,
+}
+
 
 fixed_params = parameters.copy()
 
@@ -154,8 +191,8 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, brain: object, boundsx: tuple=(-450, 450),
-                 boundsy: tuple=(-450, 450),
+    def __init__(self, brain: object, boundsx: tuple=(-430, 130),
+                 boundsy: tuple=(-130, 430),
                  render_type: str="space"):
 
         self.brain = brain
@@ -196,8 +233,8 @@ class Renderer:
 
         # -- pc
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
-                         cmap='Greys', alpha=0.5,
-                         s=20, vmin=0., vmax=0.5,
+                         color='grey', alpha=0.5,
+                         s=15, vmin=0., vmax=0.5,
                          label="pc")
 
         # for edge in self.brain.make_space_edges():
@@ -209,23 +246,23 @@ class Renderer:
         bndw = self.brain.get_bnd_weights()
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
                          c=bndw,
-                         cmap="Blues", alpha=0.8,
-                         s=np.where(bndw > 0.01, 40, 0),
-                         vmin=0., vmax=0.5,
+                         cmap="Blues", alpha=1.,
+                         s=np.where(bndw > 0.01, 60, 0),
+                         vmin=0., vmax=0.4,
                          label="BND")
 
         # -- DA
         daw = self.brain.get_da_weights()
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
                                c=daw,
-                               s=np.where(daw > 0.01, 40, 0),
-                               cmap="Greens", alpha=0.8,
+                               s=np.where(daw > 0.01, 60, 0),
+                               cmap="Greens", alpha=1.,
                                label="DA",
                                vmin=0., vmax=0.4)
 
         # -- plan
         plan_center = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
-        self.axs.plot(*plan_center.T, color="grey", alpha=0.7, lw=4.,
+        self.axs.plot(*plan_center.T, color="red", alpha=1., lw=2.,
                       label="plan")
 
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
@@ -240,6 +277,8 @@ class Renderer:
         self.axs.set_xticks(())
         self.axs.set_yticks(())
         self.axs.set_aspect('equal', adjustable='box')
+        for spine in self.axs.spines.values():
+            spine.set_linewidth(5)
         plt.pause(0.00001)
 
 
@@ -549,14 +588,15 @@ def run_model(parameters: dict,
     if verbose_min:
         logger(f"rw_count={env.rw_count}")
 
-    if record_flag:
-        record["rw_count"] = env.rw_count
-        return record
+    # if record_flag:
+    #     record["rw_count"] = env.rw_count
+    #     return record
 
     info = {
         "env": env,
         "reward_obj": reward_obj,
-        "brain": brain
+        "brain": brain,
+        "record": record
     }
 
     return env.rw_count, info

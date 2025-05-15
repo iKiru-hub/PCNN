@@ -17,7 +17,7 @@ Details of lateral inhibition and recurrent connectivity are given in Appendix~A
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{figures/figure_model_v2.png}
-    \caption{\textsc{Model layout and spatial representations} -
+    \caption{\textbf{Model layout and spatial representations} -
     \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs
     and a reward receiver}.
     \textbf{b}: \textit{the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to the layer of place cells}.
@@ -48,7 +48,6 @@ Then, a prediction error is computed and used to adjust the weights:
 The prediction learning rate $\hat{\eta}^{k} < 1$ ensures that small errors are corrected gradually, while repeated mismatches lead to weight depression. This mechanism implements a simple form of predictive coding and is inspired by temporal-difference learning \cite{suttonReinforcementLearningProblem}, aligning with evidence that neuromodulatory systems signal prediction errors and update beliefs \cite{montagueFrameworkMesencephalicDopamine1996, decothiPredictiveMapsRats2022, krishnanRewardExpectationExtinction2022}.
 
 \paragraph{Modulation of Place Fields}
-\hfill \break
 We further tested whether neuromodulators could directly alter spatial tuning. Place fields were dynamically shifted and resized based on recent salience signals.
 
 Following a salient event (reward or collision), place field centers were displaced in grid cell space, with magnitude scaled by the neuromodulator $v^k$ and proximity to the event:
@@ -73,51 +72,45 @@ The graph was defined by place cells as nodes and synaptic links as edges. The a
 
 \begin{table}[H]
 \centering
+\vspace{1em}
 \caption{Comparison of neural network models for spatial navigation and representation}
-\label{tab:models_comparison}
+\vspace{1em}
+
 \small
 \begin{tabular}{l p{2.5cm} p{3.cm} c}
 \toprule
-\textbf{Model} & \textbf{Architecture} & \textbf{Training Method} & \textbf{Ext. C.} \\
+\textbf{Model} & \textbf{Architecture} & \textbf{Training method} & \textbf{Ext. C.} \\
 \midrule
 Banino et al. \cite{baninoVectorbasedNavigationUsing2018} & LSTM + linear layers + CNN & BPTT and deep RL, supervised & Yes \\
-\midrule
 Cueva et al. \cite{cuevaEmergenceGridlikeRepresentations2018} & RNN + linear layers & Hessian-free algorithm with regularization & Yes \\
-\midrule
 Sorcher et al. \cite{sorscherUnifiedTheoryOrigin2019} & RNN + linear layers & Backpropagation with regularization & Yes \\
-\midrule
 Whittington et al. \cite{whittingtonTolmanEichenbaumMachineUnifying2020} & Attractor network and deep networks & Backpropagation and Hebbian learning & No \\
-\midrule
 de-Cothi et al. \cite{decothiPredictiveMapsRats2022} & Successor representation & TD-learning + eligibility traces & Yes \\
-\midrule
 Brozsko et al. \cite{brzoskoSequentialNeuromodulationHebbian2017} & Spike Response Model & Online modulated Hebbian plasticity & Yes \\
-\midrule
-\textbf{Ours} & Rate layers & Online neuro-modulated plasticity & No \\
+\textbf{Ours} & Rate layers & Online neuromodulated plasticity & No \\
 \bottomrule
 \end{tabular}
 
-\vspace{0.3cm}
+\vspace{1em}
 
-\begin{tabular}{l p{2.8cm} p{2.8cm} p{2.cm}}
+\begin{tabular}{l p{2.8cm} p{2.8cm} p{2cm}}
 \toprule
 \textbf{Model} & \textbf{Task} & \textbf{Input} & \textbf{Output} \\
 \midrule
 Banino et al. & Path integration, goal navigation & Velocity, visual input, reward & PC, HDC \\
-\midrule
 Cueva et al. & Path integration & Velocity & Position \\
-\midrule
 Sorcher et al. & Path integration & Velocity & PC \\
-\midrule
 Whittington et al. & Relational graph knowledge & Observation and action & Observation \\
-\midrule
 de-Cothi et al. & Planned navigation & Observation & -- \\
-\midrule
 Brozsko et al. & Goal navigation & Position, reward & Action \\
-\midrule
 \textbf{Ours} & Goal navigation & Velocity, reward, collision & Action \\
 \bottomrule
 \end{tabular}
-\caption*{Note: PC = Place Cells, HDC = Head Direction Cells, Ext. C. = External Spatial Coordinates}
+
+\vspace{1em}
+
+\caption*{\small Note: PC = Place Cells, HDC = Head Direction Cells, Ext. C. = External Spatial Coordinates}
+\vspace{1em}
 \end{table}
 
 Several previous computational models show structural and conceptual similarities with the present work. A prominent category among them employs deep neural networks—often with recurrent components—and relies on gradient-based learning strategies such as backpropagation through time. These models typically require multiple training episodes or large datasets for convergence. In contrast, our model adopts biologically inspired, synaptically local plasticity rules, and requires only a single training episode for adaptation.
@@ -127,5 +120,7 @@ Other models utilize spiking neurons \cite{brzoskoSequentialNeuromodulationHebbi
 % benchmarks used
 \paragraph{Naturalistic task}
 The model was evaluated on a biologically inspired navigation benchmark involving exploration and goal-seeking behavior in closed environments. Performance was measured as the total number of rewards collected over multiple trials.
+
+Optimization of the model parameters was carried out using the evolutionary Covariance-Matrix Adaptation strategy (CMA-ES) \cite{igelCovarianceMatrixAdaptation2007} with a population of 128 individuals for 100 generations.
 
 

@@ -12,7 +12,7 @@ import utils
 
 
 reward_settings = {
-    "rw_fetching": "probabilistic",
+    "rw_fetching": "deterministic",
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_position_idx": 3,
@@ -21,7 +21,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 5_000,
+    "silent_duration": 1_000,
     "fetching_duration": 1,
 
     "transparent": False,
@@ -171,6 +171,52 @@ sim_parameters_3 = {
 }
 
 
+sim_parameters_4 = {
+
+          "gain": 129.0,
+          "offset": 1.0,
+          "threshold": 0.4,
+          "rep_threshold": 0.97,
+          "rec_threshold": 50,
+          "tau_trace": 99,
+          "remap_tag_frequency": 1,
+          "num_neighbors": 12,
+          "min_rep_threshold": 0.99,
+
+          "lr_da": 0.9,
+          "lr_pred": 0.05,
+          "threshold_da": 0.18,
+          "tau_v_da": 1.0,
+          "lr_bnd": 0.9,
+          "threshold_bnd": 0.1,
+          "tau_v_bnd": 1.0,
+
+          "tau_ssry": 437.0,
+          "threshold_ssry": 1.986,
+          "threshold_circuit": 0.9,
+
+          "rwd_weight": -0.22,
+          "rwd_sigma": 50.4,
+          "col_weight": -4.05,
+          "col_sigma": 51.5,
+          "rwd_field_mod": 1.5,
+          "col_field_mod": 5.3,
+          "modulation_option": [True] * 4,
+
+          # "rwd_weight": 0.0,
+          # "rwd_sigma": 0.0,
+          # "col_weight": 0.0,
+          # "col_sigma": 0.0,
+          # "rwd_field_mod": 1.0,
+          # "col_field_mod": 1.0,
+          # "modulation_option": [False] * 4,
+
+          "action_delay": 100.0,
+          "edge_route_interval": 156,
+          "forced_duration": 19,
+          "min_weight_value": 0.01,
+}
+
 
 if __name__ == "__main__":
 
@@ -214,7 +260,8 @@ if __name__ == "__main__":
     else:
         logger.debug("using local parameters")
         # parameters = sim_parameters
-        parameters = sim_parameters_3
+        # parameters = sim_parameters_3
+        parameters = sim_parameters_4
         # parameters = sim_parameters_73
 
     if args.room == "random":

@@ -285,6 +285,11 @@ Zuzanna Brzosko, Sara Zannone, Wolfram Schultz, Claudia Clopath, and Ole Paulsen
 \newblock Sequential neuromodulation of {{Hebbian}} plasticity offers mechanism for effective reward-based navigation.
 \newblock {\em eLife}, 6:e27756, 2017.
 
+\bibitem{igelCovarianceMatrixAdaptation2007}
+Christian Igel, Nikolaus Hansen, and Stefan Roth.
+\newblock Covariance {{Matrix Adaptation}} for {{Multi-objective Optimization}}.
+\newblock {\em Evolutionary Computation}, 15(1):1--28, March 2007.
+
 \bibitem{meilingerQualitativeDifferencesMemory2016}
 Tobias Meilinger, Marianne Strickrodt, and Heinrich~H. B{\"u}lthoff.
 \newblock Qualitative differences in memory for vista and environmental spaces are caused by opaque borders, not movement or successive presentation.

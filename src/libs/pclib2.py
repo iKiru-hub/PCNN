@@ -13,6 +13,7 @@ logger = setup_logger('PCLIB', level=-2, is_debugging=False)
 
 MAX_ATTEMPTS = 5
 MIN_PC_NUMBER = 5
+ATTEMPT_PAUSE = 10
 
 
 
@@ -675,7 +676,6 @@ class Brain:
 
         # failed planning despite goal
         self._t_attempt = 0
-        self._attempt_pause = 1000
 
         # Variables
         self.curr_representation = None
@@ -776,7 +776,7 @@ class Brain:
                                              self.space, trigger)
 
         # check: attempt pause
-        if self.clock - self._t_attempt > self._attempt_pause:
+        if self.clock - self._t_attempt > ATTEMPT_PAUSE:
 
             if self.tmp_trg_idx > -1:
 

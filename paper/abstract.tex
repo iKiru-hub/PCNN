@@ -1,32 +1,18 @@
-\begin{abstract}
+\vspace{2\baselineskip}
+\begin{center}
+\textbf{\large Abstract}
+\end{center}
 
-% the context
-During navigation, animals dynamically create rich representations of the environment, forming personalized cognitive maps used for exploration and goal planning. The hippocampal area CA1 features spatial cells that adapt based on behavior and internal states.
-A possible modeling approach is a labeled graphs that, with the intent of avoiding a map with metric structure, relies on nodes enriched with spatial information only specified locally.
-Another popular direction if training of deep neural networks on spatial tasks, from which record network dynamics from emerging spatially tuned neurons.
-
-% the model in brief
-In this study, we introduce a place-cells based architecture for developing cognitive maps in one-shot while exploring novel environments.
-We used a simulated agent for reward-driven navigation tasks, which operates online and forms spatial representations of its surroundings.
-Further, by means of neuromodulators it incorporates behaviorally relevant information, such as boundaries and reward location.
-Learning was involved the combination of a rapid Hebbian plasticity, lateral competition, and modulation of the place cells,
-
-% results
-The agent proved successful in exploring, retrieving and reaching goal locations in a variety of environments, and displayed adaptability when the reward was moved.
-Further, the analysis of the neuromodulated place cells showed the importance of dynamically changing neuronal density and tuning field size following relevant events.
-These results align with experimental evidence of reward effects on hippocamapal spatial cells, and provides additional computational support to the labeled graph approach.
+\begin{quote}
+\setlength{\leftskip}{0.5in}
+\setlength{\rightskip}{0.5in}
+\small
 
 
-Animals naturally form personalized cognitive maps to support efficient navigation and goal-directed behavior.
-In the brain, the hippocampal CA1 region plays a key role in this process, hosting spatially tuned neurons that adapt based on behavioral context and internal states.
-Computational models of this ability include labeled graphs with locally specified spatial information, avoiding global metric structure, and deep neural networks trained on spatial tasks that exhibit emergent spatial tuning.
-However, these approaches often struggle to model one-shot adaptive mapping and employ non-biologically plausible plasticity rules.
+Animals naturally form personalized cognitive maps to support efficient navigation and goal-directed behavior. In the brain, the CA1 subregion of the hippocampus plays a key role in this process, hosting spatially tuned neurons that adapt based on the behavioral context and internal states. Computational models of this ability include labeled graphs with locally specified spatial information, which avoid global metric structure, and deep neural networks trained on spatial tasks that exhibit emergent spatial tuning. However, these approaches often struggle to model one-shot adaptive mapping and typically rely on plasticity rules that lack biological plausibility.
 
-We propose a biologically inspired place-cell architecture based on velocity inputs and grid cells modules that enables rapid, on-the-fly construction of cognitive maps during exploration of novel environments. Our agent learns to navigate reward-driven tasks using an architecture that integrates neuromodulatory signals responsive to boundaries and rewards, with learning mechanisms that combine Hebbian plasticity, lateral inhibition, and modulatory gating of place-cell activity.
+We propose a neural architecture inspired by place-cell dynamics that enables rapid on-the-fly construction of cognitive maps during exploration of novel environments. The model relies on velocity inputs and grid cell modules to generate spatial representations and integrates neuromodulatory signals responsive to boundaries and rewards. Learning combines synaptic plasticity, lateral inhibition, and modulatory gating of place-cell activity. For reward-driven navigation, the agent uses a modified Dijkstra algorithm to plan paths on the emergent cognitive map, treating place cells as nodes in a locally structured graph.
 
-Compared to reinforcement learning (RL) models, our approach demonstrates superior efficiency, accomplishing in a single trial what RL agents typically require thousands of episodes to learn.
-Simulations show that the agent can also adapt to changing reward locations and it maintains successful navigation across diverse environments.
-Analysis of neuromodulated place cells reveals dynamic changes in tuning field size and spatial density after behaviorally salient events, mirroring experimental observations in hippocampal neurons.
-Our findings support the efficacy of biologically grounded models and locally structured graph representations in cognitive map formation.
+We compare our model with standard reinforcement learning (RL) agents and find that it achieves significantly higher sample efficiency, solving tasks in a single episode that RL agents require thousands of training steps to master. This performance advantage arises from biologically inspired inductive biases embedded in the model architecture. In simulation, the agent adapts to dynamic reward locations and changes in the environment layout. Analysis of neuromodulated place cells reveals task-dependent changes in tuning field size and spatial density, aligning with experimental findings from hippocampal recordings. These results highlight the promise of biologically grounded computation and locally structured graph representations for flexible and data-efficient cognitive mapping.
 
-\end{abstract}
+\end{quote}

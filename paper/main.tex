@@ -1,5 +1,18 @@
 \documentclass{article}
 
+\usepackage{neurips_2025}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+% \usepackage[nonatbib]{neurips_2025}
+
 \usepackage{blindtext}
 \usepackage{amsmath}
 \usepackage{bbold}
@@ -9,43 +22,39 @@
 \usepackage{graphicx}
 \usepackage{subcaption}
 \usepackage{hyperref}
-% \usepackage{float}
-
-% \bibliographystyle{plain}
 \bibliographystyle{unsrt}
 
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{amssymb}
 
- % For better-looking tables
+% For better-looking tables
 \usepackage{array}
 \usepackage{booktabs}
-% \usepackage{authblk} % For author and affiliation formatting
-
-% Ensure that paragraphs and subparagraphs are included in the numbering
-% \setcounter{tocdepth}{2}
 
 
 \title{Flexible navigation with neuromodulated cognitive maps}
 
-% \author[1]{Krubeal Danieli}
-% \author[2]{Mikkel Elle Lepperød}
-% \affil[1]{Center for Integrative Neuroplasticity, FYSCELL, University of Oslo, Norway}
-% \affil[2]{Simula Research Laboratory, Oslo, Norway}
-
-\date{} % Removes the default date
+\author{%
+  Krubeal Danieli \\
+  Center for Integrative Neuroplasticity\\
+  FYSCELL, University of Oslo\\
+  Oslo, Norway \\
+  \texttt{krubeal.danieli@ibv.uio.no} \\
+  \And
+  Mikkel Elle Lepperød \\
+  Simula Research Laboratory\\
+  Oslo, Norway \\
+  \texttt{mikkel@simula.no} \\
+}
 
 \begin{document}
 
 \maketitle
 
-% \input{abstract.tex}
-
-% \newpage
+\input{abstract.tex}
 
 \input{introduction}
-% \input{tmp}
 
 \input{methods}
 
@@ -58,6 +67,11 @@
 \bibliography{pcnn_refs}
 
 \input{appendix}
+
+\newpage
+
+
+\input{checklist}
 
 \end{document}
 

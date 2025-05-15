@@ -12,10 +12,8 @@ import argparse, time
 from stable_baselines3 import DQN, TD3, PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor, FlattenExtractor
 
 import gymnasium as gym
-from gymnasium import spaces
 
 import game.envs as games
 from utils import setup_logger
@@ -37,9 +35,9 @@ rl_parameters = {
     'hidden_dim': 64,
     'learning_rate': 0.001,
     'gamma': 0.99,
-    'buffer_size': 10000,
-    'batch_size': 64,
-    'update_every': 4,
+    'buffer_size': 5000,
+    'batch_size': 32,
+    'update_every': 2,
     'training_mode': True,
 }
 
@@ -240,64 +238,6 @@ def main_rl(global_parameters: dict,
     return record
 
 
-class CustomCombinedExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: spaces.Dict, cnn_output_dim: int = 128, mlp_output_dim: int = 32):
-        super().__init__(observation_space, features_dim=cnn_output_dim + 3 * mlp_output_dim)
-
-        self.image_space = observation_space["image"]
-        self.reward_space = observation_space["reward"]
-        self.collision_space = observation_space["collision"]
-        self.velocity_space = observation_space["velocity"]
-
-        # Revised CNN for image (smaller kernels and strides)
-        self.cnn = nn.Sequential(
-            nn.Conv2d(self.image_space.shape[0], 32, kernel_size=3, stride=2, padding=0),
-            nn.ReLU(),
-            nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=0),
-            nn.ReLU(),
-            nn.Flatten(),
-            nn.Linear(288, 32),
-            nn.ReLU(),
-        )
-
-        # MLP for other inputs
-        self.flatten = FlattenExtractor(self.reward_space)
-        self.mlp_reward = nn.Sequential(
-            nn.Linear(self.flatten.features_dim, mlp_output_dim),
-            nn.ReLU()
-        )
-        self.mlp_collision = nn.Sequential(
-            nn.Linear(self.flatten.features_dim, mlp_output_dim),
-            nn.ReLU()
-        )
-        self.mlp_velocity = nn.Sequential(
-            nn.Linear(self.velocity_space.shape[0], mlp_output_dim),
-            nn.ReLU()
-        )
-
-        logger.debug(f"{cnn_output_dim=} {mlp_output_dim=}")
-
-    def _calculate_cnn_output(self, input_shape):
-        with torch.no_grad():
-            dummy_input = torch.randn(1, *input_shape)
-            output = self.cnn(dummy_input)
-            return output.shape[1]
-
-    def forward(self, observations: dict) -> torch.Tensor:
-        image_obs = observations["image"]
-        reward_obs = observations["reward"]
-        collision_obs = observations["collision"]
-        velocity_obs = observations["velocity"]
-
-        image_features = self.cnn(image_obs)
-        reward_features = self.mlp_reward(self.flatten(reward_obs))
-        collision_features = self.mlp_collision(self.flatten(collision_obs))
-        velocity_features = self.mlp_velocity(velocity_obs)
-
-        combined_features = torch.cat([image_features, reward_features, collision_features, velocity_features], dim=1)
-        return combined_features
-
-
 def run_rl_model_2(make_env: callable,
                    num_episodes: int,
                    model_type: str,
@@ -319,9 +259,11 @@ def run_rl_model_2(make_env: callable,
                    save=True):
 
     def _make_env():
+
         env = make_env()
         env = games.EnvironmentWrapper(env=env,
-                                     resize_to=game_settings['resize_to'])
+                                       image_obs=game_settings['image_obs'],
+                                       resize_to=game_settings['resize_to'])
         env.set_speed(global_parameters["speed"])
 
         if not isinstance(env, gym.Env):
@@ -330,7 +272,9 @@ def run_rl_model_2(make_env: callable,
         return env
 
     if num_envs > 1:
-        logger.info(f"Using {num_envs} environments in parallel")
+        logger(f"Using {num_envs} environments in parallel")
+
+    # vec_env = DummyVecEnv([make_env] * num_envs)
 
     vec_env = DummyVecEnv([lambda: _make_env()] * num_envs)
 
@@ -344,7 +288,7 @@ def run_rl_model_2(make_env: callable,
     if model_class is None:
         raise ValueError(f"Unsupported model type: {model_type}")
     else:
-        logger.info(f"using {model_class=}")
+        logger.debug(f"using {model_class=}")
 
     model_path = f"{RLPATH}/{make_rl_name(model_type, idx)}"
 
@@ -362,28 +306,14 @@ def run_rl_model_2(make_env: callable,
             "batch_size": batch_size,
         })
 
-    # Determine policy type based on observation space
-    observation_space = vec_env.observation_space
-    policy_kwargs = {}
-    if isinstance(observation_space, spaces.Dict):
-        policy_kwargs["features_extractor_class"] = CustomCombinedExtractor
-        policy_kwargs["features_extractor_kwargs"] = {
-            "cnn_output_dim": 32,  # Adjust as needed
-            "mlp_output_dim": 8    # Adjust as needed
-        }
-        policy_kwargs["net_arch"] = [64, 64]  # MLP layers after feature extraction
-        policy_class = "MultiInputPolicy"
-    else:
-        policy_class = "MlpPolicy" # Fallback to MlpPolicy if observation space is not a Dict
-
     # Load or initialize model
     logger.debug(f"..{model_path=}")
     if load and os.path.exists(model_path + ".zip"):
         model = model_class.load(model_path, env=vec_env, device="cuda", verbose=0)
-        logger.info(f"Loaded model from {model_path}")
+        logger.debug(f"Loaded model from {model_path}")
     else:
-        model = model_class(policy_class, vec_env, policy_kwargs=policy_kwargs, **model_kwargs)
-        logger.info("new model")
+        model = model_class("MlpPolicy", vec_env, **model_kwargs)
+        logger.debug("new model")
 
     # Training
     if training_mode:
@@ -391,21 +321,21 @@ def run_rl_model_2(make_env: callable,
         if save:
             os.makedirs(RLPATH, exist_ok=True)
             model.save(model_path)
-            logger.info(f"[✓] Trained model saved to {model_path}")
+            logger(f"[✓] Trained model saved to {model_path}")
 
     # Evaluation
-    eval_env = _make_env()
+    vec_env = _make_env()
     for _i in range(100):
-        obs, _ = eval_env.reset()
+        obs, _ = vec_env.reset()
         record = {"activity": [], "trajectory": []}
 
         # ---
-        for _ in range(eval_env.duration):
+        for _ in range(vec_env.duration):
             action, _ = model.predict(obs, deterministic=True)
-            obs, reward, done, _, info = eval_env.step(action)
+            obs, reward, done, _, info = vec_env.step(action)
 
             if record_flag:
-                record["trajectory"].append(eval_env.unwrapped.position)
+                record["trajectory"].append(env.unwrapped.position)
 
             try:
                 if done:
@@ -415,19 +345,20 @@ def run_rl_model_2(make_env: callable,
                 if done:
                     break
 
-            if eval_env.visualize:
+            if vec_env.visualize:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         break
 
-            if eval_env.visualize and eval_env.t % plot_interval == 0:
-                eval_env.render()
+            if vec_env.visualize and vec_env.t % plot_interval == 0:
+                vec_env.render()
 
         #
-        eval_env.render()
-        logger.info(f"test {_i} | R={reward}")
+        vec_env.render()
+        logger.debug(f"test {_i} | R={reward}")
 
-    logger.info(f"rw_count={eval_env.rw_count}")
+
+    logger(f"rw_count={vec_env.rw_count}")
 
     return record, model
 

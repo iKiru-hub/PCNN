@@ -1,6 +1,23 @@
 \section{Results}
 
-\subsection{Performance in wayfinding}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/main_results.png}
+    \caption{\textbf{Cognitive maps and performance results} -
+    \textbf{a}: \textit{the plot on the left represent a cognitive map over a space, together with the plan (grey line) to reach a target location from a starting position. The  plot on the right is a view of the same enviroment but with highlighted walls (black thick lines) the reward (green circle), trajectory (red line), agent position (black square).} -
+    \textbf{b}: \textit{plot of trajectories before (black) and after (red) the insertion of a wall between the starting and goal positions, the wall can be spotted from the boundary cells in blue} -
+    \textbf{c}: \textit{trajectories for multiple trials with the agent starting at the same position (black square) but with the reward location (green circles) periodically moving} -
+    \textbf{d}: \textit{place cells centers with size and color proportional to its node degree (number of neighbors); further, it notable is the correlation with the distance from the reward (in the center)} -
+    \textbf{e}: \textit{place fields of the same cell before and after several relocation of its center following reward events} -
+    \textbf{f}: \textit{performance comparison with same environmental conditions for five different models: one baseline as chance level (plasticity disabled, except for place cells generation), and four variants with different ablations of DA and BND modulations of place fields density and size.
+    Results in terms of reward count and Bonferroni-corrected pairwise t-test, black stars stand for statistical difference with respect to all other groups, red starts only to the DA and DA+BND.} -
+    \textbf{g}: \textit{ablation performance comparison similar to} c, \textit{and over the same environment for model variants with different active modulatory mechanisms: no DA and BND place field modulation, full DA and BND, DA-d for PC density, DA-g activation gain, BND-d for PC density,BND-g for
+activation gain.}}
+    \label{fig:main_results}
+\end{figure}
+
+
+\paragraph{Performance in wayfinding}
 Our primary aim was to evaluate the formation of the cognitive map through neuromodulation in terms of the performance of the goal navigation in different environments.
 The best model resulting from evolution reached solid navigation and adaptation skills.
 The agent was able to visit a significant portion of the environment during exploration and use neuromodulation to produce useful spatial representations.
@@ -16,7 +33,7 @@ In addition, by construction the path also minimized the length of the path, wit
 In general, this result confirms the ability of the model to focus on navigation and obstacle avoidance.
 However, it is worth nothing that not all simulations resulted in a reward being found in the first place, due to the randomness of the exploratory process; this was more pronounced in complex environment.
 
-\subsubsection{Detour task}
+\paragraph{Detour task}
 The planning ability and the plastic nature of the cognitive map should provide resilience against unexpected changes in the environment layout.
 In order to verify this we implemented a detour experiment.
 Initially, the agent was familiarized with a square environment with the reward in the middle and starting always from the same position.
@@ -24,25 +41,7 @@ Then, a wall was placed in between the starting position and the reward, therefo
 As expected, the agent was able to form a representation of the new obstacle and calculating new paths around it, succeeding the task.
 In plot \ref{fig:main_results}\textbf{b} they are shown the trajectories before and after the wall placement, and it is manifesed the ability of detour in the new layout.
 
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.9\textwidth]{figures/main_results.png}
-    \caption{\textsc{Cognitive maps and performance results} -
-    \textbf{a}: \textit{the plot on the left represent a cognitive map over a space, together with the plan (grey line) to reach a target location from a starting position. The  plot on the right is a view of the same enviroment but with highlighted walls (black thick lines) the reward (green circle), trajectory (red line), agent position (black square).} -
-    \textbf{b}: \textit{plot of trajectories before (black) and after (red) the insertion of a wall between the starting and goal positions, the wall can be spotted from the boundary cells in blue} -
-    \textbf{c}: \textit{trajectories for multiple trials with the agent starting at the same position (black square) but with the reward location (green circles) periodically moving} -
-    \textbf{d}: \textit{place cells centers with size and color proportional to its node degree (number of neighbors); further, it notable is the correlation with the distance from the reward (in the center)} -
-    \textbf{e}: \textit{place fields of the same cell before and after several relocation of its center following reward events} -
-    \textbf{f}: \textit{performance comparison with same environmental conditions for five different models: one baseline as chance level (plasticity disabled, except for place cells generation), and four variants with different ablations of DA and BND modulations of place fields density and size.
-    Results in terms of reward count and Bonferroni-corrected pairwise t-test, black stars stand for statistical difference with respect to all other groups, red starts only to the DA and DA+BND.} -
-    \textbf{g}: \textit{ablation performance comparison similar to} c, \textit{and over the same environment for model variants with different active modulatory mechanisms: no DA and BND place field modulation, full DA and BND, DA-d for PC density, DA-g activation gain, BND-d for PC density,BND-g for
-activation gain.}}
-    \label{fig:main_results}
-\end{figure}
-
-
-\subsection{Adaptive goal representation through prediction error}
+\paragraph{Adaptive goal representation through prediction error}
 Then, we tested the adaptability to environmental changes. In this scenario, the reward object was moved after being fetched a fixed number of times.
 Here, the difficulty was to unlearning previous locations and discovering new ones, in a protocol similar to \cite{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019}.
 In plot \ref{fig:main_results}\textbf{c} is reported the set of trajectories over many trials with the reward displaced in three possible locations. The agent was capable of planning behavior, as earlier, but also exploring and finding the new rewards, as shown by the density of lines.
@@ -50,7 +49,7 @@ Whenever a goal path resulted in a failed prediction, the DA-based sensory error
 
 This result validates the resilience of the model to changing sensory expectations, in this case the reward position.
 
-\subsection{Modulation of spatial resolution affects performance}
+\paragraph{Modulation of spatial resolution affects performance}
 Lastly, we investigated the effect of modulating the density of place cells and the size of the field.
 The goal position was fixed, but the agent was randomly relocated after fetching; performance was defined as the total number of reward counts within a time window.
 

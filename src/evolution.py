@@ -14,7 +14,7 @@ from game.constants import ROOMS, GAME_SCALE
 
 
 """ SETTINGS """
-logger = setup_logger(name="EVO", level=2, is_debugging=True, is_warning=True)
+logger = setup_logger(name="EVO", level=2, is_debugging=False, is_warning=True)
 
 NUM_SAMPLES = 4
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
@@ -42,6 +42,8 @@ reward_settings = {
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
     "move_threshold": 150,# * GAME_SCALE,
+    "move_threshold": 150,# * GAME_SCALE,
+    "rw_position_idx": -1,
 }
 
 game_settings = {
