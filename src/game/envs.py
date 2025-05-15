@@ -574,6 +574,8 @@ class Environment:
         self._collision = 0
         self._reward = 0
 
+        self.nb_collisions = 0
+
         self.rw_time = 0
         self.time_flag = None
 
@@ -625,6 +627,7 @@ class Environment:
                                         self.agent.position[1]+8])
         self._collision = float(collision)
         self._reward = float(reward)
+        self.nb_collisions += float(self._collision > 0.)
 
         self.velocity[0] = velocity[0]
         self.velocity[1] = velocity[1]

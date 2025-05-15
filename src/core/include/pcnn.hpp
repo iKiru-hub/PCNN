@@ -1751,20 +1751,8 @@ public:
         Eigen::VectorXf& bnd_weights = bnd.get_weights();
 
         for (int i = 0; i < space_size; i++) {
-            /* float bnd_value = bnd_weights(i); */
-            /* float bnd_value = get_bnd_value(i); */
-
-            /* if (!strict) { */
-            /*     value_mask(i) = bnd_value < 0.01f ? 1.0f : 0.0f; */
-            /*     continue; */
-            /* } */
-
             if (get_bnd_value(i) < 0.001f) { value_mask(i) = 1.0f; }
             else { value_mask(i) = -10000.0f; }
-            /* else if (bnd_value < threshold) { */
-            /*     value_mask(i) = -4000.0f; } */
-            /* else { */
-            /*     value_mask(i) = -10000.0f; } */
         }
 
         return value_mask;

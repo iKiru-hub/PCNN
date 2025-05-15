@@ -26,7 +26,7 @@ The left panel of plot \ref{fig:main_results}\textbf{a} displays place cells ass
 The overlap of these two representations and the place cells (in pink) is what we refer to as a cognitive map, since these are the main sources of spatial and contextual information used during planned navigation, whose path is depicted as a gray line.
 The right panel instead portrays the actual environment with walls (black), reward location (green), and multiple trajectories (red).
 During exploration, the main areas were visited until the reward position was located and the goal-directed navigation dominated, as highlighted by the density of the path lines.
-Considering the position of the walls and corners, the layout of this environment does not always make the target locations visible, as it is a non-convex area and therefore can be classified as wayfinding \cite{meilingerQualitativeDifferencesMemory2016}.
+Considering the position of the walls and corners, the layout of this environment does not always make the target locations visible, as it is a non-convex area and therefore can be classified as wayfinding \cite{meilinger2016}.
 The challenge of not being able to use straight lines is overcome by the graph approach using local data and the consideration of boundary place cells, allowing the agent to plan accordingly.
 In addition, by construction the path also minimized the length of the path, within the part of the space covered by the cognitive map.
 
@@ -43,7 +43,7 @@ In plot \ref{fig:main_results}\textbf{b} they are shown the trajectories before 
 
 \paragraph{Adaptive goal representation through prediction error}
 Then, we tested the adaptability to environmental changes. In this scenario, the reward object was moved after being fetched a fixed number of times.
-Here, the difficulty was to unlearning previous locations and discovering new ones, in a protocol similar to \cite{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019}.
+Here, the difficulty was to unlearning previous locations and discovering new ones, in a protocol similar to \cite{brzosko2019}.
 In plot \ref{fig:main_results}\textbf{c} is reported the set of trajectories over many trials with the reward displaced in three possible locations. The agent was capable of planning behavior, as earlier, but also exploring and finding the new rewards, as shown by the density of lines.
 Whenever a goal path resulted in a failed prediction, the DA-based sensory error weakened the association between the place cells and the reward signal, leading to an extinction of its representation at that location.
 

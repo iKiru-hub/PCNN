@@ -2,32 +2,31 @@
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
-\bibstyle{unsrt}
-\citation{golledgeCognitiveMapsSpatial2000,epsteinNeuralSystemsLandmarkbased2014}
-\citation{peerStructuringKnowledgeCognitive2021,chrastilCognitiveMapsCognitive2014,wernerModellingNavigationalKnowledge2000}
-\citation{chrastilCognitiveMapsCognitive2014,gallistelComputationsMetricMaps1996}
-\citation{peerFormatCognitiveMap2024,warrenNonEuclideanNavigation2019,wagnerComparingPsychophysicalGeometric2008,rothkegelJudgingSpatialRelations1998}
-\citation{meilingerNetworkReferenceFrames2008,wangLearningReinforcementLearn2017,schinaziHippocampalSizePredicts2013}
+\citation{golledge2000,epstein2014}
+\citation{peer2021,chrastil2014,werner2000}
+\citation{chrastil2014,gallistel1996}
+\citation{peer2024,warren2019,wagner2008,rothkegel1998}
+\citation{meilinger2008,wang2017,schinazi2013}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
-\citation{sargoliniConjunctiveRepresentationPosition2006,kropffSpeedCellsMedial2015,solstadGridCellsPlace2006}
-\citation{donatoHowYouBuild2023}
-\citation{bushWhatGridCells2014,neherGridCellsPlace2017a,liModelingPlaceCells2019,bilashLateralEntorhinalCortex2023}
-\citation{lismanHippocampalVTALoopControlling2005,duszkiewiczNoveltyDopaminergicModulation2019,schultzNeuralSubstratePrediction1997}
-\citation{kempadooDopamineReleaseLocus2016,retailleauMichelinRedGuide2014,bittnerBehavioralTimeScale2017,kaufmanRoleLocusCoeruleus2020}
-\citation{duszkiewiczNoveltyDopaminergicModulation2019}
-\citation{igarashiFunctionalDiversityTransverse2014,itoFunctionalDivisionHippocampal2012}
-\citation{sheynikhovichLongtermMemorySynaptic2023,schultzNeuralSubstratePrediction1997}
-\citation{poucetSpatialCognitiveMaps1993}
-\citation{wernerModellingNavigationalKnowledge2000}
-\citation{stoewerNeuralNetworkBased2023,decothiPredictiveMapsRats2022,whittingtonTolmanEichenbaumMachineUnifying2020}
-\citation{baninoVectorbasedNavigationUsing2018,sorscherUnifiedTheoryOrigin2019,cuevaEmergenceGridlikeRepresentations2018}
-\citation{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019}
-\citation{sosaHippocampalSequencesSpan2024}
-\citation{aliPredictiveCodingConsequence2021,sheynikhovichLongtermMemorySynaptic2023,bonoLearningPredictiveCognitive2023}
-\citation{schultzDopamineRewardPrediction2016,inglisModulationDopamineAdaptive2021,toblerAdaptiveCodingReward2005,coolsChemistryAdaptiveMind2019,decothiPredictiveMapsRats2022}
-\citation{milsteinBidirectionalSynapticPlasticity2021,fentonRemappingRevisitedHow2024}
-\citation{zhouCorticalMechanismsMultisensory2022}
-\citation{jerjianSelfmotionPerceptionSequential2023,whishawCalibratingSpaceExploration1999a}
+\citation{sargolini2006,kropff2015,solstad2006}
+\citation{donato2023}
+\citation{bush2014,neher2017,li2019,bilash2023}
+\citation{lisman2005,duszkiewicz2019,schultz1997}
+\citation{kempadoo2016,retailleau2014,bittner2017,kaufman2020}
+\citation{duszkiewicz2019}
+\citation{igarashi2014,ito2012}
+\citation{sheynikhovich2023,schultz1997}
+\citation{poucet1993}
+\citation{werner2000}
+\citation{stoewer2023,decothi2022,whittington2020}
+\citation{banino2018,sorscher2023,cueva2018}
+\citation{brzosko2019}
+\citation{sosa2024}
+\citation{ali2021,sheynikhovich2023,bono2023}
+\citation{schultz2016,inglis2021,tobler2005,cools2019,decothi2022}
+\citation{milstein2021,fenton2024}
+\citation{zhou2022}
+\citation{jerjian2023,whishaw1999}
 \@writefile{toc}{\contentsline {section}{\numberline {2}Methods}{2}{section.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Place Cell Formation}{2}{section*.2}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textbf  {Model layout and spatial representations} - \textbf  {a}: \textit  {the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs and a reward receiver}. \textbf  {b}: \textit  {the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to the layer of place cells}. \textbf  {c}: \textit  {the neural activity of a grid cell module from a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}. \textbf  {d}: \textit  {the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}. \textbf  {e}: \textit  {neuromodulation activity over the place cells map, with in blue the cells tagged by the collision modulation, and in green the ones targeted by reward modulation.}}}{3}{figure.caption.3}\protected@file@percent }
@@ -35,140 +34,138 @@
 \newlabel{fig:model}{{1}{3}{\textbf {Model layout and spatial representations} - \textbf {a}: \textit {the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs and a reward receiver}. \textbf {b}: \textit {the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to the layer of place cells}. \textbf {c}: \textit {the neural activity of a grid cell module from a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}. \textbf {d}: \textit {the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}. \textbf {e}: \textit {neuromodulation activity over the place cells map, with in blue the cells tagged by the collision modulation, and in green the ones targeted by reward modulation.}}{figure.caption.3}{}}
 \@writefile{toc}{\contentsline {paragraph}{Neuromodulation}{3}{section*.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Online Adaptation}{3}{section*.5}\protected@file@percent }
-\citation{suttonReinforcementLearningProblem}
-\citation{montagueFrameworkMesencephalicDopamine1996,decothiPredictiveMapsRats2022,krishnanRewardExpectationExtinction2022}
-\citation{bittnerBehavioralTimeScale2017,milsteinBidirectionalSynapticPlasticity2021}
-\citation{mcnamaraDopaminergicNeuronsPromote2014,michonSingletrialDynamicsHippocampal2021,shamashMiceIdentifySubgoal2021}
-\citation{baninoVectorbasedNavigationUsing2018}
-\citation{cuevaEmergenceGridlikeRepresentations2018}
-\citation{sorscherUnifiedTheoryOrigin2019}
-\citation{whittingtonTolmanEichenbaumMachineUnifying2020}
-\citation{decothiPredictiveMapsRats2022}
-\citation{brzoskoSequentialNeuromodulationHebbian2017}
+\citation{sutton}
+\citation{montague1996a,decothi2022,krishnan2022a}
+\citation{bittner2017,milstein2021}
+\citation{mcnamara2014,michon2021,shamash2021}
+\citation{banino2018}
+\citation{cueva2018}
+\citation{sorscher2019}
+\citation{whittington2020}
+\citation{decothi2022}
+\citation{brzosko2017}
 \@writefile{toc}{\contentsline {paragraph}{Modulation of Place Fields}{4}{section*.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Policy and Behavior}{4}{section*.7}\protected@file@percent }
-\citation{brzoskoSequentialNeuromodulationHebbian2017}
-\citation{decothiPredictiveMapsRats2022}
-\citation{igelCovarianceMatrixAdaptation2007}
+\citation{brzosko2017}
+\citation{decothi2022}
+\citation{igel2007}
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Comparison of neural network models for spatial navigation and representation}}{5}{table.caption.9}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Comparison with previous architectures}{5}{table.caption.9}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Naturalistic task}{5}{section*.10}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3}Results}{5}{section.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Performance in wayfinding}{5}{section*.12}\protected@file@percent }
-\citation{meilingerQualitativeDifferencesMemory2016}
+\citation{meilinger2016}
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {Cognitive maps and performance results} - \textbf  {a}: \textit  {the plot on the left represent a cognitive map over a space, together with the plan (grey line) to reach a target location from a starting position. The plot on the right is a view of the same enviroment but with highlighted walls (black thick lines) the reward (green circle), trajectory (red line), agent position (black square).} - \textbf  {b}: \textit  {plot of trajectories before (black) and after (red) the insertion of a wall between the starting and goal positions, the wall can be spotted from the boundary cells in blue} - \textbf  {c}: \textit  {trajectories for multiple trials with the agent starting at the same position (black square) but with the reward location (green circles) periodically moving} - \textbf  {d}: \textit  {place cells centers with size and color proportional to its node degree (number of neighbors); further, it notable is the correlation with the distance from the reward (in the center)} - \textbf  {e}: \textit  {place fields of the same cell before and after several relocation of its center following reward events} - \textbf  {f}: \textit  {performance comparison with same environmental conditions for five different models: one baseline as chance level (plasticity disabled, except for place cells generation), and four variants with different ablations of DA and BND modulations of place fields density and size. Results in terms of reward count and Bonferroni-corrected pairwise t-test, black stars stand for statistical difference with respect to all other groups, red starts only to the DA and DA+BND.} - \textbf  {g}: \textit  {ablation performance comparison similar to} c, \textit  {and over the same environment for model variants with different active modulatory mechanisms: no DA and BND place field modulation, full DA and BND, DA-d for PC density, DA-g activation gain, BND-d for PC density,BND-g for activation gain.}}}{6}{figure.caption.11}\protected@file@percent }
 \newlabel{fig:main_results}{{2}{6}{\textbf {Cognitive maps and performance results} - \textbf {a}: \textit {the plot on the left represent a cognitive map over a space, together with the plan (grey line) to reach a target location from a starting position. The plot on the right is a view of the same enviroment but with highlighted walls (black thick lines) the reward (green circle), trajectory (red line), agent position (black square).} - \textbf {b}: \textit {plot of trajectories before (black) and after (red) the insertion of a wall between the starting and goal positions, the wall can be spotted from the boundary cells in blue} - \textbf {c}: \textit {trajectories for multiple trials with the agent starting at the same position (black square) but with the reward location (green circles) periodically moving} - \textbf {d}: \textit {place cells centers with size and color proportional to its node degree (number of neighbors); further, it notable is the correlation with the distance from the reward (in the center)} - \textbf {e}: \textit {place fields of the same cell before and after several relocation of its center following reward events} - \textbf {f}: \textit {performance comparison with same environmental conditions for five different models: one baseline as chance level (plasticity disabled, except for place cells generation), and four variants with different ablations of DA and BND modulations of place fields density and size. Results in terms of reward count and Bonferroni-corrected pairwise t-test, black stars stand for statistical difference with respect to all other groups, red starts only to the DA and DA+BND.} - \textbf {g}: \textit {ablation performance comparison similar to} c, \textit {and over the same environment for model variants with different active modulatory mechanisms: no DA and BND place field modulation, full DA and BND, DA-d for PC density, DA-g activation gain, BND-d for PC density,BND-g for activation gain.}}{figure.caption.11}{}}
-\citation{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019}
+\citation{brzosko2019}
 \@writefile{toc}{\contentsline {paragraph}{Detour task}{7}{section*.13}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Adaptive goal representation through prediction error}{7}{section*.14}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Modulation of spatial resolution affects performance}{7}{section*.15}\protected@file@percent }
-\citation{donatoHowYouBuild2023}
-\citation{hokGoalRelatedActivityHippocampal2007}
-\citation{ishikawaSpatialKnowledgeAcquisition2006,warrenNonEuclideanNavigation2019}
-\citation{gallistelComputationsMetricMaps1996,gillnerNavigationAcquisitionSpatial1998,mcnaughtonPathIntegrationNeural2006}
-\citation{sorscherUnifiedTheoryComputational2023,cuevaEmergenceGridlikeRepresentations2018,whishawCalibratingSpaceExploration1999a}
-\citation{baninoVectorbasedNavigationUsing2018}
-\citation{brzoskoSequentialNeuromodulationHebbian2017}
-\citation{decothiPredictiveMapsRats2022,aitkenHippocampalRepresentationsSwitch2022}
-\citation{halvagalCombinationHebbianPredictive2023,ororbiaSpikingNeuralPredictive2023,stachenfeldHippocampusPredictiveMap2017}
-\citation{sosaHippocampalSequencesSpan2024}
-\citation{kempadooDopamineReleaseLocus2016,schultzDopamineRewardPrediction2016,coolsChemistryAdaptiveMind2019,sheynikhovichLongtermMemorySynaptic2023}
+\citation{donato2023}
+\citation{hok2007}
+\citation{ishikawa2006,warren2019}
+\citation{gallistel1996,gillner1998,mcnaughton2006}
+\citation{sorscher2019,cueva2018,whishaw1999}
+\citation{banino2018}
+\citation{brzosko2017}
+\citation{decothi2022,aitken2022}
+\citation{halvagal2023,ororbia2023,stachenfeld2017}
+\citation{sosa2024}
+\citation{kempadoo2016,schultz2016,cools2019,sheynikhovich2023}
 \@writefile{toc}{\contentsline {section}{\numberline {4}Discussion}{8}{section.4}\protected@file@percent }
-\citation{bittnerBehavioralTimeScale2017,nairHippocampusMaintainsCoherent2022}
-\citation{tryonHippocampalNeuralActivity2017,wirtshafterDifferencesRewardBiased2020}
-\citation{andersonHeterogeneousModulationPlace2003,leeGradualTranslocationSpatial2006}
-\citation{fyhnHippocampalNeuronsResponding2002,lenck-santiniStudyCA1Place2005,dupretReorganizationReactivationHippocampal2010}
-\citation{burkeInfluenceObjectsPlace2011}
-\citation{tanniStateTransitionsStatistically2022}
-\citation{scleidorovichAdaptingHippocampusMultiscale2022}
-\citation{mehtaExperiencedependentAsymmetricExpansion1997,leeBraininspiredPredictiveCoding2022}
-\citation{wenOneshotEntorhinalMaps2024}
-\bibdata{pcnn_refs}
-\bibcite{golledgeCognitiveMapsSpatial2000}{{1}{}{{}}{{}}}
-\bibcite{epsteinNeuralSystemsLandmarkbased2014}{{2}{}{{}}{{}}}
-\bibcite{peerStructuringKnowledgeCognitive2021}{{3}{}{{}}{{}}}
-\bibcite{chrastilCognitiveMapsCognitive2014}{{4}{}{{}}{{}}}
-\bibcite{wernerModellingNavigationalKnowledge2000}{{5}{}{{}}{{}}}
-\bibcite{gallistelComputationsMetricMaps1996}{{6}{}{{}}{{}}}
-\bibcite{peerFormatCognitiveMap2024}{{7}{}{{}}{{}}}
-\bibcite{warrenNonEuclideanNavigation2019}{{8}{}{{}}{{}}}
-\bibcite{wagnerComparingPsychophysicalGeometric2008}{{9}{}{{}}{{}}}
-\bibcite{rothkegelJudgingSpatialRelations1998}{{10}{}{{}}{{}}}
-\bibcite{meilingerNetworkReferenceFrames2008}{{11}{}{{}}{{}}}
-\bibcite{wangLearningReinforcementLearn2017}{{12}{}{{}}{{}}}
-\bibcite{schinaziHippocampalSizePredicts2013}{{13}{}{{}}{{}}}
-\bibcite{sargoliniConjunctiveRepresentationPosition2006}{{14}{}{{}}{{}}}
-\bibcite{kropffSpeedCellsMedial2015}{{15}{}{{}}{{}}}
-\bibcite{solstadGridCellsPlace2006}{{16}{}{{}}{{}}}
-\bibcite{donatoHowYouBuild2023}{{17}{}{{}}{{}}}
-\bibcite{bushWhatGridCells2014}{{18}{}{{}}{{}}}
-\bibcite{neherGridCellsPlace2017a}{{19}{}{{}}{{}}}
-\bibcite{liModelingPlaceCells2019}{{20}{}{{}}{{}}}
-\bibcite{bilashLateralEntorhinalCortex2023}{{21}{}{{}}{{}}}
-\bibcite{lismanHippocampalVTALoopControlling2005}{{22}{}{{}}{{}}}
-\bibcite{duszkiewiczNoveltyDopaminergicModulation2019}{{23}{}{{}}{{}}}
-\bibcite{schultzNeuralSubstratePrediction1997}{{24}{}{{}}{{}}}
-\bibcite{kempadooDopamineReleaseLocus2016}{{25}{}{{}}{{}}}
-\bibcite{retailleauMichelinRedGuide2014}{{26}{}{{}}{{}}}
-\bibcite{bittnerBehavioralTimeScale2017}{{27}{}{{}}{{}}}
-\bibcite{kaufmanRoleLocusCoeruleus2020}{{28}{}{{}}{{}}}
-\bibcite{igarashiFunctionalDiversityTransverse2014}{{29}{}{{}}{{}}}
-\bibcite{itoFunctionalDivisionHippocampal2012}{{30}{}{{}}{{}}}
-\bibcite{sheynikhovichLongtermMemorySynaptic2023}{{31}{}{{}}{{}}}
-\bibcite{poucetSpatialCognitiveMaps1993}{{32}{}{{}}{{}}}
-\bibcite{stoewerNeuralNetworkBased2023}{{33}{}{{}}{{}}}
-\bibcite{decothiPredictiveMapsRats2022}{{34}{}{{}}{{}}}
-\bibcite{whittingtonTolmanEichenbaumMachineUnifying2020}{{35}{}{{}}{{}}}
-\bibcite{baninoVectorbasedNavigationUsing2018}{{36}{}{{}}{{}}}
-\bibcite{sorscherUnifiedTheoryOrigin2019}{{37}{}{{}}{{}}}
-\bibcite{cuevaEmergenceGridlikeRepresentations2018}{{38}{}{{}}{{}}}
-\bibcite{brzoskoNeuromodulationSpikeTimingDependentPlasticity2019}{{39}{}{{}}{{}}}
-\bibcite{sosaHippocampalSequencesSpan2024}{{40}{}{{}}{{}}}
-\bibcite{aliPredictiveCodingConsequence2021}{{41}{}{{}}{{}}}
-\bibcite{bonoLearningPredictiveCognitive2023}{{42}{}{{}}{{}}}
-\bibcite{schultzDopamineRewardPrediction2016}{{43}{}{{}}{{}}}
-\bibcite{inglisModulationDopamineAdaptive2021}{{44}{}{{}}{{}}}
-\bibcite{toblerAdaptiveCodingReward2005}{{45}{}{{}}{{}}}
-\bibcite{coolsChemistryAdaptiveMind2019}{{46}{}{{}}{{}}}
-\bibcite{milsteinBidirectionalSynapticPlasticity2021}{{47}{}{{}}{{}}}
-\bibcite{fentonRemappingRevisitedHow2024}{{48}{}{{}}{{}}}
-\bibcite{zhouCorticalMechanismsMultisensory2022}{{49}{}{{}}{{}}}
-\bibcite{jerjianSelfmotionPerceptionSequential2023}{{50}{}{{}}{{}}}
-\bibcite{whishawCalibratingSpaceExploration1999a}{{51}{}{{}}{{}}}
-\bibcite{suttonReinforcementLearningProblem}{{52}{}{{}}{{}}}
-\bibcite{montagueFrameworkMesencephalicDopamine1996}{{53}{}{{}}{{}}}
-\bibcite{krishnanRewardExpectationExtinction2022}{{54}{}{{}}{{}}}
-\bibcite{mcnamaraDopaminergicNeuronsPromote2014}{{55}{}{{}}{{}}}
-\bibcite{michonSingletrialDynamicsHippocampal2021}{{56}{}{{}}{{}}}
-\bibcite{shamashMiceIdentifySubgoal2021}{{57}{}{{}}{{}}}
-\bibcite{brzoskoSequentialNeuromodulationHebbian2017}{{58}{}{{}}{{}}}
-\bibcite{igelCovarianceMatrixAdaptation2007}{{59}{}{{}}{{}}}
-\bibcite{meilingerQualitativeDifferencesMemory2016}{{60}{}{{}}{{}}}
-\bibcite{hokGoalRelatedActivityHippocampal2007}{{61}{}{{}}{{}}}
-\bibcite{ishikawaSpatialKnowledgeAcquisition2006}{{62}{}{{}}{{}}}
-\bibcite{gillnerNavigationAcquisitionSpatial1998}{{63}{}{{}}{{}}}
-\bibcite{mcnaughtonPathIntegrationNeural2006}{{64}{}{{}}{{}}}
-\bibcite{sorscherUnifiedTheoryComputational2023}{{65}{}{{}}{{}}}
-\bibcite{aitkenHippocampalRepresentationsSwitch2022}{{66}{}{{}}{{}}}
-\bibcite{halvagalCombinationHebbianPredictive2023}{{67}{}{{}}{{}}}
-\bibcite{ororbiaSpikingNeuralPredictive2023}{{68}{}{{}}{{}}}
-\bibcite{stachenfeldHippocampusPredictiveMap2017}{{69}{}{{}}{{}}}
-\bibcite{nairHippocampusMaintainsCoherent2022}{{70}{}{{}}{{}}}
-\bibcite{tryonHippocampalNeuralActivity2017}{{71}{}{{}}{{}}}
-\bibcite{wirtshafterDifferencesRewardBiased2020}{{72}{}{{}}{{}}}
-\bibcite{andersonHeterogeneousModulationPlace2003}{{73}{}{{}}{{}}}
-\bibcite{leeGradualTranslocationSpatial2006}{{74}{}{{}}{{}}}
-\bibcite{fyhnHippocampalNeuronsResponding2002}{{75}{}{{}}{{}}}
-\bibcite{lenck-santiniStudyCA1Place2005}{{76}{}{{}}{{}}}
-\bibcite{dupretReorganizationReactivationHippocampal2010}{{77}{}{{}}{{}}}
-\bibcite{burkeInfluenceObjectsPlace2011}{{78}{}{{}}{{}}}
-\bibcite{tanniStateTransitionsStatistically2022}{{79}{}{{}}{{}}}
-\bibcite{scleidorovichAdaptingHippocampusMultiscale2022}{{80}{}{{}}{{}}}
-\bibcite{mehtaExperiencedependentAsymmetricExpansion1997}{{81}{}{{}}{{}}}
-\bibcite{leeBraininspiredPredictiveCoding2022}{{82}{}{{}}{{}}}
-\bibcite{wenOneshotEntorhinalMaps2024}{{83}{}{{}}{{}}}
-\bibcite{dabaghianGridCellsBorder}{{84}{}{{}}{{}}}
-\bibcite{schoyenHexagonsAllWay2025}{{85}{}{{}}{{}}}
+\citation{bittner2017,nair2022}
+\citation{tryon2017,wirtshafter2020}
+\citation{anderson2003,lee2006}
+\citation{fyhn2002,lenck-santini2005,dupret2010}
+\citation{burke2011}
+\citation{tanniState2022}
+\citation{scleidorovich2022}
+\citation{mehta1997,lee2022}
+\citation{wen2024a}
+\bibdata{pcnn_ref_2}
+\bibcite{golledge2000}{{1}{}{{}}{{}}}
+\bibcite{epstein2014}{{2}{}{{}}{{}}}
+\bibcite{peer2021}{{3}{}{{}}{{}}}
+\bibcite{chrastil2014}{{4}{}{{}}{{}}}
+\bibcite{werner2000}{{5}{}{{}}{{}}}
+\bibcite{gallistel1996}{{6}{}{{}}{{}}}
+\bibcite{peer2024}{{7}{}{{}}{{}}}
+\bibcite{warren2019}{{8}{}{{}}{{}}}
+\bibcite{wagner2008}{{9}{}{{}}{{}}}
+\bibcite{rothkegel1998}{{10}{}{{}}{{}}}
+\bibcite{meilinger2008}{{11}{}{{}}{{}}}
+\bibcite{wang2017}{{12}{}{{}}{{}}}
+\bibcite{schinazi2013}{{13}{}{{}}{{}}}
+\bibcite{sargolini2006}{{14}{}{{}}{{}}}
+\bibcite{kropff2015}{{15}{}{{}}{{}}}
+\bibcite{solstad2006}{{16}{}{{}}{{}}}
+\bibcite{donato2023}{{17}{}{{}}{{}}}
+\bibcite{bush2014}{{18}{}{{}}{{}}}
+\bibcite{neher2017}{{19}{}{{}}{{}}}
+\bibcite{li2019}{{20}{}{{}}{{}}}
+\bibcite{bilash2023}{{21}{}{{}}{{}}}
+\bibcite{lisman2005}{{22}{}{{}}{{}}}
+\bibcite{duszkiewicz2019}{{23}{}{{}}{{}}}
+\bibcite{schultz1997}{{24}{}{{}}{{}}}
+\bibcite{kempadoo2016}{{25}{}{{}}{{}}}
+\bibcite{retailleau2014}{{26}{}{{}}{{}}}
+\bibcite{bittner2017}{{27}{}{{}}{{}}}
+\bibcite{kaufman2020}{{28}{}{{}}{{}}}
+\bibcite{igarashi2014}{{29}{}{{}}{{}}}
+\bibcite{ito2012}{{30}{}{{}}{{}}}
+\bibcite{sheynikhovich2023}{{31}{}{{}}{{}}}
+\bibcite{poucet1993}{{32}{}{{}}{{}}}
+\bibcite{stoewer2023}{{33}{}{{}}{{}}}
+\bibcite{decothi2022}{{34}{}{{}}{{}}}
+\bibcite{whittington2020}{{35}{}{{}}{{}}}
+\bibcite{banino2018}{{36}{}{{}}{{}}}
+\bibcite{sorscher2023}{{37}{}{{}}{{}}}
+\bibcite{cueva2018}{{38}{}{{}}{{}}}
+\bibcite{brzosko2019}{{39}{}{{}}{{}}}
+\bibcite{sosa2024}{{40}{}{{}}{{}}}
+\bibcite{ali2021}{{41}{}{{}}{{}}}
+\bibcite{bono2023}{{42}{}{{}}{{}}}
+\bibcite{schultz2016}{{43}{}{{}}{{}}}
+\bibcite{inglis2021}{{44}{}{{}}{{}}}
+\bibcite{tobler2005}{{45}{}{{}}{{}}}
+\bibcite{cools2019}{{46}{}{{}}{{}}}
+\bibcite{milstein2021}{{47}{}{{}}{{}}}
+\bibcite{fenton2024}{{48}{}{{}}{{}}}
+\bibcite{zhou2022}{{49}{}{{}}{{}}}
+\bibcite{jerjian2023}{{50}{}{{}}{{}}}
+\bibcite{whishaw1999}{{51}{}{{}}{{}}}
+\bibcite{sutton}{{52}{}{{}}{{}}}
+\bibcite{montague1996a}{{53}{}{{}}{{}}}
+\bibcite{krishnan2022a}{{54}{}{{}}{{}}}
+\bibcite{mcnamara2014}{{55}{}{{}}{{}}}
+\bibcite{michon2021}{{56}{}{{}}{{}}}
+\bibcite{shamash2021}{{57}{}{{}}{{}}}
+\bibcite{sorscher2019}{{58}{}{{}}{{}}}
+\bibcite{brzosko2017}{{59}{}{{}}{{}}}
+\bibcite{igel2007}{{60}{}{{}}{{}}}
+\bibcite{meilinger2016}{{61}{}{{}}{{}}}
+\bibcite{hok2007}{{62}{}{{}}{{}}}
+\bibcite{ishikawa2006}{{63}{}{{}}{{}}}
+\bibcite{gillner1998}{{64}{}{{}}{{}}}
+\bibcite{mcnaughton2006}{{65}{}{{}}{{}}}
+\bibcite{aitken2022}{{66}{}{{}}{{}}}
+\bibcite{halvagal2023}{{67}{}{{}}{{}}}
+\bibcite{ororbia2023}{{68}{}{{}}{{}}}
+\bibcite{stachenfeld2017}{{69}{}{{}}{{}}}
+\bibcite{nair2022}{{70}{}{{}}{{}}}
+\bibcite{tryon2017}{{71}{}{{}}{{}}}
+\bibcite{wirtshafter2020}{{72}{}{{}}{{}}}
+\bibcite{anderson2003}{{73}{}{{}}{{}}}
+\bibcite{lee2006}{{74}{}{{}}{{}}}
+\bibcite{fyhn2002}{{75}{}{{}}{{}}}
+\bibcite{lenck-santini2005}{{76}{}{{}}{{}}}
+\bibcite{dupret2010}{{77}{}{{}}{{}}}
+\bibcite{burke2011}{{78}{}{{}}{{}}}
+\bibcite{scleidorovich2022}{{79}{}{{}}{{}}}
+\bibcite{mehta1997}{{80}{}{{}}{{}}}
+\bibcite{lee2022}{{81}{}{{}}{{}}}
+\bibcite{wen2024a}{{82}{}{{}}{{}}}
+\bibstyle{unsrt}
 \citation{dabaghianGridCellsBorder,schoyenHexagonsAllWay2025}
 \citation{liModelingPlaceCells2019}
 \@writefile{toc}{\contentsline {section}{\numberline {5}Appendix}{14}{section.5}\protected@file@percent }
@@ -176,8 +173,8 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Place cells}{15}{subsection.5.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Tuning formation}{15}{section*.17}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Activity}{15}{section*.18}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces \textbf  {PC layer parameters}}}{16}{table.caption.19}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Modulation}{16}{subsection.5.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces \textbf  {PC layer parameters}}}{15}{table.caption.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Modulation}{15}{subsection.5.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Learning rule}{16}{section*.20}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Active neuronal modulation}{16}{section*.21}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Decision making}{16}{subsection.5.4}\protected@file@percent }

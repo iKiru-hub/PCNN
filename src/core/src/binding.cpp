@@ -93,6 +93,7 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_position", &PCNN::get_position)
         .def("get_trace_value", &PCNN::get_trace_value,
              py::arg("idx"))
+        .def("get_gain", &PCNN::get_gain)
         .def("get_trace_v2", &PCNN::get_trace_v2)
         .def("remap", &PCNN::remap,
              py::arg("block_weights"),

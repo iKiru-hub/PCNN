@@ -36,7 +36,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 120,
-    "silent_duration": 15_000,
+    "silent_duration": 30_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 40.,
@@ -63,7 +63,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 35**2,
+    "N": 29**2,
     "use_sprites": bool(0),
     "speed": 0.7,
     "min_weight_value": 0.5

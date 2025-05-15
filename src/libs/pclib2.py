@@ -14,7 +14,7 @@ logger = setup_logger('PCLIB', level=-2, is_debugging=False)
 MAX_ATTEMPTS = 5
 MIN_PC_NUMBER = 5
 ATTEMPT_PAUSE = 10
-
+TOP_DA_IDX = 5
 
 
 """ FUNCTIONS """
@@ -363,13 +363,16 @@ class RewardObject:
             return -1
 
         # method 2 : argmax
-        return da_weights.argmax()
+        # return da_weights.argmax()
+
+        # top 5 DA cells
+        top_idx = np.argsort(da_weights)[-TOP_DA_IDX:]
 
         # method 1 : weighted center
         centers = space.get_centers()
-        for i in range(len(da_weights)):
-            cx += da_weights[i] * centers[i, 0]
-            cy += da_weights[i] * centers[i, 1]
+        for idx in top_idx:
+            cx += da_weights[idx] * centers[idx, 0]
+            cy += da_weights[idx] * centers[idx, 1]
 
         # centers of mass
         cx /= sum_weights
@@ -377,7 +380,6 @@ class RewardObject:
 
         # get closest center
         closest_idx = space.calculate_closest_index([cx, cy])
-        # logger.debug(f"{closest_idx=}")
         return closest_idx
 
 
@@ -900,7 +902,7 @@ class Brain:
         return "Brain"
 
     def __len__(self):
-        return self.space.len()
+        return len(self.space)
 
     def is_space_full(self):
         return len(self.space) == self.space.get_size()

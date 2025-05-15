@@ -3,8 +3,8 @@
 Our model focuses on cognitive map formation through an agent's experiences within a closed environment, as illustrated in Figure \ref{fig:model}\textbf{a}..
 
 The architecture operates with minimal external information—just binary reward and collision signals.
-Instead, spatial representation emerges primarily from idiothetic information: the agent's perception of self-motion \cite{zhouCorticalMechanismsMultisensory2022}.
-Specifically, we use the factual velocity vector (the agent's actual environmental displacement) as the primary navigational cue, which in biological systems emerges from integrated inertial and relative motion signals \cite{jerjianSelfmotionPerceptionSequential2023, whishawCalibratingSpaceExploration1999a}.
+Instead, spatial representation emerges primarily from idiothetic information: the agent's perception of self-motion \cite{zhou2022}.
+Specifically, we use the factual velocity vector (the agent's actual environmental displacement) as the primary navigational cue, which in biological systems emerges from integrated inertial and relative motion signals \cite{jerjian2023, whishaw1999}.
 
 \paragraph{Place Cell Formation}
 Spatial representation begins with a stack of grid cell modules, each encoding a periodic tiling of space over a 2D torus $\mathbf{T}^2$ (Fig.\ref{fig:model}\textbf{b,c}). Grid cell activity vectors $\mathbf{u}^{\text{GC}}$ project to two place cell layers with initially zeroed weights.
@@ -45,7 +45,8 @@ Then, a prediction error is computed and used to adjust the weights:
 \[
 \Delta \mathbf{W}^{k} \leftarrow \Delta \mathbf{W}^{k} + \hat{\eta}^{k} (\hat{v}^k - v^k) \mathbf{u}^{\text{PC}}
 \]
-The prediction learning rate $\hat{\eta}^{k} < 1$ ensures that small errors are corrected gradually, while repeated mismatches lead to weight depression. This mechanism implements a simple form of predictive coding and is inspired by temporal-difference learning \cite{suttonReinforcementLearningProblem}, aligning with evidence that neuromodulatory systems signal prediction errors and update beliefs \cite{montagueFrameworkMesencephalicDopamine1996, decothiPredictiveMapsRats2022, krishnanRewardExpectationExtinction2022}.
+The prediction learning rate $\hat{\eta}^{k} < 1$ ensures that small errors are corrected gradually, while repeated mismatches lead to weight depression. This mechanism implements a simple form of predictive coding and is inspired by temporal-difference learning
+\cite{sutton}, aligning with evidence that neuromodulatory systems signal prediction errors and update beliefs \cite{montague1996a, decothi2022, krishnan2022a}.
 
 \paragraph{Modulation of Place Fields}
 We further tested whether neuromodulators could directly alter spatial tuning. Place fields were dynamically shifted and resized based on recent salience signals.
@@ -54,7 +55,7 @@ Following a salient event (reward or collision), place field centers were displa
 \[
 \Delta \mathbf{W}^{\text{GC}, \text{PC}}_i = c^{k} v^{k} \varphi_{\sigma^{k}}(\mathbf{u}^{\text{GC}} - \mathbf{W}^{\text{GC}, \text{PC}}_i)
 \]
-Here, $\varphi_{\sigma}$ is a Gaussian function, and $c^{k}$ a scaling factor. This rule is inspired by BTSP plasticity \cite{bittnerBehavioralTimeScale2017, milsteinBidirectionalSynapticPlasticity2021}, which shifts CA1 place fields following salient experiences. Lateral inhibition prevents field overlap during remapping.
+Here, $\varphi_{\sigma}$ is a Gaussian function, and $c^{k}$ a scaling factor. This rule is inspired by BTSP plasticity \cite{bittner2017, milstein2021}, which shifts CA1 place fields following salient experiences. Lateral inhibition prevents field overlap during remapping.
 
 In addition to dislocation, field size was modulated by scaling the gain of recently active neurons. The gain $\beta_i$ of each cell was adjusted via a trace variable $m_i$.
 This provides a mechanism for neuromodulators to transiently enhance or suppress spatial sensitivity.
@@ -64,7 +65,7 @@ To evaluate the model's utility in navigation, we implemented a simple policy to
 
 Exploration consisted of a stochastic walk with persistence, plus periodic plans to visit random known locations to avoid stagnation. Goal-directed navigation was triggered when a reward representation was present and executed via shortest-path planning on the place cell graph.
 
-The graph was defined by place cells as nodes and synaptic links as edges. The agent selected targets either randomly or based on cells with high dopaminergic weight, echoing hippocampal replay and value-based navigation \cite{mcnamaraDopaminergicNeuronsPromote2014, michonSingletrialDynamicsHippocampal2021, shamashMiceIdentifySubgoal2021}. Planning was achieved via Dijkstra's algorithm with a cost function that penalized proximity to boundaries.
+The graph was defined by place cells as nodes and synaptic links as edges. The agent selected targets either randomly or based on cells with high dopaminergic weight, echoing hippocampal replay and value-based navigation \cite{mcnamara2014, michon2021, shamash2021}. Planning was achieved via Dijkstra's algorithm with a cost function that penalized proximity to boundaries.
 
 % In the process of behavior, learning does not occur explicitly, but is instead accounted for in the online formation of the cognitive map.
 
@@ -81,12 +82,12 @@ The graph was defined by place cells as nodes and synaptic links as edges. The a
 \toprule
 \textbf{Model} & \textbf{Architecture} & \textbf{Training method} & \textbf{Ext. C.} \\
 \midrule
-Banino et al. \cite{baninoVectorbasedNavigationUsing2018} & LSTM + linear layers + CNN & BPTT and deep RL, supervised & Yes \\
-Cueva et al. \cite{cuevaEmergenceGridlikeRepresentations2018} & RNN + linear layers & Hessian-free algorithm with regularization & Yes \\
-Sorcher et al. \cite{sorscherUnifiedTheoryOrigin2019} & RNN + linear layers & Backpropagation with regularization & Yes \\
-Whittington et al. \cite{whittingtonTolmanEichenbaumMachineUnifying2020} & Attractor network and deep networks & Backpropagation and Hebbian learning & No \\
-de-Cothi et al. \cite{decothiPredictiveMapsRats2022} & Successor representation & TD-learning + eligibility traces & Yes \\
-Brozsko et al. \cite{brzoskoSequentialNeuromodulationHebbian2017} & Spike Response Model & Online modulated Hebbian plasticity & Yes \\
+Banino et al. \cite{banino2018} & LSTM + linear layers + CNN & BPTT and deep RL, supervised & Yes \\
+Cueva et al. \cite{cueva2018} & RNN + linear layers & Hessian-free algorithm with regularization & Yes \\
+Sorcher et al. \cite{sorscher2019} & RNN + linear layers & Backpropagation with regularization & Yes \\
+Whittington et al. \cite{whittington2020} & Attractor network and deep networks & Backpropagation and Hebbian learning & No \\
+de-Cothi et al. \cite{decothi2022} & Successor representation & TD-learning + eligibility traces & Yes \\
+Brozsko et al. \cite{brzosko2017} & Spike Response Model & Online modulated Hebbian plasticity & Yes \\
 \textbf{Ours} & Rate layers & Online neuromodulated plasticity & No \\
 \bottomrule
 \end{tabular}
@@ -115,12 +116,12 @@ Brozsko et al. & Goal navigation & Position, reward & Action \\
 
 Several previous computational models show structural and conceptual similarities with the present work. A prominent category among them employs deep neural networks—often with recurrent components—and relies on gradient-based learning strategies such as backpropagation through time. These models typically require multiple training episodes or large datasets for convergence. In contrast, our model adopts biologically inspired, synaptically local plasticity rules, and requires only a single training episode for adaptation.
 
-Other models utilize spiking neurons \cite{brzoskoSequentialNeuromodulationHebbian2017} or explicit neural representations \cite{decothiPredictiveMapsRats2022}, and incorporate online learning rules more closely aligned with ours. These models also focus more directly on goal-directed navigation, in contrast to purely path integration tasks. However, both of these rely on external spatial coordinates to represent current position. Our model instead constructs an internal coordinate system by integrating its own velocity output, enabling endogenous spatial tracking.
+Other models utilize spiking neurons \cite{brzosko2017} or explicit neural representations \cite{decothi2022}, and incorporate online learning rules more closely aligned with ours. These models also focus more directly on goal-directed navigation, in contrast to purely path integration tasks. However, both of these rely on external spatial coordinates to represent current position. Our model instead constructs an internal coordinate system by integrating its own velocity output, enabling endogenous spatial tracking.
 
 % benchmarks used
 \paragraph{Naturalistic task}
 The model was evaluated on a biologically inspired navigation benchmark involving exploration and goal-seeking behavior in closed environments. Performance was measured as the total number of rewards collected over multiple trials.
 
-Optimization of the model parameters was carried out using the evolutionary Covariance-Matrix Adaptation strategy (CMA-ES) \cite{igelCovarianceMatrixAdaptation2007} with a population of 128 individuals for 100 generations.
+Optimization of the model parameters was carried out using the evolutionary Covariance-Matrix Adaptation strategy (CMA-ES) \cite{igel2007} with a population of 128 individuals for 100 generations.
 
 
