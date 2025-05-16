@@ -3,52 +3,50 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
 Database file #1: pcnn_ref_2.bib
-Warning--I didn't find a database entry for "tanniState2022"
-Warning--I didn't find a database entry for "dabaghianGridCellsBorder"
-Warning--I didn't find a database entry for "schoyenHexagonsAllWay2025"
-Warning--I didn't find a database entry for "liModelingPlaceCells2019"
 Warning--empty publisher in li2019
+Warning--empty journal in dabaghian
+Warning--empty year in dabaghian
 Warning--empty journal in sutton
 Warning--empty year in sutton
-You've used 82 entries,
+You've used 85 entries,
             1791 wiz_defined-function locations,
-            941 strings with 20885 characters,
-and the built_in function-call counts, 21619 in all, are:
-= -- 1875
-> -- 1134
+            946 strings with 21312 characters,
+and the built_in function-call counts, 22349 in all, are:
+= -- 1930
+> -- 1175
 < -- 6
-+ -- 406
-- -- 324
-* -- 1902
-:= -- 3455
-add.period$ -- 245
-call.type$ -- 82
-change.case$ -- 81
++ -- 421
+- -- 336
+* -- 1970
+:= -- 3575
+add.period$ -- 253
+call.type$ -- 85
+change.case$ -- 84
 chr.to.int$ -- 0
-cite$ -- 85
-duplicate$ -- 798
-empty$ -- 1967
-format.name$ -- 324
-if$ -- 4632
+cite$ -- 90
+duplicate$ -- 824
+empty$ -- 2035
+format.name$ -- 336
+if$ -- 4785
 int.to.chr$ -- 0
-int.to.str$ -- 82
-missing$ -- 79
-newline$ -- 408
-num.names$ -- 88
-pop$ -- 139
+int.to.str$ -- 85
+missing$ -- 82
+newline$ -- 422
+num.names$ -- 91
+pop$ -- 147
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 354
+skip$ -- 363
 stack$ -- 0
-substring$ -- 1807
-swap$ -- 148
+substring$ -- 1867
+swap$ -- 150
 text.length$ -- 6
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
-warning$ -- 3
-while$ -- 211
-width$ -- 84
-write$ -- 893
-(There were 7 warnings)
+warning$ -- 5
+while$ -- 216
+width$ -- 87
+write$ -- 922
+(There were 5 warnings)

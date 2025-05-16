@@ -9,10 +9,20 @@
 \small
 
 
-Animals naturally form personalized cognitive maps to support efficient navigation and goal-directed behavior. In the brain, the CA1 subregion of the hippocampus plays a key role in this process, hosting spatially tuned neurons that adapt based on the behavioral context and internal states. Computational models of this ability include labeled graphs with locally specified spatial information, which avoid global metric structure, and deep neural networks trained on spatial tasks that exhibit emergent spatial tuning. However, these approaches often struggle to model one-shot adaptive mapping and typically rely on plasticity rules that lack biological plausibility.
+Animals naturally form personalized cognitive maps to support efficient navigation and goal-directed behavior.
+In the brain, the CA1 subregion of the hippocampus plays a key role in this process, hosting spatially tuned neurons that adapt based on the behavioral context and internal states.
+Computational models of this ability include labeled graphs with locally specified spatial information, which avoid global metric structure, and deep neural networks trained on spatial tasks that exhibit emergent spatial tuning.
+However, these approaches often struggle to model one-shot adaptive mapping and typically rely on plasticity rules that lack biological plausibility.
 
-We propose a neural architecture inspired by place-cell dynamics that enables rapid on-the-fly construction of cognitive maps during exploration of novel environments. The model relies on velocity inputs and grid cell modules to generate spatial representations and integrates neuromodulatory signals responsive to boundaries and rewards. Learning combines synaptic plasticity, lateral inhibition, and modulatory gating of place-cell activity. For reward-driven navigation, the agent uses a modified Dijkstra algorithm to plan paths on the emergent cognitive map, treating place cells as nodes in a locally structured graph.
+We propose a neural architecture inspired by place-cell dynamics that enables rapid on-the-fly construction of cognitive maps during exploration of novel environments.
+The model relies on velocity inputs and grid cell modules to generate spatial representations and integrates neuromodulatory signals responsive to boundaries and rewards.
+Learning combines synaptic plasticity, lateral inhibition, and modulatory gating of place-cell activity.
+For reward-driven navigation, the agent uses a modified Dijkstra algorithm to plan paths on the emergent cognitive map, treating place cells as nodes in a locally structured graph.
 
-We compare our model with standard reinforcement learning (RL) agents and find that it achieves significantly higher sample efficiency, solving tasks in a single episode that RL agents require thousands of training steps to master. This performance advantage arises from biologically inspired inductive biases embedded in the model architecture. In simulation, the agent adapts to dynamic reward locations and changes in the environment layout. Analysis of neuromodulated place cells reveals task-dependent changes in tuning field size and spatial density, aligning with experimental findings from hippocampal recordings. These results highlight the promise of biologically grounded computation and locally structured graph representations for flexible and data-efficient cognitive mapping.
+We tested the model on different environments, achieving high sample efficiency and solving tasks in a single episode, for which usual RL agents require thousands of training steps.
+This performance advantage arises from biologically inspired inductive biases embedded in the model architecture.
+In simulation, the agent adapts to dynamic reward locations and changes in the environment layout.
+Ablation experiments and analysis of neuromodulated place cells reveals task-dependent changes in tuning field size and spatial density, aligning with experimental findings from hippocampal recordings.
+These results highlight the promise of biologically grounded computation and locally structured graph representations for flexible and data-efficient cognitive mapping.
 
 \end{quote}

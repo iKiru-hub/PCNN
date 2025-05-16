@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/Homebrew) (preloaded format=pdflatex 2025.3.15)  15 MAY 2025 21:02
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/Homebrew) (preloaded format=pdflatex 2025.3.15)  16 MAY 2025 13:55
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -687,40 +687,40 @@ Package microtype Info: Loading generic protrusion settings for font family
 {/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/map/pdftex/updmap/pdftex.map}{/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/enc/dvips/base/8r.enc}{/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}]) (./methods.tex
 
 [2]
-<figures/figure_model_v2.png, id=171, 555.7563pt x 446.26724pt>
+<figures/figure_model_v2.png, id=174, 473.00716pt x 276.7941pt>
 File: figures/figure_model_v2.png Graphic file (type png)
 <use figures/figure_model_v2.png>
-Package pdftex.def Info: figures/figure_model_v2.png  used on input line 19.
-(pdftex.def)             Requested size: 377.60951pt x 303.21938pt.
+Package pdftex.def Info: figures/figure_model_v2.png  used on input line 27.
+(pdftex.def)             Requested size: 357.73405pt x 209.33937pt.
 
 
 [3 <./figures/figure_model_v2.png>]
-Underfull \hbox (badness 2828) in paragraph at lines 87--87
+Underfull \hbox (badness 2828) in paragraph at lines 96--96
 []|\T1/ptm/m/n/9 (+20) Backpropagation with
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 88--88
+Underfull \hbox (badness 10000) in paragraph at lines 97--97
 []|\T1/ptm/m/n/9 (+20) Attractor net-work
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 88--88
+Underfull \hbox (badness 10000) in paragraph at lines 97--97
 []|\T1/ptm/m/n/9 (+20) Backpropagation and
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 90--90
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
 []|\T1/ptm/m/n/9 (+20) Spike Re-sponse
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 104--104
+Underfull \hbox (badness 10000) in paragraph at lines 113--113
 []|\T1/ptm/m/n/9 (+20) Relational graph
  []
 
 
-Underfull \hbox (badness 2181) in paragraph at lines 104--104
+Underfull \hbox (badness 2181) in paragraph at lines 113--113
 []|\T1/ptm/m/n/9 (+20) Observation and ac-
  []
 
@@ -730,11 +730,11 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 [4]) (./results.tex
-<figures/main_results.png, id=216, 381.04358pt x 283.84042pt>
-File: figures/main_results.png Graphic file (type png)
-<use figures/main_results.png>
-Package pdftex.def Info: figures/main_results.png  used on input line 5.
-(pdftex.def)             Requested size: 357.73405pt x 266.48087pt.
+<figures/collda.png, id=226, 567.3195pt x 590.08455pt>
+File: figures/collda.png Graphic file (type png)
+<use figures/collda.png>
+Package pdftex.def Info: figures/collda.png  used on input line 5.
+(pdftex.def)             Requested size: 278.23827pt x 289.40508pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
@@ -743,30 +743,26 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 [5]
 
-[6 <./figures/main_results.png>]
+[6 <./figures/collda.png>]) (./discussion.tex
 
-[7]) (./discussion.tex
-Underfull \vbox (badness 5475) has occurred while \output is active []
+[7]
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[8]
-
-Package natbib Warning: Citation `tanniState2022' on page 9 undefined on input line 49.
-
-) (./acknowledgements.tex
+[8]) (./acknowledgements.tex
 LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 10.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 )) (./main.bbl
 
 [9]
-Overfull \hbox (0.60924pt too wide) in paragraph at lines 29--32
+Overfull \hbox (0.60924pt too wide) in paragraph at lines 119--122
 \T1/ptm/m/n/10 (-20) Oriented and Choosing a Multi-Destination Route.  \T1/ptm/m/it/10 (-20) Journal of Experimental Biology\T1/ptm/m/n/10 (-20) , 199(1):211--
  []
 
 
-Underfull \hbox (badness 1314) in paragraph at lines 39--42
+Underfull \hbox (badness 1314) in paragraph at lines 129--132
 []\T1/ptm/m/n/10 (+20) William H. War-ren.  Non-Euclidean nav-i-ga-tion.  \T1/ptm/m/it/10 (+20) Jour-nal of Ex-per-i-men-tal Bi-ol-ogy\T1/ptm/m/n/10 (+20) ,
  []
 
@@ -780,58 +776,63 @@ Underfull \hbox (badness 1314) in paragraph at lines 39--42
 
 [13]) (./appendix.tex
 
-Package natbib Warning: Citation `dabaghianGridCellsBorder' on page 14 undefined on input line 6.
-
-
-Package natbib Warning: Citation `schoyenHexagonsAllWay2025' on page 14 undefined on input line 6.
-
-
-Package natbib Warning: Citation `liModelingPlaceCells2019' on page 14 undefined on input line 8.
-
-
-
 [14]
+<figures/pc_gc.png, id=357, 751.96935pt x 400.73715pt>
+File: figures/pc_gc.png Graphic file (type png)
+<use figures/pc_gc.png>
+Package pdftex.def Info: figures/pc_gc.png  used on input line 59.
+(pdftex.def)             Requested size: 397.48499pt x 211.83322pt.
 
-[15]
-<figures/pcnn_dm_logic.png, id=353, 1065.9825pt x 1475.5125pt>
+Underfull \vbox (badness 1082) has occurred while \output is active []
+
+
+
+[15 <./figures/pc_gc.png>]
+<figures/pcnn_dm_logic.png, id=368, 1065.9825pt x 1475.5125pt>
 File: figures/pcnn_dm_logic.png Graphic file (type png)
 <use figures/pcnn_dm_logic.png>
-Package pdftex.def Info: figures/pcnn_dm_logic.png  used on input line 136.
+Package pdftex.def Info: figures/pcnn_dm_logic.png  used on input line 128.
 (pdftex.def)             Requested size: 278.23827pt x 385.13268pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 143--144
+
+[16]
+Underfull \hbox (badness 10000) in paragraph at lines 145--146
 
  []
 
-Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 146.
-LaTeX Font Info:    Trying to load font information for U+bbold on input line 149.
+Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 148.
+LaTeX Font Info:    Trying to load font information for U+bbold on input line 151.
 (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/bbold/Ubbold.fd)
-
-[16]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
 [17 <./figures/pcnn_dm_logic.png>]
+<figures/maps_envs.png, id=392, 442.2924pt x 364.9635pt>
+File: figures/maps_envs.png Graphic file (type png)
+<use figures/maps_envs.png>
+Package pdftex.def Info: figures/maps_envs.png  used on input line 224.
+(pdftex.def)             Requested size: 357.73405pt x 295.19557pt.
+
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
 [18]
-<figures/envs.png, id=378, 408.3255pt x 302.0886pt>
-File: figures/envs.png Graphic file (type png)
-<use figures/envs.png>
-Package pdftex.def Info: figures/envs.png  used on input line 222.
-(pdftex.def)             Requested size: 278.23827pt x 205.8508pt.
+
+[19 <./figures/maps_envs.png>]
+<figures/evoplot.png, id=408, 498.663pt x 209.583pt>
+File: figures/evoplot.png Graphic file (type png)
+<use figures/evoplot.png>
+Package pdftex.def Info: figures/evoplot.png  used on input line 268.
+(pdftex.def)             Requested size: 397.48499pt x 167.05899pt.
 )
 
-[19 <./figures/envs.png>] (./checklist.tex
-
-[20]
+[20 <./figures/evoplot.png>] (./checklist.tex
 
 [21]
 
@@ -841,13 +842,11 @@ Package pdftex.def Info: figures/envs.png  used on input line 222.
 
 [24]
 
-[25])
+[25]
 
-Package natbib Warning: There were undefined citations.
+[26])
 
-
-
-[26] (./main.aux)
+[27] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -856,18 +855,18 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 96C52A715032D74A3CE47F7DCA125AFA;1053.
  ) 
 Here is how much of TeX's memory you used:
- 18189 strings out of 473190
- 292767 string characters out of 5704335
- 743593 words of memory out of 5000000
- 40609 multiletter control sequences out of 15000+600000
- 625632 words of font info for 339 fonts, out of 8000000 for 9000
+ 18231 strings out of 473190
+ 293415 string characters out of 5704335
+ 733027 words of memory out of 5000000
+ 40632 multiletter control sequences out of 15000+600000
+ 625592 words of font info for 343 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,13n,79p,2105b,887s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,10n,79p,1683b,911s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/bbold-type1/bbold10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/helvetic/uhvr8a.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on main.pdf (26 pages, 4213475 bytes).
+Output written on main.pdf (27 pages, 5030489 bytes).
 PDF statistics:
- 536 PDF objects out of 1000 (max. 8388607)
- 471 compressed objects within 5 object streams
- 168 named destinations out of 1000 (max. 500000)
- 63077 words of extra memory for PDF output out of 74296 (max. 10000000)
+ 568 PDF objects out of 1000 (max. 8388607)
+ 498 compressed objects within 5 object streams
+ 181 named destinations out of 1000 (max. 500000)
+ 63087 words of extra memory for PDF output out of 74296 (max. 10000000)
 

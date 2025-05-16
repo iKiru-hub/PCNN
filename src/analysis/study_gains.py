@@ -41,7 +41,7 @@ reward_settings = {
     "beta": 40.,
     "alpha": 0.06,# * GAME_SCALE,
     "move_threshold": 4,# * GAME_SCALE,
-    "rw_position_idx": 0,
+    "rw_position_idx": 1,
 }
 
 game_settings = {
@@ -124,6 +124,13 @@ def calc_gains(brain: object):
 
     return len(no_g), np.mean(no_g), len(bnd_g), np.mean(bnd_g), len(da_g), np.mean(da_g)
 
+def calc_da_pos(brain: object):
+
+    #
+    da = brain.get_da_weights()
+    daidx = np.where(da>0.05)[0]
+
+    centers = 
 
 def run_experiments_for_reps(reps_range, room, parameters, global_parameters,
                              reward_settings, game_settings, total_reps):
@@ -162,6 +169,7 @@ def run_experiments_for_reps(reps_range, room, parameters, global_parameters,
         all_room_records['len_da_g'].append(int(gain_info[4]))
         all_room_records['mean_da_g'].append(float(gain_info[5]))
     return all_room_records
+
 
 if __name__ == "__main__":
     """ args """

@@ -3,11 +3,9 @@
 
 \subsection{Grid cell module}
 
-Unlike other approaches to generate grid fields \cite{dabaghianGridCellsBorder, schoyenHexagonsAllWay2025}, we defined a correspondence between the global environment in which the agent moves, a two-dimensional Euclidean space $\mathbf{R}^{2}$, and a bounded local space of a grid module, corresponding to the torus.
+It is defined a correspondence between the global environment in which the agent moves, a two-dimensional Euclidean space $\mathbf{R}^{2}$, and a bounded local space of a grid module, corresponding to a torus.
 
-The global velocity $\mathbf{v}=\{x,y\}$ is then mapped to a local velocity, scaled by a speed scalar $s^{\text{gc}}_{l}$ specific to the grid cell module $l$, which determines its periodicity in space. This approach has been used in previous works \cite{liModelingPlaceCells2019}.
-% The starting position on the torus is randomly chosen when the model is initialized since what matters is the sequence of displacements without any reference to a meaningful origin.
-
+The global velocity $\mathbf{v}=\{x,y\}$ is then mapped to a local velocity, scaled by a speed scalar $s^{\text{gc}}_{l}$ specific to the grid cell module $l$, which determines its periodicity in space.
 
 The choice of a toroidal space is motivated by consolidated experimental evidence of the neural space of grid cells, which are organized in modules of different sizes spanning the animal's environment. However, the shape of their firing pattern is known to be hexagonal, which corresponds to the optimal tiling of a two-dimensional plane, giving rise to a neural space lying on a twisted torus.
 In this work, for simplicity, we consider a square tiling and thus a square torus, without much loss of generality except for the slight increase of grid cells required for a sufficiently cover.
@@ -18,11 +16,12 @@ When the module is initialized, the starting positions of its cells are uniforml
 When the agent is reset in a new position at the beginning of new trial, a displacement vector is applied to the last cells positions such that the mapping between the module local space and the global environment is preserved.
 
 The firing rate vector of each cell is determined with respect to a 2D Gaussian tuning curve centered at the origin at $(0,0)$, and it is calculated as \\ $r_{i} = \exp\left(-\frac{x^{2}_{i} + y^{2}_{i}}{\sigma^{\text{gc}}_{l}}\right)$, where $\sigma^{\text{gc}}_{l}$ is the width of the tuning curve for module $l$.
+An illustration of the receptive field over a 2D environment and a toroidal space is reported in Figure \ref{fig:gridpc}\textbf{a}-\textbf{b}.
 
 The final population vector of the grid cell network GC is the concatenated and flattened firing rate vector of all modules $\textbf{u}^{\text{GC}}$.
 
 \hfill \break
-In our model, each grid cell had a tuning width of 0.04. They were defined as 8 modules of size 36, and the relative speed scales were \\ $\{1., 0.8, 0.7, 0.5, 0.4, 0.3, 0.2, 0.1, 0.07\}$.
+In our model, each grid cell had a tuning width of 0.04. They were defined as 8 modules of size 36, and the relative speed scales were $\{1., 0.8, 0.7, 0.5, 0.4, 0.3, 0.2, 0.1, 0.07\}$.
 
 \subsection{Place cells}
 
@@ -30,47 +29,45 @@ In our model, each grid cell had a tuning width of 0.04. They were defined as 8 
 % formation | forward + competition
 The tuning of a new place cell is simply defined as the current GC population vector $\textbf{u}^{\text{GC}}_{t}$, and its index is that of the first silent cell, which is added to the forward weight matrix $\textbf{W}_{i}^{\text{GC}to \text{PC}}\leftarrow \textbf{u}^{\text{GC}}$.
 
-In order to avoid overlapping of place fields, the tuning process is aborted in case the cosine similarity of the new pattern and the old ones is greater than a threshold $\theta^{\text{PC}}_{\text{rep}}$.
+In order to avoid overlapping of place fields, lateral inhibition is implemented. More specifically, the tuning process is aborted in case the cosine similarity of the new pattern and the old ones is greater than a threshold $\theta^{\text{PC}}_{\text{inh}}$.
 
 Each cell represents a position in the GC activity space, which can be considered a node within a graph of place cells (PC).
 Although it is totally possible to only use the $N^{\text{GC}}$-dimensional tuning patterns and be agnostic about the dimensionality of the space in which the agent lives, to simplify the calculations, we mapped each pattern to 2D positions in a vector space.
-Then, the PC recurrent connectivity matrix is calculated with a nearest neighbors algorithm, which instead of a fixed number $K$ of neighbors uses a distance threshold $\theta^{\text{PC}}_{\text{rec}}$.
+Then, the PC recurrent connectivity matrix is calculated with a nearest neighbors algorithm, which instead of a fixed number $K$ of neighbors uses a lateral distance threshold $\theta^{\text{PC}}_{\text{rec}}$.
 
 \paragraph{Activity} The current firing rate of the PC population is determined by the cosine similarity between the GC input and the forward weight matrix, then passed through a generalized sigmoid $\phi(z)=\left[1 + \exp(-\beta(z-\alpha))\right]^{-1}$.
 The parameter $\alpha$ represents the activation threshold, or horizontal offset, while $\beta$ the gain, or steepness.
 
-\[
+\begin{equation}
     u^{\text{PC}}_{i}=\phi\left(\cos\left(\textbf{u}^{\text{GC}},\textbf{W}^{\text{GC},\text{PC}}_{i}\right)\right)
-\]
+\end{equation}
 
 It is also defined as an activity trace, which has an upper value of 1 and decays exponentially:
 
-\[
+\begin{equation}
     m_{i} = - m_{i} / \tau^{\text{PC}} + u_{i}
-\]
+\end{equation}
 
 \noindent It is used as a proxy for a memory trace.
 
 \hfill \break
 In the model, a PC population is defined by its average place field size, determining the granularity of the representation of the place.
+In plot \ref{fig:gridpc}\textbf{b} it is illustrated an example of place cells layer tuning obtained from a continuous trajectory over a square environment.
 
-Below, a table of the parameters specific to the two PC populations is reported.
-
-\begin{table}[h]
+\begin{figure}[ht]
     \centering
-    \begin{tabular}{lcccccc}
-        \toprule
-        & $\beta$ & $\alpha$ & $\theta_{\text{rep}}^{\text{PC}}$ & $\theta_{\text{rec}}^{\text{PC}}$ & $\tau^{\text{PC}}$ \\
-        \midrule
-        pc   & 33.0  & 1.0  & 0.86  & 43  & 140 \\
-        \bottomrule
-    \end{tabular}
-    \caption{\textbf{PC layer parameters}}
-\end{table}
+    \includegraphics[width=1.\textwidth]{figures/pc_gc.png}
+    \caption{\textbf{Place fields obtained from grid cells activity} - \textbf{a}: \textit{grid cell modules with different granularity represented over a continuous trajectory in an open space. For visualization purposes, each module is represented as composed of four sub-modules of 9 grid cells each, whose periodic tuning generates activity that repeats
+    in space}.
+    \textbf{b}: \textit{place cells whose spatial tuning has been obtained from the concatenation of the grid cells population vector.}}
+    \label{fig:gridpc}
+\end{figure}
+
 
 \subsection{Modulation}
 
-Neuromodulation is defined in terms of a leaky variable $v$ whose state is perturbed by an external input $x$, whose qualitative meaning differs for each neuromodulator $k$.
+Neuromodulation is implemented as a reward-sensitive signal, represented as DA (mimicking the function of dopamine), and a collision-sensitive signal, represented as BND (for boundary).
+Its dynamics are defined in terms of a leaky variable $v$ whose state is perturbed by an external input $x$, whose qualitative meaning differs for each neuromodulator $k$.
 
 \begin{equation}
 \begin{aligned}
@@ -82,27 +79,22 @@ Neuromodulation is defined in terms of a leaky variable $v$ whose state is pertu
 % plasticity + prediction error
 
 \paragraph{Learning rule}
-The connection weights $\textbf{W}^{k}$ are updated according to a plasticity rule composed of an Hebbian term, involving the leaky variable and the place cells above a certain threshold $\theta^{k}$, and a prediction error.
+The connection weights $\textbf{W}^{k}$ are updated according to a plasticity rule composed of an Hebbian term, involving the leaky variable, the place cells that are above a certain threshold $\theta^{k}$, and the current connection weights value:
 
-A prediction $\textbf{p}$ is calculated before each time-step and signifies the expected neuromodulation activation for a given place cell $\hat{v}^{k}_{i} = \textbf{W}^{k}_{i} \hat{u}^{\text{PC}}_{i}$, where $\hat{u}^{\text{PC}}_{i}$ is the PC population vector obtained by simulating the planned action.
-A prediction error is computed as the difference between the prediction and the current modulated place activation.
+\begin{equation}
+    \Delta \mathbf{W}^k = \eta^k \mathbf{u}^{\text{PC}} \left(v^k - \mathbf{W}^{k}\right)
+\end{equation}
 
-The full connection update then becomes:
-
-\[
-    \Delta \textbf{W}^{k}_{i} = \eta^{k} v^{k} u^{\text{PC}}_{i} - \eta^{k}_{\text{pred}} (\hat{v}^{k}_{i} - v^{k}_{i}) u^{\text{PC}}
-\]
-
-\noindent where $\eta^{k},\,\eta^{k}_{\text{pred}}$ are the learning rates, interpretable as the weight contribution of the Hebbian coupling and prediction accuracy respectively.
-Additionally, connections values are kept non-negative and, in order to speed up the extinction of past place-reward associations, if a non-zero prediction error is below a 0.5 then it is set to 0.5.
+\noindent where $\eta^{k}$ is the learning rate, the weight contribution of the Hebbian update.
+Additionally, connections values are kept non-negative.
 
 \paragraph{Active neuronal modulation}
 Neuromodulation acts on the neuronal profile of the place cells by affecting the value of the activation gain and relocate the center of their tuning.
 
 Gain modulation is implemented using the activity traces and a constant reference gain value $\bar{\beta}$:
-\[
+\begin{equation}
     \beta_{i} = c^{k}_{a} m_{i} \bar{\beta} + (1 - m_{i}) \bar{\beta}
-\]
+\end{equation}
 
 \noindent where $c^{k}_{a}$ is a scaling gain parameter, and if it is 1 then no modulation takes place.
 
@@ -110,9 +102,9 @@ Gain modulation is implemented using the activity traces and a constant referenc
 Concerning center relocation, it is applied to recently active neurons with non-zero trace $m_{i}$.
 For a place cell $i$ with position $\textbf{x}_{i}$ (in the vector space), it is calculated a displacement vector $q_{i}$ with respect to the current position $\textbf{x}_{j}$, identified as the most active place cell $j$.
 
-\[
+\begin{equation}
     q_{i} = c^{k}_{b} v^{k} \exp\left(-\frac{\|\textbf{x}_{i}-\textbf{x}_{j}\|}{\sigma^{k}}\right)
-\]
+\end{equation}
 
 
 \noindent where $c^{k}_{b}$ is a scaling relocation parameter, while $\sigma^{k}$ the width of the Gaussian distance.
@@ -138,11 +130,21 @@ The behaviour selection process depends on the experience of collision, the pres
     \label{fig:dm_logic}
 \end{figure}
 
+\noindent The positions of the agent and of the target location for planning are identified by the place cells population vector.
+In particular, the reward position $(x_{r}, y_{r}$ is determined by the weighted average of the centers $x_{i}, y_{i}$ of the place cells with respect to their DA-modulated connections weights. Further, only the top 5 place cells are considered.
+
+\begin{equation}
+    \begin{aligned}
+        x_{r} &= \sum\limits^{5}_{i} \textbf{W}^{DA}_{i} x_{i} \\
+        y_{r} &= \sum\limits^{5}_{i} \textbf{W}^{DA}_{i} y_{i} \\
+    \end{aligned}
+\end{equation}
+
 
 \paragraph{Path-planning algorithm}
 \hfill \break
 
-\begin{algorithm}[H]
+\begin{algorithm}[ht]
 \caption{Modified Dijkstra algorithm}
 \begin{algorithmic}[1]
     \Require Connectivity matrix $\mathbf{C} \in \{0,1\}^{N^{\text{PC}} \times N^{\text{PC}}}$,
@@ -219,7 +221,7 @@ The environment layout consisting in a customizable arrangement of vertical and 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{figures/envs.png}
+    \includegraphics[width=0.9\textwidth]{figures/maps_envs.png}
     \caption{\textbf{Sample of generated environments}}
     \label{fig:rooms}
 \end{figure}
@@ -251,4 +253,20 @@ This experiment is meant to test the ability to reach the reward location by usi
 \paragraph{Changing reward experiment}
 During the reward phase, the reward location is changed after a fixed number of fetches.
 
+\paragraph{Optimization}
+The model hyper-parameters such as the constants for the neural dynamics and the behaviour selection have been optimized through a evolutionary algorithm.
+Initally, an initial population of individuals with different random genomes (string of hyper-parameters values) is evaluated according to a fitness function, in this case a set of different environments. \\
+Next, the population of a new generation is constructed from the first by combining and mutating the genomes of the top ranked individuals from the previous generation. \\
+In particular, we used the Covariance Matrix Adaptation algorithm, in which the shape of distribution of genome values is iteratively adapted according to the recent performances.
+
+The evolved hyper-parameters are: neural gain $\beta$, lateral inhibition threshold $\theta^{\text{PC}}_{\text{inh}}$, lateral distance threshold $\theta^{\text{PC}}_{\text{rec}}$, activity trace time constant $\tau^{\text{PC}}$, reward modulation scale $c^{\text{DA}}_{b}$, reward modulation spread
+$x^{\text{DA}}_{b}$, boundary modulation scale $c^{\text{BND}}_{b}$, boundary modulation spread $c^{\text{BND}}_{b}$, reward gain modulation $c^{\text{DA}}_{a}$, and boundary gain modulation $c^{\text{BND}}_{a}$.
+The distribution of the genome values is reported in Figure \ref{fig:evoplot}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1.\textwidth]{figures/evoplot.png}
+    \caption{\textbf{Distribution of evolved parameters} - \textit{Results relative to the last generation, from a run with population size of 128 individuals.}}
+    \label{fig:evoplot}
+\end{figure}
 
