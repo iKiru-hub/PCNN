@@ -22,7 +22,8 @@ ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
            ["Square.v0"]
 MAX_SCORE = 100.
 
-OPTIONS = [False, False, False, True]
+#OPTIONS = [False, False, False, True]
+OPTIONS = [False]*4
 
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
 
@@ -32,7 +33,7 @@ reward_settings = {
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.08 * GAME_SCALE,
-    "rw_sigma": 0.5,# * GAME_SCALE,
+    "rw_sigma": 0.7,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
@@ -65,7 +66,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 32**2,
+    "N": 29**2,
     "use_sprites": False,
     "speed": 1.0,
     "min_weight_value": 0.3
@@ -200,12 +201,12 @@ FIXED_PARAMETERS = {
 
      'lr_da': 0.9,
      'lr_pred': 0.05,
-     # 'threshold_da': 0.05,
-     # 'tau_v_da': 4.0,
+     'threshold_da': 0.05,
+     'tau_v_da': 1.0,
 
      'lr_bnd': 0.9,
-     # 'threshold_bnd': 0.2,
-     # 'tau_v_bnd': 3.0,
+     'threshold_bnd': 0.1,
+     'tau_v_bnd': 2.0,
 
      'tau_ssry': 437.0,
      'threshold_ssry': 1.986, # <-----------------
@@ -219,7 +220,7 @@ FIXED_PARAMETERS = {
      # 'col_field_mod': 0.0,
 
      'action_delay': 120.0,
-     # 'edge_route_interval': 5000,
+     'edge_route_interval': 50,
      'forced_duration': 19,
      'min_weight_value': 0.1,
      'options': OPTIONS
