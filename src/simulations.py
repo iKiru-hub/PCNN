@@ -436,6 +436,7 @@ def setup_env(global_parameters: dict,
               pause: int=-1, verbose: bool=True,
               record_flag: bool=False,
               limit_position_len: int=-1,
+              agent_position_list: list=None,
               preferred_positions: list=None,
               verbose_min: bool=True):
 
@@ -454,15 +455,23 @@ def setup_env(global_parameters: dict,
 
     possible_positions = room.get_room_positions()
 
+    # reward position
     if reward_settings['rw_position_idx'] > -1:
         rw_position_idx = reward_settings['rw_position_idx']
     else:
         rw_position_idx = np.random.randint(0, len(possible_positions))
 
     rw_position = possible_positions[rw_position_idx]
-    agent_possible_positions = possible_positions.copy()
+
+    # agent position
+    if 'agent_position_idx_list' in tuple(game_settings.keys()):
+        agent_possible_positions = possible_positions[game_settings['agent_position_idx_list']]
+    else:
+        agent_possible_positions = possible_positions.copy()
+
     agent_position = room.sample_next_position()
 
+    #
     rw_tau = reward_settings["tau"] if "tau" in reward_settings else 100
 
     reward_obj = objects.RewardObj(
@@ -498,6 +507,7 @@ def setup_env(global_parameters: dict,
                             reward_obj=reward_obj,
                             rw_event=game_settings["rw_event"],
                             verbose=False,
+                            agent_position_list=agent_possible_positions,
                             duration=game_settings["max_duration"],
                             visualize=game_settings["rendering"])
 

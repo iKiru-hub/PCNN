@@ -38,6 +38,7 @@ game_settings = {
     "rendering": False,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
+    "agent_position_idx_list": [1, 2, 3],
     "max_duration": 40_000,
     "t_teleport": 3_000,
     "limit_position_len": -1,
@@ -186,7 +187,7 @@ sim_parameters_4 = {
           "lr_da": 0.9,
           "lr_pred": 0.05,
           "threshold_da": 0.18,
-          "tau_v_da": 1.0,
+          "tau_v_da": 2.0,
           "lr_bnd": 0.9,
           "threshold_bnd": 0.1,
           "tau_v_bnd": 1.0,
@@ -212,7 +213,7 @@ sim_parameters_4 = {
           # "modulation_option": [False] * 4,
 
           "action_delay": 100.0,
-          "edge_route_interval": 156,
+          "edge_route_interval": 26,
           "forced_duration": 19,
           "min_weight_value": 0.01,
 }

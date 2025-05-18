@@ -130,7 +130,9 @@ def calc_da_pos(brain: object):
     da = brain.get_da_weights()
     daidx = np.where(da>0.05)[0]
 
-    centers = 
+    centers = brain.get_space_centers()[daidx]
+
+    return centers
 
 def run_experiments_for_reps(reps_range, room, parameters, global_parameters,
                              reward_settings, game_settings, total_reps):

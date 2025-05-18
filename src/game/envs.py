@@ -15,7 +15,7 @@ import cv2
 from game.constants import *
 from utils import setup_logger
 
-logger = setup_logger(name='ENV', level=-2, is_debugging=False)
+logger = setup_logger(name='ENV', level=-2, is_debugging=True)
 # import game.objects as objects
 # from game.objects import logger
 
@@ -463,6 +463,261 @@ def make_room(name: str="square", thickness: float=10.,
             [0.25, 0.25], [0.75, 0.75], [0.25, 0.75], [0.75, 0.25],
             [0.75, 0.5]
         ]
+    elif name == "Flat.0011x":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2-2.*OFFSET, SCREEN_HEIGHT//3-0.7*OFFSET,
+                 1*SCREEN_WIDTH//3+4*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, SCREEN_HEIGHT//3-0.7*OFFSET,
+                 1*SCREEN_WIDTH//3-5*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2+5*OFFSET, 2*SCREEN_HEIGHT//3-3*OFFSET,
+                 1*SCREEN_WIDTH//3-5*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-7*OFFSET, 2*SCREEN_HEIGHT//3-3*OFFSET,
+                 1*SCREEN_WIDTH//3+4*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2-2.*OFFSET, SCREEN_HEIGHT-5*OFFSET,
+                 1*SCREEN_WIDTH//3+4*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, SCREEN_HEIGHT-5*OFFSET,
+                 1*SCREEN_WIDTH//3-5*OFFSET, thickness),
+
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+            [0.5, 0.6], [0.5, 0.4]
+        ]
+    elif name == "Arena.0000":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2-1.5*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+        ]
+    elif name == "Arena.0001":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2-1.5*OFFSET, SCREEN_HEIGHT//3,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-1.5*OFFSET, 2*SCREEN_HEIGHT//3,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+        ]
+    elif name == "Arena.0010":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2-1.5*OFFSET, SCREEN_HEIGHT//3,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, 2*SCREEN_HEIGHT//3,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+2.5*OFFSET, 2*SCREEN_HEIGHT//3,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+        ]
+    elif name == "Arena.0011":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, SCREEN_HEIGHT//3,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+2.5*OFFSET, SCREEN_HEIGHT//3,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, 2*SCREEN_HEIGHT//3,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+2.5*OFFSET, 2*SCREEN_HEIGHT//3,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+        ]
+    elif name == "Arena.0100":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, SCREEN_HEIGHT//3-OFFSET,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+2.5*OFFSET, SCREEN_HEIGHT//3-OFFSET,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, 2*SCREEN_HEIGHT//3+OFFSET,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+2.5*OFFSET, 2*SCREEN_HEIGHT//3+OFFSET,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-1*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+        ]
+    elif name == "Arena.0101":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, SCREEN_HEIGHT//3-OFFSET,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+1.5*OFFSET, SCREEN_HEIGHT//3-OFFSET,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, 2*SCREEN_HEIGHT//3+OFFSET,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+1.5*OFFSET, 2*SCREEN_HEIGHT//3+OFFSET,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2-7*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-1.5*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+4*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+        ]
+    elif name == "Arena.0110":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, SCREEN_HEIGHT//3-OFFSET,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+1.5*OFFSET, SCREEN_HEIGHT//3-OFFSET,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, 2*SCREEN_HEIGHT//3+OFFSET,
+                 1*SCREEN_WIDTH//3+4*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2-7*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-1.5*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+4*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2+0*OFFSET, 2*SCREEN_HEIGHT//3+1*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+        ]
+    elif name == "Arena.0111":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, SCREEN_HEIGHT//3-OFFSET,
+                 1*SCREEN_WIDTH//3+4*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, 2*SCREEN_HEIGHT//3+OFFSET,
+                 1*SCREEN_WIDTH//3+4*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2-7*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-1.5*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+4*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2+0*OFFSET, 2*SCREEN_HEIGHT//3+1*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
+            Wall(SCREEN_WIDTH//2-0*OFFSET, 1*SCREEN_HEIGHT//3-4*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+        ]
+    elif name == "Arena.1000":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, SCREEN_HEIGHT//3-OFFSET,
+                 1*SCREEN_WIDTH//3+4*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, 2*SCREEN_HEIGHT//3+OFFSET,
+                 1*SCREEN_WIDTH//3+4*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2-7*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-1.5*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+4*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2+0*OFFSET, 2*SCREEN_HEIGHT//3+1*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
+            Wall(SCREEN_WIDTH//2-0*OFFSET, 1*SCREEN_HEIGHT//3-4*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
+
+            Wall(SCREEN_WIDTH//2-0*OFFSET, SCREEN_HEIGHT//2-1.5*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+        ]
+    elif name == "Arena.1001":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, SCREEN_HEIGHT//3-OFFSET,
+                 1*SCREEN_WIDTH//3+4*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2-4.5*OFFSET, 2*SCREEN_HEIGHT//3+OFFSET,
+                 1*SCREEN_WIDTH//3+4*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2-7*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2-1.5*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+            Wall(SCREEN_WIDTH//2+4*OFFSET, SCREEN_HEIGHT//2,
+                 1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+
+            Wall(SCREEN_WIDTH//2+0*OFFSET, 2*SCREEN_HEIGHT//3+1*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
+            Wall(SCREEN_WIDTH//2-0*OFFSET, 1*SCREEN_HEIGHT//3-4*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
+
+            Wall(SCREEN_WIDTH//2-2.5*OFFSET, SCREEN_HEIGHT//2-2*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-5*OFFSET),
+            Wall(SCREEN_WIDTH//2+2.5*OFFSET, SCREEN_HEIGHT//2-2*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-5*OFFSET),
+            Wall(SCREEN_WIDTH//2-2.5*OFFSET, SCREEN_HEIGHT//2+2*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-5*OFFSET),
+            Wall(SCREEN_WIDTH//2+2.5*OFFSET, SCREEN_HEIGHT//2+2*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-5*OFFSET),
+
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+        ]
+    elif name == "Rocks.05":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2+np.random.uniform(-6, 6)*OFFSET,
+                 SCREEN_HEIGHT//2+np.random.uniform(-6, 6)*OFFSET,
+                 1*SCREEN_WIDTH//3-5*OFFSET, 50)
+            for _ in range(3)
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+            [0.5, 0.6], [0.5, 0.4]
+        ]
+    elif name == "Walls.03":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2+np.random.uniform(-6, 6)*OFFSET,
+                 SCREEN_HEIGHT//2+np.random.uniform(-6, 6)*OFFSET,
+                 1*SCREEN_WIDTH//3-np.random.uniform(4, 8)*OFFSET, thickness)
+            for _ in range(2)
+        ]
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2+np.random.uniform(-6, 6)*OFFSET,
+                 SCREEN_HEIGHT//2+np.random.uniform(-6, 6)*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-np.random.uniform(0, 8)*OFFSET)
+            for _ in range(2)
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+            [0.5, 0.6], [0.5, 0.4]
+        ]
+    elif name == "Walls.05":
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2+np.random.uniform(-6, 6)*OFFSET,
+                 SCREEN_HEIGHT//2+np.random.uniform(-6, 6)*OFFSET,
+                 1*SCREEN_WIDTH//3-np.random.uniform(-6, 6)*OFFSET, thickness)
+            for _ in range(3)
+        ]
+        walls_extra += [
+            Wall(SCREEN_WIDTH//2+np.random.uniform(-6, 6)*OFFSET,
+                 SCREEN_HEIGHT//2+np.random.uniform(-6, 6)*OFFSET,
+                 thickness, 1*SCREEN_WIDTH//3-np.random.uniform(-6, 6)*OFFSET)
+            for _ in range(3)
+        ]
+        room_positions = [
+            [0.2, 0.2], [0.8, 0.85], [0.2, 0.85], [0.85, 0.2],
+            [0.5, 0.6], [0.5, 0.4]
+        ]
     elif name == "Hallway.00":
 
         height = 5
@@ -506,24 +761,26 @@ def make_room(name: str="square", thickness: float=10.,
     return room
 
 
-def render_room(name: str, pos_idx: int=-1):
+def render_room(name: str, pos_idx: int=-1, duration: int=-1):
 
     room = make_room(name=name, thickness=30.)
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     room.render(screen)
     pygame.display.flip()
 
-    print(f"\nRoom: {name}")
+    logger(f"\nRoom: {name}")
 
     if pos_idx > -1:
         pos = room.room_positions[pos_idx]
     else:
         pos = None
 
-    print(f"{pos=}")
+    logger(f"{pos=}")
 
     running = True
+    t = 0
     while running:
+        t += 1
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -534,6 +791,12 @@ def render_room(name: str, pos_idx: int=-1):
             pygame.draw.circle(screen, (25, 155, 10),
                               (pos[0], pos[1]), 10)
         pygame.display.flip()
+
+        if duration > 0:
+            if t > duration:
+                break
+
+    pygame.quit()
 
 
 def get_random_room() -> str:
@@ -594,7 +857,8 @@ class Environment:
             logger.debug(f"Agent fixed position: {self.agent.limit_position_len}")
 
         logger.debug(f"Reward event: {rw_event}")
-
+        logger.debug(f"Reward position: {self.reward_obj.position}")
+        logger.debug(f"Agent positions: {agent_position_list}")
         logger.debug(self)
 
     def __str__(self):
@@ -969,8 +1233,11 @@ if __name__ == "__main__":
                          '"Flat.1011", "Flat.1110"] or `random`')
     parser.add_argument("--pos", type=int, default=-1,
                         help="position idx")
+    parser.add_argument("--duration", type=int, default=-1,
+                        help="duration")
     args = parser.parse_args()
 
 
-    render_room(name=args.room, pos_idx=args.pos)
+    render_room(name=args.room, pos_idx=args.pos,
+                duration=args.duration)
 

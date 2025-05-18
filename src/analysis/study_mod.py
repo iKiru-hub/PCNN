@@ -14,7 +14,7 @@ from game.envs import *
 from game.constants import ROOMS, GAME_SCALE
 import simulations as sim
 
-logger = utils.setup_logger(__name__, level=3)
+logger = utils.setup_logger("SM", level=3)
 
 
 """ SETTINGS """
@@ -28,13 +28,13 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 15_000,
+    "silent_duration": 10,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 35.,
     "alpha": 0.06,# * GAME_SCALE,
     "move_threshold": 600,# * GAME_SCALE,
-    "rw_position_idx": -1,
+    "rw_position_idx": 0,
 }
 
 game_settings = {
@@ -42,8 +42,9 @@ game_settings = {
     "rw_event": "move agent",
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
+    "agent_position_idx_list": [1, 2, 3],
     "rendering": False,
-    "max_duration": 30_000,
+    "max_duration": 200,
     "room_thickness": 20,
     "t_teleport": 2_000,
     "limit_position_len": -1,
@@ -51,12 +52,13 @@ game_settings = {
     "seed": None,
     "pause": -1,
     "verbose": False,
-    "verbose_min": False
+    "verbose_min": False,
+    "room": None
 }
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 30**2,
+    "N": 29**2,
     "use_sprites": False,
     "speed": 0.7,
     "min_weight_value": 0.5
@@ -70,13 +72,13 @@ PARAMETERS = {
       "rec_threshold": 70,
       "tau_trace": 20,
       "remap_tag_frequency": 1,
-      "num_neighbors": 16,
+      "num_neighbors": 30,
       "min_rep_threshold": 0.99,
 
       "lr_da": 0.9,
       "lr_pred": 0.12,
       "threshold_da": 0.05,
-      "tau_v_da": 1.0,
+      "tau_v_da": 2.0,
       "lr_bnd": 0.9,
       "threshold_bnd": 0.05,
       "tau_v_bnd": 2.0,
@@ -98,47 +100,16 @@ PARAMETERS = {
       "min_weight_value": 0.01
 }
 
-# PARAMETERS_NOREMAP = {
-#       "gain": 18.6,
-#       "offset": 1.0,
-#       "threshold": 0.4,
-#       "rep_threshold": 0.82,
-#       "rec_threshold": 55,
-#       "tau_trace": 20,
-#       "remap_tag_frequency": 1,
-#       "num_neighbors": 3,
-#       "min_rep_threshold": 0.99,
-#       "lr_da": 0.9,
-#       "lr_pred": 0.44,
-#       "threshold_da": 0.05,
-#       "tau_v_da": 4.0,
-#       "lr_bnd": 0.9,
-#       "threshold_bnd": 0.2,
-#       "tau_v_bnd": 3.0,
-#       "tau_ssry": 437.0,
-#       "threshold_ssry": 1.986,
-#       "threshold_circuit": 0.9,
-#       "rwd_weight": 0.0,
-#       "rwd_sigma": 0.0,
-#       "col_weight": 0.0,
-#       "col_sigma": 0.0,
-#       "rwd_field_mod": 1.0,
-#       "col_field_mod": 1.0,
-#       "action_delay": 120.0,
-#       "edge_route_interval": 5275,
-#       "forced_duration": 19,
-#       "min_weight_value": 0.1
-# }
-
 
 
 """ FUNCTIONS """
 
-OPTIONS = ["chance", "no_remap", "default",
-           "only_da", "only_col"]
+OPTIONS = ["chance", "no_remap", "default"]
 NUM_OPTIONS = len(OPTIONS)
-ROOM_NAME = "Square.v0"
-# ROOM_NAME = "Flat.1000"
+
+ROOM_LIST = ["Arena.0000", "Arena.0001", "Arena.0010", "Arena.0011",
+             "Arena.0100", "Arena.0101", "Arena.0110", "Arena.0111",
+             "Arena.1000", "Arena.1001"]
 
 
 def change_parameters(params: dict, name: int):
@@ -165,20 +136,6 @@ def change_parameters(params: dict, name: int):
 
     # default
     if name == "default":
-        return params
-
-    # only da remap
-    if name == "only_da":
-        params["col_weight"] = 0
-        params["col_field_mod_fine"] = 1.
-        params["col_field_mod_coarse"] = 1.
-        return params
-
-    # only col remap
-    if name == "only_col":
-        params["rwd_weight"] = 0
-        params["rwd_field_mod_fine"] = 1.
-        params["rwd_field_mod_coarse"] = 1.
         return params
 
 
@@ -244,25 +201,15 @@ print(result)
 
 def run_local_model(args) -> list:
 
-    results = []
+    results = {}
 
-    logger(f"{ROOM_NAME=}")
-
-    for i in tqdm(range(NUM_OPTIONS)):
-        params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
-        results += [safe_run_model(params, ROOM_NAME)]
-        # if OPTIONS[i] == 'no_remap':
-        #     results += [safe_run_model(PARAMETERS_NOREMAP, ROOM_NAME)]
-        # else:
-        #     params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
-        #     results += [safe_run_model(params, ROOM_NAME)]
+    for room_name in ROOM_LIST:
+        results[room_name] = []
+        for i in tqdm(range(NUM_OPTIONS)):
+            params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
+            results[room_name] += [safe_run_model(params, room_name)]
 
     return results
-
-
-def update_room_name(room_name):
-    global ROOM_NAME
-    ROOM_NAME = room_name
 
 
 if __name__ == "__main__":
@@ -321,7 +268,7 @@ if __name__ == "__main__":
     # prepare results
     data = {
         "options": OPTIONS,
-        "room": ROOM_NAME,
+        "room": ROOM_LIST,
         "parameters": PARAMETERS,
         "global_parameters": global_parameters,
         "results": results
@@ -332,7 +279,7 @@ if __name__ == "__main__":
     # save data
     localtime = time.localtime()
     dataname = os.path.join(os.getcwd().split("PCNN")[0],
-                         "PCNN/src/analysis/results/options_eval_")
+                         "PCNN/src/analysis/results/mod_res_")
     dataname += f"{localtime.tm_mday}{localtime.tm_mon}_{localtime.tm_hour}{localtime.tm_min}.json"
     with open(dataname, "w") as f:
         json.dump(data, f)

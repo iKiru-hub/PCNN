@@ -13,8 +13,9 @@ logger = setup_logger('PCLIB', level=-2, is_debugging=False)
 
 MAX_ATTEMPTS = 5
 MIN_PC_NUMBER = 5
-ATTEMPT_PAUSE = 10
+ATTEMPT_PAUSE = 20
 TOP_DA_IDX = 5
+OVERSHOOT_DURATION = 30
 
 
 """ FUNCTIONS """
@@ -222,7 +223,7 @@ class Plan:
         self._action = np.zeros(2)
 
         # end of plan wherabout
-        self._wduration = 20
+        self._wduration = OVERSHOOT_DURATION
         self._wt = 0
         self.is_overshooting = False
 
@@ -237,15 +238,15 @@ class Plan:
                    f"next={self._next_idx}")
             return self._make_velocity(), True
 
-        # check: enf od the plan
-        if self._counter > self._size or self._curr_idx == self._trg_idx:
+        # check: end of the plan
+        if self._counter > self._size or self._curr_idx == self._trg_idx or self.is_overshooting:
             logger(f"[Plan] end | counter={self._counter > self._size}" + \
                    f" curr={self._curr_idx} trg={self._trg_idx}")
 
             if self._wt < self._wduration:
                 self._wt += 1
-                logger(f"[Plan] ... overshoot [{self._wt}|{self._wduration}]")
-                self.is_overshooting
+                logger.debug(f"[Plan] ... overshoot [{self._wt}|{self._wduration}]")
+                self.is_overshooting = True
                 return self._action, True
 
             self.reset()
