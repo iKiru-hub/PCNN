@@ -17,6 +17,11 @@ import simulations as sim
 logger = utils.setup_logger("SM", level=3)
 
 
+EXPL_DURATION = 15_000
+TOTAL_DURATION = 40_000
+TELEPORT_INTERVAL = 3_000
+
+
 """ SETTINGS """
 
 reward_settings = {
@@ -24,11 +29,11 @@ reward_settings = {
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.08 * GAME_SCALE,
-    "rw_sigma": 0.7,# * GAME_SCALE,
+    "rw_sigma": 0.8,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 10,
+    "silent_duration": EXPL_DURATION,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 35.,
@@ -44,9 +49,9 @@ game_settings = {
                               0.23, 0.77]) * GAME_SCALE,
     "agent_position_idx_list": [1, 2, 3],
     "rendering": False,
-    "max_duration": 200,
+    "max_duration": TOTAL_DURATION,
     "room_thickness": 20,
-    "t_teleport": 2_000,
+    "t_teleport": TELEPORT_INTERVAL,
     "limit_position_len": -1,
     "start_position_idx": 1,
     "seed": None,
