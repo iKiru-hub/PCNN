@@ -70,39 +70,41 @@ global_parameters = {
 }
 
 PARAMETERS = {
-      "gain": 80.0,
-      "offset": 1.0,
-      "threshold": 0.1,
-      "rep_threshold": 0.999,
-      "rec_threshold": 70,
-      "tau_trace": 20,
-      "remap_tag_frequency": 1,
-      "num_neighbors": 30,
-      "min_rep_threshold": 0.99,
 
-      "lr_da": 0.9,
-      "lr_pred": 0.12,
-      "threshold_da": 0.05,
-      "tau_v_da": 2.0,
-      "lr_bnd": 0.9,
-      "threshold_bnd": 0.05,
-      "tau_v_bnd": 2.0,
+        "gain": 129.0,
+        "offset": 1.0,
+        "threshold": 0.4,
+        "rep_threshold": 0.98,
+        "rec_threshold": 50,
+        "tau_trace": 99,
+        "remap_tag_frequency": 1,
+        "num_neighbors": 12,
+        "min_rep_threshold": 0.99,
 
-      "tau_ssry": 437.0,
-      "threshold_ssry": 1.986,
-      "threshold_circuit": 0.9,
+        "lr_da": 0.9,
+        "lr_pred": 0.05,
+        "threshold_da": 0.1,
+        "tau_v_da": 2.0,
+        "lr_bnd": 0.9,
+        "threshold_bnd": 0.1,
+        "tau_v_bnd": 1.0,
 
-      "rwd_weight": -2.68,
-      "rwd_sigma": 67.7,
-      "col_weight": 3.14,
-      "col_sigma": 27.8,
-      "rwd_field_mod": 3.0,
-      "col_field_mod": 0.9,
+        "tau_ssry": 437.0,
+        "threshold_ssry": 1.986,
+        "threshold_circuit": 0.9,
 
-      "action_delay": 100.0,
-      "edge_route_interval": 100,
-      "forced_duration": 19,
-      "min_weight_value": 0.01
+        "rwd_weight": -0.22,
+        "rwd_sigma": 50.4,
+        "col_weight": -4.05,
+        "col_sigma": 51.5,
+        "rwd_field_mod": 1.5,
+        "col_field_mod": 5.3,
+        "modulation_option": [True] * 4,
+
+        "action_delay": 100.0,
+        "edge_route_interval": 26,
+        "forced_duration": 19,
+        "min_weight_value": 0.01,
 }
 
 
@@ -114,7 +116,7 @@ NUM_OPTIONS = len(OPTIONS)
 
 ROOM_LIST = ["Arena.0000", "Arena.0001", "Arena.0010", "Arena.0011",
              "Arena.0100", "Arena.0101", "Arena.0110", "Arena.0111",
-             "Arena.1000", "Arena.1001"]
+             "Arena.1000"]
 
 
 def change_parameters(params: dict, name: int):
@@ -208,9 +210,9 @@ def run_local_model(args) -> list:
 
     results = {}
 
-    for room_name in ROOM_LIST:
+    for room_name in tqdm(ROOM_LIST):
         results[room_name] = []
-        for i in tqdm(range(NUM_OPTIONS)):
+        for i in range(NUM_OPTIONS):
             params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
             results[room_name] += [safe_run_model(params, room_name)]
 
