@@ -17,9 +17,9 @@ import simulations as sim
 logger = utils.setup_logger("SM", level=3)
 
 
-EXPL_DURATION = 15_000
-TOTAL_DURATION = 40_000
-TELEPORT_INTERVAL = 3_000
+EXPL_DURATION = 10_000
+TOTAL_DURATION = 30_000
+TELEPORT_INTERVAL = 2_500
 
 
 """ SETTINGS """
@@ -63,48 +63,48 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 29**2,
+    "N": 32**2,
     "use_sprites": False,
-    "speed": 0.7,
-    "min_weight_value": 0.5
+    "speed": 1.0,
+    "min_weight_value": 0.1
+
 }
 
 PARAMETERS = {
+      "gain": 140.0,
+      "offset": 1.0,
+      "threshold": 0.0,
+      "rep_threshold": 0.99,
+      "rec_threshold": 50,
+      "tau_trace": 99,
+      "remap_tag_frequency": 1,
+      "num_neighbors": 17,
+      "min_rep_threshold": 0.99,
 
-        "gain": 129.0,
-        "offset": 1.0,
-        "threshold": 0.4,
-        "rep_threshold": 0.98,
-        "rec_threshold": 50,
-        "tau_trace": 99,
-        "remap_tag_frequency": 1,
-        "num_neighbors": 12,
-        "min_rep_threshold": 0.99,
+      "lr_da": 0.9,
+      "lr_pred": 0.05,
+      "threshold_da": 0.05,
+      "tau_v_da": 1.0,
+      "lr_bnd": 0.9,
+      "threshold_bnd": 0.1,
+      "tau_v_bnd": 1.0,
 
-        "lr_da": 0.9,
-        "lr_pred": 0.05,
-        "threshold_da": 0.1,
-        "tau_v_da": 2.0,
-        "lr_bnd": 0.9,
-        "threshold_bnd": 0.1,
-        "tau_v_bnd": 1.0,
+      "tau_ssry": 437.0,
+      "threshold_ssry": 1.986,
+      "threshold_circuit": 0.9,
 
-        "tau_ssry": 437.0,
-        "threshold_ssry": 1.986,
-        "threshold_circuit": 0.9,
+      "rwd_weight": -2.22,
+      "rwd_sigma": 50.4,
+      "col_weight": -4.05,
+      "col_sigma": 51.5,
+      "rwd_field_mod": 1.5,
+      "col_field_mod": 5.3,
+      "modulation_option": [True] * 4, ##
 
-        "rwd_weight": -0.22,
-        "rwd_sigma": 50.4,
-        "col_weight": -4.05,
-        "col_sigma": 51.5,
-        "rwd_field_mod": 1.5,
-        "col_field_mod": 5.3,
-        "modulation_option": [True] * 4,
-
-        "action_delay": 100.0,
-        "edge_route_interval": 26,
-        "forced_duration": 19,
-        "min_weight_value": 0.01,
+      "action_delay": 100.0,
+      "edge_route_interval": 70,
+      "forced_duration": 19,
+      "min_weight_value": 0.01,
 }
 
 
@@ -114,9 +114,8 @@ PARAMETERS = {
 OPTIONS = ["chance", "no_remap", "default"]
 NUM_OPTIONS = len(OPTIONS)
 
-ROOM_LIST = ["Arena.0000", "Arena.0001", "Arena.0010", "Arena.0011",
-             "Arena.0100", "Arena.0101", "Arena.0110", "Arena.0111",
-             "Arena.1000"]
+ROOM_LIST = ["Arena.0000", "Arena.0010",
+             "Arena.0100", "Arena.0110", "Arena.1000"]
 
 
 def change_parameters(params: dict, name: int):
@@ -128,6 +127,7 @@ def change_parameters(params: dict, name: int):
         params["lr_da"] = 0.
         params["lr_pred"] = 0.
         params["lr_bnd"] = 0.
+        params['modulation_option'] = [False] * 4
         return params
 
     # no remap option

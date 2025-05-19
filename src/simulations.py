@@ -35,7 +35,7 @@ reward_settings = {
     "rw_sigma": 0.8,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 120,
+    "delay": 2,
     "silent_duration": 10_000,
     "fetching_duration": 2,
     "transparent": False,
@@ -53,7 +53,7 @@ game_settings = {
                               0.23, 0.77]) * GAME_SCALE,
     "max_duration": 50_000,
     "room_thickness": 30,
-    "t_teleport": 2_000,
+    "t_teleport": 4_000,
     "limit_position_len": -1,
     "start_position_idx": 1,
     "seed": None,
@@ -63,9 +63,9 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 29**2,
+    "N": 33**2,
     "use_sprites": bool(0),
-    "speed": 0.7,
+    "speed": 1.0,
     "min_weight_value": 0.5
 }
 
@@ -142,7 +142,7 @@ parameters4 = {
 
 parameters = {
           "gain": 140.0,
-          "offset": 1.0,
+          "offset": 1.005,
           "threshold": 0.0,
           "rep_threshold": 0.99,
           "rec_threshold": 50,
@@ -169,7 +169,7 @@ parameters = {
           "col_sigma": 51.5,
           "rwd_field_mod": 1.5,
           "col_field_mod": 5.3,
-          "modulation_option": [True] * 4,
+          "modulation_option": [False] * 4, ##
 
           "action_delay": 100.0,
           "edge_route_interval": 30,

@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 import core.build.pclib as pclib
 from utils import setup_logger
 
-logger = setup_logger('PCLIB', level=-2, is_debugging=False)
+logger = setup_logger('PCLIB', level=-3, is_debugging=False)
 
 MAX_ATTEMPTS = 5
 MIN_PC_NUMBER = 5
@@ -17,7 +17,7 @@ ATTEMPT_PAUSE = 20
 TOP_DA_IDX = 5
 OVERSHOOT_DURATION = 30
 
-MAX_PATH_DEPTH = 400
+MAX_PATH_DEPTH = 200
 
 
 """ FUNCTIONS """
@@ -36,7 +36,8 @@ def spatial_shortest_path_v2(connectivity_matrix: np.ndarray,
 
     for t in range(MAX_PATH_DEPTH):
 
-        activity += - activity / 10 + connectivity_matrix @ activity * node_weights
+        # one step
+        activity = connectivity_matrix @ activity * node_weights
         activity = 1 / (1 + np.exp(-4 * (activity - 0.6)))
         activity = np.where(activity < 0.1, 0, activity)
         history += [activity.flatten().copy().tolist()]
@@ -45,15 +46,17 @@ def spatial_shortest_path_v2(connectivity_matrix: np.ndarray,
             break
 
     if t == MAX_PATH_DEPTH-1:
+        logger("-[alg] depth reached, no path")
         return []
 
-    if len(history) < 2:
+    if len(history) < 3:
+        logger("+[alg] length of three")
         return [start_node, end_node]
 
     # --- backward phase : identify one of the shortest paths
     good_idxs = [[end_node]]
 
-    for t in range(n):
+    for t in range(MAX_PATH_DEPTH):
         good_neighbors_mask = connectivity_matrix[good_idxs[t]][0]
         if good_neighbors_mask[start_node] > 0.:
             break
@@ -67,14 +70,14 @@ def spatial_shortest_path_v2(connectivity_matrix: np.ndarray,
     for t, group in enumerate(good_idxs[1:]):
         activity *= 0
         activity[group] = 1
-        activity = activity.flatten() * connectivity_matrix[final_idxs[-1]].flatten()
-
-        # final_idxs += [np.argmax(activity)]
-        possible_idxs = np.where(activity>0)[0]
-        if len(possible_idxs) == 0:
+        activity = activity.flatten() * \
+            connectivity_matrix[final_idxs[-1]].flatten()
+        if activity.sum() == 0:
+            logge("-[alg] no neighbors ?")
+            return []
             final_idxs += [np.argmax(activity)]
         else:
-            final_idxs += [np.random.choice(np.where(activity>0)[0])]
+            final_idxs += [np.random.choice(np.where(activity>0.)[0])]
 
     final_idxs += [start_node]
 
@@ -162,101 +165,6 @@ def euclidean_distance(v1: np.ndarray, v2: np.ndarray) -> float:
     return math.sqrt((v1[0]-v2[0])**2 + (v1[1] - v2[1])**2)
 
 
-""" NEURONS """
-
-
-class DensityPolicy2:
-
-    def __init__(self, rwd_weight: float, rwd_sigma: float,
-                 col_weight: float, col_sigma: float,
-                 rwd_field_mod: float,
-                 col_field_mod: float):
-
-        self.rwd_weight = rwd_weight
-        self.rwd_sigma = rwd_sigma
-        self.col_weight = col_weight
-        self.col_sigma = col_sigma
-
-        self.rwd_drive = 0.0
-        self.col_drive = 0.0
-
-        self.rwd_field_mod = rwd_field_mod
-        self.col_field_mod = col_field_mod
-
-    def __call__(self, space: object, circuits: object, goalmd: object,
-             displacement: np.ndarray, curr_da: float, curr_bnd: float,
-             reward: float, collision: float):
-
-        # --- reward mod
-        if reward > 0.1 and circuits.get_da_leaky_v() > 0.01:
-
-            self.rwd_drive = self.rwd_weight * curr_da
-
-            # +density
-            space.remap(circuits.get_da_weights(), displacement,
-                        self.rwd_sigma, self.rwd_drive)
-            # +gain
-            space.modulate_gain(self.rwd_field_mod)
-
-        # --- collision mod
-        elif collision > 0.1:
-
-            self.col_drive = self.col_weight * curr_bnd
-            neg_disp = [-displacement[0], -displacement[1]]
-
-            # +density
-            print(dir(space))
-            space.remap(circuits.get_bnd_weights(), neg_disp,
-                        self.col_sigma, self.col_drive)
-            # +gain
-            space.modulate_gain(self.col_field_mod)
-
-    def remap_space(self, block_weights: np.ndarray, space: object, goalmd: object,
-                    displacement: np.ndarray, sigma: float, drive: float):
-
-        plan_idxs = goalmd.get_plan_idxs()
-
-        if len(plan_idxs) < 1:
-            return
-
-        curr_positions = space.get_position()
-        centers = space.get_centers()
-        prev_center = centers[plan_idxs[0]]
-
-        for i in range(1, len(plan_idxs)):
-            idx = plan_idxs[i]
-            curr_center = centers[idx]
-
-            if curr_center[0] < -900.0 or block_weights[i] > 0.0:
-                continue
-
-            delta = [
-                curr_center[0] - prev_center[0],
-                curr_center[1] - prev_center[1]
-            ]
-
-            dist_to_pos = math.sqrt(
-                (curr_center[0] - curr_positions[0]) ** 2 +
-                (curr_center[1] - curr_positions[1]) ** 2
-            )
-            dist = math.exp(- (dist_to_pos ** 2) / sigma)
-
-            magnitude = dist * drive
-            space.single_remap(idx, delta, magnitude)
-
-            prev_center = curr_center
-
-    def __str__(self):
-        return "DensityPolicy"
-
-    def __repr__(self):
-        return "DensityPolicy"
-
-    def get_rwd_mod(self):
-        return self.rwd_drive
-
-    def get_col_mod(self):
-        return self.col_drive
 
 
 """ BEHAVIOUR """
@@ -307,7 +215,7 @@ class Plan:
 
             if self._wt < self._wduration:
                 self._wt += 1
-                logger.debug(f"[Plan] ... overshoot [{self._wt}|{self._wduration}]")
+                logger.debug(f"[Plan] ..overshoot [{self._wt}|{self._wduration}]")
                 self.is_overshooting = True
                 return self._action, True
 
@@ -406,8 +314,10 @@ class RewardObject:
             return -1
 
         # exit: low trg value
-        if da_weights[self.trg_idx] < 0.00001:
-            logger(f"[RwO] low trg value : {da_weights[self.trg_idx]:.5f} max={da_weights.max():.5f} argmax={da_weights.argmax()}")
+        if da_weights[self.trg_idx] < 0.0001:
+            logger(f"[RwO] low trg value : {da_weights[self.trg_idx]:.5f}" + \
+                f" max={da_weights.max():.5f} argmax={da_weights.argmax()}")
+
             return -1
 
         # update the target value
@@ -468,9 +378,9 @@ class GoalModule:
             curr_idx = space.calculate_closest_index(space.get_position())
 
         # Check: current position at the boundary
-        if space_weights[curr_idx] < -1000.0:
-            logger("curr idx has bad value")
-            return [], False
+        # if space_weights[curr_idx] < -1000.0:
+        #     logger("curr idx has bad value")
+        #     return [], False
 
         # # Make plan path
         # plan_idxs = spatial_shortest_path(
@@ -480,7 +390,7 @@ class GoalModule:
         #     curr_idx, trg_idx
         # )
 
-        space_weights = np.where(space_weights < 0, 0, 1).reshape(-1, 1)
+        space_weights = np.where(space_weights < 0, 0.2, 1).reshape(-1, 1)
 
         # Make plan path
         plan_idxs = spatial_shortest_path_v2(
@@ -491,7 +401,7 @@ class GoalModule:
 
         # Check if the plan is valid, i.e., size > 1
         if len(plan_idxs) < 1:
-            logger(f"[Goal] plan too short | {plan_idxs}")
+            # print(f"[Goal] plan too short | {plan_idxs}")
             return [], False
 
         logger("[Goal] new plan ############################### " + \
@@ -518,7 +428,7 @@ class GoalModule:
 
         # Check: failed coarse planning
         if not results[1]:  # Second element is the success flag
-            logger("[Goal] failed planning")
+            # print("[Goal] failed planning")
             return False
 
         # Extract the last index of the coarse plan
@@ -852,7 +762,8 @@ class Brain:
         # check: attempt pause
         if self.clock - self._t_attempt > ATTEMPT_PAUSE:
 
-            if self.tmp_trg_idx > -1:
+            # if self.tmp_trg_idx > -1:
+            if self.tmp_trg_idx > 0:
 
                 # Check new reward trg plan
                 valid_plan = self.goalmd.update(self.tmp_trg_idx, True)
@@ -1018,6 +929,9 @@ class Brain:
 
     def get_space_centers(self):
         return self.space.get_centers()
+
+    def get_space_centers_original(self):
+        return self.space.get_centers_original()
 
     def get_space_connectivity(self):
         return self.space.get_connectivity()

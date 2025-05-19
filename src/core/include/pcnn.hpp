@@ -835,7 +835,8 @@ public:
             }
 
             // Assign to basis
-            basis.block(i * layers[i].len(), 0, layers[i].len(), 2) = layer_positions;
+            basis.block(i * layers[i].len(), 0,
+                        layers[i].len(), 2) = layer_positions;
         }
         return basis;
     }
@@ -853,7 +854,8 @@ public:
             }
 
             // Assign to basis
-            basis.block(i * layers[i].len(), 0, layers[i].len(), 2) = layer_positions;
+            basis.block(i * layers[i].len(), 0,
+                        layers[i].len(), 2) = layer_positions;
         }
         return basis;
     }
@@ -896,6 +898,7 @@ struct VelocitySpace {
 public:
 
     Eigen::MatrixXf centers;
+    Eigen::MatrixXf centers_original;
     Eigen::MatrixXf connectivity;
     Eigen::MatrixXf weights;
     Eigen::VectorXf nodes_max_angle;
@@ -910,6 +913,7 @@ public:
     VelocitySpace(int size, float threshold)
         : size(size), threshold(threshold) {
         centers = Eigen::MatrixXf::Constant(size, 2, -9999.0f);
+        centers_original = Eigen::MatrixXf::Constant(size, 2, -9999.0f);
         connectivity = Eigen::MatrixXf::Zero(size, size);
         weights = Eigen::MatrixXf::Zero(size, size);
         one_trace = Eigen::VectorXf::Ones(size);
@@ -932,6 +936,9 @@ public:
         // update the centers
         if (update_center) {
             centers.row(idx) = Eigen::Vector2f(
+                position[0], position[1]);
+
+            centers_original.row(idx) = Eigen::Vector2f(
                 position[0], position[1]);
         }
 
@@ -1011,6 +1018,19 @@ public:
         for (int i = 0; i < size; i++) {
             if (centers(i, 0) > -999.0f) {
                 centers_nonzero.row(i) = centers.row(i);
+            }
+        }
+        return centers_nonzero;
+    }
+
+    Eigen::MatrixXf get_centers_original(bool nonzero=false) {
+
+        if (!nonzero) { return centers_original; }
+
+        Eigen::MatrixXf centers_nonzero = Eigen::MatrixXf::Zero(size, 2);
+        for (int i = 0; i < size; i++) {
+            if (centers_original(i, 0) > -999.0f) {
+                centers_nonzero.row(i) = centers_original.row(i);
             }
         }
         return centers_nonzero;
@@ -1372,9 +1392,6 @@ public:
                  vspace.position[1] - vspace.centers(i, 1)};
 
             // gaussian activation function centered at zero
-            /* float dist = std::exp(-std::sqrt(displacement[0] * displacement[0] + \ */
-            /*                         displacement[1] * displacement[1]) / width) * \ */
-            /*                         magnitude; */
 
             if (vspace.is_too_close(i, {displacement[0] * magnitude,
                                         displacement[1] * magnitude},
@@ -1388,13 +1405,10 @@ public:
             x_filtered = xfilter.simulate_one_step(gc_displacement);
 
             // update the weights & centers
-            /* Wff.row(i) += x_filtered.transpose() - Wff.row(i).transpose(); */
             Wff.row(i) = x_filtered.transpose();
 
             Wffbackup.row(i) = Wff.row(i);
             vspace.remap_center(i, gc_displacement);
-            /* vspace.remap_center(i, {displacement[0] * magnitude, */
-            /*     displacement[1] * magnitude}); */
         }
     }
 
@@ -1490,6 +1504,8 @@ public:
     Eigen::MatrixXf& get_connectivity() { return connectivity; }
     Eigen::MatrixXf get_centers(bool nonzero = false)
         { return vspace.get_centers(nonzero); }
+    Eigen::MatrixXf get_centers_original(bool nonzero = false)
+        { return vspace.get_centers_original(nonzero); }
     Eigen::VectorXf& get_node_degrees() { return vspace.node_degrees; }
     Eigen::VectorXf& get_gain() { return gain_v; }
     float get_delta_update() { return delta_wff; }

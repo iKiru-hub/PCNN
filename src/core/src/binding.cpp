@@ -88,6 +88,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_connectivity", &PCNN::get_connectivity)
         .def("get_centers", &PCNN::get_centers,
              py::arg("nonzero") = false)
+        .def("get_centers_original", &PCNN::get_centers_original,
+             py::arg("nonzero") = false)
         .def("get_node_degrees", &PCNN::get_node_degrees)
         .def("get_delta_update", &PCNN::get_delta_update)
         .def("get_position", &PCNN::get_position)
