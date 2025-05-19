@@ -21,7 +21,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 1_000,
+    "silent_duration": 5_000,
     "fetching_duration": 1,
 
     "transparent": False,
@@ -40,7 +40,7 @@ game_settings = {
                               0.23, 0.77]) * GAME_SCALE,
     "agent_position_idx_list": [1, 2, 3],
     "max_duration": 40_000,
-    "t_teleport": 3_000,
+    "t_teleport": 1_000,
     "limit_position_len": -1,
     "room_thickness": 20,
     "seed": None,
@@ -213,7 +213,7 @@ sim_parameters_4 = {
           # "modulation_option": [False] * 4,
 
           "action_delay": 100.0,
-          "edge_route_interval": 26,
+          "edge_route_interval": 50,
           "forced_duration": 19,
           "min_weight_value": 0.01,
 }
@@ -283,3 +283,6 @@ if __name__ == "__main__":
                            verbose=False, pause=game_settings["pause"])
 
     logger(f"rw_count={out}")
+
+    print()
+

@@ -36,7 +36,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 120,
-    "silent_duration": 30_000,
+    "silent_duration": 10_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 40.,
@@ -148,7 +148,7 @@ parameters = {
           "rec_threshold": 50,
           "tau_trace": 99,
           "remap_tag_frequency": 1,
-          "num_neighbors": 12,
+          "num_neighbors": 17,
           "min_rep_threshold": 0.99,
 
           "lr_da": 0.9,
@@ -172,7 +172,7 @@ parameters = {
           "modulation_option": [True] * 4,
 
           "action_delay": 100.0,
-          "edge_route_interval": 15,
+          "edge_route_interval": 30,
           "forced_duration": 19,
           "min_weight_value": 0.01,
 }
@@ -644,7 +644,8 @@ def run_game(env: games.Environment,
                     running = False
 
         # -check: teleport
-        if env.t % t_teleport == 0 and env.reward_obj.is_silent:
+        # if env.t % t_teleport == 0 and env.reward_obj.is_silent:
+        if env.t % t_teleport == 0:# and (env.reward_obj.is_silent or env.reward_obj.count == 0):
             env._reset_agent_position(model, True)
 
         # velocity

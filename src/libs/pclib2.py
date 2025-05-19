@@ -17,8 +17,70 @@ ATTEMPT_PAUSE = 20
 TOP_DA_IDX = 5
 OVERSHOOT_DURATION = 30
 
+MAX_PATH_DEPTH = 400
+
 
 """ FUNCTIONS """
+
+def spatial_shortest_path_v2(connectivity_matrix: np.ndarray,
+                             node_weights: np.ndarray,
+                             start_node: int, end_node: int):
+
+    n = len(node_weights)
+    activity = np.zeros((n, 1))
+    activity[start_node] = 1
+
+    history = []
+
+    # --- forward phase : propagate the activity until the end node
+
+    for t in range(MAX_PATH_DEPTH):
+
+        activity += - activity / 10 + connectivity_matrix @ activity * node_weights
+        activity = 1 / (1 + np.exp(-4 * (activity - 0.6)))
+        activity = np.where(activity < 0.1, 0, activity)
+        history += [activity.flatten().copy().tolist()]
+
+        if activity[end_node] > 0.:
+            break
+
+    if t == MAX_PATH_DEPTH-1:
+        return []
+
+    if len(history) < 2:
+        return [start_node, end_node]
+
+    # --- backward phase : identify one of the shortest paths
+    good_idxs = [[end_node]]
+
+    for t in range(n):
+        good_neighbors_mask = connectivity_matrix[good_idxs[t]][0]
+        if good_neighbors_mask[start_node] > 0.:
+            break
+
+        activity = history[-t-2] * good_neighbors_mask
+        good_idxs += [np.where(activity>0.0)[0]]
+
+    # --- refinement
+    final_idxs = [end_node]
+    activity = np.zeros(n)
+    for t, group in enumerate(good_idxs[1:]):
+        activity *= 0
+        activity[group] = 1
+        activity = activity.flatten() * connectivity_matrix[final_idxs[-1]].flatten()
+
+        # final_idxs += [np.argmax(activity)]
+        possible_idxs = np.where(activity>0)[0]
+        if len(possible_idxs) == 0:
+            final_idxs += [np.argmax(activity)]
+        else:
+            final_idxs += [np.random.choice(np.where(activity>0)[0])]
+
+    final_idxs += [start_node]
+
+    # indexes of the nodes in the shortest path
+    final_idxs.reverse()
+    return final_idxs
 
 
 def spatial_shortest_path(connectivity_matrix: np.ndarray,
@@ -27,7 +89,7 @@ def spatial_shortest_path(connectivity_matrix: np.ndarray,
                           start_node: int, end_node: int):
     """
     Calculates the shortest spatial path between two nodes using Dijkstra's algorithm.
-    
+
     Args:
         connectivity_matrix: NxN numpy array with 1 for connected nodes and 0 otherwise.
         node_coordinates: Nx2 numpy array of (x, y) coordinates for each node.
@@ -410,10 +472,19 @@ class GoalModule:
             logger("curr idx has bad value")
             return [], False
 
+        # # Make plan path
+        # plan_idxs = spatial_shortest_path(
+        #     space.get_connectivity(),
+        #     space.get_centers(),
+        #     space_weights,
+        #     curr_idx, trg_idx
+        # )
+
+        space_weights = np.where(space_weights < 0, 0, 1).reshape(-1, 1)
+
         # Make plan path
-        plan_idxs = spatial_shortest_path(
+        plan_idxs = spatial_shortest_path_v2(
             space.get_connectivity(),
-            space.get_centers(),
             space_weights,
             curr_idx, trg_idx
         )
