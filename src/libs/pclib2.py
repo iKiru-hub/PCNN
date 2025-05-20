@@ -73,7 +73,7 @@ def spatial_shortest_path_v2(connectivity_matrix: np.ndarray,
         activity = activity.flatten() * \
             connectivity_matrix[final_idxs[-1]].flatten()
         if activity.sum() == 0:
-            logge("-[alg] no neighbors ?")
+            logger("-[alg] no neighbors ?")
             return []
             final_idxs += [np.argmax(activity)]
         else:
