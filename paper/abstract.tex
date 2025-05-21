@@ -17,7 +17,7 @@ However, these approaches often struggle to model one-shot adaptive mapping and 
 We propose a neural architecture inspired by place-cell dynamics that enables rapid on-the-fly construction of cognitive maps during exploration of novel environments.
 The model relies on velocity inputs and grid cell modules to generate spatial representations and integrates neuromodulatory signals responsive to boundaries and rewards.
 Learning combines synaptic plasticity, lateral inhibition, and modulatory gating of place-cell activity.
-For reward-driven navigation, the agent uses a modified Dijkstra algorithm to plan paths on the emergent cognitive map, treating place cells as nodes in a locally structured graph.
+For reward-driven navigation, the agent uses a graph-based algorithm to plan paths on the emergent cognitive map, treating place cells as nodes in a locally structured graph.
 
 We tested the model on different environments, achieving high sample efficiency and solving tasks in a single episode, for which usual RL agents require thousands of training steps.
 This performance advantage arises from biologically inspired inductive biases embedded in the model architecture.

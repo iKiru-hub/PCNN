@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import argparse, json
 from tqdm import tqdm
 import pygame
-import gymnasium as gym
+# import gymnasium as gym
 
 import utils
 import game.envs as games

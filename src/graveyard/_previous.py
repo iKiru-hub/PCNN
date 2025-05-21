@@ -2070,3 +2070,217 @@ def main_game(room_name: str="Square.v0", load: bool=False, duration: int=-1):
 
     logger(f"rw_count={env.rw_count}")
 
+
+
+class EnvironmentWrapper(gym.Env):
+
+    def __init__(self, env, image_obs: bool = False, resize_to=(84, 84)):
+        super(EnvironmentWrapper, self).__init__()
+        self.env = env
+        self.image_obs = image_obs
+        self.resize_to = resize_to
+        self.prev_position = self.env.position.copy()
+        self.speed = 1.
+
+        # --- Action space: Discrete (left, right, up, down)
+        self.action_space = spaces.Discrete(4)  # 0=left, 1=right, 2=up, 3=down
+
+        # --- Observation space: image or vector
+        self.observation_space = spaces.Box(
+            low=-np.inf, high=np.inf, shape=(6,), dtype=np.float32
+        )
+
+        if self.env.visualize:
+            logger.debug("env rendering")
+
+    def set_speed(self, speed: float):
+        self.speed = speed
+
+    def reset(self, **kwargs):
+        self.env.reset()
+        self.prev_position = self.env.position.copy()
+        velocity = [0.0, 0.0]
+        obs = self._get_obs(velocity)
+        return obs, {}
+
+    def step(self, action):
+        # Map discrete actions to velocity vectors
+        if action == 0:   # left
+            velocity = np.array([-self.speed, 0.])
+        elif action == 1: # right
+            velocity = np.array([self.speed, 0.])
+        elif action == 2: # up
+            velocity = np.array([0., -self.speed])
+        elif action == 3: # down
+            velocity = np.array([0., self.speed])
+        else:
+            raise ValueError("Invalid action index")
+
+        prev_position = self.env.position.copy()
+        obs_tuple = self.env(velocity=velocity, brain=None)
+        new_position = self.env.position.copy()
+
+        actual_velocity = [new_position[0] - prev_position[0],
+                           -(new_position[1] - prev_position[1])]
+        self.env.render()
+        obs = self._get_obs(actual_velocity)
+        # reward = float(obs_tuple[2]) if obs_tuple[2] is not False else 0.0
+        reward = obs_tuple[2] if obs_tuple[2] > 0. else -1
+        done = bool(obs_tuple[3]) or reward > 0.
+
+        return obs, reward, done, False, {}
+
+    def _get_obs(self, velocity):
+
+        return np.array([
+            self.env.position[0] / 1000,
+            self.env.position[1] / 1000,
+            self.env.velocity[1] / 10,
+            self.env.velocity[0] / 10,
+            float(self.env._reward),
+            float(self.env._collision),
+        ], dtype=np.float32)
+
+    def render(self, mode='human'):
+        return self.env.render()
+
+    @property
+    def duration(self):
+        return self.env.duration
+
+    @property
+    def count(self):
+        return self.env.count
+
+    @property
+    def visualize(self):
+        return self.env.visualize
+
+    @property
+    def t(self):
+        return self.env.t
+
+    @property
+    def rw_count(self):
+        return self.env.rw_count
+
+
+class EnvironmentWrapperIMG(gym.Env):
+    def __init__(self, env, resize_to=(84, 84)):
+        super(EnvironmentWrapper, self).__init__()
+        self.env = env
+        self.resize_to = resize_to
+
+        # --- Action space: Discrete (left, right, up, down)
+        self.action_space = spaces.Discrete(4)  # 0=left, 1=right, 2=up, 3=down
+
+        # --- Observation space: image (1 channel), reward, collision, velocity
+        self.observation_space = spaces.Dict({
+            'image': spaces.Box(low=0, high=255, shape=(1, self.resize_to[1], self.resize_to[0]), dtype=np.uint8),
+            'reward': spaces.Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32),
+            'collision': spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            'velocity': spaces.Box(low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32)
+        })
+
+        if self.env.visualize:
+            logger.debug("env rendering")
+
+    def set_speed(self, speed: float):
+        self.env.speed = speed
+
+    def reset(self, **kwargs):
+        self.env.reset()
+        image_obs = self._get_image_obs()
+        reward_obs = np.array([float(self.env._reward)], dtype=np.float32)
+        collision_obs = np.array([float(self.env._collision)], dtype=np.float32)
+        velocity_obs = np.array(self.env.velocity.copy(), dtype=np.float32)
+        obs = {
+            'image': image_obs,
+            'reward': reward_obs,
+            'collision': collision_obs,
+            'velocity': velocity_obs
+        }
+        return obs, {}
+
+    def step(self, action):
+        # Map discrete actions to velocity vectors
+        if action == 0:    # left
+            velocity = np.array([-self.env.speed, 0.])
+        elif action == 1: # right
+            velocity = np.array([self.env.speed, 0.])
+        elif action == 2: # up
+            velocity = np.array([0., -self.env.speed])
+        elif action == 3: # down
+            velocity = np.array([0., self.env.speed])
+        else:
+            raise ValueError("Invalid action index")
+
+        obs_tuple = self.env(velocity=velocity, brain=None)
+
+        self.env.render()
+
+        image_obs = self._get_image_obs()
+        reward = float(obs_tuple[2]) if obs_tuple[2] is not False else 0.0
+        reward_obs = np.array([reward], dtype=np.float32)
+        collision = float(obs_tuple[3]) if obs_tuple[3] is not False else 0.0
+        collision_obs = np.array([collision], dtype=np.float32)
+        velocity_obs = np.array(self.env.velocity.copy(), dtype=np.float32)
+        obs = {
+            'image': image_obs,
+            'reward': reward_obs,
+            'collision': collision_obs,
+            'velocity': velocity_obs
+        }
+        done = bool(obs_tuple[3]) or reward > 0
+
+        reward = reward if reward > 0 else -1
+
+        return obs, reward, done, False, {}
+
+    def _get_image_obs(self):
+        surface = self.env.screen
+        if surface is None:
+            raise RuntimeError("self.env.screen is not set.")
+
+        # Convert screen to array (W, H, C)
+        raw = pygame.surfarray.array3d(surface).swapaxes(0, 1)
+        frame = np.transpose(raw, (1, 0, 2))  # (W, H, C) -> (H, W, C)
+
+        # Convert to grayscale (single channel)
+        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+
+        # Normalize to [0, 1] and then scale to [0, 255] as integers
+        normalized_gray = (gray / 255.0 * 255).astype(np.uint8)
+
+        # Resize the frame
+        resized = cv2.resize(normalized_gray, self.resize_to, interpolation=cv2.INTER_AREA)
+
+        # Reshape to (C, H, W) = (1, H, W)
+        resized = resized.reshape(1, self.resize_to[1], self.resize_to[0])
+
+        return resized
+
+    def render(self, mode='human'):
+        return self.env.render()
+
+    @property
+    def duration(self):
+        return self.env.duration
+
+    @property
+    def count(self):
+        return self.env.count
+
+    @property
+    def visualize(self):
+        return self.env.visualize
+
+    @property
+    def t(self):
+        return self.env.t
+
+    @property
+    def rw_count(self):
+        return self.env.rw_count
+
+

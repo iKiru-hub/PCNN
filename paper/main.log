@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/Homebrew) (preloaded format=pdflatex 2025.3.15)  16 MAY 2025 13:55
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025/Homebrew) (preloaded format=pdflatex 2025.3.15)  20 MAY 2025 15:05
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -690,37 +690,40 @@ Package microtype Info: Loading generic protrusion settings for font family
 <figures/figure_model_v2.png, id=174, 473.00716pt x 276.7941pt>
 File: figures/figure_model_v2.png Graphic file (type png)
 <use figures/figure_model_v2.png>
-Package pdftex.def Info: figures/figure_model_v2.png  used on input line 27.
+Package pdftex.def Info: figures/figure_model_v2.png  used on input line 24.
 (pdftex.def)             Requested size: 357.73405pt x 209.33937pt.
+
+Underfull \vbox (badness 4739) has occurred while \output is active []
+
 
 
 [3 <./figures/figure_model_v2.png>]
-Underfull \hbox (badness 2828) in paragraph at lines 96--96
+Underfull \hbox (badness 2828) in paragraph at lines 101--101
 []|\T1/ptm/m/n/9 (+20) Backpropagation with
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 97--97
+Underfull \hbox (badness 10000) in paragraph at lines 102--102
 []|\T1/ptm/m/n/9 (+20) Attractor net-work
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 97--97
+Underfull \hbox (badness 10000) in paragraph at lines 102--102
 []|\T1/ptm/m/n/9 (+20) Backpropagation and
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 99--99
+Underfull \hbox (badness 10000) in paragraph at lines 104--104
 []|\T1/ptm/m/n/9 (+20) Spike Re-sponse
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 113--113
+Underfull \hbox (badness 10000) in paragraph at lines 118--118
 []|\T1/ptm/m/n/9 (+20) Relational graph
  []
 
 
-Underfull \hbox (badness 2181) in paragraph at lines 113--113
+Underfull \hbox (badness 2181) in paragraph at lines 118--118
 []|\T1/ptm/m/n/9 (+20) Observation and ac-
  []
 
@@ -730,11 +733,11 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 [4]) (./results.tex
-<figures/collda.png, id=226, 567.3195pt x 590.08455pt>
-File: figures/collda.png Graphic file (type png)
-<use figures/collda.png>
-Package pdftex.def Info: figures/collda.png  used on input line 5.
-(pdftex.def)             Requested size: 278.23827pt x 289.40508pt.
+<figures/sim_plot.png, id=227, 502.0356pt x 370.986pt>
+File: figures/sim_plot.png Graphic file (type png)
+<use figures/sim_plot.png>
+Package pdftex.def Info: figures/sim_plot.png  used on input line 5.
+(pdftex.def)             Requested size: 377.60951pt x 279.03697pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
@@ -743,20 +746,28 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 [5]
 
-[6 <./figures/collda.png>]) (./discussion.tex
+[6 <./figures/sim_plot.png>]
+<figures/descr_plot.png, id=250, 601.2864pt x 474.0912pt>
+File: figures/descr_plot.png Graphic file (type png)
+<use figures/descr_plot.png>
+Package pdftex.def Info: figures/descr_plot.png  used on input line 47.
+(pdftex.def)             Requested size: 393.51231pt x 310.26796pt.
 
-[7]
+
+[7 <./figures/descr_plot.png>]) (./discussion.tex
+
+[8]) (./acknowledgements.tex
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[8]) (./acknowledgements.tex
+[9]
 LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 10.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 )) (./main.bbl
 
-[9]
+[10]
 Overfull \hbox (0.60924pt too wide) in paragraph at lines 119--122
 \T1/ptm/m/n/10 (-20) Oriented and Choosing a Multi-Destination Route.  \T1/ptm/m/it/10 (-20) Journal of Experimental Biology\T1/ptm/m/n/10 (-20) , 199(1):211--
  []
@@ -768,30 +779,27 @@ Underfull \hbox (badness 1314) in paragraph at lines 129--132
 
 
 
-[10]
-
 [11]
 
 [12]
 
-[13]) (./appendix.tex
+[13]
 
-[14]
-<figures/pc_gc.png, id=357, 751.96935pt x 400.73715pt>
+[14]) (./appendix.tex
+
+[15]
+<figures/pc_gc.png, id=369, 751.96935pt x 400.73715pt>
 File: figures/pc_gc.png Graphic file (type png)
 <use figures/pc_gc.png>
 Package pdftex.def Info: figures/pc_gc.png  used on input line 59.
 (pdftex.def)             Requested size: 397.48499pt x 211.83322pt.
 
-Underfull \vbox (badness 1082) has occurred while \output is active []
 
-
-
-[15 <./figures/pc_gc.png>]
-<figures/pcnn_dm_logic.png, id=368, 1065.9825pt x 1475.5125pt>
+[16 <./figures/pc_gc.png>]
+<figures/pcnn_dm_logic.png, id=380, 1065.9825pt x 1475.5125pt>
 File: figures/pcnn_dm_logic.png Graphic file (type png)
 <use figures/pcnn_dm_logic.png>
-Package pdftex.def Info: figures/pcnn_dm_logic.png  used on input line 128.
+Package pdftex.def Info: figures/pcnn_dm_logic.png  used on input line 129.
 (pdftex.def)             Requested size: 278.23827pt x 385.13268pt.
 
 
@@ -799,42 +807,40 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
-[16]
-Underfull \hbox (badness 10000) in paragraph at lines 145--146
+[17]
+Underfull \hbox (badness 10000) in paragraph at lines 146--147
 
  []
 
-Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 148.
+Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 149.
 LaTeX Font Info:    Trying to load font information for U+bbold on input line 151.
 (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/bbold/Ubbold.fd)
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[17 <./figures/pcnn_dm_logic.png>]
-<figures/maps_envs.png, id=392, 442.2924pt x 364.9635pt>
+[18 <./figures/pcnn_dm_logic.png>]
+<figures/maps_envs.png, id=403, 442.2924pt x 364.9635pt>
 File: figures/maps_envs.png Graphic file (type png)
 <use figures/maps_envs.png>
-Package pdftex.def Info: figures/maps_envs.png  used on input line 224.
+Package pdftex.def Info: figures/maps_envs.png  used on input line 214.
 (pdftex.def)             Requested size: 357.73405pt x 295.19557pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
-[18]
+[19]
 
-[19 <./figures/maps_envs.png>]
-<figures/evoplot.png, id=408, 498.663pt x 209.583pt>
+[20 <./figures/maps_envs.png>]
+<figures/evoplot.png, id=421, 498.663pt x 209.583pt>
 File: figures/evoplot.png Graphic file (type png)
 <use figures/evoplot.png>
-Package pdftex.def Info: figures/evoplot.png  used on input line 268.
+Package pdftex.def Info: figures/evoplot.png  used on input line 258.
 (pdftex.def)             Requested size: 397.48499pt x 167.05899pt.
 )
 
-[20 <./figures/evoplot.png>] (./checklist.tex
-
-[21]
+[21 <./figures/evoplot.png>] (./checklist.tex
 
 [22]
 
@@ -844,9 +850,11 @@ Package pdftex.def Info: figures/evoplot.png  used on input line 268.
 
 [25]
 
-[26])
+[26]
 
-[27] (./main.aux)
+[27])
+
+[28] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -855,18 +863,18 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 96C52A715032D74A3CE47F7DCA125AFA;1053.
  ) 
 Here is how much of TeX's memory you used:
- 18231 strings out of 473190
- 293415 string characters out of 5704335
- 733027 words of memory out of 5000000
- 40632 multiletter control sequences out of 15000+600000
- 625592 words of font info for 343 fonts, out of 8000000 for 9000
+ 18247 strings out of 473190
+ 293726 string characters out of 5704335
+ 726535 words of memory out of 5000000
+ 40639 multiletter control sequences out of 15000+600000
+ 629932 words of font info for 346 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,10n,79p,1683b,911s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/bbold-type1/bbold10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/helvetic/uhvr8a.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on main.pdf (27 pages, 5030489 bytes).
+ 75i,10n,79p,1623b,913s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/bbold-type1/bbold10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/helvetic/uhvr8a.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on main.pdf (28 pages, 4907622 bytes).
 PDF statistics:
- 568 PDF objects out of 1000 (max. 8388607)
- 498 compressed objects within 5 object streams
- 181 named destinations out of 1000 (max. 500000)
- 63087 words of extra memory for PDF output out of 74296 (max. 10000000)
+ 586 PDF objects out of 1000 (max. 8388607)
+ 510 compressed objects within 6 object streams
+ 185 named destinations out of 1000 (max. 500000)
+ 65140 words of extra memory for PDF output out of 74296 (max. 10000000)
 

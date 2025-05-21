@@ -111,6 +111,8 @@ for which the actions have been discretized into bins), or a hard-coded heuristi
 \noindent Then, velocity is defined with $\phi$ by calculating the angle $\omega$ between the two computed positions and a given speed $s$ as:
 $\mathbf{v}=$$\begin{bmatrix}s\cdot\cos(\omega) & s\cdot\sin(\omega)\end{bmatrix}$.
 
+
+
 \subsubsection{Proximal modulation}
 The modulation of the proximal positions representation is done by a function $\varphi$, which is described by the following algorithm:
 
@@ -139,5 +141,68 @@ The modulation of the proximal positions representation is done by a function $\
 \noindent In the exploration phase, no target position is provided. In this case, step $5$ is skipped and step $7$ is reduced to an equality $\mathbf{u}_{\text{next}}=\mathbf{u}_{\text{prox}}$, resulting in a behaviour solely relying on the proximal positions.
 
 
+\begin{algorithm}[ht]
+\caption{Modified Dijkstra algorithm}
+\begin{algorithmic}[1]
+    \Require Connectivity matrix $\mathbf{C} \in \{0,1\}^{N^{\text{PC}} \times N^{\text{PC}}}$,
+        Node coordinates $\mathbf{x} \in \mathbb{R}^{N^{\text{PC}} \times 2}$,
+        Node weights $\widetilde{\textbf{W}} \in \mathbb{R}^{N^{\text{PC}}}$,
+        Start node $s$, End node $t$
+    \Ensure Shortest path from $t_{0}$ to $T$
+
+\State $distances \gets [\infty, \infty, \ldots, \infty]$ \Comment{Initialize distances}
+\State $distances[t_{0}] \gets 0$
+\State $parent \gets [-1, -1, \ldots, -1]$ \Comment{Parent pointers}
+\State $finalized \gets [false, false, \ldots, false]$ \Comment{Set of finalized nodes}
+\State $PQ \gets \emptyset$ \Comment{Priority queue}
+\State $PQ.push((0, t_{0}))$ \Comment{Insert start node with priority 0}
+
+\While{$PQ \neq \emptyset$}
+    \State $(dist, j) \gets PQ.extractMin()$
+    \If{$finalized[j]$ or $dist > distances[j]$}
+        \State \textbf{continue}
+    \EndIf
+    \State $finalized[j] \gets true$
+    \If{$j = T$}
+        \State \textbf{break} \Comment{Destination reached}
+    \EndIf
+
+    \For{each node $i$ where $\mathbf{C}_{i,j} = 1$ and not $finalized[i]$}
+        \If{$\widetilde{\mathbf{W}}[i] < -1000$}
+            \State \textbf{continue} \Comment{Skip nodes with high negative weights}
+        \EndIf
+
+        \State $\Delta x \gets \mathbf{x}_{j,0} - \mathbf{x}_{i,0}$
+        \State $\Delta y \gets \mathbf{x}_{j,1} - \mathbf{x}_{i,1}$
+        \State $edge\_dist \gets \sqrt{\Delta x^2 + \Delta y^2}$ \Comment{Euclidean distance}
+        \State $new\_dist \gets d[j] + edge\_dist$
+
+        \If{$new\_dist < d[i]$}
+            \State $d[i] \gets new\_dist$
+            \State $parent[i] \gets u$
+            \State $PQ.push((new\_dist, i))$
+        \EndIf
+    \EndFor
+\EndWhile
+
+\State $path \gets []$
+\If{$d[T] = \infty$}
+    \State \Return $\emptyset$ \Comment{No path exists}
+\EndIf
+
+\State $curr \gets t$
+\While{$curr \neq -1$}
+    \State $path.append(curr)$
+    \State $curr \gets parent[curr]$
+\EndWhile
+\State $path.reverse()$
+
+\If{$path$ is empty or $path[0] \neq s$}
+    \State \Return $\emptyset$
+\EndIf
+
+\Return $path$
+\end{algorithmic}
+\end{algorithm}\label{alg:dijk}
 % modulators
 % \input{modulators}

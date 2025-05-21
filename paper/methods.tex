@@ -12,15 +12,12 @@ Since no visual information is used, the agent is effectively navigating in the 
 The primary spatial representation is formed by a set of grid cell modules, each encoding a periodic tiling of 2D space, which directly maps to a toroidal manifold $\mathbf{T}^2$ (Fig. \ref{fig:model}\textbf{c,d}).
 Departing from traditional grid cell modeling approaches \cite{dabaghian, schoyen2025}, we generate population activity directly via Gaussian tuning over the torus, continuously updated using the agent’s velocity vector—an approach validated in prior work \cite{li2019}.
 
-The grid cell population vector $\mathbf{u}^{\text{GC}}$ is forwarded to a place cell network with initially zeroed synaptic weights (Fig. \ref{fig:model}\textbf{b}.
+The grid cell population vector $\mathbf{u}^{\text{GC}}$ is forwarded to a place cell network with initially zeroed synaptic weights (Fig. \ref{fig:model}\textbf{b}).
 When no place cell is sufficiently active for a given input, a silent unit is randomly selected and imprinted with the current activity pattern.
 To enforce representational sparsity and tuning specificity, lateral inihibition is implemented by comparing the cosine similarity between the new weight vector and any existing one and a threshold $\theta^{\text{PC}}_{\text{inh}}$.
 
 Each place cell’s activation is computed via a bounded cosine similarity function, determining its corresponding place field (Fig. \ref{fig:model}\textbf{e}). Further implementation details, including lateral inhibition and recurrent connectivity, are provided in the Appendix.
 
-
-
-\textbf{a}: \textit{a module of grid cells defined in a bounded square space of length 1, and an activity representation of their receptive field over a torus}
 
 \begin{figure}[ht]
     \centering
@@ -65,8 +62,15 @@ Following a salient event (reward or collision), place field centers were displa
 
 Here, $\varphi_{\sigma}$ is a Gaussian function, and $c^{k}$ a scaling factor. This rule is inspired by BTSP plasticity \cite{bittner2017, milstein2021}, which shifts CA1 place fields following salient experiences. Lateral inhibition prevents field overlap during remapping.
 
-In addition to dislocation, field size was modulated by scaling the gain of recently active neurons. The gain $\beta_i$ of each cell was adjusted via a trace variable $m_i$.
-This provides a mechanism for neuromodulators to transiently enhance or suppress spatial sensitivity.
+In addition to dislocation, field size was modulated by scaling the gain of recently active neurons.
+Such mechanism allows neuromodulators to transiently enhance or suppress spatial sensitivity for specific cells.
+This modulation rule involves the gain $\beta_i$ of each cell being adjusted proportionally to its activity trace $m_i$, a reference gain constant $\bar{\beta}$, and a modulatory scaling variable:
+\begin{equation}
+    \beta_{i} = c^{k}_{a} m_{i} \bar{\beta} + (1 - m_{i}) \bar{\beta}
+\end{equation}
+
+\noindent where $c^{k}_{a}$ is a scaling gain parameter, for which a value of 1. signifies that no modulation takes place.
+
 
 \paragraph{Policy and Behavior}
 To evaluate the model's utility in navigation, we implemented a simple policy toggling between exploration and goal-seeking behavior, depending on an external goal flag and the internal map.
@@ -74,7 +78,8 @@ To evaluate the model's utility in navigation, we implemented a simple policy to
 Exploration consisted of a stochastic walk with persistence, plus periodic plans to visit random known locations to avoid stagnation. Goal-directed navigation was triggered when a reward representation was present and executed via shortest-path planning on the place cell graph.
 
 The graph was defined by place cells as nodes and synaptic links as edges. The agent selected targets either randomly or based on cells with high dopaminergic weight, echoing hippocampal replay and value-based navigation \cite{mcnamara2014, michon2021, shamash2021}.
-Planning was achieved via Dijkstra's algorithm with a cost function that penalized proximity to boundaries, as illustrated in plot \ref{fig:model}\textbf{g}.
+Planning was achieved via a path-finding algorithm operating over the graph of place cells.
+Further, it was introduced also a cost function over the graph nodes assigning a lower value to boundary cells, with the scope to avoid close proximity to environment boundaries, as illustrated in plot \ref{fig:model}\textbf{g}.
 
 % In the process of behavior, learning does not occur explicitly, but is instead accounted for in the online formation of the cognitive map.
 

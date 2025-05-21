@@ -11,11 +11,13 @@
 
 
 # --- SETUP
+module purge
+module load slurm/21.08.8
 
 echo "<Evolution 4 PCNN.CORE>"
 
 # activate the virtual environment
-. /home/daniekru/codebase/myenvs/ecl1/bin/activate
+. /home/daniekru/codebase/myenvs/pcenv/bin/activate
 echo "ecl1 activated"
 
 # go to the right directory
@@ -25,6 +27,10 @@ git checkout main
 echo "[git 'main']"
 
 # --- RUN
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export NUMEXPR_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
 srun python3 evolution.py --cores 32 --npop 64 --ngen 100
 

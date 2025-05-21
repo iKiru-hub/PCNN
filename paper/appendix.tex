@@ -71,13 +71,14 @@ Its dynamics are defined in terms of a leaky variable $v$ whose state is perturb
 
 \begin{equation}
 \begin{aligned}
-    v_{k} &= - v_{k} / \tau_{k} + x_{k} \\
-    v_{k} &= \text{max}(v_{k}, 0)
+    v^{k} &= - v^{k} / \tau^{k} + x^{k} \\
+    v^{k} &= \text{max}(v^{k}, 0)
 \end{aligned}
 \end{equation}
 
-% plasticity + prediction error
+$\tau_{\text{DA}}=2,\,\tau^{\text{BND}}=1$
 
+% plasticity
 \paragraph{Learning rule}
 The connection weights $\textbf{W}^{k}$ are updated according to a plasticity rule composed of an Hebbian term, involving the leaky variable, the place cells that are above a certain threshold $\theta^{k}$, and the current connection weights value:
 
@@ -85,7 +86,7 @@ The connection weights $\textbf{W}^{k}$ are updated according to a plasticity ru
     \Delta \mathbf{W}^k = \eta^k \mathbf{u}^{\text{PC}} \left(v^k - \mathbf{W}^{k}\right)
 \end{equation}
 
-\noindent where $\eta^{k}$ is the learning rate, the weight contribution of the Hebbian update.
+\noindent where the weight contribution of the Hebbian update, and $\eta^{k}$ is the learning rate: $\eta^{\text{DA}}=0.9,\,\eta^{\text{BND}}=0.9$.
 Additionally, connections values are kept non-negative.
 
 \paragraph{Active neuronal modulation}
@@ -144,74 +145,63 @@ In particular, the reward position $(x_{r}, y_{r}$ is determined by the weighted
 \paragraph{Path-planning algorithm}
 \hfill \break
 
-\begin{algorithm}[ht]
-\caption{Modified Dijkstra algorithm}
+\begin{algorithm}[H]
+    \caption{\textsc{Activity-based Pathfinding}}
 \begin{algorithmic}[1]
-    \Require Connectivity matrix $\mathbf{C} \in \{0,1\}^{N^{\text{PC}} \times N^{\text{PC}}}$,
-        Node coordinates $\mathbf{x} \in \mathbb{R}^{N^{\text{PC}} \times 2}$,
-        Node weights $\widetilde{\textbf{W}} \in \mathbb{R}^{N^{\text{PC}}}$,
-        Start node $s$, End node $t$
-    \Ensure Shortest path from $t_{0}$ to $T$
-
-\State $distances \gets [\infty, \infty, \ldots, \infty]$ \Comment{Initialize distances}
-\State $distances[t_{0}] \gets 0$
-\State $parent \gets [-1, -1, \ldots, -1]$ \Comment{Parent pointers}
-\State $finalized \gets [false, false, \ldots, false]$ \Comment{Set of finalized nodes}
-\State $PQ \gets \emptyset$ \Comment{Priority queue}
-\State $PQ.push((0, t_{0}))$ \Comment{Insert start node with priority 0}
-
-\While{$PQ \neq \emptyset$}
-    \State $(dist, j) \gets PQ.extractMin()$
-    \If{$finalized[j]$ or $dist > distances[j]$}
-        \State \textbf{continue}
+\Require Connectivity matrix $C \in \mathbb{R}^{n \times n}$, node weights $w \in \mathbb{R}^n$, start node $s$, end node $e$
+\Ensure A list of nodes forming a (short) path from $s$ to $e$, or empty if none found
+\State Initialize activity vector $a \gets \mathbf{0} \in \mathbb{R}^n$; set $a_s \gets 1$
+\State Initialize history list $H \gets [\,]$
+\Comment{\textit{--- Forward propagation phase ---}}
+\For{$t = 1$ to \texttt{MAX\_PATH\_DEPTH}}
+    \State $a \gets C \cdot a$
+    \State $a \gets a \circ w$ \Comment{Element-wise multiplication with node weights}
+    \State $a \gets \sigma(4(a - 0.6))$ \Comment{Apply sigmoidal activation: $\sigma(x) = \frac{1}{1 + e^{-x}}$}
+    \State $a_i \gets 0$ if $a_i < 0.1$ (thresholding)
+    \State Append $a$ to $H$
+    \If{$a_e > 0$}
+        \State \textbf{break}
     \EndIf
-    \State $finalized[j] \gets true$
-    \If{$j = T$}
-        \State \textbf{break} \Comment{Destination reached}
+\EndFor
+\If{maximum depth reached}
+    \State \Return $[\,]$ \Comment{No path found}
+\EndIf
+\If{$|H| < 3$}
+    \State \Return $[s, e]$ \Comment{Path is trivially short}
+\EndIf
+\Comment{\textit{--- Backward traceback phase ---}}
+\State Initialize path index stack $G \gets [[e]]$
+\For{$t = 1$ to \texttt{MAX\_PATH\_DEPTH}}
+    \State Let $m \gets C_{G[t-1]}$ \Comment{Get neighbors of current group}
+    \If{$m_s > 0$}
+        \State \textbf{break}
     \EndIf
-
-    \For{each node $i$ where $\mathbf{C}_{i,j} = 1$ and not $finalized[i]$}
-        \If{$\widetilde{\mathbf{W}}[i] < -1000$}
-            \State \textbf{continue} \Comment{Skip nodes with high negative weights}
-        \EndIf
-
-        \State $\Delta x \gets \mathbf{x}_{j,0} - \mathbf{x}_{i,0}$
-        \State $\Delta y \gets \mathbf{x}_{j,1} - \mathbf{x}_{i,1}$
-        \State $edge\_dist \gets \sqrt{\Delta x^2 + \Delta y^2}$ \Comment{Euclidean distance}
-        \State $new\_dist \gets d[j] + edge\_dist$
-
-        \If{$new\_dist < d[i]$}
-            \State $d[i] \gets new\_dist$
-            \State $parent[i] \gets u$
-            \State $PQ.push((new\_dist, i))$
-        \EndIf
-    \EndFor
-\EndWhile
-
-\State $path \gets []$
-\If{$d[T] = \infty$}
-    \State \Return $\emptyset$ \Comment{No path exists}
-\EndIf
-
-\State $curr \gets t$
-\While{$curr \neq -1$}
-    \State $path.append(curr)$
-    \State $curr \gets parent[curr]$
-\EndWhile
-\State $path.reverse()$
-
-\If{$path$ is empty or $path[0] \neq s$}
-    \State \Return $\emptyset$
-\EndIf
-
-\Return $path$
+    \State $a \gets H[-(t+1)] \circ m$
+    \State Append $\{i : a_i > 0\}$ to $G$
+\EndFor
+\Comment{\textit{--- Path reconstruction ---}}
+\State $P \gets [e]$
+\For{$t = 1$ to $|G| - 1$}
+    \State Initialize $a \gets \mathbf{0} \in \mathbb{R}^n$
+    \State Set $a_i \gets 1$ for all $i \in G[t]$
+    \State $a \gets a \circ C_{P[-1]}$
+    \If{$\sum a = 0$}
+        \State \Return $[\,]$ \Comment{No valid neighbor}
+    \Else
+        \State Choose $j \in \{i : a_i > 0\}$ uniformly at random
+        \State Append $j$ to $P$
+    \EndIf
+\EndFor
+\State Append $s$ to $P$
+\State \Return $\text{reverse}(P)$
 \end{algorithmic}
-\end{algorithm}\label{alg:dijk}
+\end{algorithm}\label{alg:pathalg}
+
 % policy algorithm
 
 % result figure
-The planning of a new route is implemented as a modified Dijkstra algorithm over the place cell graph, provided as connectivity matrix $C$.
-Its particularity is the use of a weighting $\widetilde{\textbf{W}}$ of the nodes according to the neuromodulation map. A description is reported in algorithm \ref{alg:dijk}.
+The planning of a new route is implemented as a path-finding algorithm based on the place cell graph, provided as connectivity matrix $C$.
+Its particularity is the use of a weighting $\widetilde{\textbf{W}}$ of the nodes according to the neuromodulation map. A description is reported in algorithm \ref{alg:pathalg}.
 
 
 \subsection{Environments}

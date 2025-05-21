@@ -11,11 +11,13 @@
 
 
 # --- SETUP
+module purge
+module load slurm/21.08.8
 
 echo "<performance study 4 PCNN.CORE>"
 
 # activate the virtual environment
-. /home/daniekru/codebase/myenvs/ecl1/bin/activate
+. /home/daniekru/codebase/myenvs/pcenv/bin/activate
 echo "ecl1 activated"
 
 # go to the right directory
@@ -25,6 +27,10 @@ git checkout main
 echo "[git 'main']"
 
 # --- RUN
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export NUMEXPR_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
 # srun python3 analysis/study_performance.py --reps 5 --cores 64 --save --room "Square.v0"
 srun python3 analysis/performance_comp_v2.py --reps 32 --cores 32 --save

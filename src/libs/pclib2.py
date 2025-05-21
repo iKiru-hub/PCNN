@@ -161,6 +161,7 @@ def spatial_shortest_path(connectivity_matrix: np.ndarray,
 
     return path
 
+
 def euclidean_distance(v1: np.ndarray, v2: np.ndarray) -> float:
     return math.sqrt((v1[0]-v2[0])**2 + (v1[1] - v2[1])**2)
 
@@ -677,6 +678,10 @@ class Brain:
             "collision": 0.0,
         }
 
+        # record
+        self.gain_history_bnd = []
+        self.gain_history_da = []
+
         logger.debug(f"{offset=}")
 
     def __call__(self, velocity: list, collision: float,
@@ -688,7 +693,6 @@ class Brain:
             logger("[Brain] reward received")
 
         # === STATE UPDATE ==============================================
-
 
         self.space.update()
 
@@ -718,6 +722,7 @@ class Brain:
         if reward > 0.0:
             logger(f"{self.state['internal_state']=}")
             logger(f"da_v={self.circuits.get_da_leaky_v():.3f}")
+            self.gain_history_da += [self.get_gain()]
 
         # Check: stillness | wrt the fine space
         if self.forced_exploration < self.forced_duration:
@@ -729,6 +734,9 @@ class Brain:
             logger(f"[Brain] forced exploration : v={self.ssry.get_v()}")
             self.forced_exploration = 0
             return self._explore(collision)
+
+        if collision > 0.:
+            self.gain_history_bnd += [self.get_gain()]
 
         # === GOAL-DIRECTED BEHAVIOUR ====================================
 
@@ -950,6 +958,12 @@ class Brain:
 
     def get_gain(self):
         return self.space.get_gain()
+
+    def get_gain_history_bnd(self):
+        return np.array(self.gain_history_bnd)
+
+    def get_gain_history_da(self):
+        return np.array(self.gain_history_da)
 
     def get_gc_network(self):
         return self.gcn

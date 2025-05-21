@@ -2,7 +2,7 @@
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.7\textwidth]{figures/collda.png}
+    \includegraphics[width=0.95\textwidth]{figures/sim_plot.png}
     \caption{\textbf{Cognitive maps and performance results} -
     \textbf{a}: \textit{a cognitive map over a space, together with the plan (red line) to reach a target location from a starting position.}.
     \textbf{b}: \textit{the same enviroment but with the reward (green circle), trajectory (red line), agent position (black square).} -
@@ -10,9 +10,8 @@
     \textbf{d}: \textit{trajectories for multiple trials with the agent starting at the same position (black square) but with the reward location (green circles) periodically moving} -
     \textbf{e}: \textit{place cells centers with size proportional to their node degree} -
     \textbf{f}: \textit{place fields of the same cell before and after several relocation of its center following reward events} -
-    \textbf{g}: \textit{performance comparison for the same models on the same environment with and without modulation enabled. Pair-wise t-test over 128 iterations and Bonferroni correction} -
-    \textbf{i}: \textit{effect of reward count on reward and boundary modulated cells (green and blue respectively), both in count (top row) and gain modulation magnitude (bottom row).} - \textbf{l}: \textit{same but with respect to collision count} - \textbf{m}: \textit{relation between count of reward and
-boundary modulated cells, and between gain modulation magnitude}}
+    \textbf{g}: \textit{visualization of part of the path-finding algorithm, propagation of an activity wave through the place cells network from top-left to bottom-center, and the calculated path visualization in the bottom-right.} -
+\textbf{h1}-\textbf{h2}: \textit{place cells centers with size inversely proportional to their gain value; in blue boudary cells with the highest average gain, in green reward cells with second smallest gain, the others in grey.}}
     \label{fig:main_results}
 \end{figure}
 
@@ -22,16 +21,17 @@ Our primary aim was to evaluate the formation of the cognitive map through neuro
 The best model resulting from evolution reached solid navigation and adaptation skills.
 The agent was able to visit a significant portion of the environment during exploration and use neuromodulation to produce useful spatial representations.
 
-The left panel of plot \ref{fig:main_results}\textbf{a} displays place cells associated with collisions and reward events, signaling boundaries (in blue) and reward (in green) locations.
-The overlap of these two representations and the place cells (in pink) is what we refer to as a cognitive map, since these are the main sources of spatial and contextual information used during planned navigation, whose path is depicted as a gray line.
+The left panel of plot \ref{fig:main_results}\textbf{a}-\textbf{b} displays place cells associated with collisions and reward events, signaling boundaries (in blue) and reward (in green) locations.
+The overlap of these two representations and the non-modulated place cells (in grey) is what we refer to as a cognitive map, since these are the main sources of spatial and contextual information used during planned navigation, whose path is depicted as a gray line.
 The right panel instead portrays the actual environment with walls (black), reward location (green), and multiple trajectories (red).
 During exploration, the main areas were visited until the reward position was located and the goal-directed navigation dominated, as highlighted by the density of the path lines.
 Considering the position of the walls and corners, the layout of this environment does not always make the target locations visible, as it is a non-convex area and therefore can be classified as wayfinding \cite{meilinger2016}.
 The challenge of not being able to use straight lines is overcome by the graph approach using local data and the consideration of boundary place cells, allowing the agent to plan accordingly.
-In addition, by construction the path also minimized the length of the path, within the part of the space covered by the cognitive map.
+In addition, considering the Gaussian receptive fields and the approximately homogenous distribution of place field centers supported by lateral inhibition, the calculated path accounting for node-length also implicitly minimizes effective path-length, although not necessarily exactly.
+Figure \ref{fig:main_results}\textbf{g} visualizes part of the path-finding process.
 
 In general, this result confirms the ability of the model to focus on navigation and obstacle avoidance.
-However, it is worth nothing that not all simulations resulted in a reward being found in the first place, due to the randomness of the exploratory process; this was more pronounced in complex environment.
+However, it is worth nothing that not all simulations resulted in a reward being found in the first place, due to the randomness of the exploratory process; this effect was more pronounced in environment with more walls and narrow passages.
 
 \paragraph{Detour task}
 The planning ability and the plastic nature of the cognitive map should provide resilience against unexpected changes in the environment layout.
@@ -41,16 +41,39 @@ Then, a wall was placed in between the starting position and the reward, therefo
 As expected, the agent was able to form a representation of the new obstacle and calculating new paths around it, succeeding the task.
 In plot \ref{fig:main_results}\textbf{c} they are shown the trajectories before and after the wall placement, and it is manifesed the ability of detour in the new layout.
 
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.99\textwidth]{figures/descr_plot.png}
+    \caption{\textbf{Cognitive maps and performance results} -
+    \textbf{a}: \textit{effect of reward count on reward and boundary modulated cells (green and blue respectively), both in total count (top row) and average gain modulation magnitude (bottom row); simulation of 512 independent runs.} -
+    \textbf{b}: \textit{similar plot but with respect to collision
+    count.} -
+    \textbf{c}: \textit{relation between count of reward and boundary modulated cells, and between gain modulation magnitude.} -
+    \textbf{d}: \textit{gain magnitude of boundary and reward cells over sequences of collision and reward events respectively} -
+    \textbf{e}: \textit{performance comparison for the same models on the same environment with and without modulation enabled. Pair-wise t-test over 128 iterations and Bonferroni correction}}
+    \label{fig:descr_results}
+\end{figure}
+
+
 \paragraph{Adaptive goal representation through sensory error}
 Then, we tested the adaptability to environmental changes. In this scenario, the reward object was moved after being fetched a fixed number of times.
 Here, the difficulty was to unlearning previous locations and discovering new ones, in a protocol similar to \cite{brzosko2019}.
 In plot \ref{fig:main_results}\textbf{d} is reported the set of trajectories over many trials with the reward displaced in three possible locations. The agent was capable of planning behavior, as earlier, but also exploring and finding the new rewards, as shown by the density of lines.
 Whenever a goal path resulted in a failed prediction, the DA-based sensory error weakened the association between the place cells and the reward signal, leading to an extinction of its representation at that location.
 
-
 This result validates the resilience of the model to changing sensory expectations, in this case the reward position.
 
-\paragraph{Modulation of spatial resolution affects performance}
+\paragraph{Modulation of place field size}
+The construction of model is such that the experience of environmental events can impact the neuronal properties of the generated place cells.
+In particular, collision and reward events have the effect of affecting the neural activation gain $\beta$ of BND and DA-modulated cells through an hyperparameter .
+The hyperparameter values $c^{\text{BND}}_{a},\,c^{\text{DA}}_{a}$ that yielded the best results were both larger that 1., meaning a shrinking of field size.
+In plots \ref{fig:main_results}\textbf{h1}-\textbf{h2} are showed the cognitive maps with relative place field sizes for two enviroments, showcasing the differences between boundary, reward, and non-modulated cells.
+in plots \ref{fig:descr_results}\textbf{d} is showed the evolution of the gain magnitude for a sample of boundary cells and reward cells over their corresponding modulatory events.
+Notable is the possible decrease in value, case that occurs when a cell is active but the modulation is absent and the gain thus is pushed down towards the baseline $\bar{beta}$. This feature can be considered another adaptation property.
+
+
+\paragraph{Effect of modulation on performance}
 Lastly, we investigated the effect of modulating the density of place cells and the size of the field.
 The goal position was fixed, but the agent was randomly relocated after fetching; performance was defined as the total number of reward counts within a time window.
 

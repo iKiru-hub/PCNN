@@ -254,13 +254,13 @@ PARAMETERS = {
     "threshold_ssry": lambda: round(random.uniform(0.8, 1.2), 3),
     "threshold_circuit": lambda: round(random.uniform(0.2, 1.3), 2),
 
-    "rwd_weight": lambda: round(random.uniform(-5.0, 5.0), 2),
+    "rwd_weight": lambda: round(random.uniform(-10.0, 5.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 130.0), 1),
-    "col_weight": lambda: round(random.uniform(-5.0, 5.0), 2),
+    "col_weight": lambda: round(random.uniform(-10.0, 5.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
 
-    "rwd_field_mod": lambda: round(random.uniform(-6.0, 6.0), 1),
-    "col_field_mod": lambda: round(random.uniform(-6.0, 6.0), 1),
+    "rwd_field_mod": lambda: round(random.uniform(-3.0, 3.0), 1),
+    "col_field_mod": lambda: round(random.uniform(-3.0, 3.0), 1),
 
     "action_delay": lambda: round(random.uniform(1., 300.), 1),
     "edge_route_interval": lambda: random.randint(1, 10_000),
