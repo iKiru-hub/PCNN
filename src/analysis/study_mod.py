@@ -9,7 +9,7 @@ import time
 sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src/"))
 
 import utils
-import core.build.pclib as pclib
+
 from game.envs import *
 from game.constants import ROOMS, GAME_SCALE
 import simulations as sim
