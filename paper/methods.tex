@@ -4,16 +4,16 @@ We propose a model of cognitive map formation driven by an agent’s experience 
 
 The architecture operates with minimal external inputs—limited to binary reward and collision signals—as illustrated in Figure \ref{fig:model}\textbf{a}.
 Instead of relying on exteroceptive cues, spatial representations emerge from idiothetic information, i.e., the agent’s internal perception of self-motion \cite{zhou2022}, consistent with prior path integration frameworks.
-Concretely, we use the agent’s ground-truth velocity vector (its actual displacement within the environment) as the primary navigational signal, reflecting the integration of inertial and proprioceptive cues observed in biological systems \cite{jerjian2023, whishaw1999}.
+Concretely, we use the agent’s ground-truth velocity vector, \textit{i.e.} its actual displacement within the environment, as the primary navigational signal, reflecting the integration of inertial and proprioceptive cues observed in biological systems \cite{jerjian2023, whishaw1999}.
 Since no visual information is used, the agent is effectively navigating in the dark.
 
 \paragraph{Place Cell Formation}
 
 The primary spatial representation is formed by a set of grid cell modules, each encoding a periodic tiling of 2D space, which directly maps to a toroidal manifold $\mathbf{T}^2$ (Fig. \ref{fig:model}\textbf{c,d}).
-Departing from traditional grid cell modeling approaches \cite{dabaghian, schoyen2025}, we generate population activity directly via Gaussian tuning over the torus, continuously updated using the agent’s velocity vector—an approach validated in prior work \cite{li2019}.
+Departing from traditional grid cell modeling approaches \cite{dabaghian, schoyen2025}, we generate population activity directly via Gaussian tuning over the torus, continuously updated using the agent’s velocity vector—an approach used in prior work \cite{li2019}.
 
 The grid cell population vector $\mathbf{u}^{\text{GC}}$ is forwarded to a place cell network with initially zeroed synaptic weights (Fig. \ref{fig:model}\textbf{b}).
-When no place cell is sufficiently active for a given input, a silent unit is randomly selected and imprinted with the current activity pattern.
+When no place cell is sufficiently active for a given input, a silent unit is randomly selected and imprinted with the current grid activity pattern.
 To enforce representational sparsity and tuning specificity, lateral inihibition is implemented by comparing the cosine similarity between the new weight vector and any existing one and a threshold $\theta^{\text{PC}}_{\text{inh}}$.
 
 Each place cell’s activation is computed via a bounded cosine similarity function, determining its corresponding place field (Fig. \ref{fig:model}\textbf{e}). Further implementation details, including lateral inhibition and recurrent connectivity, are provided in the Appendix.
@@ -69,19 +69,19 @@ This modulation rule involves the gain $\beta_i$ of each cell being adjusted pro
     \beta_{i} = c^{k}_{a} m_{i} \bar{\beta} + (1 - m_{i}) \bar{\beta}
 \end{equation}
 
-\noindent where $c^{k}_{a}$ is a scaling gain parameter, for which a value of 1. signifies that no modulation takes place.
+\noindent where $c^{k}_{a}$ is a scaling gain parameter, for which a value of 1 signifies that no modulation takes place.
 
 
 \paragraph{Policy and Behavior}
-To evaluate the model's utility in navigation, we implemented a simple policy toggling between exploration and goal-seeking behavior, depending on an external goal flag and the internal map.
+To evaluate the model's utility in navigation, we implemented a simple policy toggling between exploration and reward-seeking behavior, depending on an external reward trigger and the internal map.
 
-Exploration consisted of a stochastic walk with persistence, plus periodic plans to visit random known locations to avoid stagnation. Goal-directed navigation was triggered when a reward representation was present and executed via shortest-path planning on the place cell graph.
+Exploration consisted of two possibile strategied: a random walk, for purely stochastic movements, and periodic goal-directed navigation towards a random but visited location, aimed at preventing stagnation.
+In contrast, exploitation—defined as reward-directed navigation—involved identifying the reward location within the cognitive map.
+This location corresponded to the average position of DA-modulated place cells, reflecting mechanisms such as hippocampal replay and value-based navigation \cite{mcnamara2014, michon2021, shamash2021}.
+A graph-based pathfinding algorithm was then used to compute the route from the current location to the reward.
+In this graph, place cells served as nodes, while synaptic connections acted as edges.
+Additionally, a cost function was introduced over the graph nodes, assigning lower values to BND-modulated cells. This was designed to discourage proximity to the environment’s walls, as shown in plot \ref{fig:model}\textbf{g}.
 
-The graph was defined by place cells as nodes and synaptic links as edges. The agent selected targets either randomly or based on cells with high dopaminergic weight, echoing hippocampal replay and value-based navigation \cite{mcnamara2014, michon2021, shamash2021}.
-Planning was achieved via a path-finding algorithm operating over the graph of place cells.
-Further, it was introduced also a cost function over the graph nodes assigning a lower value to boundary cells, with the scope to avoid close proximity to environment boundaries, as illustrated in plot \ref{fig:model}\textbf{g}.
-
-% In the process of behavior, learning does not occur explicitly, but is instead accounted for in the online formation of the cognitive map.
 
 \paragraph{Comparison with previous architectures}
 
@@ -128,9 +128,14 @@ Brozsko et al. & Goal navigation & Position, reward & Action \\
 \vspace{1em}
 \end{table}
 
-Several previous computational models show structural and conceptual similarities with the present work. A prominent category among them employs deep neural networks—often with recurrent components—and relies on gradient-based learning strategies such as backpropagation through time. These models typically require multiple training episodes or large datasets for convergence. In contrast, our model adopts biologically inspired, synaptically local plasticity rules, and requires only a single training episode for adaptation.
+Several previous computational models show structural and conceptual similarities with the present work.
+A prominent category among them employs deep neural networks—often with recurrent components—and relies on gradient-based learning strategies such as backpropagation through time.
+These models typically require multiple training episodes or large datasets for convergence.
+In contrast, our model adopts biologically inspired, synaptically local plasticity rules, and requires only a single training episode for adaptation.
 
-Other models utilize spiking neurons \cite{brzosko2017} or explicit neural representations \cite{decothi2022}, and incorporate online learning rules more closely aligned with ours. These models also focus more directly on goal-directed navigation, in contrast to purely path integration tasks. However, both of these rely on external spatial coordinates to represent current position. Our model instead constructs an internal coordinate system by integrating its own velocity output, enabling endogenous spatial tracking.
+Other models utilize spiking neurons \cite{brzosko2017} or explicit neural representations \cite{decothi2022}, and incorporate online learning rules more closely aligned with ours.
+These models also focus more directly on goal-directed navigation, in contrast to purely path integration tasks.
+However, both of these rely on external spatial coordinates to represent current position. Our model instead constructs an internal coordinate system by integrating its own velocity output, enabling endogenous spatial tracking.
 
 % benchmarks used
 \paragraph{Naturalistic task}

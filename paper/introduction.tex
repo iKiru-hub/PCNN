@@ -19,16 +19,16 @@ In contrast, survey maps, which rely on Euclidean geometry, offer greater flexib
 As a middle ground, labeled graphs encode landmarks and transitions within a topological network, enabling vector-like operations, planning, and prediction \cite{meilinger2008, wang2017, schinazi2013}.
 
 Computational models have captured some of these aspects individually, showing new ways the brain might use for addressing spatial navigation tasks.
-Early work proposed that the hippocampus encodes spatial position and direction \cite{poucet1993}, while topological models based on route learning highlight scalability challenges \cite{werner2000}.
+Early work proposed that the hippocampus encodes spatial position and direction \cite{poucet1993}, while topological graph models based present scalability challenges \cite{werner2000}.
 More recent approaches draw inspiration from predictive coding and reinforcement learning, including successor representations and the Tolman-Eichenbaum Machine, which generalize across spatial and relational tasks while mimicking biological neural activity patterns \cite{stoewer2023, decothi2022, whittington2020}.
 Path integration models trained on velocity inputs give rise to spatial-like receptive fields \cite{banino2018, sorscher2023, cueva2018}.
 Others incorporate reward-driven Hebbian plasticity modulated by neuromodulators \cite{brzosko2019}.
-Yet, none of these architectures unify these ingredients into a biologically grounded system that at the same time learns a map of the environment online without relying on an external coordinate system, and flexbility perform goal-directed navigation.
+However, these architectures mostly fail to unify these ingredients into a biologically grounded system that at the same time learns a map of the environment online without relying on an external coordinate system, and flexbility perform goal-directed navigation.
 
 In this work, we present a biologically inspired model of cognitive map formation that integrates place cell representations, neuromodulatory signals, and graph-based spatial computations.
 Our aim is to demonstrate an architecture capable of building a content-rich topological map of the environment on the fly, and leveraging it for efficient, goal-directed navigation—without requiring offline training.
 
-Critically, neuromodulators play a central role, as they form analog fields over the map \cite{sosa2024}, drive local Hebbian plasticity in response to sensory updates \cite{ali2021, sheynikhovich2023, bono2023}, and support the formation and adaptation of reward-modulated neural representations used for planning \cite{schultz2016, inglis2021, tobler2005, cools2019, decothi2022}.
+Critically, neuromodulators play a central role, as they form scalar fields over the map \cite{sosa2024}, drive local Hebbian plasticity in response to sensory updates \cite{ali2021, sheynikhovich2023, bono2023}, and support the formation and adaptation of reward-modulated neural representations used for planning \cite{schultz2016, inglis2021, tobler2005, cools2019, decothi2022}.
 We show how this system dynamically adapts to environmental changes and how neuromodulation shapes place field allocation and remapping \cite{milstein2021, fenton2024}, linking cognitive flexibility to underlying physiological mechanisms.
 
 The remainder of the paper is organized as follows: Section 2 details the model and experimental setup; Section 3 presents results; Section 4 discusses broader implications and future directions.

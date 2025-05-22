@@ -53,7 +53,7 @@ game_settings = {
                               0.23, 0.77]) * GAME_SCALE,
     "max_duration": 50_000,
     "room_thickness": 30,
-    "t_teleport": 4_000,
+    "t_teleport": 3_000,
     "limit_position_len": -1,
     "start_position_idx": 1,
     "seed": None,
@@ -63,7 +63,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 33**2,
+    "N": 32**2,
     "use_sprites": bool(0),
     "speed": 1.0,
     "min_weight_value": 0.5
@@ -142,11 +142,11 @@ parameters4 = {
 
 parameters = {
           "gain": 140.0,
-          "offset": 1.005,
+          "offset": 1.001,
           "threshold": 0.0,
           "rep_threshold": 0.99,
-          "rec_threshold": 50,
-          "tau_trace": 99,
+          "rec_threshold": 40,
+          "tau_trace": 50,
           "remap_tag_frequency": 1,
           "num_neighbors": 17,
           "min_rep_threshold": 0.99,
@@ -191,8 +191,8 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, brain: object, boundsx: tuple=(-430, 130),
-                 boundsy: tuple=(-130, 430),
+    def __init__(self, brain: object, boundsx: tuple=(-350, 300),
+                 boundsy: tuple=(-270, 370),
                  render_type: str="space"):
 
         self.brain = brain
@@ -233,9 +233,7 @@ class Renderer:
 
         # -- pc
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
-                         color='grey', alpha=0.5,
-                         s=15, vmin=0., vmax=0.5,
-                         label="pc")
+                         color='grey', alpha=0.5, s=15)
 
         # for edge in self.brain.make_space_edges():
         #     self.axs.plot((edge[0][0], edge[1][0]),
@@ -247,29 +245,25 @@ class Renderer:
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
                          c=bndw,
                          cmap="Blues", alpha=1.,
-                         s=np.where(bndw > 0.01, 60, 0),
-                         vmin=0., vmax=0.4,
-                         label="BND")
+                         s=np.where(bndw > 0.01, 40, 0),
+                         vmin=0., vmax=0.4)
 
         # -- DA
         daw = self.brain.get_da_weights()
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
                                c=daw,
-                               s=np.where(daw > 0.01, 60, 0),
+                               s=np.where(daw > 0.01, 30, 0),
                                cmap="Greens", alpha=1.,
-                               label="DA",
                                vmin=0., vmax=0.4)
 
         # -- plan
         plan_center = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
-        self.axs.plot(*plan_center.T, color="red", alpha=1., lw=2.,
-                      label="plan")
+        self.axs.plot(*plan_center.T, color="red", alpha=1., lw=2.)
 
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
                                c=self.brain.get_trg_representation(),
                                s=200*self.brain.get_trg_representation(),
                                marker="x",
-                               label="goal",
                                cmap="Greens", alpha=0.7)
 
         self.axs.set_xlim(self.boundsx)
@@ -606,7 +600,9 @@ def run_model(parameters: dict,
         "env": env,
         "reward_obj": reward_obj,
         "brain": brain,
-        "record": record
+        "record": record,
+        "collisions": env.nb_collisions,
+        "collisions_from_rw": env.nb_collisions_from_rw
     }
 
     return env.rw_count, info
@@ -692,6 +688,10 @@ def run_game(env: games.Environment,
             if verbose and verbose_min:
                 logger.debug(">> Game terminated <<")
             break
+
+        # reward navigation time
+        if model.is_reward_represented:
+            env.set_rw_navigation_time()
 
         # pause
         if pause > 0:

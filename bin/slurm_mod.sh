@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name="modpc"
-#SBATCH -p ipuq #rome16q #milanq #ipuq #milanq #armq #fpgaq partition (queue)
+#SBATCH -p rome16q #milanq #ipuq #milanq #armq #fpgaq partition (queue)
 #SBATCH -N 1 # number of nodes
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=64
+#SBATCH --cpus-per-task=32
 ##SBATCH --mem-per-cpu=1GB
 #SBATCH --time=0-23:00
 #SBATCH -o /home/daniekru/slurm.column.%j.%N.out # STDOUT
@@ -32,7 +32,7 @@ export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export NUMEXPR_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-srun python3 analysis/study_mod.py --reps 2 --cores 64 --save
+srun python3 analysis/study_mod.py --reps 1 --cores 32 --save
 
 echo "[finished]"
 

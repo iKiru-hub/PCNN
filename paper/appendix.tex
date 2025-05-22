@@ -101,10 +101,10 @@ Gain modulation is implemented using the activity traces and a constant referenc
 
 % remapping
 Concerning center relocation, it is applied to recently active neurons with non-zero trace $m_{i}$.
-For a place cell $i$ with position $\textbf{x}_{i}$ (in the vector space), it is calculated a displacement vector $q_{i}$ with respect to the current position $\textbf{x}_{j}$, identified as the most active place cell $j$.
+For a place cell $i$ with position $\textbf{W}^{\text{GC,PC}}_{i}$ (in the grid cell space), it is calculated a displacement vector $q_{i}$ with respect to the current position $\textbf{u}^{\text{GC}}$:
 
 \begin{equation}
-    q_{i} = c^{k}_{b} v^{k} \exp\left(-\frac{\|\textbf{x}_{i}-\textbf{x}_{j}\|}{\sigma^{k}}\right)
+    q_{i} = c^{k}_{b} v^{k} \exp\left(-\frac{\|\textbf{W}^{\text{GC,PC}}_{i}-\textbf{u}^{\text{GC}}\|}{\sigma^{k}}\right)
 \end{equation}
 
 

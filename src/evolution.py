@@ -16,7 +16,7 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=False, is_warning=True)
 
-NUM_SAMPLES = 4
+NUM_SAMPLES = 1
 ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
                              replace=False).tolist() + \
            ["Square.v0"]
@@ -26,6 +26,12 @@ MAX_SCORE = 100.
 OPTIONS = [False]*4
 
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
+
+EXPL_DURATION = 100
+TOTAL_DURATION = 300
+TELEPORT_INTERVAL = 2_500
+
+FITNESS_WEIGHTS = (1., -0.01)
 
 
 reward_settings = {
@@ -37,7 +43,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 20_000,
+    "silent_duration": EXPL_DURATION,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 35.,
@@ -53,9 +59,9 @@ game_settings = {
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
     "rendering": False,
-    "max_duration": 40_000,
+    "max_duration": TOTAL_DURATION,
     "room_thickness": 20,
-    "t_teleport": 3_000,
+    "t_teleport": TELEPORT_INTERVAL,
     "limit_position_len": -1,
     "start_position_idx": 1,
     "seed": None,
@@ -158,18 +164,19 @@ class Env:
     def run(self, agent: object) -> tuple:
 
         fitness = 0
+        fitness2 = 0
         nb_zeros = 0
         for i in range(self._num_samples):
             # score = safe_run_model(agent, ROOM_LIST[i])
 
-            score = sim.run_model(
+            score, info = sim.run_model(
                 parameters=agent.model.get_params(),
                 global_parameters=global_parameters,
                 reward_settings=reward_settings,
                 game_settings=game_settings,
                 room_name=ROOM_LIST[i],
                 verbose=False,
-                verbose_min=False)[0]
+                verbose_min=False)
 
             # cap
             score = min(MAX_SCORE, score)
@@ -178,9 +185,11 @@ class Env:
                 nb_zeros += 1
 
             fitness += score
+            fitness2 *= info['collisions_from_rw']
 
         fitness /= max(self._num_samples-nb_zeros, 1)
-        return fitness,
+        fitness2 /= max(self._num_samples-nb_zeros, 1)
+        return fitness, fitness2
 
 
 """ Game setup """
@@ -284,7 +293,7 @@ if __name__ == "__main__" :
 
     # ---| Evaluation configs |---
 
-    fitness_weights = (1.,)
+    fitness_weights = (1., -0.1)
     # num_samples = 2
 
     # ---| Evolution configs |---

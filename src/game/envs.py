@@ -15,7 +15,7 @@ import pygame.surfarray
 from game.constants import *
 from utils import setup_logger
 
-logger = setup_logger(name='ENV', level=-2, is_debugging=True)
+logger = setup_logger(name='ENV', level=-2, is_debugging=False)
 # import game.objects as objects
 # from game.objects import logger
 
@@ -735,6 +735,29 @@ def make_room(name: str="square", thickness: float=10.,
         room_positions = [
             [0.25, 0.5], [0.5, 0.5], [0.75, 0.5]
         ]
+    elif name == "Hallway.01":
+
+        height = 5
+
+        walls_bounds = [
+            Wall(OFFSET, height*OFFSET-thickness,
+                 SCREEN_WIDTH-2*OFFSET+thickness, thickness),  # Top
+            Wall(OFFSET, SCREEN_HEIGHT-height*OFFSET,
+                 SCREEN_WIDTH-2*OFFSET+thickness, thickness),  # Bottom
+            Wall(OFFSET, height*OFFSET, thickness,
+                 SCREEN_HEIGHT-(height*2)*OFFSET),  # Left
+            Wall(SCREEN_WIDTH-1*OFFSET, height*OFFSET,
+                 thickness, SCREEN_HEIGHT-(height*2)*OFFSET),  # Right
+
+            Wall(SCREEN_WIDTH//2-0*OFFSET, height*OFFSET,
+                 thickness, SCREEN_HEIGHT-(height*2.75)*OFFSET),  # bottleneck
+
+            Wall(SCREEN_WIDTH//2-0*OFFSET, height*1.9*OFFSET,
+                 thickness, SCREEN_HEIGHT-(height*2.8)*OFFSET),  # bottleneck
+        ]
+        room_positions = [
+            [0.25, 0.5], [0.5, 0.5], [0.75, 0.5]
+        ]
     elif name == "Square.b":
         room_positions = [[0.8, 0.6], [0.8, 0.6]]
         walls_bounds += [Wall(5*SCREEN_WIDTH//8, SCREEN_HEIGHT//2-1*OFFSET,
@@ -837,10 +860,12 @@ class Environment:
         self._collision = 0
         self._reward = 0
 
-        self.nb_collisions = 0
-
         self.rw_time = 0
         self.time_flag = None
+        self.rw_navigation_time = False
+
+        self.nb_collisions = 0
+        self.nb_collisions_from_rw = 0
 
         # rendering
         self.visualize = visualize
@@ -892,6 +917,7 @@ class Environment:
         self._collision = float(collision)
         self._reward = float(reward)
         self.nb_collisions += float(self._collision > 0.)
+        self.nb_collisions_from_rw += float(self._collision > 0. and self.rw_navigation_time)
 
         self.velocity[0] = velocity[0]
         self.velocity[1] = velocity[1]
@@ -968,6 +994,9 @@ class Environment:
 
     def set_time_flag(self):
         self.time_flag = len(self.trajectory_set)-1
+
+    def set_rw_navigation_time(self):
+        self.rw_navigation_time = True
 
     def render(self, mode="human", **kwargs):
         self.screen.fill(WHITE)

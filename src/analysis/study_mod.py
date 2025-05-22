@@ -57,13 +57,13 @@ game_settings = {
     "seed": None,
     "pause": -1,
     "verbose": False,
-    "verbose_min": False,
+    "verbose_min": True,
     "room": None
 }
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 32**2,
+    "N": 30**2,
     "use_sprites": False,
     "speed": 1.0,
     "min_weight_value": 0.1

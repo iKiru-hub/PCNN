@@ -18,13 +18,15 @@ TOP_DA_IDX = 5
 OVERSHOOT_DURATION = 30
 
 MAX_PATH_DEPTH = 200
+MAX_PATH_DEPTH_EXPL = 20
 
 
 """ FUNCTIONS """
 
 def spatial_shortest_path_v2(connectivity_matrix: np.ndarray,
                              node_weights: np.ndarray,
-                             start_node: int, end_node: int):
+                             start_node: int, end_node: int,
+                             is_exploration: bool=False):
 
     n = len(node_weights)
     activity = np.zeros((n, 1))
@@ -32,9 +34,11 @@ def spatial_shortest_path_v2(connectivity_matrix: np.ndarray,
 
     history = []
 
+    max_path_depth = MAX_PATH_DEPTH_EXPL if is_exploration else MAX_PATH_DEPTH
+
     # --- forward phase : propagate the activity until the end node
 
-    for t in range(MAX_PATH_DEPTH):
+    for t in range(max_path_depth):
 
         # one step
         activity = connectivity_matrix @ activity * node_weights
@@ -45,7 +49,7 @@ def spatial_shortest_path_v2(connectivity_matrix: np.ndarray,
         if activity[end_node] > 0.:
             break
 
-    if t == MAX_PATH_DEPTH-1:
+    if t == max_path_depth-1:
         logger("-[alg] depth reached, no path")
         return []
 
@@ -56,7 +60,7 @@ def spatial_shortest_path_v2(connectivity_matrix: np.ndarray,
     # --- backward phase : identify one of the shortest paths
     good_idxs = [[end_node]]
 
-    for t in range(MAX_PATH_DEPTH):
+    for t in range(max_path_depth):
         good_neighbors_mask = connectivity_matrix[good_idxs[t]][0]
         if good_neighbors_mask[start_node] > 0.:
             break
@@ -304,10 +308,10 @@ class RewardObject:
         self.trg_idx = self._converge_to_trg_index(da_weights, space)
 
         # try method 2
-        if self.trg_idx < 0:
+        if self.trg_idx < 0 or da_weights[self.trg_idx] < 0.0001:
             # method 2: take the argmax of the weights
-            max_index = np.argmax(da_weights)
-            self.trg_idx = int(max_index)
+            # max_index = np.argmax(da_weights)
+            self.trg_idx = int(np.argmax(da_weights))
 
         # exit: no trg index
         if self.trg_idx < 0:
@@ -372,7 +376,8 @@ class GoalModule:
         self.fine_tuning_time = 0
         self.final_idx = -1
 
-    def make_plan(self, space, space_weights, trg_idx, curr_idx=-1):
+    def make_plan(self, space, space_weights, trg_idx, curr_idx=-1,
+                  is_exploration: bool=False):
 
         # Current index and value
         if curr_idx == -1:
@@ -384,21 +389,22 @@ class GoalModule:
         #     return [], False
 
         # # Make plan path
-        # plan_idxs = spatial_shortest_path(
-        #     space.get_connectivity(),
-        #     space.get_centers(),
-        #     space_weights,
-        #     curr_idx, trg_idx
-        # )
-
-        space_weights = np.where(space_weights < 0, 0.2, 1).reshape(-1, 1)
-
-        # Make plan path
-        plan_idxs = spatial_shortest_path_v2(
+        plan_idxs = spatial_shortest_path(
             space.get_connectivity(),
+            space.get_centers(),
             space_weights,
             curr_idx, trg_idx
         )
+
+        # space_weights = np.where(space_weights < 0, 0.1, 1).reshape(-1, 1)
+
+        # Make plan path
+        # plan_idxs = spatial_shortest_path_v2(
+        #     connectivity_matrix=space.get_connectivity(),
+        #     node_weights=1 - np.array(space_weights).reshape(-1, 1),
+        #     start_node=curr_idx, end_node=trg_idx,
+        #     is_exploration=is_exploration
+        # )
 
         # Check if the plan is valid, i.e., size > 1
         if len(plan_idxs) < 1:
@@ -417,14 +423,15 @@ class GoalModule:
 
         return plan_idxs, True
 
-    def update(self, trg_idx: int, goal_directed: bool):
+    def update(self, goal_idx: int, reward_directed: bool):
         # -- Propose a coarse plan --
 
         # Plan from the current position
         results = self.make_plan(
             self.space,
-            self.circuits.make_value_mask(goal_directed),
-            trg_idx
+            self.circuits.make_value_mask(reward_directed),
+            # self.circuits.get_bnd_weights(),
+            goal_idx
         )
 
         # Check: failed coarse planning
@@ -681,6 +688,7 @@ class Brain:
         # record
         self.gain_history_bnd = []
         self.gain_history_da = []
+        self.is_reward_represented = False
 
         logger.debug(f"{offset=}")
 
@@ -774,7 +782,8 @@ class Brain:
             if self.tmp_trg_idx > 0:
 
                 # Check new reward trg plan
-                valid_plan = self.goalmd.update(self.tmp_trg_idx, True)
+                valid_plan = self.goalmd.update(goal_idx=self.tmp_trg_idx,
+                                                reward_directed=True)
 
                 # [+] reward trg plan
                 if valid_plan:
@@ -782,6 +791,7 @@ class Brain:
                     self.directive = "trg"
                     progress = self.goalmd.step_plan(collision > 0.0)
                     if progress[1]:
+                        self.is_reward_represented = True
                         self.action = progress[0]
                         return self._finalize()
 
@@ -846,7 +856,8 @@ class Brain:
 
                 # Attempt a plan
                 self.goalmd.reset()
-                valid_plan = self.goalmd.update(expl_idx, False)
+                valid_plan = self.goalmd.update(goal_idx=expl_idx,
+                                                reward_directed=False)
 
                 # Valid plan
                 if valid_plan:
