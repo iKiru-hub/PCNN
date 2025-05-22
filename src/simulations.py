@@ -606,7 +606,6 @@ def run_model(parameters: dict,
         "collisions_from_rw": env.nb_collisions_from_rw
     }
 
-    print('collisions from reward (2): ', info["collisions_from_rw"])
 
     return env.rw_count, info
 
@@ -701,9 +700,6 @@ def run_game(env: games.Environment,
             pygame.time.wait(pause)
 
     pygame.quit()
-
-    print("reward representation: ", model.is_reward_represented)
-    print("collisions from reward: ", env.nb_collisions_from_rw)
 
     return record
 
