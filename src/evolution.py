@@ -21,7 +21,7 @@ NUM_SAMPLES = 1
 #                              replace=False).tolist() + \
 #            ["Square.v0"]
 
-ROOM_LIST = ["Arena.0010", "Arena.0100", "Arena.0110"]
+ROOM_LIST = ["Arena.0100", "Arena.0110"]
 NUM_SAMPLES = len(ROOM_LIST)
 
 MAX_SCORE = 100.
@@ -32,7 +32,7 @@ OPTIONS = [True]*4
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
 
 EXPL_DURATION = 10_000
-TOTAL_DURATION = 25_000
+TOTAL_DURATION = 30_000
 TELEPORT_INTERVAL = 2_500
 
 FITNESS_WEIGHTS = (1., -0.02)

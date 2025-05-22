@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name="rlpc"
-#SBATCH -p rome16q #armq #milanq #fpgaq #milanq # partition (queue)
+#SBATCH -p ipuq #armq #milanq #fpgaq #milanq # partition (queue)
 #SBATCH -N 1 # number of nodes
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=80
 ##SBATCH --mem-per-cpu=1GB
 #SBATCH --time=0-23:00
 #SBATCH -o /home/daniekru/slurm.column.%j.%N.out # STDOUT
@@ -17,7 +17,7 @@ module load slurm/21.08.8
 echo "<Evolution 4 PCNN.CORE>"
 
 # activate the virtual environment
-. /home/daniekru/codebase/myenvs/pcenv/bin/activate
+. /home/daniekru/codebase/myenvs/ecl1/bin/activate
 echo "ecl1 activated"
 
 # go to the right directory
@@ -32,7 +32,7 @@ export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export NUMEXPR_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-srun python3 evolution.py --cores 32 --npop 64 --ngen 100
+srun python3 evolution.py --cores 80 --npop 80 --ngen 100
 
 echo "[finished]"
 
