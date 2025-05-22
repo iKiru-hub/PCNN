@@ -17,21 +17,25 @@ from game.constants import ROOMS, GAME_SCALE
 logger = setup_logger(name="EVO", level=2, is_debugging=False, is_warning=True)
 
 NUM_SAMPLES = 1
-ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
-                             replace=False).tolist() + \
-           ["Square.v0"]
+# ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
+#                              replace=False).tolist() + \
+#            ["Square.v0"]
+
+ROOM_LIST = ["Arena.0010", "Arena.0100", "Arena.0110"]
+NUM_SAMPLES = len(ROOM_LIST)
+
 MAX_SCORE = 100.
 
 #OPTIONS = [False, False, False, True]
-OPTIONS = [False]*4
+OPTIONS = [True]*4
 
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
 
-EXPL_DURATION = 100
-TOTAL_DURATION = 300
+EXPL_DURATION = 10_000
+TOTAL_DURATION = 25_000
 TELEPORT_INTERVAL = 2_500
 
-FITNESS_WEIGHTS = (1., -0.01)
+FITNESS_WEIGHTS = (1., -0.02)
 
 
 reward_settings = {
