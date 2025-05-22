@@ -3,9 +3,9 @@
 #SBATCH -p ipuq #armq #milanq #fpgaq #milanq # partition (queue)
 #SBATCH -N 1 # number of nodes
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=80
+#SBATCH --cpus-per-task=90
 ##SBATCH --mem-per-cpu=1GB
-#SBATCH --time=0-23:00
+#SBATCH --time=2-23:00
 #SBATCH -o /home/daniekru/slurm.column.%j.%N.out # STDOUT
 #SBATCH -e /home/daniekru/slurm.column.%j.%N.err # STDERR
 
@@ -32,7 +32,7 @@ export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export NUMEXPR_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-srun python3 evolution.py --cores 80 --npop 80 --ngen 100
+srun python3 evolution.py --cores 90 --npop 90 --ngen 100
 
 echo "[finished]"
 

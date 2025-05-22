@@ -35,7 +35,7 @@ EXPL_DURATION = 10_000
 TOTAL_DURATION = 30_000
 TELEPORT_INTERVAL = 2_500
 
-FITNESS_WEIGHTS = (1., -0.02)
+COLLISION_WEIGHT = -0.5
 
 
 reward_settings = {
@@ -193,7 +193,7 @@ class Env:
 
         fitness /= max(self._num_samples-nb_zeros, 1)
         fitness2 /= max(self._num_samples-nb_zeros, 1)
-        return fitness, fitness2
+        return fitness, fitness2 * COLLISION_WEIGHT
 
 
 """ Game setup """
@@ -297,7 +297,7 @@ if __name__ == "__main__" :
 
     # ---| Evaluation configs |---
 
-    fitness_weights = (1., -0.1)
+    fitness_weights = (1., 1.)
     # num_samples = 2
 
     # ---| Evolution configs |---
