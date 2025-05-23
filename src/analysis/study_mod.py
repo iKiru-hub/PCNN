@@ -71,7 +71,7 @@ global_parameters = {
 }
 
 PARAMETERS = {
-      "gain": 63
+      "gain": 63,
       "offset": 1.0,
       "threshold": 0.4,
       "rep_threshold": 0.95,

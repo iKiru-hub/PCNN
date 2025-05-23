@@ -246,7 +246,7 @@ FIXED_PARAMETERS = {
 PARAMETERS = {
 
     "gain": lambda: round(random.uniform(2., 200.), 1),
-    "offset": lambda: np.clip(random.uniform(0.9, 1.1), 0.9, 1.05),
+    "offset": lambda: np.clip(random.uniform(0.9, 1.1), 0.9, 1.02),
     "threshold": lambda: round(random.uniform(0.05, 0.5), 2),
     "rep_threshold": lambda: np.clip(random.uniform(0.8, 1.1), 0.8, 0.999),
     "rec_threshold": lambda: round(random.uniform(20., 120.)),
