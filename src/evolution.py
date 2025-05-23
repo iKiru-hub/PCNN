@@ -16,12 +16,12 @@ from game.constants import ROOMS, GAME_SCALE
 """ SETTINGS """
 logger = setup_logger(name="EVO", level=2, is_debugging=False, is_warning=True)
 
-NUM_SAMPLES = 1
+# NUM_SAMPLES = 1
 # ROOM_LIST = np.random.choice(ROOMS[1:], size=NUM_SAMPLES-1,
 #                              replace=False).tolist() + \
 #            ["Square.v0"]
 
-ROOM_LIST = ["Arena.0100", "Arena.0110"]
+ROOM_LIST = ["Arena.0100", "Arena.0110", "Arena.0111"]
 NUM_SAMPLES = len(ROOM_LIST)
 
 MAX_SCORE = 100.
@@ -205,7 +205,7 @@ class Env:
 FIXED_PARAMETERS = {
 
      # 'gain': 33.0,
-     'offset': 1.0,
+     # 'offset': 1.0,
      'threshold': 0.4,
      # 'rep_threshold': 0.85,
      # 'rec_threshold': 63,
@@ -245,11 +245,11 @@ FIXED_PARAMETERS = {
 # Define the genome as a dict of parameters
 PARAMETERS = {
 
-    "gain": lambda: round(random.uniform(2., 70.), 1),
-    "offset": lambda: round(random.uniform(0.5, 2.0), 1),
+    "gain": lambda: round(random.uniform(2., 200.), 1),
+    "offset": lambda: np.clip(random.uniform(0.9, 1.1), 0.9, 1.05),
     "threshold": lambda: round(random.uniform(0.05, 0.5), 2),
-    "rep_threshold": lambda: round(random.uniform(0.1, 0.95), 2),
-    "rec_threshold": lambda: round(random.uniform(20., 100.)),
+    "rep_threshold": lambda: np.clip(random.uniform(0.8, 1.1), 0.8, 0.999),
+    "rec_threshold": lambda: round(random.uniform(20., 120.)),
     "tau_trace": lambda: round(random.uniform(1., 300.)),
 
     "remap_tag_frequency": lambda: random.choice([1, 2, 3, 4]),
@@ -269,13 +269,13 @@ PARAMETERS = {
     "threshold_ssry": lambda: round(random.uniform(0.8, 1.2), 3),
     "threshold_circuit": lambda: round(random.uniform(0.2, 1.3), 2),
 
-    "rwd_weight": lambda: round(random.uniform(-10.0, 5.0), 2),
+    "rwd_weight": lambda: round(random.uniform(-15.0, 5.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 130.0), 1),
-    "col_weight": lambda: round(random.uniform(-10.0, 5.0), 2),
+    "col_weight": lambda: round(random.uniform(-15.0, 5.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
 
-    "rwd_field_mod": lambda: round(random.uniform(-3.0, 3.0), 1),
-    "col_field_mod": lambda: round(random.uniform(-3.0, 3.0), 1),
+    "rwd_field_mod": lambda: round(random.uniform(-5.0, 5.0), 1),
+    "col_field_mod": lambda: round(random.uniform(-5.0, 5.0), 1),
 
     "action_delay": lambda: round(random.uniform(1., 300.), 1),
     "edge_route_interval": lambda: random.randint(1, 10_000),

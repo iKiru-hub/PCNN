@@ -219,36 +219,36 @@ sim_parameters_4 = {
 }
 
 sim_parameters_5 = {
-      "gain": 64.2,
-      "offset": 1.0,
-      "threshold": 0.4,
-      "rep_threshold": 0.93,
-      "rec_threshold": 96,
-      "tau_trace": 239,
-      "remap_tag_frequency": 1,
-      "num_neighbors": 8,
-      "min_rep_threshold": 0.99,
-      "lr_da": 0.9,
-      "lr_pred": 0.05,
-      "threshold_da": 0.05,
-      "tau_v_da": 1.0,
-      "lr_bnd": 0.9,
-      "threshold_bnd": 0.1,
-      "tau_v_bnd": 2.0,
-      "tau_ssry": 437.0,
-      "threshold_ssry": 1.986,
-      "threshold_circuit": 0.9,
-      "rwd_weight": -3.32,
-      "rwd_sigma": 104.7,
-      "col_weight": -4.05,
-      "col_sigma": 25.4,
-      "rwd_field_mod": 2.3,
-      "col_field_mod": 2.6,
-      "action_delay": 120.0,
-      "edge_route_interval": 50,
-      "forced_duration": 19,
-      "min_weight_value": 0.1,
-      "options": [True, True, True, True]
+          "gain": 56.1,
+          "offset": 1.0,
+          "threshold": 0.4,
+          "rep_threshold": 0.95,
+          "rec_threshold": 83,
+          "tau_trace": 202,
+          "remap_tag_frequency": 1,
+          "num_neighbors": 17,
+          "min_rep_threshold": 0.99,
+          "lr_da": 0.9,
+          "lr_pred": 0.05,
+          "threshold_da": 0.05,
+          "tau_v_da": 1.0,
+          "lr_bnd": 0.9,
+          "threshold_bnd": 0.1,
+          "tau_v_bnd": 2.0,
+          "tau_ssry": 437.0,
+          "threshold_ssry": 1.986,
+          "threshold_circuit": 0.9,
+          "rwd_weight": -2.25,
+          "rwd_sigma": 18.4,
+          "col_weight": -9.6,
+          "col_sigma": 12.1,
+          "rwd_field_mod": 2.3,
+          "col_field_mod": 2.0,
+          "action_delay": 120.0,
+          "edge_route_interval": 50,
+          "forced_duration": 19,
+          "min_weight_value": 0.1,
+          "options": [True, True, True, True]
 }
 
 
@@ -296,8 +296,8 @@ if __name__ == "__main__":
         logger.debug("using local parameters")
         # parameters = sim_parameters
         # parameters = sim_parameters_3
-        # parameters = sim_parameters_4
-        parameters = sim_parameters_5
+        parameters = sim_parameters_4
+        # parameters = sim_parameters_5
         # parameters = sim_parameters_73
 
     if args.room == "random":
