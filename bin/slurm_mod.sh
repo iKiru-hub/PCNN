@@ -17,7 +17,7 @@ module load slurm/21.08.8
 echo "<modulation study>"
 
 # activate the virtual environment
-. /home/daniekru/codebase/myenvs/pcenv/bin/activate
+. /home/daniekru/codebase/myenvs/ecl1/bin/activate
 echo "venv activated"
 
 # go to the right directory
