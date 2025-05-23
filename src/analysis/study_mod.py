@@ -63,7 +63,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 30**2,
+    "N": 29**2,
     "use_sprites": False,
     "speed": 1.0,
     "min_weight_value": 0.1
@@ -71,14 +71,14 @@ global_parameters = {
 }
 
 PARAMETERS = {
-      "gain": 140.0,
+      "gain": 63
       "offset": 1.0,
-      "threshold": 0.0,
-      "rep_threshold": 0.99,
-      "rec_threshold": 50,
-      "tau_trace": 99,
+      "threshold": 0.4,
+      "rep_threshold": 0.95,
+      "rec_threshold": 83,
+      "tau_trace": 116,
       "remap_tag_frequency": 1,
-      "num_neighbors": 17,
+      "num_neighbors": 16,
       "min_rep_threshold": 0.99,
 
       "lr_da": 0.9,
@@ -87,31 +87,31 @@ PARAMETERS = {
       "tau_v_da": 1.0,
       "lr_bnd": 0.9,
       "threshold_bnd": 0.1,
-      "tau_v_bnd": 1.0,
+      "tau_v_bnd": 2.0,
 
       "tau_ssry": 437.0,
       "threshold_ssry": 1.986,
       "threshold_circuit": 0.9,
 
-      "rwd_weight": -2.22,
-      "rwd_sigma": 50.4,
-      "col_weight": -4.05,
-      "col_sigma": 51.5,
-      "rwd_field_mod": 1.5,
-      "col_field_mod": 5.3,
+      "rwd_weight": -2.25,
+      "rwd_sigma": 120.4,
+      "col_weight": -6.77,
+      "col_sigma": 46.5,
+      "rwd_field_mod": 2.3,
+      "col_field_mod": 2.0,
       "modulation_option": [True] * 4, ##
 
-      "action_delay": 100.0,
-      "edge_route_interval": 70,
+      "action_delay": 120.0,
+      "edge_route_interval": 50,
       "forced_duration": 19,
-      "min_weight_value": 0.01,
+      "min_weight_value": 0.1,
 }
 
 
 
 """ FUNCTIONS """
 
-OPTIONS = ["chance", "no_remap", "default"]
+OPTIONS = ["no_remap", "default"]
 NUM_OPTIONS = len(OPTIONS)
 
 ROOM_LIST = ["Arena.0000", "Arena.0010",
