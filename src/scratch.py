@@ -218,6 +218,39 @@ sim_parameters_4 = {
           "min_weight_value": 0.10,
 }
 
+sim_parameters_5 = {
+      "gain": 64.2,
+      "offset": 1.0,
+      "threshold": 0.4,
+      "rep_threshold": 0.93,
+      "rec_threshold": 96,
+      "tau_trace": 239,
+      "remap_tag_frequency": 1,
+      "num_neighbors": 8,
+      "min_rep_threshold": 0.99,
+      "lr_da": 0.9,
+      "lr_pred": 0.05,
+      "threshold_da": 0.05,
+      "tau_v_da": 1.0,
+      "lr_bnd": 0.9,
+      "threshold_bnd": 0.1,
+      "tau_v_bnd": 2.0,
+      "tau_ssry": 437.0,
+      "threshold_ssry": 1.986,
+      "threshold_circuit": 0.9,
+      "rwd_weight": -3.32,
+      "rwd_sigma": 104.7,
+      "col_weight": -4.05,
+      "col_sigma": 25.4,
+      "rwd_field_mod": 2.3,
+      "col_field_mod": 2.6,
+      "action_delay": 120.0,
+      "edge_route_interval": 50,
+      "forced_duration": 19,
+      "min_weight_value": 0.1,
+      "options": [True, True, True, True]
+}
+
 
 if __name__ == "__main__":
 
@@ -231,7 +264,8 @@ if __name__ == "__main__":
                         help="plotting interval")
     parser.add_argument("--room", type=str, default="Square.v0",
                         help='room name: ["Square.v0", "Square.v1",' + \
-                         ' "Square.v2","Hole.v0", "Flat.0000", "Flat.0001",' + \
+                         ' "Square.v2","Hole.v0", "Flat.0000",' + \
+                         ' "Flat.0001",' + \
                          '"Flat.0010", "Flat.0011", "Flat.0110", ' + \
                          '"Flat.1000", "Flat.1001", "Flat.1010",' + \
                          '"Flat.1011", "Flat.1110"] or `random`')
@@ -262,7 +296,8 @@ if __name__ == "__main__":
         logger.debug("using local parameters")
         # parameters = sim_parameters
         # parameters = sim_parameters_3
-        parameters = sim_parameters_4
+        # parameters = sim_parameters_4
+        parameters = sim_parameters_5
         # parameters = sim_parameters_73
 
     if args.room == "random":
@@ -274,7 +309,7 @@ if __name__ == "__main__":
     parameters['modulation_option'] = [True] * 4
 
     logger("[@scratch.py]")
-    out, _ = sim.run_model(parameters=parameters,
+    out, info = sim.run_model(parameters=parameters,
                            global_parameters=sim.global_parameters,
                            reward_settings=reward_settings,
                            game_settings=game_settings,
@@ -283,6 +318,7 @@ if __name__ == "__main__":
                            verbose=False, pause=game_settings["pause"])
 
     logger(f"rw_count={out}")
+    logger(f"rw_collisions={info['collisions_from_rw']}")
 
     print()
 

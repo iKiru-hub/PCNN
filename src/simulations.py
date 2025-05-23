@@ -591,6 +591,7 @@ def run_model(parameters: dict,
 
     if verbose_min:
         logger(f"rw_count={env.rw_count}")
+        logger(f"rw_collisions={env.nb_collisions_from_rw}")
 
     # if record_flag:
     #     record["rw_count"] = env.rw_count

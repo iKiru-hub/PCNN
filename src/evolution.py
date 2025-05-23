@@ -185,14 +185,16 @@ class Env:
             # cap
             score = min(MAX_SCORE, score)
 
-            if score == 0:
-                nb_zeros += 1
+            # if score == 0:
+            #     nb_zeros += 1
 
             fitness += score
-            fitness2 *= info['collisions_from_rw']
+            fitness2 += info['collisions_from_rw']
 
-        fitness /= max(self._num_samples-nb_zeros, 1)
-        fitness2 /= max(self._num_samples-nb_zeros, 1)
+        # fitness /= max(self._num_samples-nb_zeros, 1)
+        # fitness2 /= max(self._num_samples-nb_zeros, 1)
+        fitness /= self._num_samples
+        fitness2 /= self._num_samples
         return fitness, fitness2 * COLLISION_WEIGHT
 
 
