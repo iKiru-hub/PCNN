@@ -89,5 +89,21 @@ Further, in plot \ref{fig:main_results}\textbf{f} the place field of one cell is
 Taken together, these findings support the hypothesis of practical utility of direct modulation of place-field structure for active navigation, even in these limited settings.
 
 
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1.\textwidth]{figures/evoplot.png}
+    \caption{\textbf{Distribution of evolved hyper-parameters} - \textit{Results relative to the last generation, from a run with population size of 90 individuals. The hyper-parameters are: neural gain $\beta$, lateral inhibition threshold $\theta^{\text{PC}}_{\text{inh}}$, lateral distance
+    threshold $\theta^{\text{PC}}_{\text{rec}}$, activity trace time constant $\tau^{\text{PC}}$, reward modulation scale $c^{\text{DA}}_{b}$, reward modulation spread $c^{\text{DA}}_{b}$, boundary modulation scale $c^{\text{BND}}_{b}$, boundary modulation spread $c^{\text{BND}}_{b}$, reward gain modulation $c^{\text{DA}}_{a}$, and boundary gain modulation $c^{\text{BND}}_{a}$.}}
+    \label{fig:evoplot}
+\end{figure}
+
+\paragraph{Convergence of evolved hyperparameters}
+The use of an evolutionary algorithm for selecting the model dynamics had the convenience of providing a distribution of hyper-parameters over a population.
+In Figure \ref{fig:evoplot}, each dot represent the the value for one individual plotted with respect to its average reward count.
+A marked convergence is visible for most variables, with some displaying a quasi-bimodal distribution.
+The hyper-parameters related to the gain $\beta$ of the neural activation function $\phi$ have an high clustering index.
+Importantly, there is a strong tendency of having modulation increasing the magnitude of the gain for both reward and collision events, with the effect of reducing the size the active place fields.
+This result is in the direction of experimental observation showing shrinking of place fields near objects and walls \cite{burke2011, tanni2022}.
+
 
 

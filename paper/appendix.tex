@@ -27,7 +27,7 @@ In our model, each grid cell had a tuning width of 0.04. They were defined as 8 
 
 \paragraph{Tuning formation}
 % formation | forward + competition
-The tuning of a new place cell is simply defined as the current GC population vector $\textbf{u}^{\text{GC}}_{t}$, and its index is that of the first silent cell, which is added to the forward weight matrix $\textbf{W}_{i}^{\text{GC}to \text{PC}}\leftarrow \textbf{u}^{\text{GC}}$.
+The tuning of a new place cell is simply defined as the current GC population vector $\textbf{u}^{\text{GC}}_{t}$, and its index is that of the first silent cell, which is added to the forward weight matrix $\textbf{W}_{i}^{\text{GC},\text{PC}}\leftarrow \textbf{u}^{\text{GC}}$.
 
 In order to avoid overlapping of place fields, lateral inhibition is implemented. More specifically, the tuning process is aborted in case the cosine similarity of the new pattern and the old ones is greater than a threshold $\theta^{\text{PC}}_{\text{inh}}$.
 
@@ -245,18 +245,19 @@ During the reward phase, the reward location is changed after a fixed number of 
 
 \paragraph{Optimization}
 The model hyper-parameters such as the constants for the neural dynamics and the behaviour selection have been optimized through a evolutionary algorithm.
-Initally, an initial population of individuals with different random genomes (string of hyper-parameters values) is evaluated according to a fitness function, in this case a set of different environments. \\
-Next, the population of a new generation is constructed from the first by combining and mutating the genomes of the top ranked individuals from the previous generation. \\
-In particular, we used the Covariance Matrix Adaptation algorithm, in which the shape of distribution of genome values is iteratively adapted according to the recent performances.
+Initally, an initial population of individuals with different random genomes (string of hyper-parameters values) is sampled and evaluated.
+Then, the population of a new generation is constructed from the first by combining and mutating the genomes of the top ranked individuals from the previous generation.
+More in details, for the sampling of the new generation we used the Covariance Matrix Adaptation algorithm, in which the shape of distribution of genome values is iteratively adapted according to the recent performances.
+The fitness used for evaluating the individuals was of a tuple consisting of the number of collected rewards and the number of collisions.
+In particular, the latter was calculated starting from the time when the reward position was first discovered, in this way at least the stochasticity of the exploratory behaviour was excluded.
 
-The evolved hyper-parameters are: neural gain $\beta$, lateral inhibition threshold $\theta^{\text{PC}}_{\text{inh}}$, lateral distance threshold $\theta^{\text{PC}}_{\text{rec}}$, activity trace time constant $\tau^{\text{PC}}$, reward modulation scale $c^{\text{DA}}_{b}$, reward modulation spread
-$x^{\text{DA}}_{b}$, boundary modulation scale $c^{\text{BND}}_{b}$, boundary modulation spread $c^{\text{BND}}_{b}$, reward gain modulation $c^{\text{DA}}_{a}$, and boundary gain modulation $c^{\text{BND}}_{a}$.
-The distribution of the genome values is reported in Figure \ref{fig:evoplot}.
+The evolved hyper-parameters are: neural gain $\beta$, lateral inhibition threshold $\theta^{\text{PC}}_{\text{inh}}$, lateral distance threshold $\theta^{\text{PC}}_{\text{rec}}$, activity trace time constant $\tau^{\text{PC}}$, reward modulation scale $c^{\text{DA}}_{b}$, reward modulation spread $x^{\text{DA}}_{b}$, boundary modulation scale $c^{\text{BND}}_{b}$, boundary modulation spread $c^{\text{BND}}_{b}$, reward gain modulation $c^{\text{DA}}_{a}$, and boundary gain modulation $c^{\text{BND}}_{a}$.
+% The distribution of the genome values is reported in Figure \ref{fig:evoplot}.
 
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=1.\textwidth]{figures/evoplot.png}
-    \caption{\textbf{Distribution of evolved parameters} - \textit{Results relative to the last generation, from a run with population size of 128 individuals.}}
-    \label{fig:evoplot}
-\end{figure}
+% \begin{figure}[ht]
+%     \centering
+%     \includegraphics[width=1.\textwidth]{figures/evoplot.png}
+%     \caption{\textbf{Distribution of evolved parameters} - \textit{Results relative to the last generation, from a run with population size of 128 individuals.}}
+%     \label{fig:evoplot}
+% \end{figure}
 

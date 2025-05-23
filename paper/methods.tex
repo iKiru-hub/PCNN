@@ -141,6 +141,10 @@ However, both of these rely on external spatial coordinates to represent current
 \paragraph{Naturalistic task}
 The model was evaluated on a biologically inspired navigation benchmark involving exploration and goal-seeking behavior in closed environments. Performance was measured as the total number of rewards collected over multiple trials.
 
-Optimization of the model parameters was carried out using the evolutionary Covariance-Matrix Adaptation strategy (CMA-ES) \cite{igel2007} with a population of 128 individuals for 100 generations.
+Optimization of the model hyper-parameters was carried out using the evolutionary Covariance-Matrix Adaptation strategy (CMA-ES) \cite{igel2007} with a population size of 90.
+The choice of the hyper-parameters to evolved took into account the type of dynamcis for which it was difficult to select pre-defined values; the number of evolved variables was 10.
+The use of such method derived from the impractility of other optimization algorithms, also given the non-differentiability of several dynamic.
+Viable alternatives were based on reinforcement learning, Bayesian and grid search, but evolution was more appealing for exploration and visualization of the parameter space exploration.
+For evaluating the individuals it was used a multi-objective fitness function: maximization of the reward count, and minimization of the collision count from the time the reward position was discovered.
 
 
