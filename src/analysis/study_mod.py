@@ -225,8 +225,8 @@ def run_local_model(args) -> list:
                 verbose=False,
                 verbose_min=False)
 
-                results[room_name]['score'] += [score]
-                results[room_name]['collisions'] += [info['collisions_from_rw']]
+            results[room_name]['score'] += [score]
+            results[room_name]['collisions'] += [info['collisions_from_rw']]
  
 
     return results
