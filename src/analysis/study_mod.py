@@ -217,7 +217,7 @@ def run_local_model(args) -> list:
             #results[room_name] += [safe_run_model(params, room_name)]
 
             score, info = sim.run_model(
-                parameters=agent.model.get_params(),
+                parameters=params,
                 global_parameters=global_parameters,
                 reward_settings=reward_settings,
                 game_settings=game_settings,
