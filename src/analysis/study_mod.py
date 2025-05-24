@@ -71,14 +71,14 @@ global_parameters = {
 }
 
 PARAMETERS = {
-      "gain": 63,
-      "offset": 1.0,
+      "gain": 91,
+      "offset": 1.016,
       "threshold": 0.4,
-      "rep_threshold": 0.95,
-      "rec_threshold": 83,
-      "tau_trace": 116,
+      "rep_threshold": 0.999,
+      "rec_threshold": 49,
+      "tau_trace": 205,
       "remap_tag_frequency": 1,
-      "num_neighbors": 16,
+      "num_neighbors": 5,
       "min_rep_threshold": 0.99,
 
       "lr_da": 0.9,
@@ -93,12 +93,12 @@ PARAMETERS = {
       "threshold_ssry": 1.986,
       "threshold_circuit": 0.9,
 
-      "rwd_weight": -2.25,
-      "rwd_sigma": 120.4,
-      "col_weight": -6.77,
-      "col_sigma": 46.5,
-      "rwd_field_mod": 2.3,
-      "col_field_mod": 2.0,
+      "rwd_weight": -14.25,
+      "rwd_sigma": 105.4,
+      "col_weight": -10.77,
+      "col_sigma": 47.5,
+      "rwd_field_mod": 2.4,
+      "col_field_mod": 1.8,
       "modulation_option": [True] * 4, ##
 
       "action_delay": 120.0,
@@ -211,10 +211,23 @@ def run_local_model(args) -> list:
     results = {}
 
     for room_name in tqdm(ROOM_LIST):
-        results[room_name] = []
+        results[room_name] = {'score': [], 'collisions': []}
         for i in range(NUM_OPTIONS):
             params = change_parameters(PARAMETERS.copy(), OPTIONS[i])
-            results[room_name] += [safe_run_model(params, room_name)]
+            #results[room_name] += [safe_run_model(params, room_name)]
+
+            score, info = sim.run_model(
+                parameters=agent.model.get_params(),
+                global_parameters=global_parameters,
+                reward_settings=reward_settings,
+                game_settings=game_settings,
+                room_name=room_name,
+                verbose=False,
+                verbose_min=False)
+
+                results[room_name]['score'] += [score]
+                results[room_name]['collisions'] += [info['collisions_from_rw']]
+ 
 
     return results
 
