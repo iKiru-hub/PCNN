@@ -36,7 +36,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 2,
-    "silent_duration": 10_000,
+    "silent_duration": 1_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 40.,
@@ -141,14 +141,14 @@ parameters4 = {
 }
 
 parameters = {
-          "gain": 140.0,
-          "offset": 1.001,
-          "threshold": 0.0,
-          "rep_threshold": 0.99,
-          "rec_threshold": 40,
-          "tau_trace": 50,
+          "gain": 104.2,
+          "offset": 1.0128208308713407,
+          "threshold": 0.4,
+          "rep_threshold": 0.9532226682635143,
+          "rec_threshold": 62,
+          "tau_trace": 20,
           "remap_tag_frequency": 1,
-          "num_neighbors": 17,
+          "num_neighbors": 13,
           "min_rep_threshold": 0.99,
 
           "lr_da": 0.9,
@@ -163,18 +163,22 @@ parameters = {
           "threshold_ssry": 1.986,
           "threshold_circuit": 0.9,
 
-          "rwd_weight": -2.22,
-          "rwd_sigma": 50.4,
-          "col_weight": -4.05,
-          "col_sigma": 51.5,
-          "rwd_field_mod": 1.5,
-          "col_field_mod": 5.3,
-          "modulation_option": [False] * 4, ##
+          "rwd_weight": 0.,
+          "rwd_sigma": 10.,
+          "rwd_threshold": 0.4,
 
-          "action_delay": 100.0,
-          "edge_route_interval": 30,
+          "col_weight": 0.,
+          "col_sigma": 10.,
+          "col_threshold": 0.4,
+
+          "rwd_field_mod": 2.2,
+          "col_field_mod": 3.3,
+          "action_delay": 120.0,
+          "edge_route_interval": 50,
           "forced_duration": 19,
-          "min_weight_value": 0.01,
+          "min_weight_value": 0.1,
+          "modulation_option": [True]*4
+
 }
 
 
@@ -191,8 +195,8 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, brain: object, boundsx: tuple=(-350, 300),
-                 boundsy: tuple=(-270, 370),
+    def __init__(self, brain: object, boundsx: tuple=(-430, 80),
+                 boundsy: tuple=(-50, 460),
                  render_type: str="space"):
 
         self.brain = brain
@@ -245,26 +249,26 @@ class Renderer:
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
                          c=bndw,
                          cmap="Blues", alpha=1.,
-                         s=np.where(bndw > 0.01, 40, 0),
-                         vmin=0., vmax=0.4)
+                         s=np.where(bndw > 0.01, 80, 0),
+                         vmin=0., vmax=0.3)
 
         # -- DA
         daw = self.brain.get_da_weights()
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
                                c=daw,
-                               s=np.where(daw > 0.01, 30, 0),
+                               s=np.where(daw > 0.01, 80, 0),
                                cmap="Greens", alpha=1.,
-                               vmin=0., vmax=0.4)
+                               vmin=0., vmax=0.3)
 
         # -- plan
-        plan_center = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
-        self.axs.plot(*plan_center.T, color="red", alpha=1., lw=2.)
+        # plan_center = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
+        # self.axs.plot(*plan_center.T, color="red", alpha=1., lw=2.)
 
-        self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
-                               c=self.brain.get_trg_representation(),
-                               s=200*self.brain.get_trg_representation(),
-                               marker="x",
-                               cmap="Greens", alpha=0.7)
+        # self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
+        #                        c=self.brain.get_trg_representation(),
+        #                        s=200*self.brain.get_trg_representation(),
+        #                        marker="x",
+        #                        cmap="Greens", alpha=0.7)
 
         self.axs.set_xlim(self.boundsx)
         self.axs.set_ylim(self.boundsy)
@@ -550,8 +554,10 @@ def run_model(parameters: dict,
                 threshold_circuit=parameters["threshold_circuit"],
                 rwd_weight=parameters["rwd_weight"],
                 rwd_sigma=parameters["rwd_sigma"],
+                rwd_threshold=parameters["rwd_threshold"],
                 col_weight=parameters["col_weight"],
                 col_sigma=parameters["col_sigma"],
+                col_threshold=parameters["col_threshold"],
                 rwd_field_mod=parameters["rwd_field_mod"],
                 col_field_mod=parameters["col_field_mod"],
                 action_delay=parameters["action_delay"],
@@ -705,86 +711,6 @@ def run_game(env: games.Environment,
     return record
 
 
-def run_cartpole(brain: object,
-                 renderer: object,
-                 duration: int,
-                 t_goal: int=10,
-                 t_rendering: int=10,
-                 record_flag: bool=False,
-                 verbose_min: bool=True):
-
-    # ===| setup |===
-
-    clock = pygame.time.Clock()
-    last_position = np.zeros(2)
-
-    # objects
-    agent = objects.CartPoler(brain=brain)
-    env = gym.make("CartPole-v1", render_mode="human")
-
-    # [obs, reward, done, done, terminated]
-    # observation: [position, velocity, angle, angular velocity]
-    obs = env.reset()[0]
-    reward = 0
-    action = 0
-
-    # starting position: [position, angle]
-    prev_position = [obs[0], obs[2]]
-    agent.reset(new_position=prev_position)
-
-    # init
-    record = {"activity_fine": [],
-              "activity_coarse": [],
-              "scores": [],
-              "trajectory": []}
-
-    # ===| main loop |===
-    score = 0
-    eps_count = 0
-    for t in tqdm(range(duration), desc="Game", leave=False,
-                  disable=not verbose_min):
-
-        # env step
-        obs, reward, done, terminated, info = env.step(action)
-        score += reward
-        velocity = [(obs[0] - prev_position[0]) * 100,
-                    (obs[2] - prev_position[1]) * 100]
-
-        collision_ = float(done)
-        reward_ = np.exp(-obs[2]**2 / 0.01)
-
-        # brain step
-        action = agent(velocity, reward_, collision_, t>=t_goal)
-        prev_position = [obs[0], obs[2]]
-
-        # -check: render
-        if t > t_rendering:
-            env.render()
-            renderer.render()
-
-        # -check: record
-        if record_flag:
-            record["activity_fine"] += [brain.get_representation_fine()]
-            record["activity_coarse"] += [brain.get_representation_coarse()]
-            record["trajectory"] += [env.position]
-
-        # -check: done
-        if done:
-            obs = env.reset()[0]
-            agent.reset(new_position=[obs[0], obs[2]])
-            record["scores"] += [score]
-            logger(f"[end episode] - score={score}")
-            logger(f"new position: {obs[0]:.2f}, {obs[2]:.2f}")
-            score = 0
-
-        # -check: terminated
-        if terminated:
-            break
-
-    record["num_eps"] = eps_count
-
-    return record
-
 
 """ MAIN """
 
@@ -833,8 +759,10 @@ def main_game(global_parameters: dict=global_parameters,
                 threshold_circuit=parameters["threshold_circuit"],
                 rwd_weight=parameters["rwd_weight"],
                 rwd_sigma=parameters["rwd_sigma"],
+                rwd_threshold=parameters["rwd_threshold"],
                 col_weight=parameters["col_weight"],
                 col_sigma=parameters["col_sigma"],
+                col_threshold=parameters["col_threshold"],
                 rwd_field_mod=parameters["rwd_field_mod"],
                 col_field_mod=parameters["col_field_mod"],
                 action_delay=parameters["action_delay"],

@@ -31,8 +31,8 @@ OPTIONS = [True]*4
 
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
 
-EXPL_DURATION = 10_000
-TOTAL_DURATION = 30_000
+EXPL_DURATION = 10
+TOTAL_DURATION = 300
 TELEPORT_INTERVAL = 2_500
 
 COLLISION_WEIGHT = -0.5
@@ -76,7 +76,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 40**2,
+    "N": 35**2,
     "use_sprites": False,
     "speed": 1.0,
     "min_weight_value": 0.3
@@ -94,7 +94,8 @@ class Model:
                  lr_da, lr_pred, threshold_da, tau_v_da,
                  lr_bnd, threshold_bnd, tau_v_bnd,
                  tau_ssry, threshold_ssry, threshold_circuit,
-                 rwd_weight, rwd_sigma, col_weight, col_sigma,
+                 rwd_weight, rwd_sigma, rwd_threshold,
+                 col_weight, col_sigma, col_threshold,
                  rwd_field_mod, col_field_mod, action_delay,
                  min_weight_value, edge_route_interval,
                  forced_duration, options=[True]*4):
@@ -127,8 +128,10 @@ class Model:
 
             "rwd_weight": rwd_weight,
             "rwd_sigma": rwd_sigma,
+            "rwd_threshold": rwd_threshold,
             "col_weight": col_weight,
             "col_sigma": col_sigma,
+            "col_threshold": col_threshold,
 
             "rwd_field_mod": rwd_field_mod,
             "col_field_mod": col_field_mod,
@@ -229,8 +232,10 @@ FIXED_PARAMETERS = {
 
      # 'rwd_weight': 0.0,
      # 'rwd_sigma': 0.,
+     # 'rwd_threshold': 0.,
      # 'col_weight': 0.0,
      # 'col_sigma': 0.,
+     # 'col_threshold': 0.,
      # 'rwd_field_mod': 0.0,
      # 'col_field_mod': 0.0,
 
@@ -250,7 +255,7 @@ PARAMETERS = {
     "threshold": lambda: round(random.uniform(0.05, 0.5), 2),
     "rep_threshold": lambda: np.clip(random.uniform(0.8, 1.1), 0.8, 0.999),
     "rec_threshold": lambda: round(random.uniform(20., 120.)),
-    "tau_trace": lambda: round(random.uniform(1., 300.)),
+    "tau_trace": lambda: round(random.uniform(1., 100.)),
 
     "remap_tag_frequency": lambda: random.choice([1, 2, 3, 4]),
     "num_neighbors": lambda: int(random.randint(3, 20)),
@@ -269,10 +274,12 @@ PARAMETERS = {
     "threshold_ssry": lambda: round(random.uniform(0.8, 1.2), 3),
     "threshold_circuit": lambda: round(random.uniform(0.2, 1.3), 2),
 
-    "rwd_weight": lambda: round(random.uniform(-15.0, 5.0), 2),
+    "rwd_weight": lambda: round(random.uniform(-4.0, 4.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 130.0), 1),
-    "col_weight": lambda: round(random.uniform(-15.0, 5.0), 2),
+    "rwd_threshold": lambda: round(random.uniform(0., 0.6), 2),
+    "col_weight": lambda: round(random.uniform(-4.0, 4.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
+    "col_threshold": lambda: round(random.uniform(0., 0.6), 2),
 
     "rwd_field_mod": lambda: round(random.uniform(-5.0, 5.0), 1),
     "col_field_mod": lambda: round(random.uniform(-5.0, 5.0), 1),

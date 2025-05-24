@@ -1375,18 +1375,20 @@ public:
 
     void remap(Eigen::VectorXf& block_weights,
                std::array<float, 2> velocity,
-               float width, float magnitude) {
+               float width, float magnitude,
+               float threshold) {
 
-        if (magnitude < 0.00001f) { return; }
+        if ((magnitude * magnitude) < 0.00001f) { return; }
 
         float magnitude_i;;
         for (int i = 0; i < N; i++) {
 
             // check remap tag
-            if (!remap_tag[i] || traces(i) < 0.1) { continue; }
+            // if (!remap_tag[i] || traces(i) < 0.1) { continue; }
+            if (traces(i) < threshold) { continue; }
 
             // skip blocked edges
-            if (vspace.centers(i, 0) < -900.0f || block_weights(i) > 0.0f)
+            if (vspace.centers(i, 0) < -900.0f)// || block_weights(i) > 0.0f)
                 { continue; }
 
             std::array<float, 2> displacement = \
@@ -1804,9 +1806,12 @@ struct DensityPolicy {
 
     float rwd_weight;
     float rwd_sigma;
+    float rwd_threshold;
+    float rwd_drive = 0.0f ;
+
     float col_weight;;
     float col_sigma;
-    float rwd_drive = 0.0f ;
+    float col_threshold;
     float col_drive = 0.0f;
 
     float rwd_field_mod;
@@ -1828,7 +1833,8 @@ struct DensityPolicy {
 
             if (options[0]) {
                 space.remap(circuits.get_da_weights(),
-                            displacement, rwd_sigma, rwd_drive);
+                            displacement, rwd_sigma, rwd_drive,
+                            rwd_threshold);
             }
 
             if (options[1]) {
@@ -1842,8 +1848,9 @@ struct DensityPolicy {
 
             if (options[2]) {
                 space.remap(circuits.get_bnd_weights(),
-                            {-1.0f*displacement[0], -1.0f*displacement[1]},
-                            col_sigma, col_drive);
+                            // {-1.0f*displacement[0], -1.0f*displacement[1]},
+                            displacement, col_sigma, col_drive,
+                            col_threshold);
             }
             if (options[3]) {
                 space.modulate_gain(col_field_mod);
@@ -1852,11 +1859,13 @@ struct DensityPolicy {
     }
 
     DensityPolicy(float rwd_weight, float rwd_sigma,
-                  float col_weight, float col_sigma,
+                  float rwd_threshold, float col_sigma,
+                  float col_weight, float col_threshold,
                   float rwd_field_mod,
                   float col_field_mod,
                   std::array<bool, 4> options):
         rwd_weight(rwd_weight), rwd_sigma(rwd_sigma),
+        rwd_threshold(rwd_threshold), col_threshold(col_threshold),
         col_sigma(col_sigma), col_weight(col_weight),
         rwd_field_mod(rwd_field_mod),
         col_field_mod(col_field_mod),

@@ -624,8 +624,10 @@ class Brain:
                  threshold_circuit,
                  rwd_weight,
                  rwd_sigma,
+                 rwd_threshold,
                  col_weight,
                  col_sigma,
+                 col_threshold,
                  rwd_field_mod,
                  col_field_mod,
                  action_delay,
@@ -658,10 +660,13 @@ class Brain:
         # Initialize modules
         self.goalmd = GoalModule(self.space, self.circuits, speed)
         self.rwobj = RewardObject(min_weight_value)
-        self.dpolicy = pclib.DensityPolicy(rwd_weight, rwd_sigma,
-                                           col_weight, col_sigma,
-                                           rwd_field_mod, col_field_mod,
-                                           options)
+        self.dpolicy = pclib.DensityPolicy(rwd_weight=rwd_weight, rwd_sigma=rwd_sigma,
+                                           rwd_threshold=rwd_threshold,
+                                           col_weight=col_weight, col_sigma=col_sigma,
+                                           col_threshold=col_threshold,
+                                           rwd_field_mod=rwd_field_mod,
+                                           col_field_mod=col_field_mod,
+                                           options=options)
         self.expmd = ExplorationModule(speed * 2.0, self.circuits,
                                        self.space, action_delay,
                                        edge_route_interval)

@@ -9,14 +9,14 @@ Since no visual information is used, the agent is effectively navigating in the 
 
 \paragraph{Place Cell Formation}
 
-The primary spatial representation is formed by a set of grid cell modules, each encoding a periodic tiling of 2D space, which directly maps to a toroidal manifold $\mathbf{T}^2$ (Fig. \ref{fig:model}\textbf{c,d}).
+The primary spatial representation is formed by a set of grid cell modules, each encoding a periodic tiling of 2D space, which directly maps to a toroidal manifold $\mathbf{T}^2$ (Fig. \ref{fig:model}\textbf{b}).
 Departing from traditional grid cell modeling approaches \cite{dabaghian, schoyen2025}, we generate population activity directly via Gaussian tuning over the torus, continuously updated using the agent’s velocity vector—an approach used in prior work \cite{li2019}.
 
-The grid cell population vector $\mathbf{u}^{\text{GC}}$ is forwarded to a place cell network with initially zeroed synaptic weights (Fig. \ref{fig:model}\textbf{b}).
+The grid cell population vector $\mathbf{u}^{\text{GC}}$ is forwarded to a place cell network with initially zeroed synaptic weights.
 When no place cell is sufficiently active for a given input, a silent unit is randomly selected and imprinted with the current grid activity pattern.
 To enforce representational sparsity and tuning specificity, lateral inihibition is implemented by comparing the cosine similarity between the new weight vector and any existing one and a threshold $\theta^{\text{PC}}_{\text{inh}}$.
 
-Each place cell’s activation is computed via a bounded cosine similarity function, determining its corresponding place field (Fig. \ref{fig:model}\textbf{e}). Further implementation details, including lateral inhibition and recurrent connectivity, are provided in the Appendix.
+Each place cell’s activation is computed via a bounded cosine similarity function, determining its corresponding place field (Fig. \ref{fig:model}\textbf{d}). Further implementation details, including lateral inhibition and recurrent connectivity, are provided in the Appendix.
 
 
 \begin{figure}[ht]
@@ -26,11 +26,10 @@ Each place cell’s activation is computed via a bounded cosine similarity funct
     \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs
     and a reward receiver}.
     \textbf{b}: \textit{a module of grid cells defined in a bounded square space of length 1, and an activity representation of their receptive field over a torus}.
-    \textbf{c}: \textit{the cognitive map component, organized with a stack of grid cell modules receiving the velocity input and projecting to the layer of place cells}.
-    \textbf{d}: \textit{the neural activity of a grid cell module from a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}.
-    \textbf{e}: \textit{the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}.
-    \textbf{f}: \textit{neuromodulation activity over the place cells map, with in blue the cells tagged by the collision modulation, and in green the ones targeted by reward modulation.}
-\textbf{g}: \textit{the place cells layer can be regarded as a graph with values assigned to each node according to the modulation strength; a path-finding algorithm can then be used to connect any two nodes taking into account the node values}.
+    \textbf{c}: \textit{the neural activity of a grid cell module from a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}.
+    \textbf{d}: \textit{the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}.
+    \textbf{e}: \textit{neuromodulation activity over the place cells map, with in blue the cells tagged by the collision modulation, and in green the ones targeted by reward modulation.}
+\textbf{f}: \textit{the place cells layer can be regarded as a graph with values assigned to each node according to the modulation strength; a path-finding algorithm can then be used to connect any two nodes taking into account the node values}.
 }
 
     \label{fig:model}
@@ -49,7 +48,8 @@ Each modulator $k$ updates synaptic weights to place cells through Hebbian plast
 The term in brackets can be regarded as an error, implementing a simple form of predictive coding and is inspired by temporal-difference learning \cite{sutton}, aligning with evidence that neuromodulatory systems signal prediction errors and update beliefs \cite{montague1996a, decothi2022, krishnan2022a}.
 
 Weight vectors are constrained to remain non-negative.
-Reward modulation tags cells near rewarded locations, while boundary modulation builds a representation of environmental edges. These scalar fields form the core of the cognitive map (Fig.~\ref{fig:model}\textbf{f}). See Appendix for full learning rules and parameter settings.
+Reward modulation tags cells near rewarded locations, while boundary modulation builds a representation of environmental edges. These scalar fields form the core of the cognitive map (Fig.~\ref{fig:model}\textbf{e}).
+See Appendix for full learning rules and parameter settings.
 
 \paragraph{Modulation of Place Fields}
 We further tested whether neuromodulators could directly alter spatial tuning. Place fields were dynamically shifted and resized based on recent salience signals.
@@ -80,7 +80,7 @@ In contrast, exploitation—defined as reward-directed navigation—involved ide
 This location corresponded to the average position of DA-modulated place cells, reflecting mechanisms such as hippocampal replay and value-based navigation \cite{mcnamara2014, michon2021, shamash2021}.
 A graph-based pathfinding algorithm was then used to compute the route from the current location to the reward.
 In this graph, place cells served as nodes, while synaptic connections acted as edges.
-Additionally, a cost function was introduced over the graph nodes, assigning lower values to BND-modulated cells. This was designed to discourage proximity to the environment’s walls, as shown in plot \ref{fig:model}\textbf{g}.
+Additionally, a cost function was introduced over the graph nodes, assigning lower values to BND-modulated cells. This was designed to discourage proximity to the environment’s walls, as shown in plot \ref{fig:model}\textbf{f}.
 
 
 \paragraph{Comparison with previous architectures}

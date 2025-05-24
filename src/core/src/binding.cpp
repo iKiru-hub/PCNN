@@ -101,7 +101,8 @@ PYBIND11_MODULE(pclib, m) {
              py::arg("block_weights"),
              py::arg("velocity"),
              py::arg("width"),
-             py::arg("magnitude"))
+             py::arg("magnitude"),
+             py::arg("threshold"))
         .def("simulate_one_step", &PCNN::simulate_one_step,
              py::arg("v"))
         .def("reset_gcn", &PCNN::reset_gcn,
@@ -110,12 +111,14 @@ PYBIND11_MODULE(pclib, m) {
 
     // Density Policy
     py::class_<DensityPolicy>(m, "DensityPolicy")
-        .def(py::init<float, float, float,
+        .def(py::init<float, float, float, float, float,
              float, float, float, std::array<bool, 4>>(),
              py::arg("rwd_weight"),
              py::arg("rwd_sigma"),
+             py::arg("rwd_threshold"),
              py::arg("col_weight"),
              py::arg("col_sigma"),
+             py::arg("col_threshold"),
              py::arg("rwd_field_mod"),
              py::arg("col_field_mod"),
              py::arg("options") = std::array<bool, 4>({true, true, true, true}))

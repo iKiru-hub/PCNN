@@ -2284,3 +2284,83 @@ class EnvironmentWrapperIMG(gym.Env):
         return self.env.rw_count
 
 
+def run_cartpole(brain: object,
+                 renderer: object,
+                 duration: int,
+                 t_goal: int=10,
+                 t_rendering: int=10,
+                 record_flag: bool=False,
+                 verbose_min: bool=True):
+
+    # ===| setup |===
+
+    clock = pygame.time.Clock()
+    last_position = np.zeros(2)
+
+    # objects
+    agent = objects.CartPoler(brain=brain)
+    env = gym.make("CartPole-v1", render_mode="human")
+
+    # [obs, reward, done, done, terminated]
+    # observation: [position, velocity, angle, angular velocity]
+    obs = env.reset()[0]
+    reward = 0
+    action = 0
+
+    # starting position: [position, angle]
+    prev_position = [obs[0], obs[2]]
+    agent.reset(new_position=prev_position)
+
+    # init
+    record = {"activity_fine": [],
+              "activity_coarse": [],
+              "scores": [],
+              "trajectory": []}
+
+    # ===| main loop |===
+    score = 0
+    eps_count = 0
+    for t in tqdm(range(duration), desc="Game", leave=False,
+                  disable=not verbose_min):
+
+        # env step
+        obs, reward, done, terminated, info = env.step(action)
+        score += reward
+        velocity = [(obs[0] - prev_position[0]) * 100,
+                    (obs[2] - prev_position[1]) * 100]
+
+        collision_ = float(done)
+        reward_ = np.exp(-obs[2]**2 / 0.01)
+
+        # brain step
+        action = agent(velocity, reward_, collision_, t>=t_goal)
+        prev_position = [obs[0], obs[2]]
+
+        # -check: render
+        if t > t_rendering:
+            env.render()
+            renderer.render()
+
+        # -check: record
+        if record_flag:
+            record["activity_fine"] += [brain.get_representation_fine()]
+            record["activity_coarse"] += [brain.get_representation_coarse()]
+            record["trajectory"] += [env.position]
+
+        # -check: done
+        if done:
+            obs = env.reset()[0]
+            agent.reset(new_position=[obs[0], obs[2]])
+            record["scores"] += [score]
+            logger(f"[end episode] - score={score}")
+            logger(f"new position: {obs[0]:.2f}, {obs[2]:.2f}")
+            score = 0
+
+        # -check: terminated
+        if terminated:
+            break
+
+    record["num_eps"] = eps_count
+
+    return record
+

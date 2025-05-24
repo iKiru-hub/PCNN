@@ -218,15 +218,16 @@ sim_parameters_4 = {
           "min_weight_value": 0.10,
 }
 
+
 sim_parameters_5 = {
-          "gain": 56.1,
-          "offset": 1.0,
+          "gain": 91.8,
+          "offset": 1.016011033096181,
           "threshold": 0.4,
-          "rep_threshold": 0.95,
-          "rec_threshold": 83,
-          "tau_trace": 202,
+          "rep_threshold": 0.999,
+          "rec_threshold": 49,
+          "tau_trace": 205,
           "remap_tag_frequency": 1,
-          "num_neighbors": 17,
+          "num_neighbors": 5,
           "min_rep_threshold": 0.99,
           "lr_da": 0.9,
           "lr_pred": 0.05,
@@ -238,17 +239,16 @@ sim_parameters_5 = {
           "tau_ssry": 437.0,
           "threshold_ssry": 1.986,
           "threshold_circuit": 0.9,
-          "rwd_weight": -2.25,
-          "rwd_sigma": 18.4,
-          "col_weight": -9.6,
-          "col_sigma": 12.1,
-          "rwd_field_mod": 2.3,
-          "col_field_mod": 2.0,
+          "rwd_weight": -14.68,
+          "rwd_sigma": 105.2,
+          "col_weight": -10.88,
+          "col_sigma": 47.3,
+          "rwd_field_mod": 2.4,
+          "col_field_mod": 1.8,
           "action_delay": 120.0,
           "edge_route_interval": 50,
           "forced_duration": 19,
           "min_weight_value": 0.1,
-          "options": [True, True, True, True]
 }
 
 
