@@ -63,7 +63,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 29**2,
+    "N": 33**2,
     "use_sprites": False,
     "speed": 1.0,
     "min_weight_value": 0.1
@@ -114,8 +114,8 @@ PARAMETERS = {
 OPTIONS = ["no_remap", "default"]
 NUM_OPTIONS = len(OPTIONS)
 
-ROOM_LIST = ["Arena.0000", "Arena.0010",
-             "Arena.0100", "Arena.0110", "Arena.1000"]
+ROOM_LIST = ["Arena.0010", "Arena.0100", "Arena.0110",
+             "Arena.1000", "Arena.1001"]
 
 
 def change_parameters(params: dict, name: int):

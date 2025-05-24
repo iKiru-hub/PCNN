@@ -32,7 +32,7 @@ export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export NUMEXPR_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-srun python3 analysis/study_mod.py --reps 2 --cores 32 --save
+srun python3 analysis/study_mod.py --reps 4 --cores 32 --save
 
 echo "[finished]"
 
