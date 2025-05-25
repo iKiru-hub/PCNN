@@ -114,7 +114,7 @@ PARAMETERS = {
 """ FUNCTIONS """
 
 #OPTIONS = ["no_remap", "default", "density", "gain"]
-OPTIONS = ["col"]
+OPTIONS = ["gain"]
 NUM_OPTIONS = len(OPTIONS)
 
 ROOM_LIST = ["Arena.0010", "Arena.0100", "Arena.0110",
@@ -357,7 +357,8 @@ if __name__ == "__main__":
     localtime = time.localtime()
     dataname = os.path.join(os.getcwd().split("PCNN")[0],
                          "PCNN/src/analysis/results/mod_res_")
-    dataname += f"{localtime.tm_mday}{localtime.tm_mon}_{localtime.tm_hour}{localtime.tm_min}.json"
+    rnd = str(np.random.random())[-4:]
+    dataname += f"{localtime.tm_mday}{localtime.tm_mon}_{localtime.tm_hour}{localtime.tm_min}_{rnd}.json"
     with open(dataname, "w") as f:
         json.dump(data, f)
 
