@@ -63,7 +63,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 25**2,
+    "N": 32**2,
     "use_sprites": False,
     "speed": 1.0,
     "min_weight_value": 0.1
@@ -71,14 +71,14 @@ global_parameters = {
 }
 
 PARAMETERS = {
-      "gain": 91,
-      "offset": 1.016,
+      "gain": 102,
+      "offset": 1.02,
       "threshold": 0.4,
       "rep_threshold": 0.999,
-      "rec_threshold": 49,
-      "tau_trace": 205,
+      "rec_threshold": 33,
+      "tau_trace": 10,
       "remap_tag_frequency": 1,
-      "num_neighbors": 5,
+      "num_neighbors": 4,
       "min_rep_threshold": 0.99,
 
       "lr_da": 0.9,
@@ -87,18 +87,20 @@ PARAMETERS = {
       "tau_v_da": 1.0,
       "lr_bnd": 0.9,
       "threshold_bnd": 0.1,
-      "tau_v_bnd": 2.0,
+      "tau_v_bnd": 1.0,
 
       "tau_ssry": 437.0,
       "threshold_ssry": 1.986,
       "threshold_circuit": 0.9,
 
-      "rwd_weight": -14.25,
-      "rwd_sigma": 105.4,
-      "col_weight": -10.77,
-      "col_sigma": 47.5,
-      "rwd_field_mod": 2.4,
-      "col_field_mod": 1.8,
+      "rwd_weight": -2.25,
+      "rwd_sigma": 96.4,
+      "rwd_threshold": 0.49,
+      "col_weight": 0.53,
+      "col_sigma": 16.,
+      "rwd_threshold": 0.37,
+      "rwd_field_mod": 4.6,
+      "col_field_mod": 4.4,
       "modulation_option": [True] * 4, ##
 
       "action_delay": 120.0,
