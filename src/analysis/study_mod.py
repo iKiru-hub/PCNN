@@ -113,7 +113,8 @@ PARAMETERS = {
 
 """ FUNCTIONS """
 
-OPTIONS = ["no_remap", "default"]
+#OPTIONS = ["no_remap", "default", "density", "gain"]
+OPTIONS = ["col"]
 NUM_OPTIONS = len(OPTIONS)
 
 ROOM_LIST = ["Arena.0010", "Arena.0100", "Arena.0110",
@@ -141,8 +142,60 @@ def change_parameters(params: dict, name: int):
         params["col_weight"] = 0.
         params["col_sigma"] = 0.
         params["col_threshold"] = 0.
-        params["col_field_mod_fine"] = 1.
-        params["col_field_mod_coarse"] = 1.
+        params["rwd_field_mod"] = 1.
+        params["col_field_mod"] = 1.
+        return params
+
+    # density option
+    if name == "gain":
+        params['modulation_option'] = [False, True, False, True]
+        params["rwd_weight"] = 0.
+        params["rwd_sigma"] = 0.
+        params["rwd_threshold"] = 0.
+        params["col_weight"] = 0.
+        params["col_sigma"] = 0.
+        params["col_threshold"] = 0.
+        #params["rwd_field_mod"] = 1.
+        #params["col_field_mod"] = 1.
+        return params
+
+    # gain option
+    if name == "density":
+        params['modulation_option'] = [True, False, True, False]
+        #params["rwd_weight"] = 0.
+        #params["rwd_sigma"] = 0.
+        #params["rwd_threshold"] = 0.
+        #params["col_weight"] = 0.
+        #params["col_sigma"] = 0.
+        #params["col_threshold"] = 0.
+        #params["rwd_field_mod"] = 1.
+        #params["col_field_mod"] = 1.
+        return params
+
+    # rwd option
+    if name == "rwd":
+        params['modulation_option'] = [True, True, False, False]
+        #params["rwd_weight"] = 0.
+        #params["rwd_sigma"] = 0.
+        #params["rwd_threshold"] = 0.
+        params["col_weight"] = 0.
+        params["col_sigma"] = 0.
+        params["col_threshold"] = 0.
+        #params["rwd_field_mod"] = 1.
+        params["col_field_mod"] = 1.
+        return params
+
+    # col option
+    if name == "col":
+        params['modulation_option'] = [False, False, True, True]
+        params["rwd_weight"] = 0.
+        params["rwd_sigma"] = 0.
+        params["rwd_threshold"] = 0.
+        #params["col_weight"] = 0.
+        #params["col_sigma"] = 0.
+        #params["col_threshold"] = 0.
+        params["rwd_field_mod"] = 1.
+        #params["col_field_mod"] = 1.
         return params
 
     # default
