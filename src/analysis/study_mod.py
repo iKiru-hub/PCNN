@@ -98,7 +98,7 @@ PARAMETERS = {
       "rwd_threshold": 0.49,
       "col_weight": 0.53,
       "col_sigma": 16.,
-      "rwd_threshold": 0.37,
+      "col_threshold": 0.37,
       "rwd_field_mod": 4.6,
       "col_field_mod": 4.4,
       "modulation_option": [True] * 4, ##
@@ -137,8 +137,10 @@ def change_parameters(params: dict, name: int):
         params['modulation_option'] = [False] * 4
         params["rwd_weight"] = 0.
         params["rwd_sigma"] = 0.
+        params["rwd_threshold"] = 0.
         params["col_weight"] = 0.
         params["col_sigma"] = 0.
+        params["col_threshold"] = 0.
         params["col_field_mod_fine"] = 1.
         params["col_field_mod_coarse"] = 1.
         return params
