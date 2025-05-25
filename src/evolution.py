@@ -31,8 +31,8 @@ OPTIONS = [True]*4
 
 # ROOM_LIST = ["Square.v0"] * NUM_SAMPLES
 
-EXPL_DURATION = 10
-TOTAL_DURATION = 300
+EXPL_DURATION = 10_000
+TOTAL_DURATION = 30_000
 TELEPORT_INTERVAL = 2_500
 
 COLLISION_WEIGHT = -0.5
@@ -43,7 +43,7 @@ reward_settings = {
     "rw_value": "discrete",
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.08 * GAME_SCALE,
-    "rw_sigma": 0.7,# * GAME_SCALE,
+    "rw_sigma": 0.8,# * GAME_SCALE,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
@@ -76,7 +76,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 35**2,
+    "N": 32**2,
     "use_sprites": False,
     "speed": 1.0,
     "min_weight_value": 0.3
@@ -215,6 +215,7 @@ FIXED_PARAMETERS = {
      # 'tau_trace': 20,
 
      'remap_tag_frequency': 1,
+     # 'num_neighbors': 20,
      'min_rep_threshold': 0.99,
 
      'lr_da': 0.9,
@@ -224,7 +225,7 @@ FIXED_PARAMETERS = {
 
      'lr_bnd': 0.9,
      'threshold_bnd': 0.1,
-     'tau_v_bnd': 2.0,
+     'tau_v_bnd': 1.0,
 
      'tau_ssry': 437.0,
      'threshold_ssry': 1.986, # <-----------------
@@ -233,9 +234,11 @@ FIXED_PARAMETERS = {
      # 'rwd_weight': 0.0,
      # 'rwd_sigma': 0.,
      # 'rwd_threshold': 0.,
+
      # 'col_weight': 0.0,
      # 'col_sigma': 0.,
      # 'col_threshold': 0.,
+
      # 'rwd_field_mod': 0.0,
      # 'col_field_mod': 0.0,
 
