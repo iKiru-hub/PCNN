@@ -35,7 +35,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 120,
-    "silent_duration": 15_000,
+    "silent_duration": 10_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 40.,
@@ -50,9 +50,9 @@ game_settings = {
     "rendering": True,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
-    "max_duration": 50_000,
+    "max_duration": 30_000,
     "room_thickness": 30,
-    "t_teleport": 2_000,
+    "t_teleport": 2_500,
     "limit_position_len": -1,
     "start_position_idx": 1,
     "seed": None,
@@ -62,48 +62,49 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 30**2,
+    "N": 32**2,
     "use_sprites": bool(0),
     "speed": 0.7,
     "min_weight_value": 0.5
 }
 
 parameters = {
-  "gain": 140.0,
-  "offset": 1.0,
-  "threshold": 0.0,
-  "rep_threshold": 0.99,
-  "rec_threshold": 50,
-  "tau_trace": 99,
-  "remap_tag_frequency": 1,
-  "num_neighbors": 12,
-  "min_rep_threshold": 0.99,
+      "gain": 102,
+      "offset": 1.02,
+      "threshold": 0.4,
+      "rep_threshold": 0.999,
+      "rec_threshold": 33,
+      "tau_trace": 10,
+      "remap_tag_frequency": 1,
+      "num_neighbors": 4,
+      "min_rep_threshold": 0.99,
 
-  "lr_da": 0.9,
-  "lr_pred": 0.05,
-  "threshold_da": 0.05,
+      "lr_da": 0.9,
+      "lr_pred": 0.05,
+      "threshold_da": 0.05,
+      "tau_v_da": 1.0,
+      "lr_bnd": 0.9,
+      "threshold_bnd": 0.1,
+      "tau_v_bnd": 1.0,
 
-  "tau_v_da": 1.0,
-  "lr_bnd": 0.9,
-  "threshold_bnd": 0.1,
-  "tau_v_bnd": 1.0,
+      "tau_ssry": 437.0,
+      "threshold_ssry": 1.986,
+      "threshold_circuit": 0.9,
 
-  "tau_ssry": 437.0,
-  "threshold_ssry": 1.986,
-  "threshold_circuit": 0.9,
+      "rwd_weight": -2.25,
+      "rwd_sigma": 96.4,
+      "rwd_threshold": 0.49,
+      "col_weight": 0.53,
+      "col_sigma": 16.,
+      "col_threshold": 0.37,
+      "rwd_field_mod": 4.6,
+      "col_field_mod": 4.4,
+      "modulation_option": [True] * 4, ##
 
-  "rwd_weight": -2.22,
-  "rwd_sigma": 50.4,
-  "col_weight": -4.05,
-  "col_sigma": 51.5,
-  "rwd_field_mod": 1.5,
-  "col_field_mod": 5.3,
-  "modulation_option": [True] * 4,
-
-  "action_delay": 100.0,
-  "edge_route_interval": 15,
-  "forced_duration": 19,
-  "min_weight_value": 0.01,
+      "action_delay": 120.0,
+      "edge_route_interval": 50,
+      "forced_duration": 19,
+      "min_weight_value": 0.1,
 }
 
 logger()
@@ -140,6 +141,7 @@ def run_experiments_for_reps(reps_range, room, parameters, global_parameters,
     """Runs a batch of repetitions for a single room."""
     all_room_records = {
         "collisions": [],
+        "collisions_rw": [],
         "rewards": [],
         "len_no_g": [],
         "mean_no_g": [],
@@ -164,6 +166,8 @@ def run_experiments_for_reps(reps_range, room, parameters, global_parameters,
         env_ = info['env']
         gain_info = calc_gains(info['brain'])
         all_room_records['collisions'].append(int(env_.nb_collisions))
+        all_room_records['collisions_rw'].append(
+                int(info['collisions_from_rw']))
         all_room_records['rewards'].append(float(out))
         all_room_records['len_no_g'].append(int(gain_info[0]))
         all_room_records['mean_no_g'].append(float(gain_info[1]))
@@ -187,10 +191,14 @@ if __name__ == "__main__":
 
     """ settings """
 
-    rooms = ['Square.v0', 'Flat.0010', 'Flat.1000', 'Flat.1001', 'Flat.0011']
+    #rooms = ['Square.v0', 'Flat.0010', 'Flat.1000', \
+    #            'Flat.1001', 'Flat.0011']
+    rooms = ["Arena.0010", "Arena.0100", "Arena.0110",
+             "Arena.1000", "Arena.1001"]
+
     game_settings['rendering'] = False
-    reward_settings["silent_duration"] = 10
-    game_settings["max_duration"] = 40
+    reward_settings["silent_duration"] = 10_000
+    game_settings["max_duration"] = 30_000
 
     total_reps = args.reps
     num_cores = args.cores
