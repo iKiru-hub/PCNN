@@ -26,7 +26,7 @@ echo "[git 'main']"
 
 # --- RUN
 
-srun python3 analysis/study_gains.py --reps 32 --cores 32
+srun python3 analysis/study_gains.py --reps 128 --cores 32
 
 echo "[finished]"
 
