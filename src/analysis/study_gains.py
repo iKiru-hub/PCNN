@@ -240,6 +240,7 @@ if __name__ == "__main__":
     """ save """
     record_final = {
         "collisions": [],
+        "collisions_rw": [],
         "rewards": [],
         "len_no_g": [],
         "mean_no_g": [],
@@ -252,6 +253,7 @@ if __name__ == "__main__":
     # Aggregate the results from each core's processing of rooms
     for res in results:
         record_final["collisions"].extend(res["collisions"])
+        record_final["collisions_rw"].extend(res["collisions_rw"])
         record_final["rewards"].extend(res["rewards"])
         record_final["len_no_g"].extend(res["len_no_g"])
         record_final["mean_no_g"].extend(res["mean_no_g"])
