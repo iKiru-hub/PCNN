@@ -63,7 +63,7 @@ game_settings = {
 
 global_parameters = {
     "local_scale": 0.015,
-    "N": 32**2,
+    "N": 25**2,
     "use_sprites": False,
     "speed": 1.0,
     "min_weight_value": 0.1
@@ -109,7 +109,7 @@ PARAMETERS = {
 """ FUNCTIONS """
 
 #OPTIONS = ["no_remap", "default", "density", "gain"]
-OPTIONS = ["chance"]
+OPTIONS = ["col"]
 NUM_OPTIONS = len(OPTIONS)
 
 ROOM_LIST = ["Arena.0010", "Arena.0100", "Arena.0110",
