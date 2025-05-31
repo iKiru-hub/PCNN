@@ -319,6 +319,26 @@ Sander Tanni, William De~Cothi, and Caswell Barry.
 \newblock State transitions in the statistically stable place cell population correspond to rate of perceptual change.
 \newblock {\em Current Biology}, 32(16):3505--3514.e7, August 2022.
 
+\bibitem{anderson2003}
+Michael~I. Anderson and Kathryn~J. Jeffery.
+\newblock Heterogeneous {{Modulation}} of {{Place Cell Firing}} by {{Changes}} in {{Context}}.
+\newblock {\em Journal of Neuroscience}, 23(26):8827--8835, October 2003.
+
+\bibitem{lee2006}
+Inah Lee, Amy~L. Griffin, Eric~A. Zilli, Howard Eichenbaum, and Michael~E. Hasselmo.
+\newblock Gradual {{Translocation}} of {{Spatial Correlates}} of {{Neuronal Firing}} in the {{Hippocampus}} toward {{Prospective Reward Locations}}.
+\newblock {\em Neuron}, 51(5):639--650, September 2006.
+
+\bibitem{fyhn2002}
+Marianne Fyhn, Sturla Molden, Stig Hollup, May-Britt Moser, and Edvard~I. Moser.
+\newblock Hippocampal {{Neurons Responding}} to {{First-Time Dislocation}} of a {{Target Object}}.
+\newblock {\em Neuron}, 35(3):555--566, August 2002.
+
+\bibitem{dupret2010}
+David Dupret, Joseph O'Neill, Barty {Pleydell-Bouverie}, and Jozsef Csicsvari.
+\newblock The reorganization and reactivation of hippocampal maps predict spatial memory performance.
+\newblock {\em Nature Neuroscience}, 13(8):995--1002, August 2010.
+
 \bibitem{hok2007}
 Vincent Hok, Pierre-Pascal {Lenck-Santini}, S{\'e}bastien Roux, Etienne Save, Robert~U. Muller, and Bruno Poucet.
 \newblock Goal-{{Related Activity}} in {{Hippocampal Place Cells}}.
@@ -374,30 +394,10 @@ Hannah~S Wirtshafter and Matthew~A Wilson.
 \newblock Differences in reward biased spatial representations in the lateral septum and hippocampus.
 \newblock {\em eLife}, 9:e55252, May 2020.
 
-\bibitem{anderson2003}
-Michael~I. Anderson and Kathryn~J. Jeffery.
-\newblock Heterogeneous {{Modulation}} of {{Place Cell Firing}} by {{Changes}} in {{Context}}.
-\newblock {\em Journal of Neuroscience}, 23(26):8827--8835, October 2003.
-
-\bibitem{lee2006}
-Inah Lee, Amy~L. Griffin, Eric~A. Zilli, Howard Eichenbaum, and Michael~E. Hasselmo.
-\newblock Gradual {{Translocation}} of {{Spatial Correlates}} of {{Neuronal Firing}} in the {{Hippocampus}} toward {{Prospective Reward Locations}}.
-\newblock {\em Neuron}, 51(5):639--650, September 2006.
-
-\bibitem{fyhn2002}
-Marianne Fyhn, Sturla Molden, Stig Hollup, May-Britt Moser, and Edvard~I. Moser.
-\newblock Hippocampal {{Neurons Responding}} to {{First-Time Dislocation}} of a {{Target Object}}.
-\newblock {\em Neuron}, 35(3):555--566, August 2002.
-
 \bibitem{lenck-santini2005}
 P.-P. {Lenck-Santini}, B.~Rivard, R.u. Muller, and B.~Poucet.
 \newblock Study of {{CA1}} place cell activity and exploratory behavior following spatial and nonspatial changes in the environment.
 \newblock {\em Hippocampus}, 15(3):356--369, 2005.
-
-\bibitem{dupret2010}
-David Dupret, Joseph O'Neill, Barty {Pleydell-Bouverie}, and Jozsef Csicsvari.
-\newblock The reorganization and reactivation of hippocampal maps predict spatial memory performance.
-\newblock {\em Nature Neuroscience}, 13(8):995--1002, August 2010.
 
 \bibitem{scleidorovich2022}
 Pablo Scleidorovich, Jean-Marc Fellous, and Alfredo Weitzenfeld.

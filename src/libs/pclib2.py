@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 import core.build.pclib as pclib
 from utils import setup_logger
 
-logger = setup_logger('PCLIB', level=-3, is_debugging=False)
+logger = setup_logger('PCLIB', level=-3, is_debugging=False, is_warning=False)
 
 MAX_ATTEMPTS = 5
 MIN_PC_NUMBER = 5
@@ -19,6 +19,8 @@ OVERSHOOT_DURATION = 30
 
 MAX_PATH_DEPTH = 200
 MAX_PATH_DEPTH_EXPL = 20
+
+SSP_FLAG = 1
 
 
 """ FUNCTIONS """
@@ -388,23 +390,24 @@ class GoalModule:
         #     logger("curr idx has bad value")
         #     return [], False
 
-        # # Make plan path
-        plan_idxs = spatial_shortest_path(
-            space.get_connectivity(),
-            space.get_centers(),
-            space_weights,
-            curr_idx, trg_idx
-        )
-
-        # space_weights = np.where(space_weights < 0, 0.1, 1).reshape(-1, 1)
-
         # Make plan path
-        # plan_idxs = spatial_shortest_path_v2(
-        #     connectivity_matrix=space.get_connectivity(),
-        #     node_weights=1 - np.array(space_weights).reshape(-1, 1),
-        #     start_node=curr_idx, end_node=trg_idx,
-        #     is_exploration=is_exploration
-        # )
+        if SSP_FLAG == 1:
+            plan_idxs = spatial_shortest_path(
+                space.get_connectivity(),
+                space.get_centers(),
+                space_weights,
+                curr_idx, trg_idx
+            )
+        else:
+            space_weights = np.where(space_weights < 0, 0.1, 1).reshape(-1, 1)
+
+            # Make plan path
+            plan_idxs = spatial_shortest_path_v2(
+                connectivity_matrix=space.get_connectivity(),
+                node_weights=1 - np.array(space_weights).reshape(-1, 1),
+                start_node=curr_idx, end_node=trg_idx,
+                is_exploration=is_exploration
+            )
 
         # Check if the plan is valid, i.e., size > 1
         if len(plan_idxs) < 1:
@@ -660,9 +663,11 @@ class Brain:
         # Initialize modules
         self.goalmd = GoalModule(self.space, self.circuits, speed)
         self.rwobj = RewardObject(min_weight_value)
-        self.dpolicy = pclib.DensityPolicy(rwd_weight=rwd_weight, rwd_sigma=rwd_sigma,
+        self.dpolicy = pclib.DensityPolicy(rwd_weight=rwd_weight,
+                                           rwd_sigma=rwd_sigma,
                                            rwd_threshold=rwd_threshold,
-                                           col_weight=col_weight, col_sigma=col_sigma,
+                                           col_weight=col_weight,
+                                           col_sigma=col_sigma,
                                            col_threshold=col_threshold,
                                            rwd_field_mod=rwd_field_mod,
                                            col_field_mod=col_field_mod,
@@ -719,7 +724,8 @@ class Brain:
             logger.warning(f"the space is full | N={len(self.space)}")
 
         # :circuits
-        self.state['internal_state'] = self.circuits(u, collision, reward, False)
+        self.state['internal_state'] = self.circuits(u, collision,
+                                                     reward, False)
         self.state['reward'] = reward
         self.state['collision'] = collision
 
@@ -850,7 +856,8 @@ class Brain:
 
     def _attempt_boundary_plan(self):
 
-        logger.debug(f"attempting boundary plan | {self.expmd.edge_route_time=}")
+        logger.debug("attempting boundary plan | " + \
+                     f"{self.expmd.edge_route_time=}")
 
         expl_idx, sample_flag = self._sample_expl_idx()
 
@@ -871,7 +878,8 @@ class Brain:
                     goal_action, goal_flag = self.goalmd.step_plan(False)
 
                     # Confirm the edge walk
-                    logger.debug(f"valid plan | {goal_flag} | {goal_action=}")
+                    logger.debug(f"valid plan | {goal_flag}" + \
+                                 f" | {goal_action=}")
                     if goal_flag:
                         return goal_action
 

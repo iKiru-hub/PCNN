@@ -8,7 +8,7 @@
     \textbf{b}: \textit{the same enviroment but with the reward (green circle), trajectory (red line), agent position (black square).} -
     \textbf{c}: \textit{plot of trajectories before (black) and after (red) the insertion of a wall (rectangle) between the starting and goal positions, the wall can also be spotted from the boundary cells in blue} -
     \textbf{d}: \textit{trajectories for multiple trials with the agent starting at the same position (black square) but with the reward location (green circles) periodically moving} -
-    \textbf{e}: \textit{place cells centers with size proportional to their node degree} -
+    \textbf{e}: \textit{place cells centers with circle size and color proportional to their node degree; cells with a black cross changed their place field location over time} -
     \textbf{f}: \textit{place fields of the same cell before and after several relocation of its center following reward events} -
     \textbf{g}: \textit{visualization of part of the path-finding algorithm, propagation of an activity wave through the place cells network from top-left to bottom-center, and the calculated path visualization in the bottom-right.} -
 \textbf{h1}-\textbf{h2}: \textit{place cells centers with size inversely proportional to their gain value; in blue boudary cells with the highest average gain, in green reward cells with second smallest gain, the others in grey.}}
@@ -21,7 +21,7 @@ Our primary aim was to evaluate the formation of the cognitive map through neuro
 The best model resulting from evolution reached solid navigation and adaptation skills.
 The agent was able to visit a significant portion of the environment during exploration and use neuromodulation to produce useful spatial representations.
 
-The left panel of plot \ref{fig:main_results}\textbf{a}-\textbf{b} displays place cells associated with collisions and reward events, signaling boundaries (in blue) and reward (in green) locations.
+The left panel of Fig. \ref{fig:main_results}\textbf{a}-\textbf{b} displays place cells associated with collisions and reward events, signaling boundaries (in blue) and reward (in green) locations.
 The overlap of these two representations and the non-modulated place cells (in grey) is what we refer to as a cognitive map, since these are the main sources of spatial and contextual information used during planned navigation, whose path is depicted as a gray line.
 The right panel instead portrays the actual environment with walls (black), reward location (green), and multiple trajectories (red).
 During exploration, the main areas were visited until the reward position was located and the goal-directed navigation dominated, as highlighted by the density of the path lines.
@@ -39,19 +39,19 @@ In order to verify this we implemented a detour experiment.
 Initially, the agent was familiarized with a square environment with the reward in the middle and starting always from the same position.
 Then, a wall was placed in between the starting position and the reward, therefore forrcing new trajectory for reaching it.
 As expected, the agent was able to form a representation of the new obstacle and calculating new paths around it, succeeding the task.
-In plot \ref{fig:main_results}\textbf{c} they are shown the trajectories before and after the wall placement, and it is manifesed the ability of detour in the new layout.
+In Fig. \ref{fig:main_results}\textbf{c} they are shown the trajectories before and after the wall placement, and it is manifesed the ability of detour in the new layout.
 
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=1.\textwidth]{figures/descr_plot.png}
+    \includegraphics[width=0.99\textwidth]{figures/descr_plot.png}
     \caption{\textbf{Cognitive maps and performance results} -
-    \textbf{a}: \textit{effect of reward count on reward and boundary modulated cells (green and blue respectively), both in total count (top row) and average gain modulation magnitude (bottom row); simulation of 512 independent runs.} -
+    \textbf{a}: \textit{effect of reward count on reward and boundary modulated cells (green and blue respectively), both in total count (top row) and average gain modulation magnitude (bottom row); simulation of 160 independent runs.} -
     \textbf{b}: \textit{similar plot but with respect to collision
     count.} -
     \textbf{c}: \textit{relation between count of reward and boundary modulated cells, and between gain modulation magnitude.} -
     \textbf{d}: \textit{gain magnitude of boundary and reward cells over sequences of collision and reward events respectively} -
-    \textbf{e}: \textit{performance comparison for the same models on the same environment with and without modulation enabled. Pair-wise t-test over 128 iterations and Bonferroni correction}}
+    \textbf{e}: \textit{performance comparison for the same base model but with different levels of ablation: completely without modulatiory actions, all modulation enabled, only DA-related modulation, only BND-related modulation, only place cells density modulation, only activation gain modulation. Pair-wise t-test over 128 iterations and Bonferroni correction}}
     \label{fig:descr_results}
 \end{figure}
 
@@ -59,7 +59,7 @@ In plot \ref{fig:main_results}\textbf{c} they are shown the trajectories before 
 \paragraph{Adaptive goal representation through sensory error}
 Then, we tested the adaptability to environmental changes. In this scenario, the reward object was moved after being fetched a fixed number of times.
 Here, the difficulty was to unlearning previous locations and discovering new ones, in a protocol similar to \cite{brzosko2019}.
-In plot \ref{fig:main_results}\textbf{d} is reported the set of trajectories over many trials with the reward displaced in three possible locations. The agent was capable of planning behavior, as earlier, but also exploring and finding the new rewards, as shown by the density of lines.
+In Fig. \ref{fig:main_results}\textbf{d} is reported the set of trajectories over many trials with the reward displaced in three possible locations. The agent was capable of planning behavior, as earlier, but also exploring and finding the new rewards, as shown by the density of lines.
 Whenever a goal path resulted in a failed prediction, the DA-based sensory error weakened the association between the place cells and the reward signal, leading to an extinction of its representation at that location.
 
 This result validates the resilience of the model to changing sensory expectations, in this case the reward position.
@@ -67,33 +67,57 @@ This result validates the resilience of the model to changing sensory expectatio
 \paragraph{Modulation of place field size}
 The construction of model is such that the experience of environmental events can impact the neuronal properties of the generated place cells.
 In particular, collision and reward events have the effect of affecting the neural activation gain $\beta$ of BND and DA-modulated cells through an hyperparameter .
-The hyperparameter values $c^{\text{BND}}_{a},\,c^{\text{DA}}_{a}$ that yielded the best results were both larger that 1., meaning a shrinking of field size.
-In plots \ref{fig:main_results}\textbf{h1}-\textbf{h2} are showed the cognitive maps with relative place field sizes for two enviroments, showcasing the differences between boundary, reward, and non-modulated cells.
-in plots \ref{fig:descr_results}\textbf{d} is showed the evolution of the gain magnitude for a sample of boundary cells and reward cells over their corresponding modulatory events.
+The hyperparameter values $c^{\text{BND}}_{a},\,c^{\text{DA}}_{a}$ that yielded the best results were both larger that 1., $4.6,\,4.4$ respectively, meaning a shrinking of field size.
+In Fig. \ref{fig:main_results}\textbf{h2}-\textbf{h2} are showed the cognitive maps with relative place field sizes for two enviroments, showcasing the differences between boundary, reward, and non-modulated cells.
+In addition, Fig. \ref{fig:main_results}\textbf{h1} indicates the place cells that underwent re-location of their fields with a red lines representing the displacement vector.
+The distributon of these re-location vector is biased towards the rewarding area, a similar observation to Fig. \ref{fig:main_results}\textbf{e} in which the cells involved by modulation of field positions are markered with a black cross.
+In Fig. \ref{fig:descr_results}\textbf{d} is showed the evolution of the gain magnitude for a sample of boundary cells and reward cells over their corresponding modulatory events.
 Notable is the possible decrease in value, case that occurs when a cell is active but the modulation is absent and the gain thus is pushed down towards the baseline $\bar{beta}$. This feature can be considered another adaptation property.
 
 
 \paragraph{Effect of modulation on performance}
+
 Lastly, we investigated the effect of modulating the density of place cells and the size of the field.
 The goal position was fixed, but the agent was randomly relocated after fetching; performance was defined as the total number of reward counts within a time window.
 
 Our working hypothesis is that these experience-driven neuronal changes would improve the quality of the cognitive map and be reflected in navigational abilities.
-The assessment of this claim was conducted by comparing two variants of the model: with or without the modulation mechanisms, namely the density and gain modulation from reward and collision events..
-Both models were ran in the same environment, with numerous wall, for a total of 128 simulations for each case.
+The assessment of this claim was conducted by comparing variants of the model, obtained by progressively ablating the reward (DA) and collision (BND) modulatory actions, as well as the density and gain mechanisms separately.
+% We also defined a chance level by instead blocking all modulation-based plasticity and allowing only place cells to form.
+All models were run in five different environments differing by number of internal walls, from 2 to 11, for a total of 64 independent simulation repetitions done for each single case.
 
-The statistical results shown in the box plot of Figure \ref{fig:main_results}\textbf{g} demonstrate a signiticant difference between the two groups, supporting the important of place field modulation.
+% ---
+The statistical results are shown in Fig. \ref{fig:descr_results}\textbf{e}.
+All models performed above chance, but the main finding is the confirmation of the importance of neuronal modulation, as revealed by the statistical difference of most modulation-powered models with respect to the one with all modulation disabled.
 
-Plot \ref{fig:main_results}\textbf{e} showcases the distribution of place cells with the circle size and color represent the node degree, which aligns discretely with the reward position and the density.
-Further, in plot \ref{fig:main_results}\textbf{f} the place field of one cell is shown, before and after several reward occurences and consequent center relocation.
+% Then, to inquire which particular modulatory action was mostly relevant, we conducted a similar test in the same environment, but ablating not only specific neuromodulators, but also whether they affected the density of the place cells or the activation gain parameter.
+% In Fig.  \ref{fig:main_results}\textbf{g} are reported the comparions among different variants.
+% The general trend matched the previous results \ref{fig:main_results}\textbf{c}, in that DA is the best neuromodulator in terms of performance correlation.
 
-Taken together, these findings support the hypothesis of practical utility of direct modulation of place-field structure for active navigation, even in these limited settings.
+% TODO
+An additional finding was that density modulation is significantly the primary action behind the behavioral improvements and alone does not perform worse than the model with all actions together.
 
+Figure \ref{fig:main_results}\textbf{d} showcases the distribution of place cells with the circle size and color representing the node degree, which aligns discretely with the position of reward and the density.
+Furthermore, in Fig.  \ref{fig:main_results}\textbf{e} the place field of one cell is shown, before and after several reward occurrences and consequent center relocation.
+
+Taken together, these findings support the hypothesis of practical utility of direct modulation of place-field structure for active navigation, even in these simple settings. 
 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=1.\textwidth]{figures/evoplot.png}
-    \caption{\textbf{Distribution of evolved hyper-parameters} - \textit{Results relative to the last generation, from a run with population size of 90 individuals. The hyper-parameters are: neural gain $\beta$, lateral inhibition threshold $\theta^{\text{PC}}_{\text{inh}}$, lateral distance
-    threshold $\theta^{\text{PC}}_{\text{rec}}$, activity trace time constant $\tau^{\text{PC}}$, reward modulation scale $c^{\text{DA}}_{b}$, reward modulation spread $c^{\text{DA}}_{b}$, boundary modulation scale $c^{\text{BND}}_{b}$, boundary modulation spread $c^{\text{BND}}_{b}$, reward gain modulation $c^{\text{DA}}_{a}$, and boundary gain modulation $c^{\text{BND}}_{a}$.}}
+    \caption{\textbf{Distribution of evolved hyper-parameters} - \textit{Results relative to the last generation, from a run with population size of 90 individuals.
+    The hyper-parameters are: neural activation gain $\beta$,
+    neural acitvation bias $\alpha$,
+    lateral inhibition threshold $\theta^{\text{PC}}_{\text{inh}}$,
+    lateral distance threshold $\theta^{\text{PC}}_{\text{rec}}$,
+    activity trace time constant $\tau^{\text{PC}}$,
+    reward modulation scale $c^{\text{DA}}_{b}$,
+    reward modulation spread $c^{\text{DA}}_{b}$,
+    reward modulation threshold $\theta^{\text{DA}}$,
+    boundary modulation scale $c^{\text{BND}}_{b}$,
+    boundary modulation spread $c^{\text{BND}}_{b}$,
+    boundary modulation threshold $\theta^{\text{BND}}$,
+    reward gain modulation $c^{\text{DA}}_{a}$,
+    and boundary gain modulation $c^{\text{BND}}_{a}$.}}
     \label{fig:evoplot}
 \end{figure}
 
@@ -101,9 +125,16 @@ Taken together, these findings support the hypothesis of practical utility of di
 The use of an evolutionary algorithm for selecting the model dynamics had the convenience of providing a distribution of hyper-parameters over a population.
 In Figure \ref{fig:evoplot}, each dot represent the the value for one individual plotted with respect to its average reward count.
 A marked convergence is visible for most variables, with some displaying a quasi-bimodal distribution.
-The hyper-parameters related to the gain $\beta$ of the neural activation function $\phi$ have an high clustering index.
-Importantly, there is a strong tendency of having modulation increasing the magnitude of the gain for both reward and collision events, with the effect of reducing the size the active place fields.
+The hyper-parameters directly involved in the neural activation, such as the parameters of the activation function $\beta,\, \alpha$ and the trace time constant $\tau^{\text{PC}}$, display an elevated degree of clustering.
+Further, their specific values are such that the model is brought to develop  a dense place cell network with, due to the weak lateral inhibition given the high threshold $\theta^{\text{PC}}_{\text{rep}}$, and low overlapping of fields, due to the steep gain $\beta$.
+
+As for modulation, there is a strong tendency of increasing the magnitude of the gain for both reward $c^{\text{DA}}_{a}$ and collision $c^{\text{BND}}_{a}$ events, with the effect of further reducing the size the active place fields.
 This result is in the direction of experimental observation showing shrinking of place fields near objects and walls \cite{burke2011, tanni2022}.
 
+Instead, concerning the modulation of the place cells centers, there is more diversity in the adopted action.
+In fact, it can be both of pulling towards and pushing away from the current agent position, with the latter being more frequent in regard of collision modulation.
+These findings align, at least partially, with previous work about place fields remapping \cite{anderson2003} and reward-induced changes in the preferred tuning location of hippocampal place cells \cite{lee2006, fyhn2002, dupret2010, bittner2017}.
+
+In summary, over the course of generations evolution converged to specific neural dynamics that are reminiscent of patterns observed in biological neuronal systems.
 
 

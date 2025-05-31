@@ -215,17 +215,17 @@ FIXED_PARAMETERS = {
      # 'tau_trace': 20,
 
      'remap_tag_frequency': 1,
-     # 'num_neighbors': 20,
+     'num_neighbors': 13,
      'min_rep_threshold': 0.99,
 
      'lr_da': 0.9,
      'lr_pred': 0.05,
      'threshold_da': 0.05,
-     'tau_v_da': 1.0,
+     # 'tau_v_da': 1.0,
 
      'lr_bnd': 0.9,
      'threshold_bnd': 0.1,
-     'tau_v_bnd': 1.0,
+     # 'tau_v_bnd': 1.0,
 
      'tau_ssry': 437.0,
      'threshold_ssry': 1.986, # <-----------------
@@ -267,11 +267,11 @@ PARAMETERS = {
     "lr_da": lambda: round(random.uniform(0.4, 0.99), 2),
     "lr_pred": lambda: round(random.uniform(0.01, 0.4), 2),
     "threshold_da": lambda: round(random.uniform(0.01, 0.5), 2),
-    "tau_v_da": lambda: float(random.randint(1, 5)),
+    "tau_v_da": lambda: np.clip(random.uniform(-5, 10), 1., 10.),
 
     "lr_bnd": lambda: round(random.uniform(0.3, 0.99), 2),
     "threshold_bnd": lambda: round(random.uniform(0.01, 0.5), 2),
-    "tau_v_bnd": lambda: float(random.randint(1, 5)),
+    "tau_v_bnd": lambda: np.clip(random.uniform(-5, 10), 1., 10.),
 
     "tau_ssry": lambda: float(random.randint(100, 800)),
     "threshold_ssry": lambda: round(random.uniform(0.8, 1.2), 3),
@@ -280,12 +280,13 @@ PARAMETERS = {
     "rwd_weight": lambda: round(random.uniform(-4.0, 4.0), 2),
     "rwd_sigma": lambda: round(random.uniform(1.0, 130.0), 1),
     "rwd_threshold": lambda: round(random.uniform(0., 0.6), 2),
+
     "col_weight": lambda: round(random.uniform(-4.0, 4.0), 2),
     "col_sigma": lambda: round(random.uniform(1.0, 60.0), 1),
     "col_threshold": lambda: round(random.uniform(0., 0.6), 2),
 
-    "rwd_field_mod": lambda: round(random.uniform(-5.0, 5.0), 1),
-    "col_field_mod": lambda: round(random.uniform(-5.0, 5.0), 1),
+    "rwd_field_mod": lambda: round(random.uniform(-5.0, 10.0), 1),
+    "col_field_mod": lambda: round(random.uniform(-5.0, 10.0), 1),
 
     "action_delay": lambda: round(random.uniform(1., 300.), 1),
     "edge_route_interval": lambda: random.randint(1, 10_000),
@@ -319,7 +320,7 @@ if __name__ == "__main__" :
     me.USE_TQDM = False
     VISUALIZE = args.visualize
 
-    percent_to_save = 0.9
+    percent_to_save = 1.
 
     # Ignore runtime warnings
     import warnings

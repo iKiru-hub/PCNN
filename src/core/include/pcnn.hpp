@@ -938,10 +938,10 @@ public:
             centers.row(idx) = Eigen::Vector2f(
                 position[0], position[1]);
 
-            if (centers_original(idx, 0) < -700.0f) {
-                centers_original.row(idx) = Eigen::Vector2f(
-                    position[0], position[1]);
-            }
+            // if (centers_original(idx, 0) < -700.0f) {
+            //     centers_original.row(idx) = Eigen::Vector2f(
+            //         position[0], position[1]);
+            // }
         }
 
         // add recurrent connections based on nearest neighbors
@@ -1179,13 +1179,14 @@ class PCNN {
     // variables
     Eigen::MatrixXf Wff;
     Eigen::MatrixXf Wffbackup;
-    Eigen::MatrixXf Wff_gcp;
+    Eigen::MatrixXf Wff_original;
     float delta_wff;
     Eigen::MatrixXf Wrec;
     Eigen::MatrixXf connectivity;
     Eigen::VectorXf mask;
     std::vector<int> fixed_indexes;
     std::vector<int> free_indexes;
+    std::vector<int> _indexes;
     int cell_count;
     Eigen::VectorXf u;
     Eigen::VectorXf traces;
@@ -1218,7 +1219,7 @@ class PCNN {
 
     // @brief Quantify the indexes.
     void make_indexes() {
-        free_indexes.clear();
+        free_indexes = {};
         for (int i = 0; i < N; i++) {
             if (Wff.row(i).sum() > 0.0f) { fixed_indexes.push_back(i); }
             else { free_indexes.push_back(i); }
@@ -1244,6 +1245,7 @@ public:
 
         // Initialize the variables
         Wff = Eigen::MatrixXf::Zero(N, Nj);
+        Wff_original = Eigen::MatrixXf::Zero(N, Nj);
         Wffbackup = Eigen::MatrixXf::Zero(N, Nj);
         Wrec = Eigen::MatrixXf::Zero(N, N);
         connectivity = Eigen::MatrixXf::Zero(N, N);
@@ -1260,6 +1262,7 @@ public:
         for (int i = 0; i < N; i++) {
             gain_v(i) = gain_const;
             free_indexes.push_back(i);
+            _indexes.push_back(i);
         }
         fixed_indexes = {};
 
@@ -1313,7 +1316,9 @@ public:
         if (cell_count == N) { return void(); }
 
         // pick new index
-        int idx = free_indexes[cell_count];
+        // int _count = cell_count == 0 ? 0 : cell_count / 2;
+        // int idx = free_indexes[cell_count];
+        int idx = _indexes[cell_count+1];
 
         // determine weight update | <<<< previously
         Eigen::VectorXf dw = x_filtered - Wff.row(idx).transpose();
@@ -1338,8 +1343,10 @@ public:
             }
 
             // update count and backup
-            cell_count++;
+            if (idx > cell_count) { cell_count++; }
+            // cell_count++;
             Wffbackup.row(idx) = Wff.row(idx);
+            // Wff_original.row(idx) = Wff.row(idx);
 
             // record new center
             vspace.update(idx, traces);
@@ -1402,8 +1409,9 @@ public:
                                     min_rep_threshold)) { continue; }
 
             // weight the displacement
-            std::array<float, 2> gc_displacement = {displacement[0] * magnitude,
-                                                    displacement[1] * magnitude};
+            std::array<float, 2> gc_displacement = {
+                                displacement[0] * magnitude,
+                                displacement[1] * magnitude};
 
             // pass the input through the filter layer
             x_filtered = xfilter.simulate_one_step(gc_displacement);
@@ -1497,6 +1505,7 @@ public:
     Eigen::VectorXf get_activation_gcn()
         { return xfilter.get_activation(); }
     Eigen::MatrixXf& get_wff() { return Wff; }
+    Eigen::MatrixXf& get_wff_original() { return Wff_original; }
     Eigen::MatrixXf& get_wrec() { return Wrec; }
     float get_trace_value(int idx) { return traces(idx); }
     Eigen::VectorXf get_trace_v2() { return traces_v2; }

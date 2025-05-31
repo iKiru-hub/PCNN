@@ -36,7 +36,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 2,
-    "silent_duration": 1_000,
+    "silent_duration": 8_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 40.,
@@ -64,7 +64,7 @@ game_settings = {
 global_parameters = {
     "local_scale": 0.015,
     "N": 32**2,
-    "use_sprites": bool(0),
+    "use_sprites": bool(1),
     "speed": 1.0,
     "min_weight_value": 0.5
 }
@@ -141,44 +141,38 @@ parameters4 = {
 }
 
 parameters = {
-          "gain": 104.2,
-          "offset": 1.0128208308713407,
-          "threshold": 0.4,
-          "rep_threshold": 0.9532226682635143,
-          "rec_threshold": 62,
-          "tau_trace": 20,
-          "remap_tag_frequency": 1,
-          "num_neighbors": 13,
-          "min_rep_threshold": 0.99,
-
-          "lr_da": 0.9,
-          "lr_pred": 0.05,
-          "threshold_da": 0.05,
-          "tau_v_da": 1.0,
-          "lr_bnd": 0.9,
-          "threshold_bnd": 0.1,
-          "tau_v_bnd": 1.0,
-
-          "tau_ssry": 437.0,
-          "threshold_ssry": 1.986,
-          "threshold_circuit": 0.9,
-
-          "rwd_weight": 0.,
-          "rwd_sigma": 10.,
-          "rwd_threshold": 0.4,
-
-          "col_weight": 0.,
-          "col_sigma": 10.,
-          "col_threshold": 0.4,
-
-          "rwd_field_mod": 2.2,
-          "col_field_mod": 3.3,
-          "action_delay": 120.0,
-          "edge_route_interval": 50,
-          "forced_duration": 19,
-          "min_weight_value": 0.1,
-          "modulation_option": [True]*4
-
+      "gain": 102.4,
+      "offset": 1.02,
+      "threshold": 0.4,
+      "rep_threshold": 0.999,
+      "rec_threshold": 33,
+      "tau_trace": 10,
+      "remap_tag_frequency": 1,
+      "num_neighbors": 4,
+      "min_rep_threshold": 0.99,
+      "lr_da": 0.9,
+      "lr_pred": 0.05,
+      "threshold_da": 0.05,
+      "tau_v_da": 1.0,
+      "lr_bnd": 0.9,
+      "threshold_bnd": 0.1,
+      "tau_v_bnd": 1.0,
+      "tau_ssry": 437.0,
+      "threshold_ssry": 1.986,
+      "threshold_circuit": 0.9,
+      "rwd_weight": -2.11,
+      "rwd_sigma": 96.8,
+      "rwd_threshold": 0.49,
+      "col_weight": -0.53,
+      "col_sigma": 16.1,
+      "col_threshold": 0.37,
+      "rwd_field_mod": 4.6,
+      "col_field_mod": 4.4,
+      "action_delay": 120.0,
+      "edge_route_interval": 50,
+      "forced_duration": 19,
+      "min_weight_value": 0.1,
+    "modulation_options": [True]*4
 }
 
 
@@ -195,8 +189,8 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, brain: object, boundsx: tuple=(-430, 80),
-                 boundsy: tuple=(-50, 460),
+    def __init__(self, brain: object, boundsx: tuple=(-430, 100),
+                 boundsy: tuple=(-50, 480),
                  render_type: str="space"):
 
         self.brain = brain
@@ -206,8 +200,8 @@ class Renderer:
         self.min_y = boundsy[0]
         self.boundsx = boundsx
         self.boundsy = boundsy
-        print(f"boundsx={self.boundsx}")
-        print(f"boundsy={self.boundsy}")
+        # print(f"boundsx={self.boundsx}")
+        # print(f"boundsy={self.boundsy}")
         self.render_type = render_type
         if render_type == "space0":
             self.fig, self.axs = plt.subplots(1, 3, figsize=(6, 6))
@@ -234,10 +228,13 @@ class Renderer:
     def render(self):
 
         self.axs.clear()
+        gg = self.brain.get_gain()
 
         # -- pc
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
-                         color='grey', alpha=0.5, s=15)
+                         color='grey',
+                         alpha=0.1,
+                         s=0.9*np.mean(gg))
 
         # for edge in self.brain.make_space_edges():
         #     self.axs.plot((edge[0][0], edge[1][0]),
@@ -246,29 +243,35 @@ class Renderer:
 
         # -- BND
         bndw = self.brain.get_bnd_weights()
-        self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
-                         c=bndw,
+        bndidx = np.where(bndw>0.05)[0]
+        self.axs.scatter(*np.array(self.brain.get_space_centers())[bndidx, :].T,
+                         c=bndw[bndidx],
                          cmap="Blues", alpha=1.,
-                         s=np.where(bndw > 0.01, 80, 0),
-                         vmin=0., vmax=0.3)
+                         # s=np.where(bndw > 0.01, 80, 0),
+                         s=0.9*gg.mean()*gg.mean()/gg[bndidx],
+                         vmin=0., vmax=0.2)
 
         # -- DA
         daw = self.brain.get_da_weights()
-        self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
-                               c=daw,
-                               s=np.where(daw > 0.01, 80, 0),
-                               cmap="Greens", alpha=1.,
-                               vmin=0., vmax=0.3)
+        daidx = np.where(daw>0.05)[0]
+        self.axs.scatter(*np.array(self.brain.get_space_centers())[daidx, :].T,
+                         c=daw[daidx],
+                         # s=np.where(daw > 0.01, 80, 0),
+                         s=0.9*gg.mean()*gg.mean()/gg[daidx],
+                         cmap="Greens", alpha=1.,
+                         vmin=0., vmax=0.3)
 
         # -- plan
-        # plan_center = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
-        # self.axs.plot(*plan_center.T, color="red", alpha=1., lw=2.)
+        plan_center = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
+        self.axs.plot(*plan_center.T, color="red", alpha=1., lw=2.)
 
         # self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
         #                        c=self.brain.get_trg_representation(),
         #                        s=200*self.brain.get_trg_representation(),
         #                        marker="x",
         #                        cmap="Greens", alpha=0.7)
+
+        self.axs.set_title(f"N={len(self.brain)}")
 
         self.axs.set_xlim(self.boundsx)
         self.axs.set_ylim(self.boundsy)

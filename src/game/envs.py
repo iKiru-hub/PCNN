@@ -618,22 +618,20 @@ def make_room(name: str="square", thickness: float=10.,
         walls_extra += [
             Wall(SCREEN_WIDTH//2-4.5*OFFSET, SCREEN_HEIGHT//3-OFFSET,
                  1*SCREEN_WIDTH//3+4*OFFSET, thickness),
-
             Wall(SCREEN_WIDTH//2-4.5*OFFSET, 2*SCREEN_HEIGHT//3+OFFSET,
                  1*SCREEN_WIDTH//3+4*OFFSET, thickness),
-
             Wall(SCREEN_WIDTH//2-7*OFFSET, SCREEN_HEIGHT//2,
                  1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+
             Wall(SCREEN_WIDTH//2-1.5*OFFSET, SCREEN_HEIGHT//2,
                  1*SCREEN_WIDTH//3-2*OFFSET, thickness),
             Wall(SCREEN_WIDTH//2+4*OFFSET, SCREEN_HEIGHT//2,
                  1*SCREEN_WIDTH//3-2*OFFSET, thickness),
-
             Wall(SCREEN_WIDTH//2+0*OFFSET, 2*SCREEN_HEIGHT//3+1*OFFSET,
                  thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
+
             Wall(SCREEN_WIDTH//2-0*OFFSET, 1*SCREEN_HEIGHT//3-4*OFFSET,
                  thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
-
             Wall(SCREEN_WIDTH//2-0*OFFSET, SCREEN_HEIGHT//2-1.5*OFFSET,
                  thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
         ]
@@ -644,26 +642,25 @@ def make_room(name: str="square", thickness: float=10.,
         walls_extra += [
             Wall(SCREEN_WIDTH//2-4.5*OFFSET, SCREEN_HEIGHT//3-OFFSET,
                  1*SCREEN_WIDTH//3+4*OFFSET, thickness),
-
             Wall(SCREEN_WIDTH//2-4.5*OFFSET, 2*SCREEN_HEIGHT//3+OFFSET,
                  1*SCREEN_WIDTH//3+4*OFFSET, thickness),
-
             Wall(SCREEN_WIDTH//2-7*OFFSET, SCREEN_HEIGHT//2,
                  1*SCREEN_WIDTH//3-2*OFFSET, thickness),
+
             Wall(SCREEN_WIDTH//2-1.5*OFFSET, SCREEN_HEIGHT//2,
                  1*SCREEN_WIDTH//3-2*OFFSET, thickness),
             Wall(SCREEN_WIDTH//2+4*OFFSET, SCREEN_HEIGHT//2,
                  1*SCREEN_WIDTH//3-2*OFFSET, thickness),
-
             Wall(SCREEN_WIDTH//2+0*OFFSET, 2*SCREEN_HEIGHT//3+1*OFFSET,
                  thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
+
             Wall(SCREEN_WIDTH//2-0*OFFSET, 1*SCREEN_HEIGHT//3-4*OFFSET,
                  thickness, 1*SCREEN_WIDTH//3-2*OFFSET),
-
             Wall(SCREEN_WIDTH//2-2.5*OFFSET, SCREEN_HEIGHT//2-2*OFFSET,
                  thickness, 1*SCREEN_WIDTH//3-5*OFFSET),
             Wall(SCREEN_WIDTH//2+2.5*OFFSET, SCREEN_HEIGHT//2-2*OFFSET,
                  thickness, 1*SCREEN_WIDTH//3-5*OFFSET),
+
             Wall(SCREEN_WIDTH//2-2.5*OFFSET, SCREEN_HEIGHT//2+2*OFFSET,
                  thickness, 1*SCREEN_WIDTH//3-5*OFFSET),
             Wall(SCREEN_WIDTH//2+2.5*OFFSET, SCREEN_HEIGHT//2+2*OFFSET,

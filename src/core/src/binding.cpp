@@ -78,6 +78,7 @@ PYBIND11_MODULE(pclib, m) {
              &PCNN::get_activation_gcn)
         .def("get_size", &PCNN::get_size)
         .def("get_wff", &PCNN::get_wff)
+        .def("get_wff_original", &PCNN::get_wff_original)
         .def("get_wrec", &PCNN::get_wrec)
         .def("make_edges", &PCNN::make_edges)
         .def("calculate_closest_index", &PCNN::calculate_closest_index,

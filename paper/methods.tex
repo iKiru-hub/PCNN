@@ -21,7 +21,7 @@ Each place cell’s activation is computed via a bounded cosine similarity funct
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/figure_model_v2.png}
+    \includegraphics[width=0.99\textwidth]{figures/figure_model_v2.png}
     \caption{\textbf{Model layout and spatial representations} -
     \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs
     and a reward receiver}.
@@ -54,13 +54,15 @@ See Appendix for full learning rules and parameter settings.
 \paragraph{Modulation of Place Fields}
 We further tested whether neuromodulators could directly alter spatial tuning. Place fields were dynamically shifted and resized based on recent salience signals.
 
-Following a salient event (reward or collision), place field centers were displaced in grid cell space, with magnitude scaled by the neuromodulator $v^k$ and proximity to the event:
+Following a salient event (reward or collision), place field centers were displaced in grid cell space with magnitude scaled by the neuromodulator $v^k$ and proximity to the event:
 
 \begin{equation}
 \Delta \mathbf{W}^{\text{GC}, \text{PC}}_i = c^{k} v^{k} \varphi_{\sigma^{k}}(\mathbf{u}^{\text{GC}} - \mathbf{W}^{\text{GC}, \text{PC}}_i)
 \end{equation}
 
-Here, $\varphi_{\sigma}$ is a Gaussian function, and $c^{k}$ a scaling factor. This rule is inspired by BTSP plasticity \cite{bittner2017, milstein2021}, which shifts CA1 place fields following salient experiences. Lateral inhibition prevents field overlap during remapping.
+Here, $\varphi$ is a Gaussian function with width $\sigma^{k}$, and $c^{k}$ a scaling factor. This rule is inspired by BTSP plasticity \cite{bittner2017, milstein2021}, which shifts CA1 place fields following salient experiences.
+This action was applied only to recently active cells, namely with an activity trace greater than a threshold $\theta^{k}$.
+Futher, lateral inhibition prevents field overlap during remapping.
 
 In addition to dislocation, field size was modulated by scaling the gain of recently active neurons.
 Such mechanism allows neuromodulators to transiently enhance or suppress spatial sensitivity for specific cells.

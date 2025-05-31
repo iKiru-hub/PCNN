@@ -34,3 +34,21 @@ Finally, the agent's ability to dynamically adjust its behavior based on environ
 \hfill \break
 See also \url{https://ikiru-hub.github.io/showcase/} for a video demonstration of the place cell generation and navigation tasks.
 
+
+
+
+Lastly, we investigated the effect of modulating the density of place cells and the size of the field.
+The goal position was fixed, but the agent was randomly relocated after fetching; performance was defined as the total number of reward counts within a time window.
+
+Our working hypothesis is that these experience-driven neuronal changes would improve the quality of the cognitive map and be reflected in navigational abilities.
+The assessment of this claim was conducted by comparing two variants of the model: with or without the modulation mechanisms, namely the density and gain modulation from reward and collision events..
+Both models were ran in the same environment, with numerous wall, for a total of 128 simulations for each case.
+
+The statistical results shown in the box plot of Figure \ref{fig:main_results}\textbf{g} demonstrate a signiticant difference between the two groups, supporting the important of place field modulation.
+
+Plot \ref{fig:main_results}\textbf{e} showcases the distribution of place cells with the circle size and color represent the node degree, which aligns discretely with the reward position and the density.
+Further, in plot \ref{fig:main_results}\textbf{f} the place field of one cell is shown, before and after several reward occurences and consequent center relocation.
+
+Taken together, these findings support the hypothesis of practical utility of direct modulation of place-field structure for active navigation, even in these limited settings.
+
+
