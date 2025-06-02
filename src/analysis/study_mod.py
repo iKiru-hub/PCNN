@@ -109,7 +109,7 @@ PARAMETERS = {
 """ FUNCTIONS """
 
 #OPTIONS = ["no_remap", "default", "density", "gain"]
-OPTIONS = ["no_remap"]
+OPTIONS = ["gain"]
 NUM_OPTIONS = len(OPTIONS)
 
 ROOM_LIST = ["Arena.0010", "Arena.0100", "Arena.0110",
