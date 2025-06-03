@@ -109,7 +109,7 @@ PARAMETERS = {
 """ FUNCTIONS """
 
 #OPTIONS = ["no_remap", "default", "density", "gain"]
-OPTIONS = ["rwd"]
+OPTIONS = ["no_remap"]
 NUM_OPTIONS = len(OPTIONS)
 
 ROOM_LIST = ["Arena.0010", "Arena.0100", "Arena.0110",
@@ -163,8 +163,8 @@ def change_parameters(params: dict, name: int):
         #params["col_weight"] = 0.
         #params["col_sigma"] = 0.
         #params["col_threshold"] = 0.
-        #params["rwd_field_mod"] = 1.
-        #params["col_field_mod"] = 1.
+        params["rwd_field_mod"] = 1.
+        params["col_field_mod"] = 1.
         return params
 
     # rwd option
