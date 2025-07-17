@@ -938,10 +938,10 @@ public:
             centers.row(idx) = Eigen::Vector2f(
                 position[0], position[1]);
 
-            // if (centers_original(idx, 0) < -700.0f) {
-            //     centers_original.row(idx) = Eigen::Vector2f(
-            //         position[0], position[1]);
-            // }
+            if (centers_original(idx, 0) < -700.0f) {
+                centers_original.row(idx) = Eigen::Vector2f(
+                    position[0], position[1]);
+            }
         }
 
         // add recurrent connections based on nearest neighbors

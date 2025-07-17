@@ -3,50 +3,87 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
 Database file #1: pcnn_ref_2.bib
+Warning--I didn't find a database entry for "donatoHowYouBuild2023"
+Warning--I didn't find a database entry for "hokGoalRelatedActivityHippocampal2007"
+Warning--I didn't find a database entry for "ishikawaSpatialKnowledgeAcquisition2006"
+Warning--I didn't find a database entry for "warrenNonEuclideanNavigation2019"
+Warning--I didn't find a database entry for "gallistelComputationsMetricMaps1996"
+Warning--I didn't find a database entry for "gillnerNavigationAcquisitionSpatial1998"
+Warning--I didn't find a database entry for "mcnaughtonPathIntegrationNeural2006"
+Warning--I didn't find a database entry for "sorscherUnifiedTheoryComputational2023"
+Warning--I didn't find a database entry for "cuevaEmergenceGridlikeRepresentations2018"
+Warning--I didn't find a database entry for "whishawCalibratingSpaceExploration1999a"
+Warning--I didn't find a database entry for "baninoVectorbasedNavigationUsing2018"
+Warning--I didn't find a database entry for "brzoskoSequentialNeuromodulationHebbian2017"
+Warning--I didn't find a database entry for "decothiPredictiveMapsRats2022"
+Warning--I didn't find a database entry for "aitkenHippocampalRepresentationsSwitch2022"
+Warning--I didn't find a database entry for "halvagalCombinationHebbianPredictive2023"
+Warning--I didn't find a database entry for "ororbiaSpikingNeuralPredictive2023"
+Warning--I didn't find a database entry for "stachenfeldHippocampusPredictiveMap2017"
+Warning--I didn't find a database entry for "sosaHippocampalSequencesSpan2024"
+Warning--I didn't find a database entry for "kempadooDopamineReleaseLocus2016"
+Warning--I didn't find a database entry for "schultzDopamineRewardPrediction2016"
+Warning--I didn't find a database entry for "coolsChemistryAdaptiveMind2019"
+Warning--I didn't find a database entry for "sheynikhovichLongtermMemorySynaptic2023"
+Warning--I didn't find a database entry for "bittnerBehavioralTimeScale2017"
+Warning--I didn't find a database entry for "nairHippocampusMaintainsCoherent2022"
+Warning--I didn't find a database entry for "tryonHippocampalNeuralActivity2017"
+Warning--I didn't find a database entry for "wirtshafterDifferencesRewardBiased2020"
+Warning--I didn't find a database entry for "andersonHeterogeneousModulationPlace2003"
+Warning--I didn't find a database entry for "leeGradualTranslocationSpatial2006"
+Warning--I didn't find a database entry for "fyhnHippocampalNeuronsResponding2002"
+Warning--I didn't find a database entry for "lenck-santiniStudyCA1Place2005"
+Warning--I didn't find a database entry for "dupretReorganizationReactivationHippocampal2010"
+Warning--I didn't find a database entry for "burkeInfluenceObjectsPlace2011"
+Warning--I didn't find a database entry for "tanniStateTransitionsStatistically2022"
+Warning--I didn't find a database entry for "scleidorovichAdaptingHippocampusMultiscale2022"
+Warning--I didn't find a database entry for "mehtaExperiencedependentAsymmetricExpansion1997"
+Warning--I didn't find a database entry for "leeBraininspiredPredictiveCoding2022"
+Warning--I didn't find a database entry for "wenOneshotEntorhinalMaps2024"
 Warning--empty publisher in li2019
 Warning--empty journal in dabaghian
 Warning--empty year in dabaghian
 Warning--empty journal in sutton
 Warning--empty year in sutton
-You've used 85 entries,
+You've used 69 entries,
             1791 wiz_defined-function locations,
-            946 strings with 21312 characters,
-and the built_in function-call counts, 22349 in all, are:
-= -- 1930
-> -- 1175
-< -- 6
-+ -- 421
-- -- 336
-* -- 1970
-:= -- 3575
-add.period$ -- 253
-call.type$ -- 85
-change.case$ -- 84
+            945 strings with 20950 characters,
+and the built_in function-call counts, 18368 in all, are:
+= -- 1577
+> -- 982
+< -- 5
++ -- 351
+- -- 282
+* -- 1622
+:= -- 2932
+add.period$ -- 205
+call.type$ -- 69
+change.case$ -- 68
 chr.to.int$ -- 0
-cite$ -- 90
-duplicate$ -- 824
-empty$ -- 2035
-format.name$ -- 336
-if$ -- 4785
+cite$ -- 74
+duplicate$ -- 676
+empty$ -- 1667
+format.name$ -- 282
+if$ -- 3937
 int.to.chr$ -- 0
-int.to.str$ -- 85
-missing$ -- 82
-newline$ -- 422
-num.names$ -- 91
-pop$ -- 147
+int.to.str$ -- 69
+missing$ -- 66
+newline$ -- 342
+num.names$ -- 75
+pop$ -- 129
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 363
+skip$ -- 303
 stack$ -- 0
-substring$ -- 1867
-swap$ -- 150
-text.length$ -- 6
+substring$ -- 1524
+swap$ -- 129
+text.length$ -- 5
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 5
-while$ -- 216
-width$ -- 87
-write$ -- 922
-(There were 5 warnings)
+while$ -- 174
+width$ -- 71
+write$ -- 746
+(There were 42 warnings)
