@@ -1,35 +1,44 @@
 \section{Introduction}
 
+% BRIEF INTRO
 Survival in complex environments requires efficient navigational strategies.
 From desert ants to humans, successful wayfinding—navigating toward goals that are not directly visible depends on emergent internal spatial representations, known as cognitive maps \cite{golledge2000, epstein2014}.
-Understanding how these maps are constructed from ongoing experiences, and how they can be exploited for flexible goal-directed navigation remains an active area of research in both neuroscience and reinforcement learning (RL).
+Understanding how these maps are constructed from ongoing experiences and how they can be exploited for flexible goal-directed navigation remains an active area of research in both neuroscience and reinforcement learning (RL).
 
-The hippocampus (HP) and entorhinal cortex (EC) serve as the primary neural substrates for spatial representation in the brain.
-They containing specialized neurons that encode spatial and contextual information—including grid, border, speed, and place cells \cite{sargolini2006, kropff2015, solstad2006}.
-Place cells in the CA1 region have attracted particular interest due to their convergence of inputs from periodically tuned grid cells, the CA3 region, and the lateral EC \cite{bush2014, neher2017, li2019, bilash2023}.
-This strategic integration of diverse spatial and contextual signals suggest CA1 place cells may play a critical role in the formation and maintenance of cognitive maps \cite{donato2023}.
+% NEUROANATOMY: hippocampal formation
+The hippocampus (HP) and the entorhinal cortex (EC) serve as the main neural substrates for spatial representation in the brain.
+They contain specialized neurons that encode spatial and contextual information, including grid, border, speed, and place cells \cite{sargolini2006, kropff2015, solstad2006}.
+Place cells in the CA1 hippocampal region have attracted particular interest due to the convergence of inputs from entorhinal grid cells, the CA3 hippocampal region, and the lateral EC \cite{bush2014, neher2017, li2019, bilash2023}.
+This strategic integration of diverse spatial and contextual signals suggests that CA1 place cells may play a critical role in the formation and maintenance of cognitive maps \cite{donato2023}.
 
+% Another important component are neuromodulators.
+% Their actions include modulation of neuronal dynamics, for example, adjusting synaptic strength, tuning place fields \cite{lisman2005, duszkiewicz2019, schultz1997}.
+% In addition, neuromodulators such as dopamine can gate reward signals that reshape the setting of places cells \cite{kempadoo2016, retailleau2014, bittner2017, kaufman2020}, support novelty detection \cite{duszkiewicz2019}, and encode prediction errors \cite{sheynikhovich2023, schultz1997}, particularly via LEC inputs \cite{igarashi2014, ito2012} - mechanisms closely related to reinforcement learning principles.
+
+% NEUROMDULATORS
 Another important component are neuromodulators.
-Their actions include modulation of neuronal dynamics, for instance adjusting the synaptic strength, tuning place fields \cite{lisman2005, duszkiewicz2019, schultz1997}.
-Further, neuromodulators such as dopamine transmit reward signals reshaping place cell tuning \cite{kempadoo2016, retailleau2014, bittner2017, kaufman2020}, support novelty detection \cite{duszkiewicz2019}, and encode prediction errors \cite{sheynikhovich2023, schultz1997}, particularly via LEC inputs \cite{igarashi2014, ito2012}—mechanisms closely related to reinforcement learning principles.
+Their functions include filtering meaningful internal and external signals, influencing neuronal dynamics and learning by altering synaptic states and parameters \cite{lisman2005, duszkiewicz2019, schultz1997}.
+An important neuromodulator is dopamine, long associated with reward information, encoding of prediction errors \cite{sheynikhovich2023, schultz1997} and novelty detection \cite{duszkiewicz2019}, mechanisms closely related to reinforcement learning principles \cite{avery2017, sutton1998}.
+Further, it has been linked to affect the tuning of places cells \cite{kempadoo2016, retailleau2014, bittner2017, kaufman2020}, particularly via LEC inputs \cite{igarashi2014, ito2012}.
 
+% COGNITIVE MAP THEORIES
 Traditional cognitive map theories propose multiple strategies for spatial navigation based on map-like representations.
-Route learning encodes paths as sequences of action–position pairs, but it limited in scalability and generalization, especially at route intersections \cite{peer2021, chrastil2014, werner2000}.
-In contrast, survey maps, which rely on Euclidean geometry, offer greater flexibility \cite{chrastil2014, gallistel1996}; however, their strong geometric assumptions often conflict with neural and behavioral evidence pointing to geometric distortions and topological biases in spatial neural representations \cite{peer2024, warren2019, wagner2008, rothkegel1998}.
+Route learning encodes paths as sequences of action–position pairs, but it is limited in scalability and generalization, especially at route intersections \cite{peer2021, chrastil2014, werner2000}.
+In contrast, survey maps, which are based on Euclidean geometry, offer greater flexibility \cite{chrastil2014, gallistel1996}; however, their strong geometric assumptions often conflict with neural and behavioral evidence pointing to geometric distortions and topological biases in spatial neural representations \cite{peer2024, warren2019, wagner2008, rothkegel1998}.
 As a middle ground, labeled graphs encode landmarks and transitions within a topological network, enabling vector-like operations, planning, and prediction \cite{meilinger2008, wang2017, schinazi2013}.
 
-Computational models have captured some of these aspects individually, showing new ways the brain might use for addressing spatial navigation tasks.
-Early work proposed that the hippocampus encodes spatial position and direction \cite{poucet1993}, while topological graph models based present scalability challenges \cite{werner2000}.
-More recent approaches draw inspiration from predictive coding and reinforcement learning, including successor representations and the Tolman-Eichenbaum Machine, which generalize across spatial and relational tasks while mimicking biological neural activity patterns \cite{stoewer2023, decothi2022, whittington2020}.
+Computational models have captured some of these aspects individually, showing new ways the brain could use to address spatial navigation tasks.
+Early work proposed that the hippocampus encodes spatial position and direction \cite{poucet1993}, while topological graph models present scalability challenges \cite{werner2000}.
+More recent approaches draw inspiration from predictive coding and reinforcement learning, including successor representations \cite{stachenfeld2017} and the Tolman-Eichenbaum Machine, which generalize across spatial and relational tasks while mimicking biological neural activity patterns \cite{stoewer2023, decothi2022, whittington2020}.
 Path integration models trained on velocity inputs give rise to spatial-like receptive fields \cite{banino2018, sorscher2023, cueva2018}.
 Others incorporate reward-driven Hebbian plasticity modulated by neuromodulators \cite{brzosko2019}.
-However, these architectures mostly fail to unify these ingredients into a biologically grounded system that at the same time learns a map of the environment online without relying on an external coordinate system, and flexbility perform goal-directed navigation.
+However, these architectures mostly fail to unify these ingredients into a biologically grounded system that at the same time learns a map of the environment online without relying on an external coordinate system, and flexibly performs goal-directed navigation.
 
 In this work, we present a biologically inspired model of cognitive map formation that integrates place cell representations, neuromodulatory signals, and graph-based spatial computations.
-Our aim is to demonstrate an architecture capable of building a content-rich topological map of the environment on the fly, and leveraging it for efficient, goal-directed navigation—without requiring offline training.
+We aim to demonstrate an architecture capable of building a content-rich topological map of the environment on the fly and leveraging it for efficient, goal-directed navigation, without requiring offline training.
 
-Critically, neuromodulators play a central role, as they form scalar fields over the map \cite{sosa2024}, drive local Hebbian plasticity in response to sensory updates \cite{ali2021, sheynikhovich2023, bono2023}, and support the formation and adaptation of reward-modulated neural representations used for planning \cite{schultz2016, inglis2021, tobler2005, cools2019, decothi2022}.
-We show how this system dynamically adapts to environmental changes and how neuromodulation shapes place field allocation and remapping \cite{milstein2021, fenton2024}, linking cognitive flexibility to underlying physiological mechanisms.
+To build these maps on the fly, neuromodulators play a central role as they form scalar fields on the map \cite{sosa2024}, drive local Hebbian plasticity in response to sensory updates \cite{ali2021, sheynikhovich2023, bono2023}, and support the formation and adaptation of reward-modulated neural representations used for planning \cite{schultz2016, inglis2021, tobler2005, cools2019, decothi2022}.
+We demonstrate how the presented system dynamically adapts to environmental changes and how neuromodulation shapes place field allocation and remapping \cite{milstein2021, fenton2024}.
 
 The remainder of the paper is organized as follows: Section 2 details the model and experimental setup; Section 3 presents results; Section 4 discusses broader implications and future directions.
 

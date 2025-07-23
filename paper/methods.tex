@@ -3,150 +3,100 @@
 We propose a model of cognitive map formation driven by an agent’s experience within a closed environment.
 
 The architecture operates with minimal external inputs—limited to binary reward and collision signals—as illustrated in Figure \ref{fig:model}\textbf{a}.
-Instead of relying on exteroceptive cues, spatial representations emerge from idiothetic information, i.e., the agent’s internal perception of self-motion \cite{zhou2022}, consistent with prior path integration frameworks.
-Concretely, we use the agent’s ground-truth velocity vector, \textit{i.e.} its actual displacement within the environment, as the primary navigational signal, reflecting the integration of inertial and proprioceptive cues observed in biological systems \cite{jerjian2023, whishaw1999}.
-Since no visual information is used, the agent is effectively navigating in the dark.
+Instead of relying on exteroceptive cues, spatial representations emerge from idiothetic information, that is, the agent's internal perception of self-motion \cite{zhou2022}, consistent with the integration frameworks of the prior path.
+In practice, we use the agent's ground truth velocity vector, \textit{ that is,} its actual displacement within the environment, as the primary navigational signal, reflecting the integration of inertial and proprioceptive signals observed in biological systems \cite{jerjian2023, whishaw1999}.
+Since no visual information is used, the agent effectively navigates in the dark.
 
 \paragraph{Place Cell Formation}
 
-The primary spatial representation is formed by a set of grid cell modules, each encoding a periodic tiling of 2D space, which directly maps to a toroidal manifold $\mathbf{T}^2$ (Fig. \ref{fig:model}\textbf{b}).
-Departing from traditional grid cell modeling approaches \cite{dabaghian, schoyen2025}, we generate population activity directly via Gaussian tuning over the torus, continuously updated using the agent’s velocity vector—an approach used in prior work \cite{li2019}.
+The primary spatial representation is formed by a set of simplified grid cell modules, each encoding a periodic tiling of 2D space, which directly maps to a toroidal manifold $\mathbf{T}^2$ (Fig. \ref{fig:model}\textbf{b}).
+Departing from traditional grid cell modeling approaches \cite{dabaghian, schoyen2025}, we generate population activity directly via Gaussian tuning over a torus, continuously updated using the agent’s velocity vector—an approach used in prior work \cite{li2019}.
 
-The grid cell population vector $\mathbf{u}^{\text{GC}}$ is forwarded to a place cell network with initially zeroed synaptic weights.
+The grid cell population vector $\mathbf{u}^{\text{GC}}$ is forwarded to a place cell network with initial zero synaptic weights.
 When no place cell is sufficiently active for a given input, a silent unit is randomly selected and imprinted with the current grid activity pattern.
-To enforce representational sparsity and tuning specificity, lateral inihibition is implemented by comparing the cosine similarity between the new weight vector and any existing one and a threshold $\theta^{\text{PC}}_{\text{inh}}$.
+To enforce sparsity in the place cell population vector and a clear spatial tuning specificity, a lateral inhibition mechanism is implemented by comparing the cosine similarity between the new weight vector $\mathbf{W}^{\text{GC},\text{PC}}_{i}$ and the existing nonzero weights $\textbf{W}^{\text{GC},\text{PC}}_{j\neq i}$ against a threshold $\theta^{\text{PC}}_{\text{inh}}$, if it is above then the new place cell is discarded.
 
-Each place cell’s activation is computed via a bounded cosine similarity function, determining its corresponding place field (Fig. \ref{fig:model}\textbf{d}). Further implementation details, including lateral inhibition and recurrent connectivity, are provided in the Appendix.
+The activation of each place cell is calculated through a bounded cosine similarity function, determining its corresponding place field (Fig. \ref{fig:model}\textbf{d}). Further implementation details, including lateral inhibition and recurrent connectivity, are provided in the appendix.
 
 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.99\textwidth]{figures/figure_model_v2.png}
     \caption{\textbf{Model layout and spatial representations} -
-    \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory input, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs
-    and a reward receiver}.
+    \textbf{a}: \textit{the full architecture of the model, consisting of three main sensory inputs, targeting the two modulators and the cognitive map module, and the executive components, represented by a policy module, two behavioral programs, and a reward receiver}.
     \textbf{b}: \textit{a module of grid cells defined in a bounded square space of length 1, and an activity representation of their receptive field over a torus}.
-    \textbf{c}: \textit{the neural activity of a grid cell module from a random trajectory; in blue the repeating activity of all cell, while in green the activity of only one, highlighting the periodicity in space}.
+    \textbf{c}: \textit{the neural activity of a grid cell module from a random trajectory; in blue the repeating activity of all cells, while in green the activity of only one, highlighting the periodicity in space}.
     \textbf{d}: \textit{the distribution in space of the place cells centers, together with the activity of two cells showing the size of their place field}.
     \textbf{e}: \textit{neuromodulation activity over the place cells map, with in blue the cells tagged by the collision modulation, and in green the ones targeted by reward modulation.}
-\textbf{f}: \textit{the place cells layer can be regarded as a graph with values assigned to each node according to the modulation strength; a path-finding algorithm can then be used to connect any two nodes taking into account the node values}.
+\textbf{f}: \textit{The place cells layer can be regarded as a graph with values assigned to each node according to the modulation strength; a path-finding algorithm can then be used to connect any two nodes, taking into account the node values}.
 }
-
     \label{fig:model}
 \end{figure}
 
 \paragraph{Neuromodulation}
-Neuromodulators deliver event signals: rewards, denoted DA (for dopamine), and boundary collisions, denoted BND. They are driven by binary inputs and are defined through a leaky variable with exponential decay.
+Neuromodulators deliver event signals: rewards, denoted DA (for dopamine), and boundary collisions, denoted BND.
+In particular, the latter is an internal variable correlating and tracking the sensory experience of mechanical collisions.
+In the brain, such functionality might be partially supported by serotonin (5-HT), which has been proposed influencing and being affected by sensory processing \cite{jacob2018, sizemore2020a}, encoding unexpected uncertainty \cite{matias2017}, modulating neural excitability and synaptic plasticity \cite{celada2013, avery2017, palacios-filardo2019}, also in hippocampus CA1 neurons \cite{kemp2005, teixeira2018}.
 
-To remain resilient to environmental changes (e.g., moving rewards), the model uses a predictive mechanism to correct keep internal representations updated.
-Each modulator $k$ updates synaptic weights to place cells through Hebbian plasticity:
+They are driven by binary inputs and defined through a leaky variable with exponential decay.
+
+
+Each modulator $k$ updates its connection weights with the place cells through a Hebbian rule based on place cell activity $\mathbf{u}^{\text{PC}}$ and the error:
 
 \begin{equation}
     \Delta \mathbf{W}^k = \eta^k \mathbf{u}^{\text{PC}} \left(v^k - \mathbf{W}^{k}\right)
 \end{equation}
 
-The term in brackets can be regarded as an error, implementing a simple form of predictive coding and is inspired by temporal-difference learning \cite{sutton}, aligning with evidence that neuromodulatory systems signal prediction errors and update beliefs \cite{montague1996a, decothi2022, krishnan2022a}.
+The term in brackets can be considered an error, implementing a simple form of predictive coding, and is inspired by temporal-difference learning \cite{sutton}, aligning with evidence that neuromodulatory systems signal prediction errors and update beliefs \cite{montague1996a, decothi2022, krishnan2022a}.
+This plasticity mechanism provides resilience to environmental changes (e.g., moving rewards and new walls).
 
-Weight vectors are constrained to remain non-negative.
-Reward modulation tags cells near rewarded locations, while boundary modulation builds a representation of environmental edges. These scalar fields form the core of the cognitive map (Fig.~\ref{fig:model}\textbf{e}).
-See Appendix for full learning rules and parameter settings.
+The weight vectors are restricted to remain non-negative.
+Reward modulation tags cells near the rewarded locations, whereas boundary modulation builds a representation of the environmental edges. The result is a set of scalar fields over the place cells, and it forms the core of our model of a cognitive map (Fig.~\ref{fig:model}\textbf{e}).
+See the appendix for full learning rules and parameter settings.
 
 \paragraph{Modulation of Place Fields}
 We further tested whether neuromodulators could directly alter spatial tuning. Place fields were dynamically shifted and resized based on recent salience signals.
 
-Following a salient event (reward or collision), place field centers were displaced in grid cell space with magnitude scaled by the neuromodulator $v^k$ and proximity to the event:
+Following a salient event (reward or collision), the place field centers were displaced in the grid cell space with the magnitude scaled by the neuromodulator $v^k$ and proximity to the event:
 
 \begin{equation}
 \Delta \mathbf{W}^{\text{GC}, \text{PC}}_i = c^{k} v^{k} \varphi_{\sigma^{k}}(\mathbf{u}^{\text{GC}} - \mathbf{W}^{\text{GC}, \text{PC}}_i)
 \end{equation}
 
-Here, $\varphi$ is a Gaussian function with width $\sigma^{k}$, and $c^{k}$ a scaling factor. This rule is inspired by BTSP plasticity \cite{bittner2017, milstein2021}, which shifts CA1 place fields following salient experiences.
-This action was applied only to recently active cells, namely with an activity trace greater than a threshold $\theta^{k}$.
-Futher, lateral inhibition prevents field overlap during remapping.
+Here, $\varphi$ is a Gaussian function with width $\sigma^{k}$ and $c^{k}$ a scaling factor. This rule is inspired by BTSP plasticity \cite{bittner2017, milstein2021}, which shifts CA1 place fields following salient experiences.
+This action was applied only to recently active cells, that is, with an activity trace greater than a threshold $\theta^{k}$.
+Further, lateral inhibition prevents field overlap during remapping.
 
-In addition to dislocation, field size was modulated by scaling the gain of recently active neurons.
-Such mechanism allows neuromodulators to transiently enhance or suppress spatial sensitivity for specific cells.
+In addition to dislocation, the field size was modulated by scaling the gain of recently active neurons.
+Such a mechanism allows neuromodulators to transiently enhance or suppress spatial sensitivity for specific cells.
 This modulation rule involves the gain $\beta_i$ of each cell being adjusted proportionally to its activity trace $m_i$, a reference gain constant $\bar{\beta}$, and a modulatory scaling variable:
 \begin{equation}
     \beta_{i} = c^{k}_{a} m_{i} \bar{\beta} + (1 - m_{i}) \bar{\beta}
 \end{equation}
 
-\noindent where $c^{k}_{a}$ is a scaling gain parameter, for which a value of 1 signifies that no modulation takes place.
+\noindent where $c^{k}_{a}$ is a scaling gain parameter, for which a value of 1 means that there is no modulation.
 
 
 \paragraph{Policy and Behavior}
-To evaluate the model's utility in navigation, we implemented a simple policy toggling between exploration and reward-seeking behavior, depending on an external reward trigger and the internal map.
+To evaluate the utility of the model in navigation, we implemented a simple policy that toggled between exploration and reward-seeking behavior, depending on an external reward trigger and the internal map.
 
-Exploration consisted of two possibile strategied: a random walk, for purely stochastic movements, and periodic goal-directed navigation towards a random but visited location, aimed at preventing stagnation.
+Planning was defined as the action protocol of selecting a goal position; the calculation of a trajectory as a sequence of place cells starting with the one corresponding to the current position and ending with the nearest to the goal position; and the execution of actions to visit the entire sequence. For the trajectory, a graph-based pathfinding algorithm was used, in which place cells served as nodes, while synaptic connections acted as edges.
+In addition, a cost function was introduced in the graph nodes, which assigns lower values to BND-modulated cells. This was designed to discourage proximity to the walls of the environment, as shown in plot \ref{fig:model}\textbf{f}.
+
+Exploration consisted of two possible strategies: a random walk, for purely stochastic movements, and periodic goal-directed navigation towards a random but visited location, aimed at preventing stagnation.
+
 In contrast, exploitation—defined as reward-directed navigation—involved identifying the reward location within the cognitive map.
 This location corresponded to the average position of DA-modulated place cells, reflecting mechanisms such as hippocampal replay and value-based navigation \cite{mcnamara2014, michon2021, shamash2021}.
-A graph-based pathfinding algorithm was then used to compute the route from the current location to the reward.
-In this graph, place cells served as nodes, while synaptic connections acted as edges.
-Additionally, a cost function was introduced over the graph nodes, assigning lower values to BND-modulated cells. This was designed to discourage proximity to the environment’s walls, as shown in plot \ref{fig:model}\textbf{f}.
 
-
-\paragraph{Comparison with previous architectures}
-
-\begin{table}[H]
-\centering
-\vspace{1em}
-\caption{Comparison of neural network models for spatial navigation and representation}
-\vspace{1em}
-
-\small
-\begin{tabular}{l p{2.5cm} p{3.cm} c}
-\toprule
-\textbf{Model} & \textbf{Architecture} & \textbf{Training method} & \textbf{Ext. C.} \\
-\midrule
-Banino et al. \cite{banino2018} & LSTM + linear layers + CNN & BPTT and deep RL, supervised & Yes \\
-Cueva et al. \cite{cueva2018} & RNN + linear layers & Hessian-free algorithm with regularization & Yes \\
-Sorcher et al. \cite{sorscher2019} & RNN + linear layers & Backpropagation with regularization & Yes \\
-Whittington et al. \cite{whittington2020} & Attractor network and deep networks & Backpropagation and Hebbian learning & No \\
-de-Cothi et al. \cite{decothi2022} & Successor representation & TD-learning + eligibility traces & Yes \\
-Brozsko et al. \cite{brzosko2017} & Spike Response Model & Online modulated Hebbian plasticity & Yes \\
-\textbf{Ours} & Rate layers & Online neuromodulated plasticity & No \\
-\bottomrule
-\end{tabular}
-
-\vspace{1em}
-
-\begin{tabular}{l p{2.8cm} p{2.8cm} p{2cm}}
-\toprule
-\textbf{Model} & \textbf{Task} & \textbf{Input} & \textbf{Output} \\
-\midrule
-Banino et al. & Path integration, goal navigation & Velocity, visual input, reward & PC, HDC \\
-Cueva et al. & Path integration & Velocity & Position \\
-Sorcher et al. & Path integration & Velocity & PC \\
-Whittington et al. & Relational graph knowledge & Observation and action & Observation \\
-de-Cothi et al. & Planned navigation & Observation & -- \\
-Brozsko et al. & Goal navigation & Position, reward & Action \\
-\textbf{Ours} & Goal navigation & Velocity, reward, collision & Action \\
-\bottomrule
-\end{tabular}
-
-\vspace{1em}
-
-\caption*{\small Note: PC = Place Cells, HDC = Head Direction Cells, Ext. C. = External Spatial Coordinates}
-\vspace{1em}
-\end{table}
-
-Several previous computational models show structural and conceptual similarities with the present work.
-A prominent category among them employs deep neural networks—often with recurrent components—and relies on gradient-based learning strategies such as backpropagation through time.
-These models typically require multiple training episodes or large datasets for convergence.
-In contrast, our model adopts biologically inspired, synaptically local plasticity rules, and requires only a single training episode for adaptation.
-
-Other models utilize spiking neurons \cite{brzosko2017} or explicit neural representations \cite{decothi2022}, and incorporate online learning rules more closely aligned with ours.
-These models also focus more directly on goal-directed navigation, in contrast to purely path integration tasks.
-However, both of these rely on external spatial coordinates to represent current position. Our model instead constructs an internal coordinate system by integrating its own velocity output, enabling endogenous spatial tracking.
 
 % benchmarks used
 \paragraph{Naturalistic task}
-The model was evaluated on a biologically inspired navigation benchmark involving exploration and goal-seeking behavior in closed environments. Performance was measured as the total number of rewards collected over multiple trials.
+The model was evaluated on a biologically inspired navigation benchmark involving exploration and goal-seeking behavior in closed environments. Performance was measured as the total number of rewards collected in multiple trials.
 
-Optimization of the model hyper-parameters was carried out using the evolutionary Covariance-Matrix Adaptation strategy (CMA-ES) \cite{igel2007} with a population size of 90.
-The choice of the hyper-parameters to evolved took into account the type of dynamcis for which it was difficult to select pre-defined values; the number of evolved variables was 10.
-The use of such method derived from the impractility of other optimization algorithms, also given the non-differentiability of several dynamic.
-Viable alternatives were based on reinforcement learning, Bayesian and grid search, but evolution was more appealing for exploration and visualization of the parameter space exploration.
-For evaluating the individuals it was used a multi-objective fitness function: maximization of the reward count, and minimization of the collision count from the time the reward position was discovered.
+Optimization of the model hyperparameters was carried out using the evolutionary Covariance-Matrix Adaptation Strategy (CMA-ES) \cite{igel2007}.
+The choice of hyperparameters to evolve took into account the type of dynamics for which it was difficult to select predefined values; the number of evolved variables was 10.
+The use of such method derived from the impracticality of other optimization algorithms, also given the non-differentiability of several dynamic.
+Viable alternatives were based on reinforcement learning, Bayesian, and grid search, but evolution was more appealing for exploration and visualization of the parameter space exploration.
+For evaluating the individuals, it was used a multi-objective fitness function: maximization of the reward count, and minimization of the collision count from the time the reward position was discovered.
 
 
