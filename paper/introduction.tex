@@ -11,34 +11,59 @@ They contain specialized neurons that encode spatial and contextual information,
 Place cells in the CA1 hippocampal region have attracted particular interest due to the convergence of inputs from entorhinal grid cells, the CA3 hippocampal region, and the lateral EC \cite{bush2014, neher2017, li2019, bilash2023}.
 This strategic integration of diverse spatial and contextual signals suggests that CA1 place cells may play a critical role in the formation and maintenance of cognitive maps \cite{donato2023}.
 
+% COGNITIVE MAP THEORIES
+Traditional theories of cognitive maps suggest that spatial representations can emerge from multiple navigational strategies.
+One of these is path integration, which involves tracking one’s position by integrating past movements—using action or velocity vectors—to estimate the trajectory and return to the point of origin.
+
+An important strength of path integration lies in its independence from external cues, instead relying on idiothetic signals—internal motion cues—considered biologically plausible and thought to involve entorhinal grid cells \cite{whishaw1999, mcnaughton2006}.
+A concrete implementation of this strategy is route learning, in which sequences of actions and positions are encoded along traveled paths. However, this approach scales poorly, especially at intersections or when routes overlap \cite{peer2021, chrastil2014, werner2000}.
+In contrast, survey maps rely on Euclidean geometry, offering more flexible navigation capabilities \cite{chrastil2014, gallistel1996}.
+Yet, their geometric assumptions often conflict with neural and behavioral data, which instead show distortions and topological biases in spatial representations \cite{peer2024, warren2019, wagner2008, rothkegel1998}.
+A compromise is offered by labeled graph representations, which encode landmarks and transitions in a topological network. These support vector-like operations, planning, and prediction while avoiding strict geometric constraints \cite{meilinger2008, wang2017, schinazi2013}.
+
+% COMPUTATIONAL MODELS I
+On the computational side, various models have attempted to formalize and replicate these navigational strategies.
+Early frameworks suggested that the hippocampus encodes both spatial location and direction \cite{poucet1993}, while graph-based models captured structural aspects of spatial organization, though often at the cost of scalability \cite{werner2000}.
+A number of studies focused more directly on path integration, typically using recurrent neural networks combined with linear readouts. These systems, when trained on navigation tasks, have spontaneously developed spatially-tuned activity patterns reminiscent of grid, place, and border cells \cite{banino2018, sorscher2023, cueva2018}.
+Other proposals drew inspiration from predictive coding and reinforcement learning, including the successor representation algorithm (SR) \cite{stachenfeld2017} and the Tolman-Eichenbaum Machine (TEM), which generalize across spatial and relational tasks while mimicking biological neural activity patterns \cite{stoewer2023, decothi2022, whittington2020}.
+As most computational approaches, these models possess simplified neuronal dynamics, often reduced to artificial neurons defined as a weighted sum and a fixed non-linear activation function.
+Learning occurs through gradient descent over many episodes or epochs, far removed from the adaptive and context-dependent learning seen in biological systems.
+
 % Another important component are neuromodulators.
 % Their actions include modulation of neuronal dynamics, for example, adjusting synaptic strength, tuning place fields \cite{lisman2005, duszkiewicz2019, schultz1997}.
 % In addition, neuromodulators such as dopamine can gate reward signals that reshape the setting of places cells \cite{kempadoo2016, retailleau2014, bittner2017, kaufman2020}, support novelty detection \cite{duszkiewicz2019}, and encode prediction errors \cite{sheynikhovich2023, schultz1997}, particularly via LEC inputs \cite{igarashi2014, ito2012} - mechanisms closely related to reinforcement learning principles.
 
-% NEUROMDULATORS
-Another important component are neuromodulators.
+% NEUROMODULATORS
+Another relevant element in brain dynamics are neuromodulators, endogenous molecules with a range of specialized actions affecting physiology, cognition and behaviour \cite{nadim2014}.
 Their functions include filtering meaningful internal and external signals, influencing neuronal dynamics and learning by altering synaptic states and parameters \cite{lisman2005, duszkiewicz2019, schultz1997}.
 An important neuromodulator is dopamine, long associated with reward information, encoding of prediction errors \cite{sheynikhovich2023, schultz1997} and novelty detection \cite{duszkiewicz2019}, mechanisms closely related to reinforcement learning principles \cite{avery2017, sutton1998}.
-Further, it has been linked to affect the tuning of places cells \cite{kempadoo2016, retailleau2014, bittner2017, kaufman2020}, particularly via LEC inputs \cite{igarashi2014, ito2012}.
+Further, projections from the Ventral Tegmental Area (VTA) and Locus Coeruleus (LC) are shown to target hippocampal circuits \cite{fuchsberger2022, edelmann2018}, and affect tuning of CA1 places cells \cite{kempadoo2016, retailleau2014, bittner2017, kaufman2020}, particularly via LEC inputs \cite{igarashi2014, ito2012}.
 
-% COGNITIVE MAP THEORIES
-Traditional cognitive map theories propose multiple strategies for spatial navigation based on map-like representations.
-Route learning encodes paths as sequences of action–position pairs, but it is limited in scalability and generalization, especially at route intersections \cite{peer2021, chrastil2014, werner2000}.
-In contrast, survey maps, which are based on Euclidean geometry, offer greater flexibility \cite{chrastil2014, gallistel1996}; however, their strong geometric assumptions often conflict with neural and behavioral evidence pointing to geometric distortions and topological biases in spatial neural representations \cite{peer2024, warren2019, wagner2008, rothkegel1998}.
-As a middle ground, labeled graphs encode landmarks and transitions within a topological network, enabling vector-like operations, planning, and prediction \cite{meilinger2008, wang2017, schinazi2013}.
-
-Computational models have captured some of these aspects individually, showing new ways the brain could use to address spatial navigation tasks.
-Early work proposed that the hippocampus encodes spatial position and direction \cite{poucet1993}, while topological graph models present scalability challenges \cite{werner2000}.
-More recent approaches draw inspiration from predictive coding and reinforcement learning, including successor representations \cite{stachenfeld2017} and the Tolman-Eichenbaum Machine, which generalize across spatial and relational tasks while mimicking biological neural activity patterns \cite{stoewer2023, decothi2022, whittington2020}.
-Path integration models trained on velocity inputs give rise to spatial-like receptive fields \cite{banino2018, sorscher2023, cueva2018}.
+% COMPUTATIONAL MODELS
 Others incorporate reward-driven Hebbian plasticity modulated by neuromodulators \cite{brzosko2019}.
-However, these architectures mostly fail to unify these ingredients into a biologically grounded system that at the same time learns a map of the environment online without relying on an external coordinate system, and flexibly performs goal-directed navigation.
+Nonetheless, these architectures mostly fail to unify these ingredients into a biologically grounded system that at the same time learns a map of the environment online without relying on an external coordinate system, and flexibly performs goal-directed navigation.
 
-In this work, we present a biologically inspired model of cognitive map formation that integrates place cell representations, neuromodulatory signals, and graph-based spatial computations.
-We aim to demonstrate an architecture capable of building a content-rich topological map of the environment on the fly and leveraging it for efficient, goal-directed navigation, without requiring offline training.
+% OUR WORK
+In this work, we present a biologically inspired model of cognitive map formation that integrates grid cells, place cell representations, neuromodulatory signals, and graph-based spatial computations.
+We first aim is to demonstrate that an agent endowed with such bio-inspired model architecture is capable of building content-rich topological maps of the surroundings on the fly, and leveraging it for efficient goal-directed navigation.
+The testing protocol was a common behavioural and reinforcement learning task: exploration of a novel enviroment, and the localization and collection of a reward.
+Further validation was done in multiple experiments in which some aspects of the protocol were varied.
 
-To build these maps on the fly, neuromodulators play a central role as they form scalar fields on the map \cite{sosa2024}, drive local Hebbian plasticity in response to sensory updates \cite{ali2021, sheynikhovich2023, bono2023}, and support the formation and adaptation of reward-modulated neural representations used for planning \cite{schultz2016, inglis2021, tobler2005, cools2019, decothi2022}.
-We demonstrate how the presented system dynamically adapts to environmental changes and how neuromodulation shapes place field allocation and remapping \cite{milstein2021, fenton2024}.
+% place cell map
+For building the cognitive map a strategy similar to path integration has been used, in that the agent develops a place cells representation as it navigates in unexplored spaces.
+However, spatial tuning is achieved through fast synaptic plasticity and competition, and not numerous backpropagation cycles.
+The use of solely idiothetic information and not other sensory modalities, such as visual cues, is motivated by reducing architectural complexity and proving the approach validity with minimal sources of information.
 
+% neuromodulation
+Concerning neuromodulation, it has been operationalized as a collection of variables acting like low-pass filters of sensory events \cite{ali2021, sheynikhovich2023, bono2023}, here they being solely reward and collision with boundaries.
+The action of neuromodulators is forming adaptive connections with the place cells through local Hebbian plasticity, effectively determining a scalar field over the spatial map \cite{sosa2024} that can used for planning \cite{schultz2016, inglis2021, tobler2005, cools2019, decothi2022}.
+Moreover, they were also given the opportunity to modulate directly some neuronal properties of place cells, such as the neural activation gain and the place field.
+
+Indeed, another objective of ours was to evaluate how the active neuromodulation of neuronal dynamics may impact task performance.
+To this end, multiple comparative ablation experiments were done for highlighting the relevance of each modulatory mechanism.
+
+Finally, we demonstrated how the model dynamically adapts to environmental changes and how some neuromodulatory actions can positively influence the formation and flexibility of a cognitive map \cite{milstein2021, fenton2024}.
+
+% ORGANIZATION
 The remainder of the paper is organized as follows: Section 2 details the model and experimental setup; Section 3 presents results; Section 4 discusses broader implications and future directions.
 
