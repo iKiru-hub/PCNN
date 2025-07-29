@@ -21,12 +21,13 @@ This shows awareness of the model's limitations and connects it back to ongoing 
 
 ---
 The model shows that decreasing place field size (by increasing gain) at boundaries is crucial for performance.
-- [ ] You could predict that optogenetically manipulating the excitability of CA1 place cells specifically at environmental boundaries during exploration would directly impact the precision of the resulting spatial map and subsequent navigation efficiency.
+- [x] You could predict that optogenetically manipulating the excitability of CA1 place cells specifically at environmental boundaries during exploration would directly impact the precision of the resulting spatial map and subsequent navigation efficiency.
 
 ---
-- [ ] Add a paragraph to the discussion that explicitly compares and contrasts your model with the SR framework. For example, you could argue that while SRs elegantly handle goal-directed navigation through a predictive map, your model provides a more explicit mechanism for how environmental boundaries (via BND modulation) and salient events dynamically and locally shape the structure of the map itself (via gain and density modulation), which is a different emphasis.
+- [x] Add a paragraph to the discussion that explicitly compares and contrasts your model with the SR framework. For example, you could argue that while SRs elegantly handle goal-directed navigation through a predictive map, your model provides a more explicit mechanism for how environmental boundaries (via BND modulation) and salient events dynamically and locally shape the structure of the map itself (via gain and density modulation), which is a different emphasis.
 
 ---
-- [ ] limitations
+- [ ] limitations | hm, what more
 
-
+---
+- [x] compilation error

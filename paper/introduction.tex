@@ -25,44 +25,52 @@ A compromise is offered by labeled graph representations, which encode landmarks
 On the computational side, various models have attempted to formalize and replicate these navigational strategies.
 Early frameworks suggested that the hippocampus encodes both spatial location and direction \cite{poucet1993}, while graph-based models captured structural aspects of spatial organization, though often at the cost of scalability \cite{werner2000}.
 A number of studies focused more directly on path integration, typically using recurrent neural networks combined with linear readouts. These systems, when trained on navigation tasks, have spontaneously developed spatially-tuned activity patterns reminiscent of grid, place, and border cells \cite{banino2018, sorscher2023, cueva2018}.
-Other proposals drew inspiration from predictive coding and reinforcement learning, including the successor representation algorithm (SR) \cite{stachenfeld2017} and the Tolman-Eichenbaum Machine (TEM), which generalize across spatial and relational tasks while mimicking biological neural activity patterns \cite{stoewer2023, decothi2022, whittington2020}.
-As most computational approaches, these models possess simplified neuronal dynamics, often reduced to artificial neurons defined as a weighted sum and a fixed non-linear activation function.
-Learning occurs through gradient descent over many episodes or epochs, far removed from the adaptive and context-dependent learning seen in biological systems.
+
+% Other proposals drew inspiration from predictive coding and reinforcement learning, including the successor representation algorithm (SR) \cite{stachenfeld2017} and the Tolman-Eichenbaum Machine (TEM), which generalize across spatial and relational tasks while mimicking biological neural activity patterns \cite{stoewer2023, decothi2022, whittington2020}.
+% As most computational approaches, these models possess simplified neuronal dynamics, often reduced to artificial neurons defined as a weighted sum and a fixed non-linear activation function.
+% Learning occurs through gradient descent over many episodes or epochs, far removed from the adaptive and context-dependent learning seen in biological systems.
+
+Another proposal is the Tolman-Eichenbaum Machine (TEM), which generalize across spatial and relational tasks while mimicking biological neural activity patterns \cite{stoewer2023, decothi2022, whittington2020}.
+Learning occurs through gradient descent over many episodes or epochs, far away from adaptive and context-dependent learning seen in biological systems.
+Nevertheless, as most computational approaches these models possess simplified neuronal dynamics, often reduced to artificial neurons defined as a weighted sum and a fixed non-linear activation function.
+
+An alternative is the successor representation framework, built around the learning of a predictive map of the explored state space, which can be used for active navigation \cite{dayan1993, blier2021}.
+It has been associated with the hippocampus for the generation of a cognitive map, using the possibility of incorporating reward information and formulation in terms of biologically plausible mechanisms \cite{gardner2018, lee2022b, bono2023, fang2023}.
 
 % Another important component are neuromodulators.
 % Their actions include modulation of neuronal dynamics, for example, adjusting synaptic strength, tuning place fields \cite{lisman2005, duszkiewicz2019, schultz1997}.
 % In addition, neuromodulators such as dopamine can gate reward signals that reshape the setting of places cells \cite{kempadoo2016, retailleau2014, bittner2017, kaufman2020}, support novelty detection \cite{duszkiewicz2019}, and encode prediction errors \cite{sheynikhovich2023, schultz1997}, particularly via LEC inputs \cite{igarashi2014, ito2012} - mechanisms closely related to reinforcement learning principles.
 
 % NEUROMODULATORS
-Another relevant element in brain dynamics are neuromodulators, endogenous molecules with a range of specialized actions affecting physiology, cognition and behaviour \cite{nadim2014}.
-Their functions include filtering meaningful internal and external signals, influencing neuronal dynamics and learning by altering synaptic states and parameters \cite{lisman2005, duszkiewicz2019, schultz1997}.
+Another relevant element in brain dynamics are neuromodulators, endogenous molecules with a range of specialized actions that affect physiology, cognition, and behavior \cite{nadim2014}.
+Their functions include filtering meaningful internal and external signals, influencing neuronal dynamics, and learning by altering synaptic states and parameters \cite{lisman2005, duszkiewicz2019, schultz1997}.
 An important neuromodulator is dopamine, long associated with reward information, encoding of prediction errors \cite{sheynikhovich2023, schultz1997} and novelty detection \cite{duszkiewicz2019}, mechanisms closely related to reinforcement learning principles \cite{avery2017, sutton1998}.
-Further, projections from the Ventral Tegmental Area (VTA) and Locus Coeruleus (LC) are shown to target hippocampal circuits \cite{fuchsberger2022, edelmann2018}, and affect tuning of CA1 places cells \cite{kempadoo2016, retailleau2014, bittner2017, kaufman2020}, particularly via LEC inputs \cite{igarashi2014, ito2012}.
+In addition, projections from the Ventral Tegmental Area (VTA) and Locus Coeruleus (LC) have been shown to target the hippocampal circuits \cite{fuchsberger2022, edelmann2018, chowdhury2022}, to be involved in memory formation \cite{takeuchi2016}, and affect the adjustment of CA1 places cells \cite{kempadoo2016, retailleau2014, bittner2017, kaufman2020, retailleau2014}, particularly through LEC inputs \cite{igarashi2014, ito2012}.
 
 % COMPUTATIONAL MODELS
 Others incorporate reward-driven Hebbian plasticity modulated by neuromodulators \cite{brzosko2019}.
-Nonetheless, these architectures mostly fail to unify these ingredients into a biologically grounded system that at the same time learns a map of the environment online without relying on an external coordinate system, and flexibly performs goal-directed navigation.
+Nevertheless, these architectures mostly fail to unify these ingredients into a biologically grounded system that at the same time learns a map of the environment online without relying on an external coordinate system, and flexibly performs goal-directed navigation.
 
 % OUR WORK
 In this work, we present a biologically inspired model of cognitive map formation that integrates grid cells, place cell representations, neuromodulatory signals, and graph-based spatial computations.
-We first aim is to demonstrate that an agent endowed with such bio-inspired model architecture is capable of building content-rich topological maps of the surroundings on the fly, and leveraging it for efficient goal-directed navigation.
+We first aim is to demonstrate that an agent endowed with such bioinspired model architecture is capable of building content-rich topological maps of the surroundings on the fly, and leveraging it for efficient goal-directed navigation.
 The testing protocol was a common behavioural and reinforcement learning task: exploration of a novel enviroment, and the localization and collection of a reward.
-Further validation was done in multiple experiments in which some aspects of the protocol were varied.
+Further validation was performed in multiple experiments in which some aspects of the protocol were varied.
 
 % place cell map
-For building the cognitive map a strategy similar to path integration has been used, in that the agent develops a place cells representation as it navigates in unexplored spaces.
-However, spatial tuning is achieved through fast synaptic plasticity and competition, and not numerous backpropagation cycles.
-The use of solely idiothetic information and not other sensory modalities, such as visual cues, is motivated by reducing architectural complexity and proving the approach validity with minimal sources of information.
+For building the cognitive map, a strategy similar to path integration has been used in that the agent develops a place cells representation as it navigates in unexplored spaces.
+However, spatial tuning is achieved through fast synaptic plasticity and competition, and not through numerous backpropagation cycles.
+The use of idiothetic information only and not other sensory modalities, such as visual cues, is motivated by reducing architectural complexity and proving the validity of the approach with minimal sources of information.
 
 % neuromodulation
-Concerning neuromodulation, it has been operationalized as a collection of variables acting like low-pass filters of sensory events \cite{ali2021, sheynikhovich2023, bono2023}, here they being solely reward and collision with boundaries.
-The action of neuromodulators is forming adaptive connections with the place cells through local Hebbian plasticity, effectively determining a scalar field over the spatial map \cite{sosa2024} that can used for planning \cite{schultz2016, inglis2021, tobler2005, cools2019, decothi2022}.
-Moreover, they were also given the opportunity to modulate directly some neuronal properties of place cells, such as the neural activation gain and the place field.
+Concerning neuromodulation, it has been operationalized as a collection of variables acting as low-pass filters of sensory events \cite{ali2021, sheynikhovich2023, bono2023}, here being only rewards and collisions with boundaries.
+The action of neuromodulators is to form adaptive connections with place cells through local Hebbian plasticity, effectively determining a scalar field over the spatial map \cite{sosa2024} that can be used for planning \cite{schultz2016, inglis2021, tobler2005, cools2019, decothi2022}.
+Moreover, they were also given the opportunity to directly modulate some neuronal properties of place cells, such as the gain of neural activation and the place field.
 
-Indeed, another objective of ours was to evaluate how the active neuromodulation of neuronal dynamics may impact task performance.
-To this end, multiple comparative ablation experiments were done for highlighting the relevance of each modulatory mechanism.
+In fact, another objective of ours was to evaluate how active neuromodulation of neuronal dynamics can impact task performance.
+To this end, multiple comparative ablation experiments were performed to highlight the relevance of each modulatory mechanism.
 
-Finally, we demonstrated how the model dynamically adapts to environmental changes and how some neuromodulatory actions can positively influence the formation and flexibility of a cognitive map \cite{milstein2021, fenton2024}.
+Finally, we demonstrate how the model dynamically adapts to environmental changes and how some neuromodulatory actions can positively influence the formation and flexibility of a cognitive map \cite{milstein2021, fenton2024}.
 
 % ORGANIZATION
 The remainder of the paper is organized as follows: Section 2 details the model and experimental setup; Section 3 presents results; Section 4 discusses broader implications and future directions.

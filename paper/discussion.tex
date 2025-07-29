@@ -7,11 +7,8 @@ An important element behind these abilities is the formation of a map of their s
 In this work, we presented a rate network model inspired by the CA1 hippocampal region \cite{donato2023}, which differs from previous approaches as it operates online, uses neuromodulation-based plasticity and does not rely on external coordinates.
 
 We used simplified grid cells together with synaptic plasticity as a mechanism to develop information-rich representations based on place cells updated through experience, grouped with common perspectives on cognitive maps \cite{hok2007}.
-In the spirit of minimizing the geometric assumptions in the neural space, we treated the generated place network as a topological graph.
-More specifically, its formation only involved velocity inputs, reminiscent of path-integration, and with sensory information added locally through the action of neuromodulators.
+In the spirit of minimizing the geometric assumptions in the neural space, we treated the generated place network as a topological graph learned through velocity inputs, reminiscent of path-integration \cite{gallistel1996, gillner1998, mcnaughton2006}, and with sensory information added locally through the action of neuromodulators.
 This idea aligned with the concept of a \textit{labeled graph} \cite{ishikawa2006, warren2019}, however, it is also true that no metric violations were possible in these settings.
-The employment of the cognitive maps for goal-directed planning occurred through a path-planning algorithm treating the place cells network as a graph of nodes, and meant to be a neural-based variant of the Dijkstra algorithm \cite{javaid2013}, a popular choice for graph computations.
-Indeed, our algorithm relied on biologically plausible neural operations, such activity propagation through the network and utilization of synaptic activity traces as masks for identifying the best neighboring place cells.
 
 The tasks we applied the agent to consisted of an exploratory and exploitative phase, in which the system was tasked to plan and reach reward positions.
 For simplicity, the first stage relied on a random walk process, as it was outside the scope of this work.
@@ -21,17 +18,23 @@ This choice had the side effect that the reward was not always discovered, leadi
 
 % I
 The simulation results validated the model, showing the expected emergence of cognitive maps and their encoding of information collected during the experience.
-The online formation of the locations on the map aligns with the idea of using only idiothetic velocity input, as in path integration \cite{gallistel1996, gillner1998, mcnaughton2006}.
-Previous work followed a similar direction using recurrent networks, but required extensive gradient-based training \cite{sorscher2023, cueva2018, whishaw1999}.
+% The online formation of the locations on the map aligns with the idea of using only idiothetic velocity input, as in path integration \cite{gallistel1996, gillner1998, mcnaughton2006}.
+Previous work has used path integration with deep neural networks, but required extensive gradient-based training \cite{sorscher2023, cueva2018, whishaw1999}.
 Another important difference is that our resulting neural network was composed solely of place cells, although neuromodulated, and no other types of neurons were present.
 This distinction is justified by the partially different task structure, which did not involve supervised learning and did not receive visual information as in \cite{banino2018}.
 Furthermore, our model relied on predefined grid cell layers, which constituted a strong and sufficient inductive bias, and did not have to be learned from scratch.
 
-An additional relevant aspect is also the consideration of the place cell layer as an explicit graph data structure, on which the path-planning algorithm was applied. The plausibility of the algorithm lies in the usage of the connectivity matrix and activity-dependent variables, not necessitating information external to the model. It is directly inspired by the Dijkstra algorithm. 
+An additional relevant aspect is the consideration of the place cell layer as an explicit graph data structure, on which the path-planning was applied, meant to be a neural-based variant of the Dijkstra algorithm \cite{javaid2013}, a popular choice for graph computations.
+In fact, our algorithm relied on biologically plausible neural operations, such activity propagation through the network and utilization of synaptic activity traces as masks for identifying the best neighboring place cells.
 
 The adoption of this level of description leads to robustness and flexibility, enabling effective navigation in all tested environments, which varied in layout complexity.
-Nevertheless, this approach did act as another clear inductive bias, which lifted the need to learn an approximation of it through network dynamics and even more differently tuned neurons.
-
+It shall be noteded how this feature did act as another clear inductive bias, which lifted the need to learn an approximation of it through network dynamics and even more differently tuned neurons.
+A similar approach using boundary cells has also been used for applying the successor representation (SR) framework to large environments \cite{decothi2020}, with the emergence of place and grid cell tuning.
+More broadly, on the one hand several aspects of the SR framework aligns with our models: the distinction of the state map and the reward/boundary signals, and the use of an update rule inspired by temporal difference learning \cite{dayan1993, blier2021, gardner2018}.
+Additionally, several studies have investigated biologically plausible implementations \cite{lee2022b, fang2023, bono2023}, obtaining good and promising matches with experimental results.
+On the other hand, the construction principles of our architecture require less assumptions about the state space size (the environment), while learning the basis of the state representation (place cells) and the successor matrix (associated to the lateral connectivity) is more direct and immediate than in the SR.
+These modeling choices reflect our interest in the one-shot generation of an explicit place cell map with an associated graph representation, while the SR may also produce non-spatial neural profiles.
+Finally, our architecture was better suited for integrating and studying our formulation of neuromodulated plasticity, given the direct access to spatial map.
 
 % II
 Adaptability was tested by occasionally moving the reward position, leading to the generation of an internal prediction error that was used to update its representation on the map.
@@ -43,12 +46,12 @@ This choice departed from our focus on using the data encoded in the cognitive m
 In fact, neuromodulation has long been associated with prediction errors \cite{fiorillo2003, sosa2021}, especially dopamine \cite{kempadoo2016, schultz2016, cools2019, sheynikhovich2023}.
 
 A limitation of our model is the reduction of neuromodulation to external event sensors that define a two-dimensional input of sensory data.
-Moreover, its actions are solely confined to value representation and alteration of place fields, which constitute a subset of the functionalities of brain neurmodulators. 
+Moreover, its actions are solely confined to value representation and alteration of place fields, which constitute a subset of the functionalities of brain neurmodulators.
 
 
 % III
 Lastly, the relevance of active modulation of the neuronal properties of place cells was confirmed through simulated ablation experiments.
-The primary finding was the statistically significant role of active boundary modulation, obtained by comparison with a model variant with neuromodulation disabled. This supports the importance of having a flexible representation of the environment layout.
+The primary finding was the statistically significant role of active boundary modulation, obtained by comparing it with a model variant with disabled neuromodulation. This supports the importance of having a flexible representation of the environment layout.
 
 Further investigation involved testing the effect of density and gain modulation separately.
 The results reported a significant impact of altering the density of place cells on the total count of collected rewards.
@@ -56,18 +59,22 @@ In general, these results are consistent with the experimental observations of a
 This relocation mechanism was stronger for the boundary cells, with the trend of pushing the place cell centers closer to the boundaries, and it proved to be statistically significant in improving performance.
 For reward cells, the effect was weaker and did not improve behavior.
 
-Concerning the modulation of place fields, there is significant experimental evidence of their alternation during reward events \cite{fyhn2002, lenck-santini2005, dupret2010}, some reporting shrinkage near reward objects \cite{burke2011}, and more markedly near boundaries \cite{tanni2022}. 
+Concerning the modulation of place fields, there is significant experimental evidence of their alternation during reward events \cite{fyhn2002, lenck-santini2005, dupret2010}, some reporting shrinkage near reward objects \cite{burke2011}, and more markedly near boundaries \cite{tanni2022}.
+In this direction, two possible experimental predictions can be made, based on the constraint of using self-motion cues for the generation of cognitive maps.
+Firstly, the size of the place fields at the boundaries is initially homogeneous, and only after meaningful events is it reshaped, such as after collisions.
+This can be tested by correlating place cells with the count of relevant events occurring near you.
+Secondly, it can be done similarly for rewarding events, and possibly going further by blocking dopamine release in order to assess its causal involvement.
 
-In our setup, place-field modulation was implemented by scaling the neural activation gain. This led to a general reduction in field size across all modulated cells.
+In our setup, the place-field modulation was implemented by scaling the neural activation gain. This led to a general reduction in field size across all modulated cells.
 In the case of boundary cells, this shrinking effect may account for the improved performance in two ways: first, by increasing the spatial resolution of the environment layout \cite{scleidorovich2022}; and second, by freeing up space for other place cells to form near.
 The latter may result from reduced lateral inhibition and the inward shift of the field center toward the boundaries.
 However, gain modulation alone did not produce statistically significant effects, indicating that it must be coupled with density modulation to produce measurable improvements.
 
 For reward place cells, the impact of gain modulation was less pronounced. This may be due to the simplicity of the experimental protocol or reward signal, with the latter being defined purely in spatial terms and lacked any meaningful non-spatial feature.
 
-Previous studies have proposed that Locus Coeruleus (LC) is involved in place cell overrepresentation near rewarding locations through the co-release of dopamine and noradrenaline \cite{kaufman2020}.
+Previous studies have proposed that Locus Coeruleus (LC) is involved in place cell reorganization \cite{retailleau2014} and overrepresentation near reward locations through the co-release of dopamine and noradrenaline \cite{kaufman2020}.
 A possible experimental prediction that emerges from our results is that preventing place cell density modulation may indirectly decrease the quality of reward-directed navigation.
-More specifically, this can be tested in animal models by pharmacological blocking of LC afferent CA1 connections, once reward has been experienced.
+More specifically, this can be tested in animal models by pharmacological blocking of LC afferent connections to CA1, once reward has been experienced.
 Then, the performance can be evaluated by considering: the count of rewards fetched; the difference between the animal's trajectory between the initial and reward location and the theoretical spatial geodesic (shortest path); and the average distance from the walls.
 However, a relevant confounding variable in this set-up is the difficulty of isolate CA1 inputs, and the involvement of multiple and complex additional signals in the generation of the cognitive map.
 
@@ -76,5 +83,5 @@ However, a relevant confounding variable in this set-up is the difficulty of iso
 In conclusion, this work showed a possible architecture for coupling emergent spatial representations with neuromodulated plasticity to achieve an experience-driven cognitive map.
 The reliance on some spatial and algorithmic inductive biases, grid cells, and a planning algorithm supports the idea of a label graph for goal navigation.
 Future work can investigate the application to other spatial domains, such as motor control and three-dimensional navigation.
-In addition, a richer input feature can be added, such as visual information \cite{wen2024}, as well as new neuromodulators that encode different sensory dimensions or internally generated signals. 
+In addition, a richer input feature can be added, such as visual information \cite{wen2024}, as well as new neuromodulators that encode different sensory dimensions or internally generated signals.
 

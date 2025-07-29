@@ -16,7 +16,8 @@ The grid cell population vector $\mathbf{u}^{\text{GC}}$ is forwarded to a place
 When no place cell is sufficiently active for a given input, a silent unit is randomly selected and imprinted with the current grid activity pattern.
 To enforce sparsity in the place cell population vector and a clear spatial tuning specificity, a lateral inhibition mechanism is implemented by comparing the cosine similarity between the new weight vector $\mathbf{W}^{\text{GC},\text{PC}}_{i}$ and the existing nonzero weights $\textbf{W}^{\text{GC},\text{PC}}_{j\neq i}$ against a threshold $\theta^{\text{PC}}_{\text{inh}}$, if it is above then the new place cell is discarded.
 
-The activation of each place cell is calculated through a bounded cosine similarity function, determining its corresponding place field (Fig. \ref{fig:model}\textbf{d}). Further implementation details, including lateral inhibition and recurrent connectivity, are provided in the appendix.
+The activation of each place cell is calculated through a bounded cosine similarity function, determining its corresponding place field (Fig. \ref{fig:model}\textbf{d}).
+Further implementation details, including lateral inhibition and recurrent connectivity, are provided in the appendix.
 
 
 \begin{figure}[ht]
