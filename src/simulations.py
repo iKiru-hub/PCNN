@@ -190,7 +190,7 @@ possible_positions = np.array([
 class Renderer:
 
     def __init__(self, brain: object, boundsx: tuple=(-430, 100),
-                 boundsy: tuple=(-50, 480),
+                 boundsy: tuple=(-200, 330),
                  render_type: str="space"):
 
         self.brain = brain
@@ -236,11 +236,6 @@ class Renderer:
                          alpha=0.1,
                          s=0.9*np.mean(gg))
 
-        # for edge in self.brain.make_space_edges():
-        #     self.axs.plot((edge[0][0], edge[1][0]),
-        #                    (edge[0][1], edge[1][1]),
-        #                    alpha=0.3, lw=0.5, color="black")
-
         # -- BND
         bndw = self.brain.get_bnd_weights()
         bndidx = np.where(bndw>0.05)[0]
@@ -264,12 +259,6 @@ class Renderer:
         # -- plan
         plan_center = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
         self.axs.plot(*plan_center.T, color="red", alpha=1., lw=2.)
-
-        # self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
-        #                        c=self.brain.get_trg_representation(),
-        #                        s=200*self.brain.get_trg_representation(),
-        #                        marker="x",
-        #                        cmap="Greens", alpha=0.7)
 
         self.axs.set_title(f"N={len(self.brain)}")
 
@@ -687,8 +676,9 @@ def run_game(env: games.Environment,
         if env.visualize:
             if env.t % plot_interval == 0:
                 env.render()
-                if renderer:
-                    renderer()
+        if renderer:
+            if env.t % plot_interval == 0:
+                renderer()
 
         # -check: record
         if record_flag:
@@ -723,7 +713,8 @@ def main_game(global_parameters: dict=global_parameters,
               game_settings: dict=game_settings,
               room_name: str="Square.v0", load: bool=False,
               load_idx: int=-1,
-              render_type: str="space", duration: int=-1):
+              render_type: str="space", duration: int=-1,
+              render: bool=False):
 
     """
     meant to be run standalone
@@ -835,7 +826,8 @@ def main_game(global_parameters: dict=global_parameters,
                             duration=duration,
                             rw_event=game_settings["rw_event"],
                             verbose=False,
-                            visualize=game_settings["rendering"])
+                            visualize=render)
+                            # visualize=game_settings["rendering"])
     logger(env)
 
 
@@ -1042,7 +1034,8 @@ if __name__ == "__main__":
     parser.add_argument("--load", action="store_true")
     parser.add_argument("--idx", type=int, default=-1)
     parser.add_argument("--render", action="store_true")
-    parser.add_argument("--render_type", type=str, default="space")
+    parser.add_argument("--render_type", type=str, default="space",
+                        help="options: 'space', 'space0', 'space3', 'none'")
 
     args = parser.parse_args()
 
@@ -1070,7 +1063,8 @@ if __name__ == "__main__":
             main_game(room_name=args.room, load=args.load,
                       duration=args.duration,
                       render_type=args.render_type,
-                      load_idx=args.idx)
+                      load_idx=args.idx,
+                      render=args.render)
         if args.main == "cartpole":
             main_cartpole(load=args.load,
                           duration=args.duration,
