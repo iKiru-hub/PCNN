@@ -666,9 +666,9 @@ class GridLayer {
     }
 
     std::array<float, 2> apply_boundary(float x, float y) {
-        if (x < bounds[0]) { x += 2.0f*std::abs(bounds[0]); }
+        if (x < bounds[0]) { x += bounds[0] != 0.0f ? 2.0f*std::abs(bounds[0]): 2.0f; }
         else if (x > bounds[1]) { x -= 2.0f*bounds[1]; }
-        if (y < bounds[2]) { y += 2.0f*std::abs(bounds[2]); }
+        if (y < bounds[2]) { y += bounds[2] != 0.0f ? 2.0f*std::abs(bounds[2]): 2.0f; }
         else if (y > bounds[3]) { y -= 2.0f*bounds[3]; }
 
         return {x, y};
