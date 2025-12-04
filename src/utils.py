@@ -2,7 +2,8 @@ import logging, coloredlogs
 import os, json
 import numpy as np
 
-CACHE_PATH = "".join((os.getcwd().split("PCNN")[0], "/PCNN/src/cache"))
+CACHE_PATH = "".join((os.getcwd().split("PCNN")[0], "PCNN/src/cache"))
+DATA_PATH = "".join((os.getcwd().split("PCNN")[0], "PCNN/src/data"))
 
 
 def setup_logger(name: str="MAIN",

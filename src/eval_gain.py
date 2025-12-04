@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import argparse, json
 from tqdm import tqdm
+import os
 
 import pandas as pd
 import scikit_posthocs as ph
@@ -10,11 +11,16 @@ import game.envs as games
 import simulations as sim
 import utils
 
+
+""" settings """
+
 logger = utils.setup_logger(__name__, level=5, is_debugging=False)
 
-GAME_SCALE = games.SCREEN_WIDTH
 
+GAME_SCALE = games.SCREEN_WIDTH
 ENVIRONMENT = "Arena.0000"
+MIN_WEIGHT = 0.01
+
 
 reward_settings = {
     "rw_fetching": "deterministic",
@@ -95,14 +101,16 @@ parameters = {
 }
 
 
-def run_simulations(num_reps: int) -> dict:
+def run_simulations(num_reps: int) -> tuple:
 
     """ run num_reps repetitions and return the results about the pc gains """
 
 
-    data = {'rwd': [], 'bnd': [], 'control': []}
+    data = {'rwd': [], 'rwd_dx': [], 'bnd': [], 'bnd_dx': [], 'control': [], 'control_dx': []}
 
-    for _ in range(num_reps):
+    pbar = tqdm(range(num_reps))
+    for _ in pbar:
+        pbar.set_description(f"rep={_+1}|{num_reps}")
         out, info = sim.run_model(parameters=parameters,
                                   global_parameters=global_parameters,
                                   reward_settings=reward_settings,
@@ -116,61 +124,95 @@ def run_simulations(num_reps: int) -> dict:
         env = info['env']
         reward_obj = info['reward_obj']
         record = info['record']
+        centers = np.array(brain.get_space_centers())
+        centers_init = np.array(brain.get_space_centers_original())
 
         # da indexes
-        da = brain.get_da_weights()
-        daidx = np.where(da>0.05)[0]
+        rwd = brain.get_da_weights()
+        rwd_idxs = np.where(rwd>MIN_WEIGHT)[0]
+        rwd_dx = np.linalg.norm(centers[rwd_idxs] - centers_init[rwd_idxs])
+
+        # !if no rwd pc are present, skip the rep
+        if len(rwd_idxs) == 0:
+            logger.warning("no rwd pc -> skipping rep")
+            continue
 
         # bnd indexes
         bnd = brain.get_bnd_weights()
-        bndidx = np.where(bnd>0.05)[0]
+        bnd_idxs = np.where(bnd>MIN_WEIGHT)[0]
+        bnd_centers = centers[bnd_idxs]
+        bnd_dx = np.linalg.norm(centers[bnd_idxs] - centers_init[bnd_idxs])
 
         # other indexes
-        noidx = [i for i in np.arange(len(brain.space)).tolist() if i not in bndidx and i not in daidx and i < len(brain.space)]
+        ctrl_idxs = [i for i in np.arange(len(brain.space)).tolist() if i not in bnd_idxs and i not in rwd_idxs and i < len(brain.space)]
 
         # cells
-        gg = np.array(brain.get_gain())
-        dgg = gg[daidx]
-        bgg = gg[bndidx]
-        ngg = gg[noidx]
+        gains = np.array(brain.get_gain())
+        rwd_gains = gains[rwd_idxs]
+        bnd_gains = gains[bnd_idxs]
+        ctrl_gains = gains[ctrl_idxs]
 
-        data['rwd'] += [dgg.tolist()]
-        data['bnd'] += [bgg.tolist()]
-        data['control'] += [ngg.tolist()]
+        data['rwd'] += [rwd_gains.tolist()]
+        data['rwd_dx'] += [rwd_dx.tolist()]
+        data['bnd'] += [bnd_gains.tolist()]
+        data['bnd_dx'] += [bnd_dx.tolist()]
+        data['control'] += [ctrl_gains.tolist()]
 
-    data = {'rwd': [np.mean(d) for d in data['rwd']],
-            'bnd': [np.mean(d) for d in data['bnd']],
-            'control': [np.mean(d) for d in data['control']]}
+    # ---
 
-    return data
+    data_gains = {'rwd': [np.mean(d) for d in data['rwd']],
+                  'bnd': [np.mean(d) for d in data['bnd']],
+                  'control': [np.mean(d) for d in data['control']]}
+
+    data_dx = {'rwd_dx': [np.mean(d) for d in data['rwd_dx']],
+               'bnd_dx': [np.mean(d) for d in data['bnd_dx']],
+               'control_dx': [np.float64(0) for _ in data['bnd_dx']]}
+
+    print(data_gains)
+    print(data_dx)
+
+    return data_gains, data_dx
 
 
-def get_statistics(data: dict):
+def get_statistics(data: dict, num_reps: int):
 
-    """ 1. Perform Dunnett's Test with Corrected Syntax """
+    """ perform Dunnett's Test """
 
-    num_reps = len(data['control'])
+    keys = list(data.keys())
 
     df_agg = pd.DataFrame({
-        'value': np.concatenate([data['control'], data['rwd'], data['bnd']]),
-        'group': ['control'] * num_reps + ['rwd'] * num_reps + ['bnd'] * num_reps
+        'value': np.concatenate([data[keys[2]], data[keys[0]], data[keys[1]]]),
+        'group': ['control'] * num_reps + [keys[0]] * num_reps + [keys[1]] * num_reps
     })
 
-    # REMOVE the p_adjust keyword argument entirely.
+    # remove the p_adjust keyword argument entirely
     dunnett_results = ph.posthoc_dunnett(
-        a=df_agg, 
-        val_col='value', 
-        group_col='group', 
-        control='control' 
+        a=df_agg,
+        val_col='value',
+        group_col='group',
+        control='control'
     )
 
-    # Filter rows that are not 'Control' and select the 'Control' column
+    # filter rows that are not 'control' and select the 'control' column
     comparison_results = dunnett_results[dunnett_results.index != 'control'][['control']]
 
     comparison_results.columns = ['p-value vs. control (Dunnett-adjusted)']
-    logger(f"{comparison_results=}")
+    print(comparison_results)
 
     return comparison_results.columns
+
+
+def save(file: dict):
+
+    name = utils.DATA_PATH + "/eval_gain_data"
+
+    num = len([f for f in os.listdir(utils.DATA_PATH) if "eval_gain_data" in f])
+
+    with open(f"{name}_{num}.json", 'w') as f:
+        json.dump(file, f)
+
+    logger("[file saved]")
+
 
 
 if __name__ == "__main__":
@@ -178,13 +220,36 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--reps", type=int, default=2)
+    parser.add_argument("--save", action="store_true")
     args = parser.parse_args()
 
+    # --
 
     logger("starting simulation..")
-    data = run_simulations(num_reps=args.reps)
+    data_gains, data_dx = run_simulations(num_reps=args.reps)
     logger("[simulation done]")
 
-    pvalues = get_statistics(data=data)
+    # adjust for skipped reps
+    num_reps = len(data_gains['rwd'])
+    if num_reps == 0:
+        logger.warning("no valid rep")
+        import sys
+        sys.exit()
+
+    logger("statistics for 'gain'")
+    pvalues_gains = get_statistics(data=data_gains, num_reps=num_reps)
+
+    logger("statistics for 'dx'")
+    pvalues_dx = get_statistics(data=data_dx, num_reps=num_reps)
+
+    # -- save
+    if save:
+        file = {"gain": {"data": data_gains,
+                         "pvalues": list(pvalues_gains)},
+                "dx": {"data": data_dx,
+                       "pvalues": list(pvalues_dx)}}
+
+        save(file=file)
+
     logger("[done]")
 
