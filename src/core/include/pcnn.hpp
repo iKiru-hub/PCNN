@@ -1625,35 +1625,52 @@ public:
 
         // forward to the leaky variable
         float v = leaky.call(x, simulate);
+        // std::cout << "---" << std::endl;
 
         // update the weights | assumption: u and uc have the same size
-        if (!simulate && v > 0.00001f) {
+        // if (!simulate && v > 0.00001f) { // --
+        if (!simulate) {
             float maxval = 0.0f;
             for (int i = 0; i < size; i++) {
 
                 // forward, delta from current input
-                float ui = u[i] > threshold ? u[i] : 0.0;
+                // float ui = u[i] > threshold ? u[i] : 0.0;
+                float ui = u[i];
                 /* float dw = lr * v * ui; */
                 if (maxval < ui) {maxval = ui; }
 
                 // backward, prediction error
-                float pred_err = 0.0f;
-
-                if (name == "DA") {
-                    pred_err = lr_pred * (prediction[i] - v * ui);
-                    if (pred_err < 0.0) { pred_err = 0.0; }
+                // float pred_err = 0.0f;
+                //
+                // if (name == "DA") {
+                //     pred_err = lr_pred * (prediction[i] - v * ui);
+                //     if (pred_err < 0.0) { pred_err = 0.0; }
+                    // else {
+                    //     std::cout << "prediction=" << prediction[i] << std::endl;
+                    //     std::cout << "v*ui=" << v*ui << std::endl;
+                    //     std::cout << "prediction error=" << pred_err << std::endl;
+                    // }
 
                     // clip the prediction error if within a certain range
-                    pred_err = pred_err > 0.001f && pred_err < 0.01 ? 0.01 : pred_err;
-                }
+                //     pred_err = pred_err > 0.001f && pred_err < 0.01 ? 0.01 : pred_err;
+                // }
 
-                if (pred_err > 0.01 && name == "DA") {
+                // if (pred_err > 0.01 && name == "DA") {
                     /* LOG("[+] prediction error: " + std::to_string(pred_err)); */
-                }
+                // }
 
                 // update weights
                 // weights[i] += lr * v * ui - pred_err;
                 weights[i] += lr * ui * (v - weights[i]);
+
+                // if (v < 0.0001f && weights[i] > 0.0f) {
+                //     std::cout << std::endl;
+                //     std::cout << "maxval=" << maxval << std::endl;
+                //     std::cout << "ui=" << ui << std::endl;
+                //     std::cout << "v=" << ui << std::endl;
+                //     std::cout << "weights=" << weights[i] << std::endl;
+                //     std::cout << "threshold=" << threshold << std::endl;
+                // }
 
                 // clip the weights in (0, max_w)
                 if (weights[i] < 0.01) { weights[i] = 0.0; }

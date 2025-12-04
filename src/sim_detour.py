@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import argparse, json
 from tqdm import tqdm
 import pygame
-import gymnasium as gym
 
 import utils
 import game.envs as games
@@ -73,19 +72,19 @@ global_parameters = {
 }
 
 parameters = {
-        "gain": 33.0,
-        "offset": 1.08,
+        "gain": 25.0,
+        "offset": 1.05,
         "threshold": 0.3,
-        "rep_threshold": 0.97,
+        "rep_threshold": 0.9,
         "rec_threshold": 63,
         "tau_trace": 20,
         "remap_tag_frequency": 1,
-        "min_rep_threshold": 0.98,
+        "min_rep_threshold": 0.95,
 
         "lr_da": 0.9,
         "lr_pred": 0.01,
-        "threshold_da": 0.03,
-        "tau_v_da": 2.0,
+        "threshold_da": 0.04,
+        "tau_v_da": 3.0,
 
         "lr_bnd": 0.9,
         "threshold_bnd": 0.01,
@@ -97,15 +96,52 @@ parameters = {
 
         "rwd_weight": 0.7,
         "rwd_sigma": 80.,
+        "rwd_threshold": 0.49,
         "col_weight": 0.,
         "col_sigma": 2.6,
+        "col_threshold": 0.17,
         "rwd_field_mod": 1.0,
         "col_field_mod": 2.6,
 
         "action_delay": 120.0,
-        "edge_route_interval": 5000,
+        "edge_route_interval": 10,
         "forced_duration": 19,
         "min_weight_value": 0.2
+}
+
+parameters_2 = {
+      "gain": 102.4,
+      "offset": 1.02,
+      "threshold": 0.4,
+      "rep_threshold": 0.999,
+      "rec_threshold": 33,
+      "tau_trace": 10,
+      "remap_tag_frequency": 1,
+      "num_neighbors": 4,
+      "min_rep_threshold": 0.99,
+      "lr_da": 0.9,
+      "lr_pred": 0.05,
+      "threshold_da": 0.05,
+      "tau_v_da": 1.0,
+      "lr_bnd": 0.9,
+      "threshold_bnd": 0.01,
+      "tau_v_bnd": 1.0,
+      "tau_ssry": 437.0,
+      "threshold_ssry": 1.986,
+      "threshold_circuit": 0.9,
+      "rwd_weight": -2.11,
+      "rwd_sigma": 96.8,
+      "rwd_threshold": 0.49,
+      "col_weight": -0.83,
+      "col_sigma": 26.1,
+      "col_threshold": 0.07,
+      "rwd_field_mod": 4.6,
+      "col_field_mod": 5.4,
+      "action_delay": 120.0,
+      "edge_route_interval": 50,
+      "forced_duration": 19,
+      "min_weight_value": 0.1,
+    "modulation_options": [True]*4
 }
 
 
@@ -122,8 +158,8 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, brain: object, boundsx: tuple=(-450, 450),
-                 boundsy: tuple=(-450, 450),
+    def __init__(self, brain: object, boundsx: tuple=(-330, 200),
+                 boundsy: tuple=(-300, 230),
                  render_type: str="space"):
 
         self.brain = brain
@@ -133,11 +169,11 @@ class Renderer:
         self.min_y = boundsy[0]
         self.boundsx = boundsx
         self.boundsy = boundsy
-        print(f"boundsx={self.boundsx}")
-        print(f"boundsy={self.boundsy}")
+        # print(f"boundsx={self.boundsx}")
+        # print(f"boundsy={self.boundsy}")
         self.render_type = render_type
         if render_type == "space0":
-            self.fig, self.axs = plt.subplots(2, 2, figsize=(6, 6))
+            self.fig, self.axs = plt.subplots(1, 3, figsize=(6, 6))
             self.fig.set_tight_layout(True)
         elif render_type == "space3":
             self.fig, self.axs = plt.subplots(figsize=(6, 6))
@@ -160,41 +196,50 @@ class Renderer:
 
     def render(self):
 
-        # -- BND
         self.axs.clear()
-        self.axs.scatter(*np.array(self.brain.get_space_fine_centers()).T,
-                               c=self.brain.get_bnd_weights(),
-                               cmap="Blues", alpha=0.8,
-                               s=40, vmin=0., vmax=0.5,
-                               label="BND")
+        gg = self.brain.get_gain()
 
+        # -- pc
+        self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
+                         color='grey',
+                         alpha=0.1,
+                         s=0.9*np.mean(gg))
+
+        # -- BND
+        bndw = self.brain.get_bnd_weights()
+        bndidx = np.where(bndw>0.05)[0]
+        self.axs.scatter(*np.array(self.brain.get_space_centers())[bndidx, :].T,
+                         c=bndw[bndidx],
+                         cmap="Blues", alpha=1.,
+                         # s=np.where(bndw > 0.01, 80, 0),
+                         s=0.9*gg.mean()*gg.mean()/gg[bndidx],
+                         vmin=0., vmax=0.2)
+
+        # -- DA
         daw = self.brain.get_da_weights()
-        self.axs.scatter(*np.array(self.brain.get_space_fine_centers()).T,
-                               c=daw,
-                               s=np.where(daw > 0.01, 40, 0),
-                               cmap="Greens", alpha=0.8,
-                               label="DA",
-                               vmin=0., vmax=0.4)
-        self.axs.scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                               color="brown", s=20, alpha=0.2)
-        plan_center_coarse = np.array(self.brain.get_space_coarse_centers())[self.brain.get_plan_idxs_coarse()]
-        self.axs.plot(*plan_center_coarse.T,
-                            color="grey", alpha=0.7, lw=4.,
-                            label="plan")
-        self.axs.scatter(*np.array(self.brain.get_space_fine_centers()).T,
-                               c=self.brain.get_trg_representation(),
-                               s=200*self.brain.get_trg_representation(),
-                               marker="x",
-                               label="goal",
-                               cmap="Greens", alpha=0.7)
+        daidx = np.where(daw>0.05)[0]
+        self.axs.scatter(*np.array(self.brain.get_space_centers())[daidx, :].T,
+                         c=daw[daidx],
+                         # s=np.where(daw > 0.01, 80, 0),
+                         s=0.9*gg.mean()*gg.mean()/gg[daidx],
+                         cmap="Greens", alpha=1.,
+                         vmin=0., vmax=0.3)
+
+        # -- plan
+        plan_center = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
+        self.axs.plot(*plan_center.T, color="red", alpha=1., lw=2.)
+
+        self.axs.set_title(f"N={len(self.brain)}")
 
         self.axs.set_xlim(self.boundsx)
         self.axs.set_ylim(self.boundsy)
         self.axs.set_xticks(())
         self.axs.set_yticks(())
         self.axs.set_aspect('equal', adjustable='box')
-        # self.axs.legend(loc="upper right")
+        for spine in self.axs.spines.values():
+            spine.set_linewidth(5)
         plt.pause(0.00001)
+
 
     def render2(self, show: bool=False):
 
@@ -202,19 +247,27 @@ class Renderer:
         self.axs[0, 0].clear()
         self.axs[0, 1].clear()
 
-        # maxc = max((self.max_x, self.brain.get_space_fine_centers().max()))
-        # self.boundsx = (self.min_x, maxc)
-        # self.boundsy = (self.min_y, maxc)
-
         # -- goal-behaviour
         if self.brain.get_directive() == "trg" or \
            self.brain.get_directive() == "trg rw" or \
            self.brain.get_directive() == "trg ob":
 
+            # -- fine space
+            self.axs[0, 0].scatter(*np.array(self.brain.get_space_centers()).T,
+                                   color="blue", s=10, alpha=0.1,
+                                   label="fine-grained space")
+            # goal
+            self.axs[0, 1].scatter(*np.array(self.brain.get_space_centers()).T,
+                                   c=self.brain.get_trg_representation(),
+                                   s=100*self.brain.get_trg_representation(),
+                                   marker="x",
+                                   label="goal",
+                                   cmap="Greens", alpha=0.7)
+
+
             # plan
-            plan_center_fine = np.array(self.brain.get_space_fine_centers()
-                                        )[self.brain.get_plan_idxs_fine()]
-            self.axs[0, 0].plot(*plan_center_fine.T,
+            plan_center = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
+            self.axs[0, 0].plot(*plan_center.T,
                                 color="grey", alpha=0.7, lw=4.,
                                 label="plan")
 
@@ -223,31 +276,20 @@ class Renderer:
                                    color="brown", s=30, alpha=0.2,
                                    label="coarse-grained space")
 
-            plan_center_coarse = np.array(self.brain.get_space_coarse_centers()
-                                          )[self.brain.get_plan_idxs_coarse()]
-            self.axs[0, 1].plot(*plan_center_coarse.T,
-                                color="grey", alpha=0.7, lw=4.,
-                                label="plan")
-
-
         # -- explorative behaviour
         else:
             # -- fine space
-            self.axs[0, 0].scatter(*np.array(self.brain.get_space_centers()).T,
+            self.axs[0, 0].scatter(*np.array(self.brain.get_space_enters()).T,
                                    color="blue", s=10, alpha=0.7)
 
-            # -- coarse space
-            for edge in self.brain.make_space_coarse_edges():
-                self.axs[0, 1].plot((edge[0][0], edge[1][0]),
+            for edge in self.brain.make_space_edges():
+                self.axs[0, 0].plot((edge[0][0], edge[1][0]),
                                     (edge[0][1], edge[1][1]),
                                  alpha=0.3, lw=0.5, color="black")
 
-            self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-                                   color="brown", s=20, alpha=0.7)
-
         # -- fine space
-        self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_fine_count()}")
-        self.axs[0, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
+        self.axs[0, 0].set_title(f"#PCs={self.brain.get_space_count()}")
+        self.axs[0, 0].scatter(*np.array(self.brain.get_space_position()).T,
                                color="red", s=50, marker="v", alpha=0.8)
         self.axs[0, 0].set_xlim(self.boundsx)
         self.axs[0, 0].set_ylim(self.boundsy)
@@ -255,42 +297,28 @@ class Renderer:
         self.axs[0, 0].grid(alpha=0.1)
         self.axs[0, 0].set_xticks(())
         self.axs[0, 0].set_yticks(())
-
-        # -- coarse space
-        self.axs[0, 1].set_title(f"#PCs={self.brain.get_space_coarse_count()}")
-        # self.axs[0, 1].set_title(f"Coarse-grained space")
-        self.axs[0, 1].scatter(*np.array(self.brain.get_space_coarse_position()).T,
-                               color="red", s=50, marker="v", alpha=0.8)
-        self.axs[0, 1].set_xlim(self.boundsx)
-        self.axs[0, 1].set_ylim(self.boundsy)
-        self.axs[0, 1].set_xticks(())
-        self.axs[0, 1].set_yticks(())
-        self.axs[0, 1].set_aspect('equal', adjustable='box')
-        self.axs[0, 1].grid(alpha=0.1)
-        # self.axs[0, 1].legend()
+        # self.axs[0, 0].legend()
 
         # -- BND
         self.axs[1, 0].clear()
-        self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+        self.axs[1, 0].scatter(*np.array(self.brain.get_space_centers()).T,
                                c=self.brain.get_bnd_weights(),
                                cmap="Blues", alpha=0.8,
                                s=20, vmin=0., vmax=0.2,
                                label="BND")
 
         daw = self.brain.get_da_weights()
-        self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+        self.axs[1, 0].scatter(*np.array(self.brain.get_space_centers()).T,
                                c=daw,
                                s=np.where(daw > 0.01, 30, 0),
                                cmap="Greens", alpha=0.8,
                                label="DA",
                                vmin=0., vmax=0.2)
-        # self.axs[1, 0].scatter(*np.array(self.brain.get_space_coarse_centers()).T,
-        #                        color="brown", s=20, alpha=0.2)
-        plan_center_coarse = np.array(self.brain.get_space_coarse_centers())[self.brain.get_plan_idxs_coarse()]
+        plan_center_coarse = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
         self.axs[1, 0].plot(*plan_center_coarse.T,
                             color="grey", alpha=0.7, lw=4.,
                             label="plan")
-        self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+        self.axs[1, 0].scatter(*np.array(self.brain.get_space_centers()).T,
                                c=self.brain.get_trg_representation(),
                                s=100*self.brain.get_trg_representation(),
                                marker="x",
@@ -303,14 +331,12 @@ class Renderer:
         self.axs[1, 0].set_yticks(())
         self.axs[1, 0].set_title(f"BND")
         self.axs[1, 0].set_aspect('equal', adjustable='box')
-        # self.axs[1, 0].scatter(*np.array(self.brain.get_space_fine_position()).T,
-        #                            color="red", s=50, marker="v")
         self.axs[1, 0].legend()
 
         # -- DA
         self.axs[1, 1].clear()
         daw = self.brain.get_da_weights()
-        self.axs[1, 1].scatter(*np.array(self.brain.get_space_fine_centers()).T,
+        self.axs[1, 1].scatter(*np.array(self.brain.get_space_centers()).T,
                                c=daw,
                                s=np.where(daw > 0.01, 30, 1),
                                cmap="Greens", alpha=0.8,
@@ -321,8 +347,6 @@ class Renderer:
         self.axs[1, 1].set_yticks(())
         self.axs[1, 1].set_title(f"DA")
         self.axs[1, 1].set_aspect('equal', adjustable='box')
-        # self.axs[1, 1].scatter(*np.array(self.brain.get_space_fine_position()).T,
-        #                            color="red", s=50, marker="v")
 
         plt.pause(0.00001)
 
@@ -330,12 +354,6 @@ class Renderer:
 
         # -- BND
         self.axs.clear()
-
-        # for edge in self.brain.make_space_edges():
-        #     self.axs.plot((edge[0][0], edge[1][0]),
-        #                         (edge[0][1], edge[1][1]),
-        #                      alpha=0.3, lw=0.5, color="black")
-
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
                                c=self.brain.get_bnd_weights(),
                                cmap="Blues", alpha=0.8,
@@ -349,7 +367,6 @@ class Renderer:
                                cmap="Greens", alpha=0.8,
                                label="DA",
                                vmin=0., vmax=0.4)
-
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
                                color="brown", s=20, alpha=0.2)
         plan_centers = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
@@ -367,6 +384,7 @@ class Renderer:
         self.axs.set_xticks(())
         self.axs.set_yticks(())
         self.axs.set_aspect('equal', adjustable='box')
+        self.axs.set_title(f"N={len(self.brain.space)}")
         plt.pause(0.00001)
 
 
@@ -579,8 +597,8 @@ def main_game(global_parameters: dict=global_parameters,
     """
 
     if load:
-        load_idx = load_idx if load_idx > -1 else -1
-        load_idx = None
+        load_idx = load_idx if load_idx > -1 else None
+        # load_idx = None
         parameters = utils.load_parameters(idx=load_idx)
     else:
         parameters = fixed_params
@@ -636,6 +654,39 @@ def main_game(global_parameters: dict=global_parameters,
     #             fine_tuning_min_duration=parameters["fine_tuning_min_duration"],
     #             min_weight_value=parameters["fine_tuning_min_duration"])
 
+    # brain = pclib2.Brain(
+    #             local_scale=global_parameters["local_scale"],
+    #             N=global_parameters["N"],
+    #             rec_threshold=parameters["rec_threshold"],
+    #             speed=global_parameters["speed"],
+    #             min_rep_threshold=parameters["min_rep_threshold"],
+    #             gain=parameters["gain"],
+    #             offset=parameters["offset"],
+    #             threshold=parameters["threshold"],
+    #             rep_threshold=parameters["rep_threshold"],
+    #             tau_trace=parameters["tau_trace"],
+    #             remap_tag_frequency=parameters["remap_tag_frequency"],
+    #             lr_da=parameters["lr_da"],
+    #             lr_pred=parameters["lr_pred"],
+    #             threshold_da=parameters["threshold_da"],
+    #             tau_v_da=parameters["tau_v_da"],
+    #             lr_bnd=parameters["lr_bnd"],
+    #             threshold_bnd=parameters["threshold_bnd"],
+    #             tau_v_bnd=parameters["tau_v_bnd"],
+    #             tau_ssry=parameters["tau_ssry"],
+    #             threshold_ssry=parameters["threshold_ssry"],
+    #             threshold_circuit=parameters["threshold_circuit"],
+    #             rwd_weight=parameters["rwd_weight"],
+    #             rwd_sigma=parameters["rwd_sigma"],
+    #             col_weight=parameters["col_weight"],
+    #             col_sigma=parameters["col_sigma"],
+    #             rwd_field_mod=parameters["rwd_field_mod"],
+    #             col_field_mod=parameters["col_field_mod"],
+    #             action_delay=parameters["action_delay"],
+    #             edge_route_interval=parameters["edge_route_interval"],
+    #             forced_duration=parameters["forced_duration"],
+    #             min_weight_value=parameters["min_weight_value"])
+
     brain = pclib2.Brain(
                 local_scale=global_parameters["local_scale"],
                 N=global_parameters["N"],
@@ -660,8 +711,10 @@ def main_game(global_parameters: dict=global_parameters,
                 threshold_circuit=parameters["threshold_circuit"],
                 rwd_weight=parameters["rwd_weight"],
                 rwd_sigma=parameters["rwd_sigma"],
+                rwd_threshold=parameters["rwd_threshold"],
                 col_weight=parameters["col_weight"],
                 col_sigma=parameters["col_sigma"],
+                col_threshold=parameters["col_threshold"],
                 rwd_field_mod=parameters["rwd_field_mod"],
                 col_field_mod=parameters["col_field_mod"],
                 action_delay=parameters["action_delay"],
@@ -848,7 +901,7 @@ def main_game(global_parameters: dict=global_parameters,
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--duration", type=int, default=2)
+    parser.add_argument("--duration", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=-1,
                         help="random seed: -1 for random seed.")
     parser.add_argument("--plot", action="store_true")
@@ -861,7 +914,7 @@ if __name__ == "__main__":
     parser.add_argument("--tchange", type=int, default=1000000,
                         help="time to change room")
     parser.add_argument("--load", action="store_true")
-    parser.add_argument("--idx", type=int, default=-1)
+    parser.add_argument("--idx", type=int, default=-1) # or 91
     parser.add_argument("--render", action="store_true")
     parser.add_argument("--render_type", type=str, default="space")
 

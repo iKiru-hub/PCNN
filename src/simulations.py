@@ -36,7 +36,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 2,
-    "silent_duration": 8_000,
+    "silent_duration": 1_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 40.,
@@ -47,7 +47,7 @@ reward_settings = {
 
 game_settings = {
     "plot_interval": 5,
-    "rw_event": "move agent",
+    "rw_event": "move both",
     "rendering": True,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
@@ -143,16 +143,16 @@ parameters4 = {
 parameters = {
       "gain": 102.4,
       "offset": 1.02,
-      "threshold": 0.4,
-      "rep_threshold": 0.999,
+      "threshold": 0.2,
+      "rep_threshold": 0.955,
       "rec_threshold": 33,
       "tau_trace": 10,
       "remap_tag_frequency": 1,
       "num_neighbors": 4,
       "min_rep_threshold": 0.99,
       "lr_da": 0.9,
-      "lr_pred": 0.05,
-      "threshold_da": 0.05,
+      "lr_pred": 0.95,
+      "threshold_da": 0.10,
       "tau_v_da": 1.0,
       "lr_bnd": 0.9,
       "threshold_bnd": 0.1,
@@ -160,9 +160,9 @@ parameters = {
       "tau_ssry": 437.0,
       "threshold_ssry": 1.986,
       "threshold_circuit": 0.9,
-      "rwd_weight": -2.11,
+      "rwd_weight": -0.11,
       "rwd_sigma": 96.8,
-      "rwd_threshold": 0.49,
+      "rwd_threshold": 0.,
       "col_weight": -0.53,
       "col_sigma": 16.1,
       "col_threshold": 0.37,
@@ -255,6 +255,13 @@ class Renderer:
                          s=0.9*gg.mean()*gg.mean()/gg[daidx],
                          cmap="Greens", alpha=1.,
                          vmin=0., vmax=0.3)
+
+        self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
+                         cmap='Reds',
+                         alpha=0.3,
+                         marker='v',
+                         s=90,
+                         c=np.array(self.brain.get_representation()))
 
         # -- plan
         plan_center = np.array(self.brain.get_space_centers())[self.brain.get_plan_idxs()]
@@ -1021,7 +1028,7 @@ def main_game_v2(room_name: str="Flat.1011", load: bool=False):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--duration", type=int, default=2)
+    parser.add_argument("--duration", type=int, default=-1)
     parser.add_argument("--seed", type=int, default=-1,
                         help="random seed: -1 for random seed.")
     parser.add_argument("--plot", action="store_true")

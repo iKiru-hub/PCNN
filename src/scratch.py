@@ -21,7 +21,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 5,
-    "silent_duration": 5_000,
+    "silent_duration": 1_000,
     "fetching_duration": 1,
 
     "transparent": False,
@@ -34,7 +34,7 @@ reward_settings = {
 
 game_settings = {
     "plot_interval": 5,
-    "rw_event": "move agent",
+    "rw_event": "move both",
     "rendering": False,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
