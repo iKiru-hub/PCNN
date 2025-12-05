@@ -6,6 +6,8 @@ import os
 
 import pandas as pd
 import scikit_posthocs as ph
+from scipy import stats
+
 import game.envs as games
 
 import simulations as sim
@@ -18,7 +20,7 @@ logger = utils.setup_logger(__name__, level=5, is_debugging=False)
 
 
 GAME_SCALE = games.SCREEN_WIDTH
-ENVIRONMENT = "Arena.0000"
+ENVIRONMENT = "Arena.0001"
 MIN_WEIGHT = 0.01
 
 
@@ -47,7 +49,7 @@ game_settings = {
     "rendering_pcnn": False,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
-    "max_duration": 5_000,
+    "max_duration": 15_000,
     "room_thickness": 20,
     "t_teleport": 2_500,
     "limit_position_len": -1,
@@ -65,41 +67,53 @@ global_parameters = {
     "min_weight_value": 0.5
 }
 
-parameters = {
-      "gain": 102.4,
-      "offset": 1.02,
-      "threshold": 0.2,
-      "rep_threshold": 0.955,
-      "rec_threshold": 33,
-      "tau_trace": 10,
-      "remap_tag_frequency": 1,
-      "num_neighbors": 4,
-      "min_rep_threshold": 0.99,
-      "lr_da": 0.9,
-      "lr_pred": 0.95,
-      "threshold_da": 0.10,
-      "tau_v_da": 1.0,
-      "lr_bnd": 0.9,
-      "threshold_bnd": 0.1,
-      "tau_v_bnd": 1.0,
-      "tau_ssry": 437.0,
-      "threshold_ssry": 1.986,
-      "threshold_circuit": 0.9,
-      "rwd_weight": -0.11,
-      "rwd_sigma": 96.8,
-      "rwd_threshold": 0.,
-      "col_weight": -0.53,
-      "col_sigma": 16.1,
-      "col_threshold": 0.37,
-      "rwd_field_mod": 4.6,
-      "col_field_mod": 4.4,
-      "action_delay": 120.0,
-      "edge_route_interval": 50,
-      "forced_duration": 19,
-      "min_weight_value": 0.1,
-    "modulation_options": [True]*4
-}
+# parameters = {
+#       "gain": 102.4,
+#       "offset": 1.02,
+#       "threshold": 0.2,
+#       "rep_threshold": 0.955,
+#       "rec_threshold": 33,
+#       "tau_trace": 10,
+#       "remap_tag_frequency": 1,
+#       "num_neighbors": 4,
+#       "min_rep_threshold": 0.99,
+#       "lr_da": 0.9,
+#       "lr_pred": 0.95,
+#       "threshold_da": 0.10,
+#       "tau_v_da": 1.0,
+#       "lr_bnd": 0.9,
+#       "threshold_bnd": 0.1,
+#       "tau_v_bnd": 1.0,
+#       "tau_ssry": 437.0,
+#       "threshold_ssry": 1.986,
+#       "threshold_circuit": 0.9,
+#       "rwd_weight": -0.11,
+#       "rwd_sigma": 96.8,
+#       "rwd_threshold": 0.,
+#       "col_weight": -0.53,
+#       "col_sigma": 16.1,
+#       "col_threshold": 0.37,
+#       "rwd_field_mod": 4.6,
+#       "col_field_mod": 4.4,
+#       "action_delay": 120.0,
+#       "edge_route_interval": 50,
+#       "forced_duration": 19,
+#       "min_weight_value": 0.1,
+#     "modulation_options": [True]*4
+# }
 
+parameters = utils.load_parameters(idx=90)
+
+def get_sig_stars(p_value: float) -> str:
+
+    if p_value < 0.001:
+        return '***'
+    elif p_value < 0.01:
+        return '**'
+    elif p_value < 0.05:
+        return '*'
+    else:
+        return 'n.s.'
 
 def run_simulations(num_reps: int) -> tuple:
 
@@ -166,7 +180,7 @@ def run_simulations(num_reps: int) -> tuple:
 
     data_dx = {'rwd_dx': [np.mean(d) for d in data['rwd_dx']],
                'bnd_dx': [np.mean(d) for d in data['bnd_dx']],
-               'control_dx': [np.float64(0) for _ in data['bnd_dx']]}
+               'control': [np.float64(0) for _ in data['bnd_dx']]}
 
     print(data_gains)
     print(data_dx)
@@ -176,31 +190,84 @@ def run_simulations(num_reps: int) -> tuple:
 
 def get_statistics(data: dict, num_reps: int):
 
-    """ perform Dunnett's Test """
+    """ perform Dunnett's Test
 
-    keys = list(data.keys())
+    data: dict
+        {'group1': [mean1, mean2, .. meanK],
+        'group2': [mean1, mean2, .. meanK],
+        'control': [mean1, mean2, .. meanK]}
 
-    df_agg = pd.DataFrame({
-        'value': np.concatenate([data[keys[2]], data[keys[0]], data[keys[1]]]),
-        'group': ['control'] * num_reps + [keys[0]] * num_reps + [keys[1]] * num_reps
-    })
+    num_reps: int
+        numeber K of simulations
+    """
 
-    # remove the p_adjust keyword argument entirely
+    groups = list(data.keys())
+    non_control_groups = [k for k in groups if k != 'control']
+    num_reps = len(data['control'])
+
+    # Create lists of values and labels for the DataFrame
+    values = []
+    labels = []
+
+    # Ensure control is the first item in the concatenation for logical ordering,
+    # but the key order in the dict is arbitrary for Dunnett's.
+    for key in ['control'] + non_control_groups:
+        values.extend(data[key])
+        labels.extend([key] * num_reps)
+
+    df_agg = pd.DataFrame({'value': values, 'group': labels})
+
+    # 2. Data Centering (Mitigate RuntimeWarning from near-zero variance)
+    center_value = df_agg['value'].mean()
+    df_agg['value_centered'] = df_agg['value'] - center_value
+
+    # 3. Perform Dunnett's Test
     dunnett_results = ph.posthoc_dunnett(
         a=df_agg,
-        val_col='value',
+        val_col='value_centered', # Use centered data for stability
         group_col='group',
         control='control'
     )
 
-    # filter rows that are not 'control' and select the 'control' column
-    comparison_results = dunnett_results[dunnett_results.index != 'control'][['control']]
+    # Extract FWER-controlled p-values for non-control groups
+    p_values = dunnett_results[
+        dunnett_results.index != 'control'
+    ][['control']].squeeze() # squeeze converts the 1-column DF to a Series
 
-    comparison_results.columns = ['p-value vs. control (Dunnett-adjusted)']
-    print(comparison_results)
+    # 4. Calculate Descriptive Statistics (using ORIGINAL data)
+    group_stats = df_agg.groupby('group')['value'].agg(
+        mean='mean',
+        std='std'
+    )
+    # Calculate SEM: std / sqrt(N)
+    group_stats['SEM'] = group_stats['std'] / np.sqrt(num_reps)
 
-    return comparison_results.columns
+    # 5. Compile Final Dictionary
+    final_dict = {}
 
+    for group_name in non_control_groups:
+        # Get stats
+        mean = group_stats.loc[group_name, 'mean']
+        sem = group_stats.loc[group_name, 'SEM']
+
+        # Get p-value and significance
+        p = p_values[group_name]
+        sig_stars = get_sig_stars(p)
+
+        final_dict[group_name] = {
+            'mean_sem': [mean, sem],
+            'p_value': p,
+            'significance': sig_stars
+        }
+
+    # Include control group statistics for reference
+    final_dict['control'] = {
+        'mean_sem': [group_stats.loc['control', 'mean'], group_stats.loc['control', 'SEM']],
+        'p_value': None,
+        'significance': 'control'
+    }
+
+    return final_dict
 
 def save(file: dict):
 
@@ -245,9 +312,10 @@ if __name__ == "__main__":
     # -- save
     if save:
         file = {"gain": {"data": data_gains,
-                         "pvalues": list(pvalues_gains)},
+                         "results": pvalues_gains},
                 "dx": {"data": data_dx,
-                       "pvalues": list(pvalues_dx)}}
+                       "results": pvalues_dx},
+                "notes": "using genome 91"}
 
         save(file=file)
 
