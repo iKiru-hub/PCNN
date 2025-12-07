@@ -698,6 +698,7 @@ class Brain:
         # record
         self.gain_history_bnd = []
         self.gain_history_da = []
+        self.gain_history = []
         self.is_reward_represented = False
 
         logger.debug(f"{offset=}")
@@ -756,6 +757,9 @@ class Brain:
 
         if collision > 0.:
             self.gain_history_bnd += [self.get_gain()]
+
+        if self.clock % 3 == 0:
+            self.gain_history += [self.get_gain()]
 
         # === GOAL-DIRECTED BEHAVIOUR ====================================
 
@@ -982,6 +986,9 @@ class Brain:
 
     def get_gain(self):
         return self.space.get_gain()
+
+    def get_gain_history(self):
+        return np.array(self.gain_history)
 
     def get_gain_history_bnd(self):
         return np.array(self.gain_history_bnd)
