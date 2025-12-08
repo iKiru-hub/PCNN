@@ -219,6 +219,7 @@ class RewardObj:
                  silent_duration: int = 10,
                  color: Tuple[int, int, int] = (25, 255, 0),
                  delay: int = 10,
+                 move_period: int = -1,
                  fetching_duration = 2,
                  use_sprites: bool = True,
                  **kwargs):
@@ -235,6 +236,7 @@ class RewardObj:
         self.silent_duration = silent_duration
         self.fetching_duration = fetching_duration
         self.move_threshold = move_threshold
+        self.move_period = move_period
         self.use_sprites = use_sprites
         self.radius = radius
         self.sigma = sigma

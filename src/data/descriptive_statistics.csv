@@ -1,0 +1,36 @@
+Environment,Condition,Mean,SD,N
+3 walls,chance,8.38,2.31,128
+3 walls,no-mod.,34.45,6.19,128
+3 walls,all mod.,35.52,4.66,128
+3 walls,DA mod.,33.30,6.36,128
+3 walls,BND mod.,33.97,6.08,128
+3 walls,density,34.57,6.05,128
+3 walls,gain,34.54,5.95,128
+5 walls,chance,7.65,2.51,128
+5 walls,no-mod.,28.48,10.85,128
+5 walls,all mod.,33.98,6.12,128
+5 walls,DA mod.,31.40,8.18,128
+5 walls,BND mod.,31.88,6.88,128
+5 walls,density,33.33,5.69,128
+5 walls,gain,32.55,7.77,128
+7 walls,chance,5.62,1.78,128
+7 walls,no-mod.,21.16,7.00,128
+7 walls,all mod.,25.14,5.02,128
+7 walls,DA mod.,22.00,6.49,128
+7 walls,BND mod.,24.05,4.88,128
+7 walls,density,24.58,5.11,128
+7 walls,gain,21.92,6.81,128
+8 walls,chance,3.40,1.15,128
+8 walls,no-mod.,15.57,5.94,128
+8 walls,all mod.,17.19,4.40,128
+8 walls,DA mod.,15.36,5.17,128
+8 walls,BND mod.,16.65,4.84,128
+8 walls,density,17.16,3.97,128
+8 walls,gain,14.72,5.54,128
+11 walls,chance,3.28,1.14,128
+11 walls,no-mod.,12.88,6.36,128
+11 walls,all mod.,15.01,5.35,128
+11 walls,DA mod.,13.82,6.31,128
+11 walls,BND mod.,14.73,5.28,128
+11 walls,density,16.16,4.53,128
+11 walls,gain,13.74,6.13,128

@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import argparse, json
+import argparse, json, os
 from tqdm import tqdm
 import pygame
 
@@ -584,6 +584,245 @@ def run_model(parameters: dict,
 """ MAIN """
 
 
+def run_game_sil(global_parameters: dict=global_parameters,
+                  reward_settings: dict=reward_settings,
+                  t_room_change: int=10000,
+                  game_settings: dict=game_settings,
+                  load_idx: int=-1,
+                  room_name: str="Square.v0", load: bool=False,
+                  render_type: str="space", duration: int=-1):
+
+    """
+    meant to be run standalone
+    """
+
+    # if load:
+    #     load_idx = load_idx if load_idx > -1 else None
+    #     # load_idx = None
+    #     parameters = utils.load_parameters(idx=load_idx)
+    # else:
+    #     parameters = fixed_params
+    parameters = utils.load_parameters(idx=90)
+
+    """ make model """
+
+    remap_tag_frequency = parameters["remap_tag_frequency"] if "remap_tag_frequency" in parameters else 200
+    remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 0
+    lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.2
+
+    brain = pclib2.Brain(
+                local_scale=global_parameters["local_scale"],
+                N=global_parameters["N"],
+                rec_threshold=parameters["rec_threshold"],
+                speed=global_parameters["speed"],
+                min_rep_threshold=parameters["min_rep_threshold"],
+                gain=parameters["gain"],
+                offset=parameters["offset"],
+                threshold=parameters["threshold"],
+                rep_threshold=parameters["rep_threshold"],
+                tau_trace=parameters["tau_trace"],
+                remap_tag_frequency=parameters["remap_tag_frequency"],
+                lr_da=parameters["lr_da"],
+                lr_pred=parameters["lr_pred"],
+                threshold_da=parameters["threshold_da"],
+                tau_v_da=parameters["tau_v_da"],
+                lr_bnd=parameters["lr_bnd"],
+                threshold_bnd=parameters["threshold_bnd"],
+                tau_v_bnd=parameters["tau_v_bnd"],
+                tau_ssry=parameters["tau_ssry"],
+                threshold_ssry=parameters["threshold_ssry"],
+                threshold_circuit=parameters["threshold_circuit"],
+                rwd_weight=parameters["rwd_weight"],
+                rwd_sigma=parameters["rwd_sigma"],
+                rwd_threshold=parameters["rwd_threshold"],
+                col_weight=parameters["col_weight"],
+                col_sigma=parameters["col_sigma"],
+                col_threshold=parameters["col_threshold"],
+                rwd_field_mod=parameters["rwd_field_mod"],
+                col_field_mod=parameters["col_field_mod"],
+                action_delay=parameters["action_delay"],
+                edge_route_interval=parameters["edge_route_interval"],
+                forced_duration=parameters["forced_duration"],
+                min_weight_value=parameters["min_weight_value"])
+
+    """ make game environment """
+
+    room = games.make_room(name="Square.v0",
+                           thickness=game_settings["room_thickness"],
+                           bounds=[0, 1, 0, 1])
+    room_2 = games.make_room(name="Square.b",
+                           thickness=game_settings["room_thickness"],
+                           bounds=[0, 1, 0, 1])
+    room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
+                   room.bounds[1]+10, room.bounds[3]-10]
+
+    # ===| objects |===
+
+    possible_positions = room.get_room_positions()
+
+    agent_possible_positions = possible_positions.copy()
+    agent_position = room.sample_next_position()
+
+    rw_tau = reward_settings["tau"] if "tau" in reward_settings else 400
+    if "move_threlshold" in reward_settings:
+        rw_move_threshold = reward_settings["move_threshold"]
+    else:
+        rw_move_threshold = 2
+
+    reward_obj = objects.RewardObj(
+                position=possible_positions[0],
+                possible_positions=possible_positions,
+                radius=reward_settings["rw_radius"],
+                sigma=reward_settings["rw_sigma"],
+                fetching=reward_settings["rw_fetching"],
+                value=reward_settings["rw_value"],
+                bounds=room_bounds,
+                delay=reward_settings["delay"],
+                silent_duration=reward_settings["silent_duration"],
+                fetching_duration=reward_settings["fetching_duration"],
+                use_sprites=global_parameters["use_sprites"],
+                tau=rw_tau,
+                move_threshold=rw_move_threshold,
+                transparent=reward_settings["transparent"])
+
+    body = objects.AgentBody(
+                position=agent_position,
+                speed=global_parameters["speed"],
+                possible_positions=agent_possible_positions,
+                bounds=game_settings["agent_bounds"],
+                use_sprites=global_parameters["use_sprites"],
+                limit_position_len=game_settings["limit_position_len"],
+                room=room,
+                color=(10, 10, 10))
+
+    logger(reward_obj)
+
+    duration = game_settings["max_duration"] if duration < 0 else duration
+    verbose_min = False
+    verbose = True
+    record_flag = False
+    pause = -1
+    t_teleport=game_settings["t_teleport"]
+    plot_interval=game_settings["plot_interval"]
+
+    # --- env
+    env = games.Environment(room=room,
+                            agent=body,
+                            reward_obj=reward_obj,
+                            duration=duration,
+                            rw_event=game_settings["rw_event"],
+                            verbose=False,
+                            visualize=False)
+    logger(env)
+
+
+    """ run game """
+
+    if game_settings["rendering"]:
+        renderer = Renderer(brain=brain, render_type=render_type)
+    else:
+        renderer = None
+
+    logger("[@simulations.py]")
+
+    # ===| setup |===
+    last_position = np.zeros(2)
+
+    # [position, velocity, collision, reward, done, terminated]
+    observation = [[0., 0.], 0., 0., False, False]
+    prev_position = env.position
+    room_changed = False
+
+    events = []
+
+    # ===| main loop |===
+    # running = True
+    # while running:
+    for _ in tqdm(range(env.duration), desc="Game", leave=False,
+                  disable=not verbose_min):
+
+
+        # -check: teleport
+        if env.t % t_teleport == 0 and env.reward_obj.is_silent: # <=========================
+            env._reset_agent_position(brain, True)
+
+        # -check: change room
+        if env.t > t_room_change and not room_changed:
+            env.room = room_2
+            body.room = room_2
+            logger(f"Room change -> {env.room}")
+            room_changed = True
+
+        # velocity
+        v = [(env.position[0] - prev_position[0]),
+             (-env.position[1] + prev_position[1])]
+
+        # brain step
+        try:
+            velocity = brain(v,
+                             observation[1],
+                             observation[2],
+                             env.reward_availability)
+        except IndexError:
+            logger.debug(f"IndexError: {len(observation)}")
+            raise IndexError
+        # velocity = np.around(velocity, 2)
+
+        # store past position
+        prev_position = env.position
+        events += [[observation[1], observation[2]]]
+
+        # env step
+        observation = env(velocity=np.array([velocity[0], -velocity[1]]),
+                          brain=brain)
+
+        # -check: reset agent's brain
+        if observation[3]:
+            if verbose and verbose_min:
+                logger.info(">> Game reset <<")
+            break
+
+    logger(f"rw_count={env.rw_count}")
+
+    return events
+
+
+
+def main_rep(reps: int,
+             global_parameters: dict=global_parameters,
+             reward_settings: dict=reward_settings,
+             t_room_change: int=10000,
+             game_settings: dict=game_settings,
+             load_idx: int=-1,
+             room_name: str="Square.v0", load: bool=False,
+             render_type: str="space", duration: int=-1):
+
+    events = []
+
+    rbar = tqdm(range(reps))
+    for i in rbar:
+        rbar.set_description(f"rep={i} [{reps}]")
+        run_events = run_game_sil(room_name=room_name,
+                                  load=load,
+                                  duration=duration,
+                                  t_room_change=t_room_change,
+                                  render_type=render_type,
+                                  load_idx=load_idx)
+        events += [run_events]
+
+    logger("[done]")
+
+
+    name = utils.DATA_PATH + "/detour_data"
+    num = len([f for f in os.listdir(utils.DATA_PATH) if "detour_data" in f])
+
+    with open(f"{name}_{num}.json", 'w') as f:
+        json.dump(events, f)
+
+    logger("[detour data saved]")
+
+
+
 def main_game(global_parameters: dict=global_parameters,
               reward_settings: dict=reward_settings,
               t_room_change: int=10000,
@@ -741,7 +980,7 @@ def main_game(global_parameters: dict=global_parameters,
     agent_position = room.sample_next_position()
 
     rw_tau = reward_settings["tau"] if "tau" in reward_settings else 400
-    if "move_threlshold" in reward_settings:
+    if "move_threshold" in reward_settings:
         rw_move_threshold = reward_settings["move_threshold"]
     else:
         rw_move_threshold = 2
@@ -756,6 +995,7 @@ def main_game(global_parameters: dict=global_parameters,
                 bounds=room_bounds,
                 delay=reward_settings["delay"],
                 silent_duration=reward_settings["silent_duration"],
+                move_period=reward_settings["move_period"],
                 fetching_duration=reward_settings["fetching_duration"],
                 use_sprites=global_parameters["use_sprites"],
                 tau=rw_tau,
@@ -857,6 +1097,7 @@ def main_game(global_parameters: dict=global_parameters,
         # store past position
         prev_position = env.position
 
+
         # env step
         observation = env(velocity=np.array([velocity[0], -velocity[1]]),
                           brain=brain)
@@ -915,6 +1156,7 @@ if __name__ == "__main__":
                         help="time to change room")
     parser.add_argument("--load", action="store_true")
     parser.add_argument("--idx", type=int, default=-1) # or 91
+    parser.add_argument("--reps", type=int, default=1) # or 91
     parser.add_argument("--render", action="store_true")
     parser.add_argument("--render_type", type=str, default="space")
 
@@ -939,15 +1181,25 @@ if __name__ == "__main__":
         logger(f"random room: {args.room}")
 
     # --- run
-    try:
-        main_game(room_name=args.room, load=args.load,
-                  duration=args.duration,
-                  t_room_change=args.tchange,
-                  render_type=args.render_type,
-                  load_idx=args.idx)
-    except KeyboardInterrupt:
-        logger.debug("Keyboard interrupt")
-        # plt.show()
-        plt.close()
-        pygame.quit()
+    if 0:
+        try:
+            main_game(room_name=args.room, load=args.load,
+                      duration=args.duration,
+                      t_room_change=args.tchange,
+                      render_type=args.render_type,
+                      load_idx=args.idx)
+        except KeyboardInterrupt:
+            logger.debug("Keyboard interrupt")
+            # plt.show()
+            plt.close()
+            pygame.quit()
+
+    else:
+        main_rep(reps=args.reps,
+                 room_name=args.room,
+                 load=args.load,
+                 duration=args.duration,
+                 t_room_change=args.tchange,
+                 render_type=args.render_type,
+                 load_idx=args.idx)
 

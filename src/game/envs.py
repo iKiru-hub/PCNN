@@ -920,6 +920,7 @@ class Environment:
         self.velocity[1] = velocity[1]
 
         # print(self.agent.position, velocity)
+        self._periodic_move_reward()
 
         # return self.agent.position.copy(), velocity, reward, float(collision), float(self.t >= self.duration), terminated
         return self.agent.position, float(collision), self._reward, float(self.t >= self.duration), terminated
@@ -980,6 +981,18 @@ class Environment:
                         (-self.agent.position[1] + prev_position[1])]
         self.trajectory_set += [[]]
         self.trajectory = []
+
+    def _periodic_move_reward(self):
+
+        """ check and periodically move the reward position """
+
+        if self.reward_obj.move_period > 0:
+            if self.t % self.reward_obj.move_period == 0:
+                new_position = self.room.sample_next_position()
+                if new_position[0] == self.reward_obj.x and new_position[1] == self.reward_obj.y:
+                    self._periodic_move_reward()
+                    return
+                self.reward_obj.set_position(new_position)
 
     @property
     def position(self):

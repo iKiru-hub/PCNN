@@ -1,0 +1,48 @@
+Environment,Comparison,p-value (corrected),Significance
+3 walls,chance vs no-mod.,0.0000,***
+3 walls,chance vs all mod.,0.0000,***
+3 walls,chance vs DA mod.,0.0000,***
+3 walls,chance vs BND mod.,0.0000,***
+3 walls,chance vs density,0.0000,***
+3 walls,chance vs gain,0.0000,***
+3 walls,all mod. vs DA mod.,0.0358,*
+5 walls,chance vs no-mod.,0.0000,***
+5 walls,chance vs all mod.,0.0000,***
+5 walls,chance vs DA mod.,0.0000,***
+5 walls,chance vs BND mod.,0.0000,***
+5 walls,chance vs density,0.0000,***
+5 walls,chance vs gain,0.0000,***
+5 walls,no-mod. vs all mod.,0.0000,***
+5 walls,no-mod. vs density,0.0003,***
+5 walls,no-mod. vs gain,0.0148,*
+7 walls,chance vs no-mod.,0.0000,***
+7 walls,chance vs all mod.,0.0000,***
+7 walls,chance vs DA mod.,0.0000,***
+7 walls,chance vs BND mod.,0.0000,***
+7 walls,chance vs density,0.0000,***
+7 walls,chance vs gain,0.0000,***
+7 walls,no-mod. vs all mod.,0.0000,***
+7 walls,no-mod. vs BND mod.,0.0037,**
+7 walls,no-mod. vs density,0.0003,***
+7 walls,all mod. vs DA mod.,0.0005,***
+7 walls,all mod. vs gain,0.0005,***
+7 walls,DA mod. vs density,0.0108,*
+7 walls,density vs gain,0.0109,*
+8 walls,chance vs no-mod.,0.0000,***
+8 walls,chance vs all mod.,0.0000,***
+8 walls,chance vs DA mod.,0.0000,***
+8 walls,chance vs BND mod.,0.0000,***
+8 walls,chance vs density,0.0000,***
+8 walls,chance vs gain,0.0000,***
+8 walls,all mod. vs gain,0.0023,**
+8 walls,DA mod. vs density,0.0424,*
+8 walls,density vs gain,0.0015,**
+11 walls,chance vs no-mod.,0.0000,***
+11 walls,chance vs all mod.,0.0000,***
+11 walls,chance vs DA mod.,0.0000,***
+11 walls,chance vs BND mod.,0.0000,***
+11 walls,chance vs density,0.0000,***
+11 walls,chance vs gain,0.0000,***
+11 walls,no-mod. vs density,0.0001,***
+11 walls,DA mod. vs density,0.0170,*
+11 walls,density vs gain,0.0090,**
