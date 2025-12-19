@@ -32,6 +32,7 @@ reward_settings = {
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.05 * GAME_SCALE,
     "rw_sigma": 0.8,# * GAME_SCALE,
+    "move_period": 4000,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 200,
@@ -524,6 +525,7 @@ def run_model(parameters: dict,
                     tau=rw_tau,
                     preferred_positions=preferred_positions,
                     move_threshold=reward_settings["move_threshold"],
+                    move_period=reward_settings["move_period"],
                     transparent=reward_settings["transparent"])
 
     body = objects.AgentBody(
@@ -683,6 +685,7 @@ def run_game_sil(global_parameters: dict=global_parameters,
                 use_sprites=global_parameters["use_sprites"],
                 tau=rw_tau,
                 move_threshold=rw_move_threshold,
+                move_period=reward_settings["move_period"],
                 transparent=reward_settings["transparent"])
 
     body = objects.AgentBody(
@@ -1181,7 +1184,7 @@ if __name__ == "__main__":
         logger(f"random room: {args.room}")
 
     # --- run
-    if 0:
+    if 1:
         try:
             main_game(room_name=args.room, load=args.load,
                       duration=args.duration,

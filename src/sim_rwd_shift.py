@@ -24,8 +24,8 @@ logger = utils.setup_logger(__name__, level=2)
 """ SETTINGS """
 
 GAME_SCALE = games.SCREEN_WIDTH
-# ENV = "Flat.0000"
-ENV = "Flat.0001"
+ENV = "Square.v0"
+# ENV = "Flat.0001"
 
 
 reward_settings = {
@@ -38,7 +38,7 @@ reward_settings = {
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
     "delay": 20,
-    "silent_duration": 2_000,
+    "silent_duration": 1_000,
     "fetching_duration": 2,
     "transparent": False,
     "beta": 40.,
@@ -53,7 +53,7 @@ game_settings = {
     "rendering": True,
     "agent_bounds": np.array([0.23, 0.77,
                               0.23, 0.77]) * GAME_SCALE,
-    "max_duration": 30_000,
+    "max_duration": 20_000,
     "room_thickness": 30,
     "t_teleport": 1000,
     "limit_position_len": 1,

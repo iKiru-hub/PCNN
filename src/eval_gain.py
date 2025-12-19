@@ -115,6 +115,7 @@ def get_sig_stars(p_value: float) -> str:
     else:
         return 'n.s.'
 
+
 def run_simulations(num_reps: int) -> tuple:
 
     """ run num_reps repetitions and return the results about the pc gains """
@@ -268,6 +269,7 @@ def get_statistics(data: dict, num_reps: int):
     }
 
     return final_dict
+
 
 def save(file: dict):
 
