@@ -25,11 +25,11 @@ logger = utils.setup_logger(__name__, level=-1)
 
 GAME_SCALE = games.SCREEN_WIDTH
 
-DURATION = 40_000
-TCHANGE = 26_000
-RWD_SILENCE = 20_000
+DURATION = 30_00
+TCHANGE = 26_00
+RWD_SILENCE = 20_00
 
-PLOT_START = 25_000
+PLOT_START = 25_00
 PLOT_EDGE = False
 
 
@@ -216,7 +216,6 @@ class Renderer:
         for spine in self.axs.spines.values():
             spine.set_linewidth(5)
         plt.pause(0.00001)
-
 
     def render2(self, show: bool=False):
 
@@ -536,7 +535,7 @@ def run_game_sil(global_parameters: dict=global_parameters,
     #     parameters = utils.load_parameters(idx=load_idx)
     # else:
     #     parameters = fixed_params
-    parameters = utils.load_parameters(idx=90)
+    parameters = utils.load_parameters(idx=90, verbose=False)
 
     """ make model """
 
@@ -630,7 +629,7 @@ def run_game_sil(global_parameters: dict=global_parameters,
                 room=room,
                 color=(10, 10, 10))
 
-    logger(reward_obj)
+    # logger(reward_obj)
 
     duration = game_settings["max_duration"] if duration < 0 else duration
     verbose_min = False
@@ -648,7 +647,7 @@ def run_game_sil(global_parameters: dict=global_parameters,
                             rw_event=game_settings["rw_event"],
                             verbose=False,
                             visualize=False)
-    logger(env)
+    # logger(env)
 
 
     """ run game """
@@ -658,7 +657,7 @@ def run_game_sil(global_parameters: dict=global_parameters,
     else:
         renderer = None
 
-    logger("[@simulations.py]")
+    # logger("[@simulations.py]")
 
     # ===| setup |===
     last_position = np.zeros(2)
@@ -668,13 +667,16 @@ def run_game_sil(global_parameters: dict=global_parameters,
     prev_position = env.position
     room_changed = False
 
-    events = []
+    # events = []
+    results = {"events": [],
+               "count": []}
 
     # ===| main loop |===
     # running = True
     # while running:
     for _ in tqdm(range(env.duration), desc="Game", leave=False,
-                  disable=not verbose_min):
+                  disable=False):
+                  # disable=not verbose_min):
 
         # -check: teleport
         if env.t % t_teleport == 0 and env.reward_obj.is_silent: # <=========================
@@ -682,10 +684,10 @@ def run_game_sil(global_parameters: dict=global_parameters,
 
         # -check: change room
         if env.t > t_room_change and not room_changed:
-            env._reset_agent_position(brain=brain, exploration=False)
+            env._reset_agent_position(brain=brain, exploration=True)
             env.room = room_2
             body.room = room_2
-            logger(f"Room change -> {env.room}", -10)
+            # logger(f"Room change -> {env.room}", -10)
             room_changed = True
 
         # velocity
@@ -705,7 +707,10 @@ def run_game_sil(global_parameters: dict=global_parameters,
 
         # store past position
         prev_position = env.position
-        events += [[observation[1], observation[2]]]
+        # events += [[observation[1], observation[2]]]
+        results["events"] += [[observation[1], observation[2]]]
+        results["count"] += [[len(np.where(brain.get_da_weights()>0.05)[0]),
+                              len(np.where(brain.get_bnd_weights()>0.05)[0])]]
 
         # env step
         observation = env(velocity=np.array([velocity[0], -velocity[1]]),
@@ -717,9 +722,9 @@ def run_game_sil(global_parameters: dict=global_parameters,
                 logger.info(">> Game reset <<")
             break
 
-    logger(f"rw_count={env.rw_count}")
+    # logger(f"rw_count={env.rw_count}")
 
-    return events
+    return results
 
 
 
@@ -732,8 +737,11 @@ def main_rep(reps: int,
              room_name: str="Square.v0", load: bool=False,
              render_type: str="space", duration: int=-1):
 
-    events = []
+    # events = []
+    results = {"events": [],
+               "count": []}
 
+    logger(f"REPS={reps}")
     rbar = tqdm(range(reps))
     for i in rbar:
         rbar.set_description(f"rep={i} [{reps}]")
@@ -743,16 +751,18 @@ def main_rep(reps: int,
                                   t_room_change=t_room_change,
                                   render_type=render_type,
                                   load_idx=load_idx)
-        events += [run_events]
+        # events += [run_events]
+        results["events"] += [run_events["events"]]
+        results["count"] += [run_events["count"]]
 
     logger("[done]")
-
 
     name = utils.DATA_PATH + "/detour_data"
     num = len([f for f in os.listdir(utils.DATA_PATH) if "detour_data" in f])
 
     with open(f"{name}_{num}.json", 'w') as f:
-        json.dump(events, f)
+        # json.dump(events, f)
+        json.dump(results, f)
 
     logger("[detour data saved]")
 
@@ -783,10 +793,12 @@ def main_game(global_parameters: dict=global_parameters,
     remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 0
     lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.2
 
-    parameters["rep_threshold"] = 0.9999
-    parameters["min_rep_threshold"] = 0.9999
-    parameters["rec_threshold"] = 50
-    parameters["gain"] = 50
+    # parameters["rep_threshold"] = 0.9999
+    # parameters["min_rep_threshold"] = 0.9999
+    # parameters["rec_threshold"] = 40
+    # parameters["gain"] = 50
+    # parameters["threshold"] = 0.4
+    # parameters["offset"] = 1.01
 
     brain = pclib2.Brain(
                 local_scale=global_parameters["local_scale"],
@@ -1043,7 +1055,7 @@ if __name__ == "__main__":
         logger(f"random room: {args.room}")
 
     # --- run
-    if 1:
+    if args.reps < 2:
         try:
             main_game(room_name=args.room,
                       load=args.load,
@@ -1061,7 +1073,7 @@ if __name__ == "__main__":
         main_rep(reps=args.reps,
                  room_name=args.room,
                  load=args.load,
-                 duration=args.duration,
+                 duration=DURATION,
                  t_room_change=args.tchange,
                  render_type=args.render_type,
                  load_idx=args.idx)

@@ -11,9 +11,9 @@ from utils import setup_logger
 
 logger = setup_logger('PCLIB', level=-13, is_debugging=False, is_warning=False)
 
-MAX_ATTEMPTS = 5
+MAX_ATTEMPTS = 10
 MIN_PC_NUMBER = 5
-ATTEMPT_PAUSE = 20
+ATTEMPT_PAUSE = 10
 TOP_DA_IDX = 5
 OVERSHOOT_DURATION = 30
 
@@ -451,7 +451,7 @@ class GoalModule:
             goal_idx
         )
 
-        # Check: failed coarse planning
+        # Check: failed planning
         if not results[1]:  # Second element is the success flag
             # print("[Goal] failed planning")
             return False
@@ -805,7 +805,7 @@ class Brain:
                                              self.space, trigger)
 
         # check: attempt pause
-        if self.clock - self._t_attempt > ATTEMPT_PAUSE:
+        if (self.clock - self._t_attempt) > ATTEMPT_PAUSE:
 
             # if self.tmp_trg_idx > -1:
             if self.tmp_trg_idx > 0:

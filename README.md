@@ -22,18 +22,5 @@ The results below are obtained from a simulation where the agent walked a trajec
 
 ![games](media/games_a.png)
 
-### Branches 
-- **main** 
-- **cold** study of how to implement learning of non-hot encoded representations. _NB: only visible in the original repository for now_
-
-### Forks 
-[BioAI_Oslo]
-synched every time there is a push to the original repository.
-
-### TODO
-- [ ] more tailored unittests
-- [ ] make explicit the PC fields online skewing
-- [ ] design and implement a RL grid-world + task, see https://minigrid.farama.org/index.html & https://github.com/Farama-Foundation/Miniworld
-- [ ] code up the RL agent
 
 

@@ -23,6 +23,9 @@ logger = setup_logger(name='ENV', level=-2, is_debugging=False)
 
 """ Environment components """
 
+NOISE_SCALE_X = 20
+NOISE_SCALE_Y = 60
+
 
 class Wall:
 
@@ -958,10 +961,8 @@ class Environment:
     def _reset_agent_position(self, brain: object=None,
                               exploration: bool = False):
 
-        print("@env._reset_agent_position")
-
         if brain is not None:
-            logger(f"resetting brain..", -10)
+            logger(f"resetting brain..")
             brain.reset()
 
         prev_position = self.agent.position.copy()
@@ -973,14 +974,13 @@ class Environment:
                 ridx = np.random.choice(range(len(self._agent_position_list)))
                 self.agent.set_position(self._agent_position_list[ridx])
             elif self.agent.limit_position_len > -1:
-                self.agent.set_position(
-                    self.room.get_room_positions()[
-                            self.agent.limit_position_len])
-                logger(f"reset position to {self.agent.position}", -10)
+                new_position = self.room.get_room_positions()[self.agent.limit_position_len]
+                self.agent.set_position([new_position[0]+(np.random.rand()-0.5)*NOISE_SCALE_X,
+                                         new_position[1]+(np.random.rand()-0.5)*NOISE_SCALE_Y])
             else:
                 self.agent.set_position(self.room.sample_next_position())
 
-            logger(f"reset position to {self.agent.position}", -10)
+            logger(f"reset position to {self.agent.position}")
         displacement = [(self.agent.position[0] - prev_position[0]),
                         (-self.agent.position[1] + prev_position[1])]
         self.trajectory_set += [[]]

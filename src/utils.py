@@ -153,13 +153,14 @@ def load_session():
     return parameters, session_config
 
 
-def load_parameters(idx: int=None):
+def load_parameters(idx: int=None, verbose: bool=True):
 
     logger = setup_logger(name="UTILS", colored=True,
                           level=2, is_debugging=True,
                           is_warning=False)
 
-    logger("\n----\nLoading from evolution")
+    if verbose:
+        logger("\n----\nLoading from evolution")
 
     # load and sort files
     files = os.listdir(CACHE_PATH)
@@ -176,10 +177,11 @@ def load_parameters(idx: int=None):
     with open(f"{CACHE_PATH}/{files[idx]}", "r") as f:
         run_data = json.load(f)
 
-    logger(f"Loaded {files[idx]}")
-    logger(f"Loaded {run_data['info']['record_genome']['0']['fitness']}")
-    logger(f"Agent fitness={run_data['info']['record_genome']['0']['fitness']}")
-    logger(f"Agent fitness={run_data['info']['record_genome']['0']['genome']}")
+    if verbose:
+        logger(f"Loaded {files[idx]}")
+        logger(f"Loaded {run_data['info']['record_genome']['0']['fitness']}")
+        logger(f"Agent fitness={run_data['info']['record_genome']['0']['fitness']}")
+        logger(f"Agent fitness={run_data['info']['record_genome']['0']['genome']}")
 
     return run_data["info"]["record_genome"]["0"]["genome"]
 
