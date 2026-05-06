@@ -894,7 +894,7 @@ class Environment:
         self.t += 1
 
         if (self.t == self.rw_time): #> self.reward_obj.fetching_duration:
-            terminated = self._reward_event(brain=None)
+            terminated = self._reward_event(brain=brain)
 
         # --- step
         velocity, collision = self.agent(velocity)
@@ -958,7 +958,10 @@ class Environment:
     def _reset_agent_position(self, brain: object=None,
                               exploration: bool = False):
 
+        print("@env._reset_agent_position")
+
         if brain is not None:
+            logger(f"resetting brain..", -10)
             brain.reset()
 
         prev_position = self.agent.position.copy()
@@ -973,10 +976,11 @@ class Environment:
                 self.agent.set_position(
                     self.room.get_room_positions()[
                             self.agent.limit_position_len])
-                logger.debug(f"reset position to {self.agent.position}")
+                logger(f"reset position to {self.agent.position}", -10)
             else:
                 self.agent.set_position(self.room.sample_next_position())
 
+            logger(f"reset position to {self.agent.position}", -10)
         displacement = [(self.agent.position[0] - prev_position[0]),
                         (-self.agent.position[1] + prev_position[1])]
         self.trajectory_set += [[]]

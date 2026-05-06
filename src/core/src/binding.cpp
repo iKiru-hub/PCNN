@@ -82,7 +82,8 @@ PYBIND11_MODULE(pclib, m) {
         .def("get_wrec", &PCNN::get_wrec)
         .def("make_edges", &PCNN::make_edges)
         .def("calculate_closest_index", &PCNN::calculate_closest_index,
-             py::arg("c"))
+             py::arg("c"),
+             py::arg("mask")=std::vector<float>{})
         .def("get_neighbourhood_node_degree",
                     &PCNN::get_neighbourhood_node_degree,
              py::arg("idx"))

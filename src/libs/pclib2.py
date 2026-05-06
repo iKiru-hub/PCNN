@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 import core.build.pclib as pclib
 from utils import setup_logger
 
-logger = setup_logger('PCLIB', level=-3, is_debugging=False, is_warning=False)
+logger = setup_logger('PCLIB', level=-13, is_debugging=False, is_warning=False)
 
 MAX_ATTEMPTS = 5
 MIN_PC_NUMBER = 5
@@ -115,6 +115,9 @@ def spatial_shortest_path(connectivity_matrix: np.ndarray,
     parent = [-1] * num_nodes
     finalized = [False] * num_nodes
 
+    logger(f"start index {start_node} - {node_weights[start_node]}", -10)
+    logger(f"end index {end_node} - {node_weights[end_node]}", -10)
+
     # Min-heap priority queue (distance, node)
     pq = []
 
@@ -134,6 +137,17 @@ def spatial_shortest_path(connectivity_matrix: np.ndarray,
 
         for neighbor in range(num_nodes):
             if connectivity_matrix[current_node, neighbor] == 1 and not finalized[neighbor]:
+
+                bad_neighborhood = 0
+                for _k in range(num_nodes):
+                    if connectivity_matrix[current_node, _k] == 1:
+                        if node_weights[_k] < -1000.0:
+                            logger(f"index {neighbor} has neighbor {_k} < -1000 - {node_weights[_k]}", -10)
+                            bad_neighborhood += 1
+
+                if bad_neighborhood > 1:
+                    continue
+
                 if node_weights[neighbor] < -1000.0:
                     continue
                 else:
@@ -141,7 +155,7 @@ def spatial_shortest_path(connectivity_matrix: np.ndarray,
                     dy = node_coordinates[current_node, 1] - node_coordinates[neighbor, 1]
                     edge_distance = np.sqrt(dx * dx + dy * dy)
 
-                    # New distance could also include node_weights[neighbor] if desired
+                    # New distance could also include node_weights[neighbor]
                     new_distance = distances[current_node] + edge_distance
 
                 if new_distance < distances[neighbor]:
@@ -212,13 +226,13 @@ class Plan:
         # if distance > 0.01 and self._counter > 0:
         if self._curr_idx != self._next_idx:
             logger(f"\tdistance={distance:0.3f} counter={self._counter} " + \
-                   f"next={self._next_idx}")
+                   f"next={self._next_idx}", -10)
             return self._make_velocity(), True
 
         # check: end of the plan
         if self._counter > self._size or self._curr_idx == self._trg_idx or self.is_overshooting:
             logger(f"[Plan] end | counter={self._counter > self._size}" + \
-                   f" curr={self._curr_idx} trg={self._trg_idx}")
+                   f" curr={self._curr_idx} trg={self._trg_idx}", -10)
 
             if self._wt < self._wduration:
                 self._wt += 1
@@ -235,7 +249,7 @@ class Plan:
             self._next_idx = self._plan_idxs[self._counter]
             self._next_position = np.array(self._space.get_centers()[self._next_idx])
 
-            logger(f"[Plan] next idx: {self._next_idx}")
+            logger(f"[Plan] next idx: {self._next_idx}", -10)
         except IndexError as e:
             print(f"Index Error, {self._counter=} | {self._size=}")
             raise IndexError
@@ -422,7 +436,7 @@ class GoalModule:
         for i in range(len(plan_idxs)):
             logger(f"[goal] idx={plan_idxs[i]} | " + \
                 f"value={space_weights[plan_idxs[i]]} | " + \
-                f"bnd v={self.circuits.get_bnd_value(plan_idxs[i])}")
+                f"bnd v={self.circuits.get_bnd_value(plan_idxs[i])}", -10)
 
         return plan_idxs, True
 
@@ -1009,14 +1023,14 @@ class Brain:
         self.goalmd.reset()
         self.circuits.reset()
         self.space.reset()
-        logger.debug("[Brain reset]")
+        logger("[Brain reset]", -15)
+        logger(f"{self.goalmd.is_active()}", -15)
 
 
 """ main """
 
 
 if __name__ == "__main__":
-
 
     brain = Brain(local_scale=0.1,
                   N=100,

@@ -25,6 +25,13 @@ logger = utils.setup_logger(__name__, level=-1)
 
 GAME_SCALE = games.SCREEN_WIDTH
 
+DURATION = 40_000
+TCHANGE = 26_000
+RWD_SILENCE = 20_000
+
+PLOT_START = 25_000
+PLOT_EDGE = False
+
 
 reward_settings = {
     "rw_fetching": "deterministic",
@@ -32,21 +39,21 @@ reward_settings = {
     "rw_position": np.array([0.5, 0.3]) * GAME_SCALE,
     "rw_radius": 0.05 * GAME_SCALE,
     "rw_sigma": 0.8,# * GAME_SCALE,
-    "move_period": 4000,
+    "move_period": 40_000,
     "rw_bounds": np.array([0.23, 0.77,
                            0.23, 0.77]) * GAME_SCALE,
-    "delay": 200,
-    "silent_duration": 1_000,
+    "delay": 10,
+    "silent_duration": RWD_SILENCE,
     "fetching_duration": 10,
     "transparent": False,
     "beta": 40.,
     "alpha": 0.06,# * GAME_SCALE,
     "tau": 300,# * GAME_SCALE,
-    "move_threshold": 4000,# * GAME_SCALE,
+    "move_threshold": 400_000,# * GAME_SCALE,
 }
 
 game_settings = {
-    "plot_interval": 5,
+    "plot_interval": 10,
     "rw_event": "move agent",
     "rendering": True,
     "agent_bounds": np.array([0.23, 0.77,
@@ -110,44 +117,8 @@ parameters = {
         "min_weight_value": 0.2
 }
 
-parameters_2 = {
-      "gain": 102.4,
-      "offset": 1.02,
-      "threshold": 0.4,
-      "rep_threshold": 0.999,
-      "rec_threshold": 33,
-      "tau_trace": 10,
-      "remap_tag_frequency": 1,
-      "num_neighbors": 4,
-      "min_rep_threshold": 0.99,
-      "lr_da": 0.9,
-      "lr_pred": 0.05,
-      "threshold_da": 0.05,
-      "tau_v_da": 1.0,
-      "lr_bnd": 0.9,
-      "threshold_bnd": 0.01,
-      "tau_v_bnd": 1.0,
-      "tau_ssry": 437.0,
-      "threshold_ssry": 1.986,
-      "threshold_circuit": 0.9,
-      "rwd_weight": -2.11,
-      "rwd_sigma": 96.8,
-      "rwd_threshold": 0.49,
-      "col_weight": -0.83,
-      "col_sigma": 26.1,
-      "col_threshold": 0.07,
-      "rwd_field_mod": 4.6,
-      "col_field_mod": 5.4,
-      "action_delay": 120.0,
-      "edge_route_interval": 50,
-      "forced_duration": 19,
-      "min_weight_value": 0.1,
-    "modulation_options": [True]*4
-}
-
 
 fixed_params = parameters.copy()
-
 
 possible_positions = np.array([
     [0.25, 0.75], [0.75, 0.75],
@@ -159,9 +130,8 @@ possible_positions = np.array([
 
 class Renderer:
 
-    def __init__(self, brain: object, boundsx: tuple=(-330, 200),
-                 boundsy: tuple=(-300, 230),
-                 render_type: str="space"):
+    def __init__(self, brain: object, boundsx: tuple=(-270, 260),
+                 boundsy: tuple=(-250, 290), render_type: str="space"):
 
         self.brain = brain
         self.names = ["DA", "BND"]
@@ -203,8 +173,14 @@ class Renderer:
         # -- pc
         self.axs.scatter(*np.array(self.brain.get_space_centers()).T,
                          color='grey',
-                         alpha=0.1,
+                         alpha=0.8,
                          s=0.9*np.mean(gg))
+
+        if PLOT_EDGE:
+            for edge in self.brain.make_space_edges():
+                self.axs.plot((edge[0][0], edge[1][0]),
+                                    (edge[0][1], edge[1][1]),
+                                 alpha=0.3, lw=0.5, color="black")
 
         # -- BND
         bndw = self.brain.get_bnd_weights()
@@ -408,6 +384,8 @@ def run_model(parameters: dict,
     remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 1
     modulation_option = parameters["modulation_option"] if "modulation_option" in parameters else [True]*4
     lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.3
+    parameters["rec_threshold"] = 50
+    parameters["offset"] = 1.05
 
     """ make model """
 
@@ -443,52 +421,6 @@ def run_model(parameters: dict,
                 edge_route_interval=parameters["edge_route_interval"],
                 forced_duration=parameters["forced_duration"],
                 min_weight_value=parameters["min_weight_value"])
-
-    # brain = pclib.Brain(
-    #             local_scale_fine=global_parameters["local_scale_fine"],
-    #             local_scale_coarse=global_parameters["local_scale_coarse"],
-    #             N=global_parameters["N"],
-    #             Nc=global_parameters["Nc"],
-    #             min_rep_threshold=parameters["min_rep_threshold"],
-    #             rec_threshold_fine=parameters["rec_threshold_fine"],
-    #             rec_threshold_coarse=parameters["rec_threshold_coarse"],
-    #             speed=global_parameters["speed"],
-    #             gain_fine=parameters["gain_fine"],
-    #             offset_fine=parameters["offset_fine"],
-    #             threshold_fine=parameters["threshold_fine"],
-    #             rep_threshold_fine=parameters["rep_threshold_fine"],
-    #             tau_trace_fine=parameters["tau_trace_fine"],
-    #             remap_tag_frequency=parameters['remap_tag_frequency'],
-    #             gain_coarse=parameters["gain_coarse"],
-    #             offset_coarse=parameters["offset_coarse"],
-    #             threshold_coarse=parameters["threshold_coarse"],
-    #             rep_threshold_coarse=parameters["rep_threshold_coarse"],
-    #             tau_trace_coarse=parameters["tau_trace_coarse"],
-    #             lr_da=parameters["lr_da"],
-    #             lr_pred=parameters['lr_pred'],
-    #             threshold_da=parameters["threshold_da"],
-    #             tau_v_da=parameters["tau_v_da"],
-    #             lr_bnd=parameters["lr_bnd"],
-    #             threshold_bnd=parameters["threshold_bnd"],
-    #             tau_v_bnd=parameters["tau_v_bnd"],
-    #             tau_ssry=parameters["tau_ssry"],
-    #             threshold_ssry=parameters["threshold_ssry"],
-    #             threshold_circuit=parameters["threshold_circuit"],
-    #             remapping_flag=parameters['remapping_flag'],
-    #             modulation_option=parameters['modulation_option'],
-    #             rwd_weight=parameters["rwd_weight"],
-    #             rwd_sigma=parameters["rwd_sigma"],
-    #             col_weight=parameters["col_weight"],
-    #             col_sigma=parameters["col_sigma"],
-    #             rwd_field_mod_fine=parameters["rwd_field_mod_fine"],
-    #             rwd_field_mod_coarse=parameters["rwd_field_mod_coarse"],
-    #             col_field_mod_fine=parameters["col_field_mod_fine"],
-    #             col_field_mod_coarse=parameters["col_field_mod_coarse"],
-    #             action_delay=parameters["action_delay"],
-    #             edge_route_interval=parameters["edge_route_interval"],
-    #             forced_duration=parameters["forced_duration"],
-    #             fine_tuning_min_duration=parameters["fine_tuning_min_duration"],
-    #             min_weight_value=parameters["fine_tuning_min_duration"])
 
     """ make game environment """
 
@@ -744,16 +676,16 @@ def run_game_sil(global_parameters: dict=global_parameters,
     for _ in tqdm(range(env.duration), desc="Game", leave=False,
                   disable=not verbose_min):
 
-
         # -check: teleport
         if env.t % t_teleport == 0 and env.reward_obj.is_silent: # <=========================
             env._reset_agent_position(brain, True)
 
         # -check: change room
         if env.t > t_room_change and not room_changed:
+            env._reset_agent_position(brain=brain, exploration=False)
             env.room = room_2
             body.room = room_2
-            logger(f"Room change -> {env.room}")
+            logger(f"Room change -> {env.room}", -10)
             room_changed = True
 
         # velocity
@@ -851,83 +783,10 @@ def main_game(global_parameters: dict=global_parameters,
     remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 0
     lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.2
 
-    # brain = pclib.Brain(
-    #             local_scale_fine=global_parameters["local_scale_fine"],
-    #             local_scale_coarse=global_parameters["local_scale_coarse"],
-    #             N=global_parameters["N"],
-    #             Nc=global_parameters["Nc"],
-    #             min_rep_threshold=parameters["min_rep_threshold"],
-    #             rec_threshold_fine=parameters["rec_threshold_fine"],
-    #             rec_threshold_coarse=parameters["rec_threshold_coarse"],
-    #             tau_trace_fine=parameters["tau_trace_fine"],
-    #             speed=global_parameters["speed"],
-    #             gain_fine=parameters["gain_fine"],
-    #             offset_fine=parameters["offset_fine"],
-    #             threshold_fine=parameters["threshold_fine"],
-    #             rep_threshold_fine=parameters["rep_threshold_fine"],
-    #             remap_tag_frequency=remap_tag_frequency,
-    #             tau_trace_coarse=parameters["tau_trace_coarse"],
-    #             gain_coarse=parameters["gain_coarse"],
-    #             offset_coarse=parameters["offset_coarse"],
-    #             threshold_coarse=parameters["threshold_coarse"],
-    #             rep_threshold_coarse=parameters["rep_threshold_coarse"],
-    #             lr_da=parameters["lr_da"],
-    #             lr_pred=lr_pred,
-    #             threshold_da=parameters["threshold_da"],
-    #             tau_v_da=parameters["tau_v_da"],
-    #             lr_bnd=parameters["lr_bnd"],
-    #             threshold_bnd=parameters["threshold_bnd"],
-    #             tau_v_bnd=parameters["tau_v_bnd"],
-    #             tau_ssry=parameters["tau_ssry"],
-    #             threshold_ssry=parameters["threshold_ssry"],
-    #             threshold_circuit=parameters["threshold_circuit"],
-    #             remapping_flag=remapping_flag,
-    #             rwd_weight=parameters["rwd_weight"],
-    #             rwd_sigma=parameters["rwd_sigma"],
-    #             col_weight=parameters["col_weight"],
-    #             col_sigma=parameters["col_sigma"],
-    #             rwd_field_mod_fine=parameters["rwd_field_mod_fine"],
-    #             rwd_field_mod_coarse=parameters["rwd_field_mod_coarse"],
-    #             col_field_mod_fine=parameters["col_field_mod_fine"],
-    #             col_field_mod_coarse=parameters["col_field_mod_coarse"],
-    #             action_delay=parameters["action_delay"],
-    #             edge_route_interval=parameters["edge_route_interval"],
-    #             forced_duration=parameters["forced_duration"],
-    #             fine_tuning_min_duration=parameters["fine_tuning_min_duration"],
-    #             min_weight_value=parameters["fine_tuning_min_duration"])
-
-    # brain = pclib2.Brain(
-    #             local_scale=global_parameters["local_scale"],
-    #             N=global_parameters["N"],
-    #             rec_threshold=parameters["rec_threshold"],
-    #             speed=global_parameters["speed"],
-    #             min_rep_threshold=parameters["min_rep_threshold"],
-    #             gain=parameters["gain"],
-    #             offset=parameters["offset"],
-    #             threshold=parameters["threshold"],
-    #             rep_threshold=parameters["rep_threshold"],
-    #             tau_trace=parameters["tau_trace"],
-    #             remap_tag_frequency=parameters["remap_tag_frequency"],
-    #             lr_da=parameters["lr_da"],
-    #             lr_pred=parameters["lr_pred"],
-    #             threshold_da=parameters["threshold_da"],
-    #             tau_v_da=parameters["tau_v_da"],
-    #             lr_bnd=parameters["lr_bnd"],
-    #             threshold_bnd=parameters["threshold_bnd"],
-    #             tau_v_bnd=parameters["tau_v_bnd"],
-    #             tau_ssry=parameters["tau_ssry"],
-    #             threshold_ssry=parameters["threshold_ssry"],
-    #             threshold_circuit=parameters["threshold_circuit"],
-    #             rwd_weight=parameters["rwd_weight"],
-    #             rwd_sigma=parameters["rwd_sigma"],
-    #             col_weight=parameters["col_weight"],
-    #             col_sigma=parameters["col_sigma"],
-    #             rwd_field_mod=parameters["rwd_field_mod"],
-    #             col_field_mod=parameters["col_field_mod"],
-    #             action_delay=parameters["action_delay"],
-    #             edge_route_interval=parameters["edge_route_interval"],
-    #             forced_duration=parameters["forced_duration"],
-    #             min_weight_value=parameters["min_weight_value"])
+    parameters["rep_threshold"] = 0.9999
+    parameters["min_rep_threshold"] = 0.9999
+    parameters["rec_threshold"] = 50
+    parameters["gain"] = 50
 
     brain = pclib2.Brain(
                 local_scale=global_parameters["local_scale"],
@@ -1018,7 +877,7 @@ def main_game(global_parameters: dict=global_parameters,
     logger(reward_obj)
 
     duration = game_settings["max_duration"] if duration < 0 else duration
-    verbose_min = False
+    verbose_min = True
     verbose = True
     record_flag = False
     pause = -1
@@ -1077,6 +936,7 @@ def main_game(global_parameters: dict=global_parameters,
 
         # -check: change room
         if env.t > t_room_change and not room_changed:
+            env._reset_agent_position(brain, True)
             env.room = room_2
             body.room = room_2
             logger(f"Room change -> {env.room}")
@@ -1100,7 +960,6 @@ def main_game(global_parameters: dict=global_parameters,
         # store past position
         prev_position = env.position
 
-
         # env step
         observation = env(velocity=np.array([velocity[0], -velocity[1]]),
                           brain=brain)
@@ -1112,7 +971,7 @@ def main_game(global_parameters: dict=global_parameters,
             break
 
         # -check: render
-        if env.visualize:
+        if env.visualize and env.t > PLOT_START:
             if env.t % plot_interval == 0:
                 env.render()
                 if renderer:
@@ -1186,9 +1045,10 @@ if __name__ == "__main__":
     # --- run
     if 1:
         try:
-            main_game(room_name=args.room, load=args.load,
-                      duration=args.duration,
-                      t_room_change=args.tchange,
+            main_game(room_name=args.room,
+                      load=args.load,
+                      duration=DURATION,#args.duration,
+                      t_room_change=TCHANGE,#args.tchange,
                       render_type=args.render_type,
                       load_idx=args.idx)
         except KeyboardInterrupt:

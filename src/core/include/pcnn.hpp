@@ -1073,7 +1073,7 @@ public:
         return edges;  // Add this line to return the edges vector
     }
 
-    int calculate_closest_index(std::array<float, 2> c) {
+    int calculate_closest_index(std::array<float, 2> c, std::vector<float> mask={}) {
         // calculate the closest index to the velocity
         float min_dist = 1000.0f;
         int idx = -1;
@@ -1386,6 +1386,7 @@ public:
                float threshold) {
 
         if ((magnitude * magnitude) < 0.00001f) { return; }
+        return;
 
         float magnitude_i;;
         for (int i = 0; i < N; i++) {
@@ -1424,8 +1425,8 @@ public:
         }
     }
 
-    int calculate_closest_index(const std::array<float, 2>& c)
-        { return vspace.calculate_closest_index(c); }
+    int calculate_closest_index(const std::array<float, 2>& c, std::vector<float> mask={})
+        { return vspace.calculate_closest_index(c, mask); }
 
     int get_neighbourhood_node_degree(int idx) {
         int node_degree = vspace.node_degrees(idx);
