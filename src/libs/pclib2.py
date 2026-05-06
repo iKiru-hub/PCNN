@@ -1023,8 +1023,8 @@ class Brain:
         self.goalmd.reset()
         self.circuits.reset()
         self.space.reset()
-        logger("[Brain reset]", -15)
-        logger(f"{self.goalmd.is_active()}", -15)
+        logger("[Brain reset]", -10)
+        logger(f"{self.goalmd.is_active()}", -10)
 
 
 """ main """
