@@ -25,11 +25,11 @@ logger = utils.setup_logger(__name__, level=-1)
 
 GAME_SCALE = games.SCREEN_WIDTH
 
-DURATION = 25_000
-TCHANGE = 20_000
-RWD_SILENCE = 15_000
+DURATION = 15000
+TCHANGE = 5000
+RWD_SILENCE = 0
 
-PLOT_START = 21_000
+PLOT_START = 0
 PLOT_EDGE = False
 
 
@@ -364,155 +364,6 @@ class Renderer:
         plt.pause(0.00001)
 
 
-def run_model(parameters: dict,
-              global_parameters: dict,
-              reward_settings: dict,
-              game_settings: dict,
-              room_name: str="Flat.1011",
-              pause: int=-1, verbose: bool=True,
-              record_flag: bool=False,
-              limit_position_len: int=-1,
-              preferred_positions: list=None,
-              verbose_min: bool=True) -> int:
-
-    """
-    meant to be run standalone
-    """
-
-    remap_tag_frequency = parameters["remap_tag_frequency"] if "remap_tag_frequency" in parameters else 200
-    remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 1
-    modulation_option = parameters["modulation_option"] if "modulation_option" in parameters else [True]*4
-    lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.3
-    parameters["rec_threshold"] = 50
-    parameters["offset"] = 1.05
-
-    """ make model """
-
-    brain = pclib2.Brain(
-                local_scale=global_parameters["local_scale"],
-                N=global_parameters["N"],
-                rec_threshold=parameters["rec_threshold"],
-                speed=global_parameters["speed"],
-                min_rep_threshold=parameters["min_rep_threshold"],
-                gain=parameters["gain"],
-                offset=parameters["offset"],
-                threshold=parameters["threshold"],
-                rep_threshold=parameters["rep_threshold"],
-                tau_trace=parameters["tau_trace"],
-                remap_tag_frequency=parameters["remap_tag_frequency"],
-                lr_da=parameters["lr_da"],
-                lr_pred=parameters["lr_pred"],
-                threshold_da=parameters["threshold_da"],
-                tau_v_da=parameters["tau_v_da"],
-                lr_bnd=parameters["lr_bnd"],
-                threshold_bnd=parameters["threshold_bnd"],
-                tau_v_bnd=parameters["tau_v_bnd"],
-                tau_ssry=parameters["tau_ssry"],
-                threshold_ssry=parameters["threshold_ssry"],
-                threshold_circuit=parameters["threshold_circuit"],
-                rwd_weight=parameters["rwd_weight"],
-                rwd_sigma=parameters["rwd_sigma"],
-                col_weight=parameters["col_weight"],
-                col_sigma=parameters["col_sigma"],
-                rwd_field_mod=parameters["rwd_field_mod"],
-                col_field_mod=parameters["col_field_mod"],
-                action_delay=parameters["action_delay"],
-                edge_route_interval=parameters["edge_route_interval"],
-                forced_duration=parameters["forced_duration"],
-                min_weight_value=parameters["min_weight_value"])
-
-    """ make game environment """
-
-    if verbose and verbose_min:
-        logger(f"room_name={room_name}")
-
-    room = games.make_room(name=room_name,
-                           thickness=game_settings["room_thickness"],
-                           bounds=[0, 1, 0, 1])
-    room_bounds = [room.bounds[0]+10, room.bounds[2]-10,
-                   room.bounds[1]+10, room.bounds[3]-10]
-
-    # ===| objects |===
-
-    possible_positions = room.get_room_positions()
-    print(f"{possible_positions=}")
-
-    agent_possible_positions = possible_positions.copy()
-    agent_position = room.sample_next_position()
-
-    rw_tau = reward_settings["tau"] if "tau" in reward_settings else 100
-
-    reward_obj = objects.RewardObj(
-                    position=possible_positions[0],
-                    possible_positions=possible_positions,
-                    radius=reward_settings["rw_radius"],
-                    sigma=reward_settings["rw_sigma"],
-                    fetching=reward_settings["rw_fetching"],
-                    value=reward_settings["rw_value"],
-                    bounds=room_bounds,
-                    delay=reward_settings["delay"],
-                    use_sprites=global_parameters["use_sprites"],
-                    silent_duration=reward_settings["silent_duration"],
-                    tau=rw_tau,
-                    preferred_positions=preferred_positions,
-                    move_threshold=reward_settings["move_threshold"],
-                    move_period=reward_settings["move_period"],
-                    transparent=reward_settings["transparent"])
-
-    body = objects.AgentBody(
-                position=agent_position,
-                speed=global_parameters["speed"],
-                possible_positions=possible_positions,
-                use_sprites=global_parameters["use_sprites"],
-                bounds=game_settings["agent_bounds"],
-                room=room,
-                limit_position_len=game_settings["limit_position_len"],
-                color=(10, 10, 10))
-
-
-    # --- env
-    env = games.Environment(room=room,
-                            agent=body,
-                            reward_obj=reward_obj,
-                            rw_event=game_settings["rw_event"],
-                            verbose=False,
-                            duration=game_settings["max_duration"],
-                            visualize=game_settings["rendering"])
-
-    """ run game """
-
-    if env.reward_obj.preferred_positions is not None:
-        idx = np.random.choice(env.reward_obj.preferred_positions)
-        env.reward_obj.set_position(
-                env.room.sample_random_position(idx))
-
-    if verbose_min:
-        logger("[@simulations.py]")
-    record = run_game(env=env,
-             brain=brain,
-             renderer=None,
-             plot_interval=game_settings["plot_interval"],
-             t_teleport=game_settings["t_teleport"],
-             pause=-1,
-             record_flag=record_flag,
-             verbose=verbose,
-             verbose_min=verbose_min)
-
-    if verbose_min:
-        logger(f"rw_count={env.rw_count}")
-
-    if record_flag:
-        record["rw_count"] = env.rw_count
-        return record
-
-    info = {
-        "env": env,
-        "reward_obj": reward_obj,
-        "brain": brain
-    }
-
-    return env.rw_count, info 
-
 
 """ MAIN """
 
@@ -535,13 +386,21 @@ def run_game_sil(global_parameters: dict=global_parameters,
     #     parameters = utils.load_parameters(idx=load_idx)
     # else:
     #     parameters = fixed_params
-    parameters = utils.load_parameters(idx=-1, verbose=False)
+    # parameters = utils.load_parameters(idx=load_idx)
+    parameters = fixed_params
 
     """ make model """
 
     remap_tag_frequency = parameters["remap_tag_frequency"] if "remap_tag_frequency" in parameters else 200
     remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 0
     lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.2
+
+    parameters["rep_threshold"] = 0.999
+    parameters["min_rep_threshold"] = 0.99
+    parameters["rec_threshold"] = 40
+    parameters["gain"] = 50
+    parameters["threshold"] = 0.5
+    parameters["offset"] = 1.05
 
     brain = pclib2.Brain(
                 local_scale=global_parameters["local_scale"],
@@ -632,7 +491,7 @@ def run_game_sil(global_parameters: dict=global_parameters,
     # logger(reward_obj)
 
     duration = game_settings["max_duration"] if duration < 0 else duration
-    verbose_min = False
+    verbose_min = True
     verbose = True
     record_flag = False
     pause = -1
@@ -721,7 +580,6 @@ def run_game_sil(global_parameters: dict=global_parameters,
     return results
 
 
-
 def main_rep(reps: int,
              global_parameters: dict=global_parameters,
              reward_settings: dict=reward_settings,
@@ -761,7 +619,6 @@ def main_rep(reps: int,
     logger("[detour data saved]")
 
 
-
 def main_game(global_parameters: dict=global_parameters,
               reward_settings: dict=reward_settings,
               t_room_change: int=10000,
@@ -791,8 +648,8 @@ def main_game(global_parameters: dict=global_parameters,
     parameters["min_rep_threshold"] = 0.99
     parameters["rec_threshold"] = 40
     parameters["gain"] = 50
-    parameters["threshold"] = 0.4
-    parameters["offset"] = 1.03
+    parameters["threshold"] = 0.5
+    parameters["offset"] = 1.05
 
     brain = pclib2.Brain(
                 local_scale=global_parameters["local_scale"],
@@ -961,7 +818,6 @@ def main_game(global_parameters: dict=global_parameters,
         except IndexError:
             logger.debug(f"IndexError: {len(observation)}")
             raise IndexError
-        # velocity = np.around(velocity, 2)
 
         # store past position
         prev_position = env.position
