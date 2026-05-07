@@ -652,11 +652,6 @@ def run_game_sil(global_parameters: dict=global_parameters,
 
     """ run game """
 
-    if game_settings["rendering"]:
-        renderer = Renderer(brain=brain, render_type=render_type)
-    else:
-        renderer = None
-
     # logger("[@simulations.py]")
 
     # ===| setup |===
@@ -675,8 +670,7 @@ def run_game_sil(global_parameters: dict=global_parameters,
     # running = True
     # while running:
     for _ in tqdm(range(env.duration), desc="Game", leave=False,
-                  disable=False):
-                  # disable=not verbose_min):
+                  disable=not verbose_min):
 
         # -check: teleport
         if env.t % t_teleport == 0 and env.reward_obj.is_silent: # <=========================
