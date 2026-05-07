@@ -24,7 +24,7 @@ logger = setup_logger(name='ENV', level=-2, is_debugging=False)
 """ Environment components """
 
 NOISE_SCALE_X = 20
-NOISE_SCALE_Y = 60
+NOISE_SCALE_Y = 20
 
 
 class Wall:

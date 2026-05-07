@@ -25,11 +25,11 @@ logger = utils.setup_logger(__name__, level=-1)
 
 GAME_SCALE = games.SCREEN_WIDTH
 
-DURATION = 30_00
-TCHANGE = 26_00
-RWD_SILENCE = 20_00
+DURATION = 25_000
+TCHANGE = 20_000
+RWD_SILENCE = 15_000
 
-PLOT_START = 25_00
+PLOT_START = 21_000
 PLOT_EDGE = False
 
 
@@ -535,7 +535,7 @@ def run_game_sil(global_parameters: dict=global_parameters,
     #     parameters = utils.load_parameters(idx=load_idx)
     # else:
     #     parameters = fixed_params
-    parameters = utils.load_parameters(idx=90, verbose=False)
+    parameters = utils.load_parameters(idx=-1, verbose=False)
 
     """ make model """
 
@@ -787,12 +787,12 @@ def main_game(global_parameters: dict=global_parameters,
     remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 0
     lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.2
 
-    # parameters["rep_threshold"] = 0.9999
-    # parameters["min_rep_threshold"] = 0.9999
-    # parameters["rec_threshold"] = 40
-    # parameters["gain"] = 50
-    # parameters["threshold"] = 0.4
-    # parameters["offset"] = 1.01
+    parameters["rep_threshold"] = 0.999
+    parameters["min_rep_threshold"] = 0.99
+    parameters["rec_threshold"] = 40
+    parameters["gain"] = 50
+    parameters["threshold"] = 0.4
+    parameters["offset"] = 1.03
 
     brain = pclib2.Brain(
                 local_scale=global_parameters["local_scale"],
