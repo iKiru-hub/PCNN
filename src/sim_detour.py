@@ -25,11 +25,11 @@ logger = utils.setup_logger(__name__, level=-1)
 
 GAME_SCALE = games.SCREEN_WIDTH
 
-DURATION = 30_00
-TCHANGE = 26_00
-RWD_SILENCE = 20_00
+DURATION = 25_000
+TCHANGE = 20_000
+RWD_SILENCE = 15_000
 
-PLOT_START = 25_00
+PLOT_START = 25_000
 PLOT_EDGE = False
 
 
@@ -652,10 +652,10 @@ def run_game_sil(global_parameters: dict=global_parameters,
 
     """ run game """
 
-    if game_settings["rendering"]:
-        renderer = Renderer(brain=brain, render_type=render_type)
-    else:
-        renderer = None
+    # if game_settings["rendering"]:
+    #     renderer = Renderer(brain=brain, render_type=render_type)
+    # else:
+    #     renderer = None
 
     # logger("[@simulations.py]")
 
@@ -675,8 +675,7 @@ def run_game_sil(global_parameters: dict=global_parameters,
     # running = True
     # while running:
     for _ in tqdm(range(env.duration), desc="Game", leave=False,
-                  disable=False):
-                  # disable=not verbose_min):
+                  disable=not verbose_min):
 
         # -check: teleport
         if env.t % t_teleport == 0 and env.reward_obj.is_silent: # <=========================
