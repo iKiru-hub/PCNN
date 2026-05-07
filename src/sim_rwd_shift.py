@@ -295,6 +295,8 @@ def run_game_sil(global_parameters: dict=global_parameters,
     prev_position = env.position
 
     events = []
+    results = {"events": [],
+               "count": []}
 
     # ===| main loop |===
     # running = True
@@ -325,7 +327,10 @@ def run_game_sil(global_parameters: dict=global_parameters,
 
         # store past position
         prev_position = env.position
-        events += [[observation[1], observation[2]]]
+        # events += [[observation[1], observation[2]]]
+        results["events"] += [[observation[1], observation[2]]]
+        results["count"] += [[len(np.where(brain.get_da_weights()>0.05)[0]),
+                              len(np.where(brain.get_bnd_weights()>0.05)[0])]]
 
         # env step
         observation = env(velocity=np.array([velocity[0], -velocity[1]]),
@@ -339,13 +344,15 @@ def run_game_sil(global_parameters: dict=global_parameters,
 
     logger(f"rw_count={env.rw_count}")
 
-    return events
-
+    # return events
+    return results
 
 
 def main_rep(reps: int, save: bool=True):
 
     events = []
+    results = {"events": [],
+               "count": []}
 
     logger(f"starting {reps} repetitions")
 
@@ -353,7 +360,9 @@ def main_rep(reps: int, save: bool=True):
     for i in rbar:
         rbar.set_description(f"rep={i} [{reps}]")
         run_events = run_game_sil()
-        events += [run_events]
+        # events += [run_events]
+        results["events"] += [run_events["events"]]
+        results["count"] += [run_events["count"]]
 
     logger("[done]")
 
@@ -364,7 +373,8 @@ def main_rep(reps: int, save: bool=True):
         name = f"{name}_{num}.json"
 
         with open(name, 'w') as f:
-            json.dump(events, f)
+            # json.dump(events, f)
+            json.dump(results, f)
 
         logger(f"[rwd_shift_data data saved at {name}]")
 

@@ -611,12 +611,13 @@ def main_rep(reps: int,
 
     name = utils.DATA_PATH + "/detour_data"
     num = len([f for f in os.listdir(utils.DATA_PATH) if "detour_data" in f])
+    name = f"{name}_{num}.json"
 
-    with open(f"{name}_{num}.json", 'w') as f:
+    with open(name, 'w') as f:
         # json.dump(events, f)
         json.dump(results, f)
 
-    logger("[detour data saved]")
+    logger(f"[detour data saved as {name}]")
 
 
 def main_game(global_parameters: dict=global_parameters,
