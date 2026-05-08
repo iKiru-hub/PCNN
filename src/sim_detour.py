@@ -491,7 +491,7 @@ def run_game_sil(global_parameters: dict=global_parameters,
     # logger(reward_obj)
 
     duration = game_settings["max_duration"] if duration < 0 else duration
-    verbose_min = True
+    verbose_min = False
     verbose = True
     record_flag = False
     pause = -1
