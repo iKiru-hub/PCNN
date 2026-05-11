@@ -395,12 +395,12 @@ def run_game_sil(global_parameters: dict=global_parameters,
     remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 0
     lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.2
 
-    # parameters["rep_threshold"] = 0.999
-    # parameters["min_rep_threshold"] = 0.99
-    # parameters["rec_threshold"] = 40
-    # parameters["gain"] = 50
-    # parameters["threshold"] = 0.5
-    # parameters["offset"] = 1.05
+    parameters["rep_threshold"] = 0.999
+    parameters["min_rep_threshold"] = 0.99
+    parameters["rec_threshold"] = 40
+    parameters["gain"] = 50
+    parameters["threshold"] = 0.5
+    parameters["offset"] = 1.05
 
     brain = pclib2.Brain(
                 local_scale=global_parameters["local_scale"],

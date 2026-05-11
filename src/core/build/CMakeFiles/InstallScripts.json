@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/daniekru/Research/lab/PCNN/src/core/build/cmake_install.cmake",
+		"/Users/daniekru/Research/lab/PCNN/src/core/build/extern/pybind11/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
