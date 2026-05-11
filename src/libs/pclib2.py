@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.getcwd().split("PCNN")[0], "PCNN/src"))
 import core.build.pclib as pclib
 from utils import setup_logger
 
-logger = setup_logger('PCLIB', level=-13, is_debugging=False, is_warning=False)
+logger = setup_logger('PCLIB', level=-16, is_debugging=False, is_warning=False)
 
 MAX_ATTEMPTS = 10
 MIN_PC_NUMBER = 5
@@ -115,8 +115,8 @@ def spatial_shortest_path(connectivity_matrix: np.ndarray,
     parent = [-1] * num_nodes
     finalized = [False] * num_nodes
 
-    logger(f"start index {start_node} - {node_weights[start_node]}", -10)
-    logger(f"end index {end_node} - {node_weights[end_node]}", -10)
+    logger(f"start index {start_node} - {node_weights[start_node]}", -15)
+    logger(f"end index {end_node} - {node_weights[end_node]}", -15)
 
     # Min-heap priority queue (distance, node)
     pq = []
@@ -124,7 +124,9 @@ def spatial_shortest_path(connectivity_matrix: np.ndarray,
     distances[start_node] = 0.0
     heapq.heappush(pq, (0.0, start_node))
 
+    t = 0
     while pq:
+        t += 1
         current_dist, current_node = heapq.heappop(pq)
 
         if finalized[current_node] or current_dist > distances[current_node]:
@@ -133,20 +135,21 @@ def spatial_shortest_path(connectivity_matrix: np.ndarray,
         finalized[current_node] = True
 
         if current_node == end_node:
+            logger("end while pq", -15)
             break
 
         for neighbor in range(num_nodes):
             if connectivity_matrix[current_node, neighbor] == 1 and not finalized[neighbor]:
 
-                bad_neighborhood = 0
-                for _k in range(num_nodes):
-                    if connectivity_matrix[current_node, _k] == 1:
-                        if node_weights[_k] < -1000.0:
-                            logger(f"index {neighbor} has neighbor {_k} < -1000 - {node_weights[_k]}", -10)
-                            bad_neighborhood += 1
+                # bad_neighborhood = 0
+                # for _k in range(num_nodes):
+                #     if connectivity_matrix[current_node, _k] == 1:
+                #         if node_weights[_k] < -1000.0:
+                #             logger(f"index {neighbor} has neighbor {_k} < -1000 - {node_weights[_k]}", -10)
+                #             bad_neighborhood += 1
 
-                if bad_neighborhood > 1:
-                    continue
+                # if bad_neighborhood > 1:
+                #     continue
 
                 if node_weights[neighbor] < -1000.0:
                     continue
@@ -157,6 +160,9 @@ def spatial_shortest_path(connectivity_matrix: np.ndarray,
 
                     # New distance could also include node_weights[neighbor]
                     new_distance = distances[current_node] + edge_distance
+                    if new_distance == float('inf'):
+                        logger("is inf", -15)
+                        continue
 
                 if new_distance < distances[neighbor]:
                     distances[neighbor] = new_distance
@@ -168,6 +174,8 @@ def spatial_shortest_path(connectivity_matrix: np.ndarray,
     current = end_node
 
     if distances[end_node] == float('inf'):
+        logger(f"{t=} {path=}", -15)
+        logger(f"end distance is inf : {distances[end_node]}", -15)
         return []
 
     while current != -1:
@@ -176,8 +184,13 @@ def spatial_shortest_path(connectivity_matrix: np.ndarray,
 
     path.reverse()
 
-    if not path or path[0] != start_node:
+    if not path:
+        logger("not path", -15)
         return []
+    
+    # if path[0] != start_node:
+    #     logger(f"{path[0]=} != {start_node}", -15)
+    #     return []
 
     return path
 
@@ -828,7 +841,7 @@ class Brain:
 
                 # [-] failed trg plan
                 self._t_attempt = self.clock
-                logger("[Brain] invalid goal plan")
+                logger("[Brain] invalid goal plan", -15)
 
         # Fall through to exploration
         return self._explore(collision)

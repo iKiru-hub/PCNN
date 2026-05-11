@@ -25,11 +25,16 @@ logger = utils.setup_logger(__name__, level=-1)
 
 GAME_SCALE = games.SCREEN_WIDTH
 
-DURATION = 15000
-TCHANGE = 5000
-RWD_SILENCE = 0
+# DURATION = 15000
+# TCHANGE = 5000
+# RWD_SILENCE = 0
+# PLOT_START = 0
+# PLOT_EDGE = False
 
-PLOT_START = 0
+DURATION = 25000
+TCHANGE = 20000
+RWD_SILENCE = 10_000
+PLOT_START = 10_000
 PLOT_EDGE = False
 
 
@@ -397,7 +402,7 @@ def run_game_sil(global_parameters: dict=global_parameters,
 
     parameters["rep_threshold"] = 0.999
     parameters["min_rep_threshold"] = 0.99
-    parameters["rec_threshold"] = 40
+    parameters["rec_threshold"] = 60
     parameters["gain"] = 50
     parameters["threshold"] = 0.5
     parameters["offset"] = 1.05
@@ -647,7 +652,7 @@ def main_game(global_parameters: dict=global_parameters,
 
     parameters["rep_threshold"] = 0.999
     parameters["min_rep_threshold"] = 0.99
-    parameters["rec_threshold"] = 40
+    parameters["rec_threshold"] = 60
     parameters["gain"] = 50
     parameters["threshold"] = 0.5
     parameters["offset"] = 1.05
