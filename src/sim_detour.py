@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import argparse, json, os
 from tqdm import tqdm
+import time
 import pygame
 
 import utils
@@ -31,10 +32,10 @@ GAME_SCALE = games.SCREEN_WIDTH
 # PLOT_START = 0
 # PLOT_EDGE = False
 
-DURATION = 25000
-TCHANGE = 20000
-RWD_SILENCE = 10_000
-PLOT_START = 10_000
+DURATION = 35000
+TCHANGE = 25000
+RWD_SILENCE = 15_000
+PLOT_START = 37_000
 PLOT_EDGE = False
 
 
@@ -76,7 +77,7 @@ global_parameters = {
     "local_scale": 0.02,
     # "local_scale_fine": 0.02,
     # "local_scale_coarse": 0.006,
-    "N": 27**2,
+    "N": 35**2,
     # "N": 42**2,
     # "Nc": 35**2,
     "use_sprites": False,
@@ -400,11 +401,18 @@ def run_game_sil(global_parameters: dict=global_parameters,
     remapping_flag = parameters["remapping_flag"] if "remapping_flag" in parameters else 0
     lr_pred = parameters["lr_pred"] if "lr_pred" in parameters else 0.2
 
+    # parameters["rep_threshold"] = 0.999
+    # parameters["min_rep_threshold"] = 0.99
+    # parameters["rec_threshold"] = 40
+    # parameters["gain"] = 50
+    # parameters["threshold"] = 0.6
+    # parameters["offset"] = 1.05
+
     parameters["rep_threshold"] = 0.999
     parameters["min_rep_threshold"] = 0.99
-    parameters["rec_threshold"] = 60
-    parameters["gain"] = 50
-    parameters["threshold"] = 0.5
+    parameters["rec_threshold"] = 20
+    parameters["gain"] = 70
+    parameters["threshold"] = 0.65
     parameters["offset"] = 1.05
 
     brain = pclib2.Brain(
@@ -528,7 +536,8 @@ def run_game_sil(global_parameters: dict=global_parameters,
 
     # events = []
     results = {"events": [],
-               "count": []}
+               "count": [],
+               "error": False}
 
     # ===| main loop |===
     # running = True
@@ -560,7 +569,9 @@ def run_game_sil(global_parameters: dict=global_parameters,
                              env.reward_availability)
         except IndexError:
             logger.debug(f"IndexError: {len(observation)}")
-            raise IndexError
+            results["error"] = True
+            # raise IndexError
+            return result
         # velocity = np.around(velocity, 2)
 
         # store past position
@@ -602,12 +613,17 @@ def main_rep(reps: int,
     rbar = tqdm(range(reps))
     for i in rbar:
         rbar.set_description(f"rep={i} [{reps}]")
-        run_events = run_game_sil(room_name=room_name,
-                                  load=load,
-                                  duration=duration,
-                                  t_room_change=t_room_change,
-                                  render_type=render_type,
-                                  load_idx=load_idx)
+        while True:
+            run_events = run_game_sil(room_name=room_name,
+                                      load=load,
+                                      duration=duration,
+                                      t_room_change=t_room_change,
+                                      render_type=render_type,
+                                      load_idx=load_idx)
+            if run_events["error"]:
+                logger.error("failed run")
+                continue
+            break
         # events += [run_events]
         results["events"] += [run_events["events"]]
         results["count"] += [run_events["count"]]
@@ -652,9 +668,9 @@ def main_game(global_parameters: dict=global_parameters,
 
     parameters["rep_threshold"] = 0.999
     parameters["min_rep_threshold"] = 0.99
-    parameters["rec_threshold"] = 60
-    parameters["gain"] = 50
-    parameters["threshold"] = 0.5
+    parameters["rec_threshold"] = 15
+    parameters["gain"] = 70
+    parameters["threshold"] = 0.65
     parameters["offset"] = 1.05
 
     brain = pclib2.Brain(
@@ -786,6 +802,8 @@ def main_game(global_parameters: dict=global_parameters,
               "activity_coarse": [],
               "trajectory": []}
 
+    results = {"collisions": [],
+               "rewards": []}
 
     # ===| main loop |===
     # running = True
@@ -851,6 +869,9 @@ def main_game(global_parameters: dict=global_parameters,
             record["activity_coarse"] += [brain.get_representation_coarse()]
             record["trajectory"] += [env.position]
 
+        results["collisions"] += [observation[1]]
+        results["rewards"] += [observation[2]]
+
         # -check: exit
         if observation[4]:
             if verbose and verbose_min:
@@ -861,11 +882,36 @@ def main_game(global_parameters: dict=global_parameters,
         if pause > 0:
             pygame.time.wait(pause)
 
+    plt.close('all')
     pygame.quit()
 
     logger(f"rw_count={env.rw_count}")
 
-    plt.show()
+
+    # collision plot
+    K = 10
+    coll = np.convolve(np.array(results["collisions"]), np.ones(K)/K, mode="valid")
+    rwd = np.convolve(np.array(results["rewards"]), np.ones(K)/K, mode="valid")
+
+    # _, axp = plt.subplots()
+    # plt.plot(range(len(coll)), coll, 'b-')
+    # plt.plot(range(len(rwd)), rwd, 'g-')
+    # plt.yticks(())
+    # plt.show()
+
+    # time.sleep(3)
+    # plt.close()
+
+    name = utils.DATA_PATH + "/detour_data_s"
+    num = len([f for f in os.listdir(utils.DATA_PATH) if "detour_data_s" in f])
+    name = f"{name}_{num}.json"
+
+    with open(name, 'w') as f:
+        json.dump(results, f)
+
+    logger("[saved]")
+
+
 
 
 
