@@ -902,8 +902,9 @@ def main_game(global_parameters: dict=global_parameters,
     # time.sleep(3)
     # plt.close()
 
-    name = utils.DATA_PATH + "/detour_data_s"
-    num = len([f for f in os.listdir(utils.DATA_PATH) if "detour_data_s" in f])
+    path_name = utils.DATA_PATH + "/detourdir"
+    name = f"{path_name}/detour_data"
+    num = len([f for f in os.listdir(path_name) if "detour_data" in f])
     name = f"{name}_{num}.json"
 
     with open(name, 'w') as f:
