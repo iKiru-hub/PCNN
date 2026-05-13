@@ -1,7 +1,8 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/pclib.dir/link.d"
   "CMakeFiles/pclib.dir/src/binding.cpp.o"
   "CMakeFiles/pclib.dir/src/binding.cpp.o.d"
-  "pclib.cpython-311-darwin.so"
+  "pclib.cpython-313-x86_64-linux-gnu.so"
   "pclib.pdb"
 )
 

@@ -803,7 +803,9 @@ def main_game(global_parameters: dict=global_parameters,
               "trajectory": []}
 
     results = {"collisions": [],
-               "rewards": []}
+               "rewards": [],
+               "bnd_count": [],
+               "rwd_count": []}
 
     # ===| main loop |===
     # running = True
@@ -871,6 +873,8 @@ def main_game(global_parameters: dict=global_parameters,
 
         results["collisions"] += [observation[1]]
         results["rewards"] += [observation[2]]
+        results["bnd_count"] += [len(np.where(brain.get_bnd_weights()>0.05)[0])]
+        results["rwd_count"] += [len(np.where(brain.get_rwd_weights()>0.05)[0])]
 
         # -check: exit
         if observation[4]:
